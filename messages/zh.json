@@ -1,0 +1,72 @@
+{
+  "common": {
+    "appName": "報價單系統",
+    "save": "儲存",
+    "cancel": "取消",
+    "delete": "刪除",
+    "edit": "編輯",
+    "create": "新增",
+    "search": "搜尋",
+    "loading": "載入中...",
+    "signIn": "登入",
+    "signOut": "登出",
+    "welcome": "歡迎"
+  },
+  "auth": {
+    "signInWithGoogle": "使用 Google 登入",
+    "signInDescription": "登入以存取您的報價單"
+  },
+  "nav": {
+    "dashboard": "儀表板",
+    "quotations": "報價單",
+    "customers": "客戶",
+    "products": "產品",
+    "settings": "設定"
+  },
+  "quotation": {
+    "title": "報價單",
+    "createNew": "建立報價單",
+    "quotationNumber": "報價單號碼",
+    "customer": "客戶",
+    "issueDate": "發行日期",
+    "validUntil": "有效期限",
+    "status": "狀態",
+    "currency": "幣別",
+    "subtotal": "小計",
+    "tax": "稅金",
+    "total": "總計",
+    "notes": "備註",
+    "items": "項目",
+    "addItem": "新增項目",
+    "exportPDF": "匯出 PDF"
+  },
+  "customer": {
+    "title": "客戶",
+    "createNew": "建立客戶",
+    "name": "名稱",
+    "email": "電子郵件",
+    "phone": "電話",
+    "address": "地址"
+  },
+  "product": {
+    "title": "產品",
+    "createNew": "建立產品",
+    "name": "名稱",
+    "description": "描述",
+    "price": "價格",
+    "category": "類別"
+  },
+  "currency": {
+    "TWD": "TWD (新台幣)",
+    "USD": "USD (美元)",
+    "EUR": "EUR (歐元)",
+    "JPY": "JPY (日圓)",
+    "CNY": "CNY (人民幣)"
+  },
+  "status": {
+    "draft": "草稿",
+    "sent": "已發送",
+    "accepted": "已接受",
+    "rejected": "已拒絕"
+  }
+}

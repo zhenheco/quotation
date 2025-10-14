@@ -1,0 +1,72 @@
+{
+  "common": {
+    "appName": "Quotation System",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading...",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "welcome": "Welcome"
+  },
+  "auth": {
+    "signInWithGoogle": "Sign in with Google",
+    "signInDescription": "Sign in to access your quotations"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "quotations": "Quotations",
+    "customers": "Customers",
+    "products": "Products",
+    "settings": "Settings"
+  },
+  "quotation": {
+    "title": "Quotations",
+    "createNew": "Create Quotation",
+    "quotationNumber": "Quotation Number",
+    "customer": "Customer",
+    "issueDate": "Issue Date",
+    "validUntil": "Valid Until",
+    "status": "Status",
+    "currency": "Currency",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "total": "Total",
+    "notes": "Notes",
+    "items": "Items",
+    "addItem": "Add Item",
+    "exportPDF": "Export PDF"
+  },
+  "customer": {
+    "title": "Customers",
+    "createNew": "Create Customer",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address"
+  },
+  "product": {
+    "title": "Products",
+    "createNew": "Create Product",
+    "name": "Name",
+    "description": "Description",
+    "price": "Price",
+    "category": "Category"
+  },
+  "currency": {
+    "TWD": "TWD (Taiwan Dollar)",
+    "USD": "USD (US Dollar)",
+    "EUR": "EUR (Euro)",
+    "JPY": "JPY (Japanese Yen)",
+    "CNY": "CNY (Chinese Yuan)"
+  },
+  "status": {
+    "draft": "Draft",
+    "sent": "Sent",
+    "accepted": "Accepted",
+    "rejected": "Rejected"
+  }
+}
