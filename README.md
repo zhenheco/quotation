@@ -100,25 +100,44 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000) (or the port shown in terminal)
+
+### 8. Supabase CLI (Optional but Recommended) | Supabase CLI（可選但推薦）
+
+Supabase CLI 已安裝為本地依賴。查看完整指南：[SUPABASE.md](SUPABASE.md)
+
+快速開始：
+```bash
+# 登入 Supabase
+npm run supabase:login
+
+# 連結到您的專案
+npm run supabase:link
+
+# 生成 TypeScript 類型
+npm run supabase:gen:types
+```
 
 ## 📁 Project Structure | 專案結構
 
 ```
-quotation-app/
+quotation-system/
 ├── app/
 │   ├── [locale]/          # Internationalized routes
 │   │   ├── dashboard/     # Dashboard pages
 │   │   │   ├── page.tsx
 │   │   │   └── layout.tsx
 │   │   └── layout.tsx
-├── auth/
+│   ├── auth/
 │   │   └── callback/      # OAuth callback
 │   ├── login/             # Login page
+│   ├── page.tsx           # Root redirect
 │   └── layout.tsx
 ├── components/
 │   ├── Navbar.tsx         # Navigation bar
 │   └── Sidebar.tsx        # Sidebar menu
+├── i18n/
+│   └── request.ts         # i18n configuration
 ├── lib/
 │   └── supabase/          # Supabase client setup
 │       ├── client.ts      # Browser client
@@ -127,11 +146,15 @@ quotation-app/
 ├── messages/              # i18n translations
 │   ├── en.json
 │   └── zh.json
+├── supabase/              # Supabase CLI files
+│   ├── config.toml
+│   └── migrations/        # Database migrations
 ├── types/
 │   └── database.types.ts  # Database type definitions
 ├── middleware.ts          # Next.js middleware
-├── i18n.ts               # i18n configuration
-└── supabase-schema.sql   # Database schema
+├── supabase-schema.sql    # Database schema (initial)
+├── SUPABASE.md            # Supabase CLI guide
+└── README.md
 ```
 
 ## 🗄️ Database Schema | 資料庫架構

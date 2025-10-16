@@ -1,8 +1,13 @@
-import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/server'
+import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
+  const t = await getTranslations()
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -25,34 +30,30 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Dashboard / 儀表板</h1>
+      <h1 className="text-3xl font-bold text-gray-900">{t('nav.dashboard')}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <DashboardCard
-          title="Quotations / 報價單"
+          title={t('quotation.title')}
           count={quotations?.length || 0}
           icon="📄"
         />
         <DashboardCard
-          title="Customers / 客戶"
+          title={t('customer.title')}
           count={customers?.length || 0}
           icon="👥"
         />
         <DashboardCard
-          title="Products / 產品"
+          title={t('product.title')}
           count={products?.length || 0}
           icon="📦"
         />
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Welcome / 歡迎</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('common.welcome')}</h2>
         <p className="text-gray-600">
-          Welcome to your Quotation Management System. Get started by creating
-          your first quotation, customer, or product.
-        </p>
-        <p className="text-gray-600 mt-2">
-          歡迎使用報價單管理系統。開始建立您的第一個報價單、客戶或產品。
+          {t('dashboard.welcomeMessage')}
         </p>
       </div>
     </div>

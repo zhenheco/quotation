@@ -2,15 +2,19 @@
   "common": {
     "appName": "Quotation System",
     "save": "Save",
+    "saving": "Saving...",
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
+    "view": "View",
     "create": "Create",
     "search": "Search",
     "loading": "Loading...",
     "signIn": "Sign In",
     "signOut": "Sign Out",
-    "welcome": "Welcome"
+    "welcome": "Welcome",
+    "actions": "Actions",
+    "noResults": "No results found"
   },
   "auth": {
     "signInWithGoogle": "Sign in with Google",
@@ -23,9 +27,14 @@
     "products": "Products",
     "settings": "Settings"
   },
+  "dashboard": {
+    "welcomeMessage": "Welcome to your Quotation Management System. Get started by creating your first quotation, customer, or product."
+  },
   "quotation": {
     "title": "Quotations",
     "createNew": "Create Quotation",
+    "edit": "Edit Quotation",
+    "detail": "Quotation Details",
     "quotationNumber": "Quotation Number",
     "customer": "Customer",
     "issueDate": "Issue Date",
@@ -36,25 +45,86 @@
     "tax": "Tax",
     "total": "Total",
     "notes": "Notes",
+    "notesPlaceholder": "Add any additional notes or terms here...",
     "items": "Items",
     "addItem": "Add Item",
-    "exportPDF": "Export PDF"
+    "exportPDF": "Export PDF",
+    "selectCustomer": "Select a customer",
+    "selectProduct": "Select a product",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "discount": "Discount",
+    "noItems": "No items added yet. Click 'Add Item' to get started.",
+    "noCustomers": "You need to create a customer first before creating a quotation.",
+    "allStatus": "All Status",
+    "details": "Details",
+    "updateStatus": "Update Status",
+    "markAsSent": "Mark as Sent",
+    "markAsAccepted": "Mark as Accepted",
+    "markAsRejected": "Mark as Rejected",
+    "markAsDraft": "Mark as Draft",
+    "emptyState": {
+      "title": "No quotations yet",
+      "description": "Create your first quotation to get started."
+    },
+    "deleteConfirm": {
+      "title": "Delete Quotation",
+      "description": "Are you sure you want to delete this quotation? This action cannot be undone."
+    }
   },
   "customer": {
     "title": "Customers",
     "createNew": "Create Customer",
+    "edit": "Edit Customer",
     "name": "Name",
     "email": "Email",
     "phone": "Phone",
-    "address": "Address"
+    "address": "Address",
+    "namePlaceholder": {
+      "zh": "Customer Name (Chinese)",
+      "en": "Customer Name (English)"
+    },
+    "emailPlaceholder": "customer@example.com",
+    "phonePlaceholder": "+1 234 567 8900",
+    "addressPlaceholder": {
+      "zh": "Address (Chinese)",
+      "en": "Address (English)"
+    },
+    "emptyState": {
+      "title": "No customers yet",
+      "description": "Create your first customer to get started."
+    },
+    "deleteConfirm": {
+      "title": "Delete Customer",
+      "description": "Are you sure you want to delete this customer? This action cannot be undone."
+    }
   },
   "product": {
     "title": "Products",
     "createNew": "Create Product",
+    "edit": "Edit Product",
     "name": "Name",
     "description": "Description",
     "price": "Price",
-    "category": "Category"
+    "currency": "Currency",
+    "category": "Category",
+    "namePlaceholder": {
+      "zh": "Product Name (Chinese)",
+      "en": "Product Name (English)"
+    },
+    "descriptionPlaceholder": {
+      "zh": "Product Description (Chinese)",
+      "en": "Product Description (English)"
+    },
+    "categoryPlaceholder": "e.g., Software, Hardware, Service",
+    "emptyState": {
+      "title": "No products yet",
+      "description": "Create your first product to get started."
+    },
+    "deleteConfirm": {
+      "title": "Delete Product",
+      "description": "Are you sure you want to delete this product? This action cannot be undone."
+    }
   },
   "currency": {
     "TWD": "TWD (Taiwan Dollar)",

@@ -2,15 +2,19 @@
   "common": {
     "appName": "報價單系統",
     "save": "儲存",
+    "saving": "儲存中...",
     "cancel": "取消",
     "delete": "刪除",
     "edit": "編輯",
+    "view": "檢視",
     "create": "新增",
     "search": "搜尋",
     "loading": "載入中...",
     "signIn": "登入",
     "signOut": "登出",
-    "welcome": "歡迎"
+    "welcome": "歡迎",
+    "actions": "操作",
+    "noResults": "找不到結果"
   },
   "auth": {
     "signInWithGoogle": "使用 Google 登入",
@@ -23,9 +27,14 @@
     "products": "產品",
     "settings": "設定"
   },
+  "dashboard": {
+    "welcomeMessage": "歡迎使用報價單管理系統。開始建立您的第一個報價單、客戶或產品。"
+  },
   "quotation": {
     "title": "報價單",
     "createNew": "建立報價單",
+    "edit": "編輯報價單",
+    "detail": "報價單詳情",
     "quotationNumber": "報價單號碼",
     "customer": "客戶",
     "issueDate": "發行日期",
@@ -36,25 +45,86 @@
     "tax": "稅金",
     "total": "總計",
     "notes": "備註",
+    "notesPlaceholder": "在此添加任何額外的備註或條款...",
     "items": "項目",
     "addItem": "新增項目",
-    "exportPDF": "匯出 PDF"
+    "exportPDF": "匯出 PDF",
+    "selectCustomer": "選擇客戶",
+    "selectProduct": "選擇產品",
+    "quantity": "數量",
+    "unitPrice": "單價",
+    "discount": "折扣",
+    "noItems": "尚未添加項目。點擊「新增項目」開始。",
+    "noCustomers": "您需要先建立客戶才能建立報價單。",
+    "allStatus": "所有狀態",
+    "details": "詳細資訊",
+    "updateStatus": "更新狀態",
+    "markAsSent": "標記為已發送",
+    "markAsAccepted": "標記為已接受",
+    "markAsRejected": "標記為已拒絕",
+    "markAsDraft": "標記為草稿",
+    "emptyState": {
+      "title": "尚無報價單",
+      "description": "建立您的第一個報價單以開始使用。"
+    },
+    "deleteConfirm": {
+      "title": "刪除報價單",
+      "description": "確定要刪除此報價單嗎？此操作無法復原。"
+    }
   },
   "customer": {
     "title": "客戶",
     "createNew": "建立客戶",
+    "edit": "編輯客戶",
     "name": "名稱",
     "email": "電子郵件",
     "phone": "電話",
-    "address": "地址"
+    "address": "地址",
+    "namePlaceholder": {
+      "zh": "客戶名稱（中文）",
+      "en": "客戶名稱（英文）"
+    },
+    "emailPlaceholder": "customer@example.com",
+    "phonePlaceholder": "+886 912 345 678",
+    "addressPlaceholder": {
+      "zh": "地址（中文）",
+      "en": "地址（英文）"
+    },
+    "emptyState": {
+      "title": "尚無客戶",
+      "description": "建立您的第一個客戶以開始使用。"
+    },
+    "deleteConfirm": {
+      "title": "刪除客戶",
+      "description": "確定要刪除此客戶嗎？此操作無法復原。"
+    }
   },
   "product": {
     "title": "產品",
     "createNew": "建立產品",
+    "edit": "編輯產品",
     "name": "名稱",
     "description": "描述",
     "price": "價格",
-    "category": "類別"
+    "currency": "幣別",
+    "category": "類別",
+    "namePlaceholder": {
+      "zh": "產品名稱（中文）",
+      "en": "產品名稱（英文）"
+    },
+    "descriptionPlaceholder": {
+      "zh": "產品描述（中文）",
+      "en": "產品描述（英文）"
+    },
+    "categoryPlaceholder": "例如：軟體、硬體、服務",
+    "emptyState": {
+      "title": "尚無產品",
+      "description": "建立您的第一個產品以開始使用。"
+    },
+    "deleteConfirm": {
+      "title": "刪除產品",
+      "description": "確定要刪除此產品嗎？此操作無法復原。"
+    }
   },
   "currency": {
     "TWD": "TWD (新台幣)",

@@ -1,7 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { setRequestLocale } from 'next-intl/server'
 import Navbar from '@/components/Navbar'
 import Sidebar from '@/components/Sidebar'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardLayout({
   children,
@@ -10,6 +13,11 @@ export default async function DashboardLayout({
   children: React.ReactNode
   params: Promise<{ locale: string }>
 }) {
+  const { locale } = await params
+
+  // Enable static rendering
+  setRequestLocale(locale)
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -18,8 +26,6 @@ export default async function DashboardLayout({
   if (!user) {
     redirect('/login')
   }
-
-  const { locale } = await params
 
   return (
     <div className="min-h-screen bg-gray-50">
