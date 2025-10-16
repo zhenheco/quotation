@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sendQuotationEmail } from '@/lib/email/service'
+// 使用支援 Gmail 的新版 service
+import { sendQuotationEmail } from '@/lib/email/service-gmail'
 import { emailRateLimiter } from '@/lib/middleware/rate-limiter'
 
 export async function POST(
