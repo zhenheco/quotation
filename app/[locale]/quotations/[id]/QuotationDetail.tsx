@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
+import PDFDownloadButton from '@/components/PDFDownloadButton'
+import EmailSendButton from '@/components/EmailSendButton'
 
 interface QuotationDetailProps {
   quotation: any
@@ -64,7 +66,21 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
               {t('quotation.issueDate')}: {new Date(quotation.issue_date).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')}
             </p>
           </div>
-          {getStatusBadge(quotation.status)}
+          <div className="flex items-center gap-3">
+            {getStatusBadge(quotation.status)}
+            <EmailSendButton
+              quotationId={quotation.id}
+              recipientEmail={quotation.customers?.email || ''}
+              locale={locale as 'zh' | 'en'}
+              onSuccess={() => router.refresh()}
+            />
+            <PDFDownloadButton
+              quotationId={quotation.id}
+              locale={locale as 'zh' | 'en'}
+              variant="primary"
+              showLanguageOptions={true}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-6">

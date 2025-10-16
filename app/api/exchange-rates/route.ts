@@ -1,19 +1,17 @@
 /**
  * 匯率 API 路由
- * GET /api/exchange-rates - 獲取最新匯率
+ * GET /api/exchange-rates - 從 Zeabur PostgreSQL 獲取最新匯率
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getExchangeRates, Currency } from '@/lib/services/exchange-rate'
+import { getExchangeRates, Currency } from '@/lib/services/exchange-rate-zeabur'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const baseCurrency = (searchParams.get('base') || 'USD') as Currency
+  const baseCurrency = (searchParams.get('base') || 'TWD') as Currency
 
   try {
-    const supabase = await createClient()
-    const rates = await getExchangeRates(supabase, baseCurrency)
+    const rates = await getExchangeRates(baseCurrency)
 
     return NextResponse.json({
       success: true,

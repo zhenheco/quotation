@@ -1,0 +1,13 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/exchange-rates",
+      "schedule": "0 0 * * *"
+    }
+  ],
+  "functions": {
+    "app/api/cron/exchange-rates/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

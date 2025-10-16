@@ -10,18 +10,20 @@ A modern, bilingual (English/Chinese) quotation management system with multi-cur
 - 🔐 **Google OAuth Authentication** | Google OAuth 登入認證
 - 🌐 **Bilingual Support** (English/中文) | 雙語系統支援
 - 💱 **Multi-Currency** (TWD, USD, EUR, JPY, CNY) | 多幣別支援
+- 💱 **Real-time Exchange Rates** | 即時匯率整合 (ExchangeRate-API)
 - 📄 **Quotation Management** | 報價單管理
 - 👥 **Customer Management** | 客戶管理
 - 📦 **Product Management** | 產品管理
 - 📊 **Dashboard Analytics** | 儀表板分析
 - 💾 **Real-time Database** with Supabase | Supabase 即時資料庫
 - 🔒 **Row Level Security** (RLS) | 行級安全性
+- 📑 **PDF Export** (Chinese/English/Bilingual) | PDF 匯出（中文/英文/雙語）
 
 ### Upcoming Features | 即將推出
-- 📈 **Exchange Rate Integration** | 匯率 API 整合
-- 📑 **PDF Export** (Bilingual) | PDF 匯出（雙語）
 - 📧 **Email Quotations** | 郵件發送報價單
 - 📱 **Mobile Responsive** | 行動裝置響應式設計
+- 🔄 **Auto Exchange Rate Sync** (Cron Job) | 匯率自動同步
+- 📈 **Advanced Analytics** | 進階分析圖表
 
 ## 🚀 Tech Stack | 技術棧
 
@@ -31,6 +33,7 @@ A modern, bilingual (English/Chinese) quotation management system with multi-cur
 - **Database**: PostgreSQL (Self-hosted on Zeabur) + Supabase Cloud
 - **Internationalization**: next-intl v4.3.12
 - **Exchange Rates**: ExchangeRate-API
+- **PDF Generation**: @react-pdf/renderer
 - **Deployment**: Vercel
 
 ## 🏗️ Architecture | 系統架構

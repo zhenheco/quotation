@@ -10,11 +10,15 @@
     "create": "Create",
     "search": "Search",
     "loading": "Loading...",
+    "downloading": "Downloading...",
     "signIn": "Sign In",
     "signOut": "Sign Out",
     "welcome": "Welcome",
     "actions": "Actions",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "send": "Send",
+    "add": "Add",
+    "optional": "Optional"
   },
   "auth": {
     "signInWithGoogle": "Sign in with Google",
@@ -28,7 +32,29 @@
     "settings": "Settings"
   },
   "dashboard": {
-    "welcomeMessage": "Welcome to your Quotation Management System. Get started by creating your first quotation, customer, or product."
+    "welcomeMessage": "Welcome to your Quotation Management System. Get started by creating your first quotation, customer, or product.",
+    "monthlyRevenue": "Monthly Revenue",
+    "monthlyQuotations": "Monthly Quotations",
+    "conversionRate": "Conversion Rate",
+    "pending": "Pending",
+    "vsLastMonth": "vs Last Month",
+    "accepted": "Accepted",
+    "sent": "Sent",
+    "drafts": "Drafts",
+    "quickActions": "Quick Actions",
+    "createQuotationDesc": "Create a new quotation",
+    "createCustomerDesc": "Add a new customer",
+    "createProductDesc": "Add a new product"
+  },
+  "charts": {
+    "revenueTitle": "Revenue Trend Analysis",
+    "currencyTitle": "Currency Distribution",
+    "statusTitle": "Quotation Status Statistics",
+    "revenue": "Revenue",
+    "quotationCount": "Quotation Count",
+    "amount": "Amount",
+    "percentage": "Percentage",
+    "totalValue": "Total Value"
   },
   "quotation": {
     "title": "Quotations",
@@ -70,7 +96,11 @@
     "deleteConfirm": {
       "title": "Delete Quotation",
       "description": "Are you sure you want to delete this quotation? This action cannot be undone."
-    }
+    },
+    "downloadPDF": "Download PDF",
+    "downloadChinesePDF": "Download Chinese PDF",
+    "downloadEnglishPDF": "Download English PDF",
+    "downloadBilingualPDF": "Download Bilingual PDF"
   },
   "customer": {
     "title": "Customers",
@@ -138,5 +168,34 @@
     "sent": "Sent",
     "accepted": "Accepted",
     "rejected": "Rejected"
+  },
+  "email": {
+    "sendQuotation": "Send Quotation",
+    "recipient": "Recipient",
+    "cc": "CC",
+    "addCc": "Add CC recipient",
+    "enterEmail": "Enter email address",
+    "language": "Email Language",
+    "sending": "Sending...",
+    "sendSuccess": "Quotation sent successfully",
+    "sendFailed": "Failed to send, please try again",
+    "recipientRequired": "Please enter recipient email address"
+  },
+  "language": {
+    "chinese": "Chinese",
+    "english": "English"
+  },
+  "batch": {
+    "selectMultiple": "Batch Operations",
+    "cancel": "Cancel Batch",
+    "updateStatus": "Update Status",
+    "exportPDF": "Export PDF",
+    "delete": "Batch Delete",
+    "update": "Update",
+    "deleteConfirm": {
+      "title": "Confirm Batch Delete",
+      "description": "Are you sure you want to delete {{count}} selected quotations? This action cannot be undone."
+    },
+    "updateStatusDescription": "Update the status of {{count}} quotations to:"
   }
 }
