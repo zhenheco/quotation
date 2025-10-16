@@ -7,7 +7,7 @@ export default async function LoginPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
-    redirect('/en/dashboard')
+    redirect('/zh/dashboard')
   }
 
   return (
@@ -15,16 +15,16 @@ export default async function LoginPage() {
       <div className="max-w-md w-full space-y-8 p-10 bg-white rounded-xl shadow-lg">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Quotation System
+            報價單系統
           </h1>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">
-            報價單系統
+            Quotation System
           </h2>
           <p className="text-gray-600 mt-4">
-            Sign in to manage your quotations
+            登入以管理您的報價單
           </p>
           <p className="text-gray-600 mb-8">
-            登入以管理您的報價單
+            Sign in to manage your quotations
           </p>
         </div>
 
