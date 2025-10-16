@@ -11,6 +11,7 @@ export async function middleware(request: NextRequest) {
   // Step 1: Handle paths that don't need locale prefix
   const shouldSkipIntl =
     pathname.startsWith('/auth') ||
+    pathname.startsWith('/api') ||
     pathname === '/login' ||
     pathname === '/'
 

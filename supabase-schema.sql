@@ -206,9 +206,19 @@ CREATE POLICY "Users can delete quotation items of their quotations"
     )
   );
 
--- Exchange rates policies (public read, admin write)
-CREATE POLICY "Anyone can view exchange rates"
+-- Exchange rates policies (authenticated users can read and write)
+CREATE POLICY "Authenticated users can view exchange rates"
   ON exchange_rates FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE POLICY "Authenticated users can insert exchange rates"
+  ON exchange_rates FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can update exchange rates"
+  ON exchange_rates FOR UPDATE
   TO authenticated
   USING (true);
 
