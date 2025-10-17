@@ -12,10 +12,10 @@ const menuItems = [
     icon: '🏠',
   },
   {
-    en: 'Quotations',
-    zh: '報價單',
-    href: '/quotations',
-    icon: '📄',
+    en: 'Products',
+    zh: '產品',
+    href: '/products',
+    icon: '📦',
   },
   {
     en: 'Customers',
@@ -24,10 +24,10 @@ const menuItems = [
     icon: '👥',
   },
   {
-    en: 'Products',
-    zh: '產品',
-    href: '/products',
-    icon: '📦',
+    en: 'Quotations',
+    zh: '報價單',
+    href: '/quotations',
+    icon: '📄',
   },
 ]
 

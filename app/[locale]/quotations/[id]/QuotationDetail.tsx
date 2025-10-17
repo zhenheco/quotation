@@ -3,9 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import EmailSendButton from '@/components/EmailSendButton'
 import PDFDownloadButton from '@/components/PDFDownloadButton'
-import ShareButton from '@/components/ShareButton'
 
 interface QuotationDetailProps {
   quotation: any
@@ -105,21 +103,11 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
               </svg>
               {t('common.edit')}
             </button>
-            <ShareButton
-              quotationId={quotation.id}
-              locale={locale as 'zh' | 'en'}
-            />
             <PDFDownloadButton
               quotationId={quotation.id}
               locale={locale as 'zh' | 'en'}
               variant="secondary"
               showLanguageOptions={true}
-            />
-            <EmailSendButton
-              quotationId={quotation.id}
-              recipientEmail={quotation.customers?.email || ''}
-              locale={locale as 'zh' | 'en'}
-              onSuccess={() => router.refresh()}
             />
           </div>
         </div>
