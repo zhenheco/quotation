@@ -1,82 +1,110 @@
-# 快速修復指南 - 匯率功能
+# 🚀 快速修復權限錯誤
 
-## 🚨 問題分析
+## 當前問題
 
-由於 PostgreSQL 和 Supabase 不是同一套系統，我們需要採用不同的方案。
-
-## ✅ 解決方案 A: 純 API 模式（推薦，無需資料庫）
-
-修改代碼讓匯率功能直接使用 API，不依賴資料庫快取。
-
-### 步驟：
-
-1. **前往 Supabase Dashboard SQL Editor**
-   - https://supabase.com/dashboard/project/nxlqtnnssfzzpbyfjnby/sql
-
-2. **執行以下 SQL** (複製貼上後點 Run)：
-
-```sql
--- 移除舊政策
-DROP POLICY IF EXISTS "Anyone can view exchange rates" ON exchange_rates;
-
--- 允許所有已驗證用戶讀取
-CREATE POLICY "Authenticated users can view exchange rates"
-  ON exchange_rates FOR SELECT
-  TO authenticated
-  USING (true);
-
--- 允許所有已驗證用戶插入
-CREATE POLICY "Authenticated users can insert exchange rates"
-  ON exchange_rates FOR INSERT
-  TO authenticated
-  WITH CHECK (true);
-
--- 允許所有已驗證用戶更新
-CREATE POLICY "Authenticated users can update exchange rates"
-  ON exchange_rates FOR UPDATE
-  TO authenticated
-  USING (true);
+你遇到了以下錯誤之一：
+```
+Error: permission denied for table customers
+Error: permission denied for table products
+ERROR: column "sku" does not exist
 ```
 
-3. **驗證政策**：
+**根本原因**：表結構不正確或表不存在
 
+## 🚨 快速解決方案（5 分鐘）
+
+### ⚡ 選項 A：使用清理重建腳本（推薦）
+
+這個腳本會：
+1. 刪除所有舊表
+2. 重新創建正確的表結構
+3. 設置所有 RLS 策略
+
+#### 步驟：
+
+1. **打開 Supabase Dashboard SQL Editor**
+   - 訪問：https://supabase.com/dashboard
+   - 選擇項目：**nxlqtnnssfzzpbyfjnby**
+   - 左側導航 → **SQL Editor** → **New query**
+
+2. **執行清理重建腳本**
+   - 打開 `supabase-migrations/000_drop_and_recreate.sql`
+   - 複製全部內容（約 273 行）
+   - 貼到 SQL Editor
+   - 點擊 **Run** 按鈕
+
+3. **驗證成功**
+   - 應該看到：`Schema recreated successfully!`
+   - Table Editor 中應出現 5 個表，且 products 表包含 `sku` 欄位
+
+### 🔄 選項 B：分步執行（如果選項 A 失敗）
+
+#### 步驟 1: 刪除舊表
+在 SQL Editor 中執行：
 ```sql
-SELECT tablename, policyname, cmd
-FROM pg_policies
-WHERE tablename = 'exchange_rates';
+DROP TABLE IF EXISTS quotation_items CASCADE;
+DROP TABLE IF EXISTS quotations CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS customers CASCADE;
+DROP TABLE IF EXISTS exchange_rates CASCADE;
+DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
 ```
 
-應該看到 3 個政策：
-- `Authenticated users can view exchange rates` (SELECT)
-- `Authenticated users can insert exchange rates` (INSERT)
-- `Authenticated users can update exchange rates` (UPDATE)
+#### 步驟 2: 執行完整遷移
+- 打開 `supabase-migrations/001_initial_schema.sql`
+- 複製全部內容
+- 在 SQL Editor 中執行
 
 ---
 
-## ✅ 解決方案 B: 簡化版（如果不想用資料庫）
-
-如果您不想處理資料庫權限，我可以修改代碼，讓匯率功能完全不依賴資料庫快取，只使用 API。
-
-這樣的話：
-- ✅ 優點：無需資料庫設定，立即可用
-- ⚠️  缺點：每次都要呼叫外部 API（但有 Next.js 快取）
-
----
-
-## 🔧 您想選擇哪個方案？
-
-1. **方案 A**：我在 Supabase Dashboard 執行上面的 SQL（5 分鐘）
-2. **方案 B**：修改代碼，完全移除資料庫依賴（我來改）
-
----
-
-## 📝 Turbopack 錯誤的臨時解決方法
-
-在執行測試前，先清理 Next.js 快取：
+## 4️⃣ 重啟開發伺服器
 
 ```bash
-rm -rf .next
+# 終端中按 Ctrl + C 停止伺服器
+# 然後重新啟動
 npm run dev
 ```
 
-然後再測試 API。
+## 5️⃣ 測試修復
+
+訪問 http://localhost:3000 並檢查：
+- ✅ Dashboard 頁面正常顯示
+- ✅ Customers 頁面正常顯示
+- ✅ Products 頁面正常顯示（可以看到 SKU 欄位）
+- ✅ Quotations 頁面正常顯示
+- ✅ 終端無「permission denied」或「column does not exist」錯誤
+
+## ✅ 完成！
+
+所有錯誤已修復。現在可以：
+1. 創建測試客戶
+2. 創建測試產品（包含 SKU）
+3. 創建測試報價單
+
+## 🔍 驗證表結構
+
+在 Supabase Dashboard 的 Table Editor 中：
+1. 點擊 **products** 表
+2. 確認以下欄位存在：
+   - id, user_id
+   - sku ← **新增欄位**
+   - name (JSONB)
+   - description (JSONB)
+   - unit_price ← **正確名稱**
+   - currency, category
+   - created_at, updated_at
+
+## 📖 需要更多幫助？
+
+查看完整指南：`docs/SUPABASE_MIGRATION_GUIDE.md`
+
+## 🐛 如果仍有問題
+
+1. 確認 Supabase Dashboard 中表結構正確
+2. 檢查瀏覽器控制台錯誤
+3. 檢查終端伺服器日誌
+4. 提供錯誤訊息截圖
+
+---
+
+**重要提示**：執行腳本後，所有現有數據會被清除。如果有重要數據，請先備份！

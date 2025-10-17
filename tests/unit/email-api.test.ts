@@ -13,7 +13,7 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => mockSupabaseClient),
 }))
 
-vi.mock('@/lib/email/service', () => ({
+vi.mock('@/lib/email/service-gmail', () => ({
   sendQuotationEmail: vi.fn(),
 }))
 
@@ -170,7 +170,7 @@ describe('Email API - Phase 1 測試', () => {
     })
 
     it('應該成功發送 Email 給單一收件人', async () => {
-      const { sendQuotationEmail } = await import('@/lib/email/service')
+      const { sendQuotationEmail } = await import('@/lib/email/service-gmail')
       vi.mocked(sendQuotationEmail).mockResolvedValue({ success: true, data: { id: 'email-id' } })
 
       const request = new NextRequest('http://localhost:3000/api/quotations/test-id/email', {
@@ -196,7 +196,7 @@ describe('Email API - Phase 1 測試', () => {
     })
 
     it('應該成功發送 Email 給主收件人和 CC', async () => {
-      const { sendQuotationEmail } = await import('@/lib/email/service')
+      const { sendQuotationEmail } = await import('@/lib/email/service-gmail')
       vi.mocked(sendQuotationEmail).mockResolvedValue({ success: true, data: { id: 'email-id' } })
 
       const request = new NextRequest('http://localhost:3000/api/quotations/test-id/email', {
@@ -218,7 +218,7 @@ describe('Email API - Phase 1 測試', () => {
     })
 
     it('應該在發送後更新草稿狀態為已發送', async () => {
-      const { sendQuotationEmail } = await import('@/lib/email/service')
+      const { sendQuotationEmail } = await import('@/lib/email/service-gmail')
       vi.mocked(sendQuotationEmail).mockResolvedValue({ success: true, data: { id: 'email-id' } })
 
       const draftQuotation = { ...mockQuotation, status: 'draft' }
@@ -263,7 +263,7 @@ describe('Email API - Phase 1 測試', () => {
     })
 
     it('應該支援繁體中文 Email', async () => {
-      const { sendQuotationEmail } = await import('@/lib/email/service')
+      const { sendQuotationEmail } = await import('@/lib/email/service-gmail')
       vi.mocked(sendQuotationEmail).mockResolvedValue({ success: true })
 
       const request = new NextRequest('http://localhost:3000/api/quotations/test-id/email', {
@@ -284,7 +284,7 @@ describe('Email API - Phase 1 測試', () => {
     })
 
     it('應該支援英文 Email', async () => {
-      const { sendQuotationEmail } = await import('@/lib/email/service')
+      const { sendQuotationEmail } = await import('@/lib/email/service-gmail')
       vi.mocked(sendQuotationEmail).mockResolvedValue({ success: true })
 
       const request = new NextRequest('http://localhost:3000/api/quotations/test-id/email', {
@@ -324,7 +324,7 @@ describe('Email API - Phase 1 測試', () => {
     })
 
     it('應該處理 Email 發送失敗', async () => {
-      const { sendQuotationEmail } = await import('@/lib/email/service')
+      const { sendQuotationEmail } = await import('@/lib/email/service-gmail')
       vi.mocked(sendQuotationEmail).mockResolvedValue({
         success: false,
         error: 'Failed to send email',

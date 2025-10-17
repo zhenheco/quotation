@@ -24,6 +24,12 @@
     "signInWithGoogle": "Sign in with Google",
     "signInDescription": "Sign in to access your quotations"
   },
+  "login": {
+    "title": "Quotation System",
+    "subtitle": "Sign in to manage your quotations",
+    "googleSignIn": "Sign in with Google",
+    "poweredBy": "Powered by Supabase & Next.js"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "quotations": "Quotations",

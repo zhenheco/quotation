@@ -12,8 +12,8 @@ export async function middleware(request: NextRequest) {
   const shouldSkipIntl =
     pathname.startsWith('/auth') ||
     pathname.startsWith('/api') ||
-    pathname === '/login' ||
-    pathname === '/'
+    pathname === '/' ||
+    pathname === '/login'  // Keep for redirect
 
   // Step 2: For paths that need intl, let next-intl handle them first
   let response: NextResponse

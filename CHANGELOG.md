@@ -9,12 +9,139 @@
 
 ## [Unreleased]
 
+### 🔧 Fixed (修復中)
+- **權限錯誤修復** - permission denied for table customers/products/quotations
+  - 創建 Supabase 資料庫遷移腳本 `supabase-migrations/001_initial_schema.sql`
+  - 統一使用 Supabase 作為主要資料庫（認證 + 業務數據）
+  - 架構調整：Zeabur PostgreSQL 僅用於匯率數據
+
+### 📝 Added (新增)
+- 📄 `docs/SUPABASE_MIGRATION_GUIDE.md` - 完整的遷移執行指南
+- 📄 `QUICK_FIX.md` - 快速修復指南（5分鐘解決方案）
+- 📄 `scripts/run-supabase-migration.ts` - 自動執行遷移腳本（備用）
+
+### 🔄 Changed (變更)
+- 業務表結構優化：修正欄位名稱以匹配實際代碼使用
+  - `products.base_price` → `products.unit_price`
+  - `quotations.total` → `quotations.total_amount`
+  - 新增 `products.sku`, `customers.tax_id`, `customers.contact_person`
+- 簡化 `quotation_items` 表結構，移除未使用欄位
+
 ### 待優化項目
 - [ ] 修復批次匯出的 N+1 查詢問題 (21次查詢→2次)
 - [ ] 實作錯誤追蹤系統 (Sentry/OpenTelemetry)
 - [ ] 添加環境變數驗證 (lib/env.ts)
 - [ ] 實作 Cron Job 冪等性保證
 - [ ] 執行測試套件達到 80% 覆蓋率
+
+---
+
+## [0.6.1] - 2025-10-17
+
+### 🎨 UI/UX Improvements (介面優化) ✅
+
+#### 側邊欄可收合功能
+- **Sidebar 組件重構** (`components/Sidebar.tsx`)
+  - 新增收合/展開切換功能
+  - 動態寬度調整：64px（收合）↔ 256px（展開）
+  - 收合按鈕位於右側邊緣，帶箭頭圖示
+  - 收合時顯示懸停提示（Tooltip）
+  - 平滑過渡動畫（transition-all duration-300）
+  - 保持圖示可見，文字動態顯示/隱藏
+
+#### 導航欄簡化
+- **Navbar 組件優化** (`components/Navbar.tsx`)
+  - 移除左側系統名稱/Logo
+  - 採用靠右對齊佈局（justify-end）
+  - 保留語言切換和登出按鈕
+  - 清理未使用的 Link import
+
+### 🛠️ Development Tools (開發工具) ✅
+
+#### 測試數據建立工具
+1. **TypeScript 腳本** (`scripts/create-test-data.ts`)
+   - 直接連接 Zeabur PostgreSQL 建立測試數據
+   - 使用 pg 客戶端連接池
+   - 支援命令列傳入 User ID
+   - 交易式操作保證數據一致性
+   - 完整的錯誤處理和回滾機制
+   - 建立內容：
+     - 5 個測試客戶（涵蓋台灣、美國市場）
+     - 10 個測試產品（電腦週邊、辦公用品）
+     - 5 個測試報價單（各種狀態：draft/sent/accepted/rejected）
+     - 13 個報價單項目
+   - 支援重複執行（ON CONFLICT 處理）
+
+2. **開發環境啟動腳本** (`scripts/dev.sh`)
+   - 環境變數檢查
+   - 依賴安裝檢查
+   - 自動啟動開發伺服器
+   - 清晰的錯誤提示
+
+3. **完整使用指南** (`docs/CREATE_TEST_DATA.md`)
+   - 詳細的步驟說明
+   - User ID 獲取方法（瀏覽器 Console）
+   - 故障排除指南
+   - 測試數據詳細列表
+
+### 📊 Test Data Details (測試數據詳情)
+
+#### 客戶 (5個)
+1. 台灣科技股份有限公司 - 台北（含統編）
+2. 優質貿易有限公司 - 新竹（含統編）
+3. 創新設計工作室 - 台中
+4. 全球物流企業 - 高雄（含統編）
+5. 美國進口商公司 - 舊金山
+
+#### 產品 (10個)
+- 筆記型電腦 (TWD 35,000)
+- 無線滑鼠 (TWD 800)
+- 機械式鍵盤 (TWD 2,500)
+- 27吋 4K 顯示器 (TWD 12,000)
+- 網路攝影機 (TWD 1,500)
+- 外接硬碟 1TB (TWD 1,800)
+- 多功能印表機 (TWD 8,500)
+- 辦公椅 (TWD 4,500)
+- 電腦包 (TWD 1,200)
+- USB 集線器 (TWD 600)
+
+#### 報價單 (5個)
+1. **Q2025-001** - Draft - TWD 51,450
+2. **Q2025-002** - Sent - TWD 27,825
+3. **Q2025-003** - Accepted - TWD 40,320
+4. **Q2025-004** - Sent - USD 1,512
+5. **Q2025-005** - Rejected - TWD 15,750
+
+### Added (新增)
+- 📁 `scripts/create-test-data.ts` - 測試數據建立腳本
+- 📁 `scripts/dev.sh` - 開發環境啟動腳本
+- 📁 `docs/CREATE_TEST_DATA.md` - 測試數據建立指南
+- 📁 `app/api/seed-test-data/route.ts` - API 端點（備用方案）
+
+### Changed (變更)
+- 🎨 `components/Sidebar.tsx` - 新增可收合功能
+- 🎨 `components/Navbar.tsx` - 移除頁面標題，簡化佈局
+- 📝 `CHANGELOG.md` - 更新本次變更記錄
+
+### Technical Details (技術細節)
+- **測試數據工具**
+  - 直接使用 pg 客戶端連接 Zeabur PostgreSQL
+  - 不依賴 Supabase CLI
+  - 支援跨平台執行（macOS、Linux、Windows）
+  - UUID 預設值確保數據一致性
+
+- **UI 動畫**
+  - Tailwind CSS transition utilities
+  - Transform 動畫（rotate-180）
+  - Opacity 和 visibility 控制
+  - Z-index 層級管理
+
+### 📊 Statistics (統計)
+- 新增檔案：4 個
+- 修改檔案：3 個
+- 新增代碼行數：~600 行
+- UI 組件優化：2 個
+- 文檔頁數：1 個（50+ 行）
 
 ---
 
