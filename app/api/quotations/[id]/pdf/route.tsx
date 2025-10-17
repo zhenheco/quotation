@@ -5,9 +5,16 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToStream } from '@react-pdf/renderer'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { QuotationPDFTemplate } from '@/lib/pdf/QuotationPDFTemplate'
 import { QuotationPDFData } from '@/lib/pdf/types'
+import {
+  getQuotationById,
+  getQuotationItems,
+  getCustomerById,
+  getProducts,
+} from '@/lib/services/database'
+import { getZeaburPool } from '@/lib/db/zeabur'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,7 +32,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const showBothLanguages = searchParams.get('both') === 'true'
 
     // 建立 Supabase 客戶端
-    const supabase = await createServerClient()
+    const supabase = await createClient()
 
     // 檢查用戶是否已登入
     const {
@@ -37,48 +44,38 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 獲取報價單資料
-    const { data: quotation, error: quotationError } = await supabase
-      .from('quotations')
-      .select(
-        `
-        *,
-        customers (
-          id,
-          name,
-          email,
-          phone,
-          address
-        )
-      `
-      )
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+    // 使用 Zeabur PostgreSQL 獲取報價單資料
+    const quotation = await getQuotationById(id, user.id)
 
-    if (quotationError || !quotation) {
+    if (!quotation) {
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     }
 
-    // 獲取報價單項目
-    const { data: items, error: itemsError } = await supabase
-      .from('quotation_items')
-      .select(
-        `
-        *,
-        products (
-          id,
-          name,
-          description
-        )
-      `
-      )
-      .eq('quotation_id', id)
-      .order('created_at', { ascending: true })
+    // 獲取客戶資訊
+    const customer = await getCustomerById(quotation.customer_id, user.id)
 
-    if (itemsError) {
-      return NextResponse.json({ error: 'Failed to fetch items' }, { status: 500 })
+    if (!customer) {
+      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
     }
+
+    // 獲取報價單項目和產品資訊
+    const quotationItems = await getQuotationItems(quotation.id, user.id)
+
+    // 為每個項目獲取產品資訊
+    const pool = getZeaburPool()
+    const items = await Promise.all(
+      quotationItems.map(async (item) => {
+        if (!item.product_id) return item
+        const result = await pool.query(
+          'SELECT id, name, description FROM products WHERE id = $1',
+          [item.product_id]
+        )
+        return {
+          ...item,
+          products: result.rows[0] || null
+        }
+      })
+    )
 
     // 構建 PDF 資料
     const pdfData: QuotationPDFData = {
@@ -89,24 +86,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         valid_until: quotation.valid_until,
         status: quotation.status,
         currency: quotation.currency,
-        exchange_rate: quotation.exchange_rate,
+        exchange_rate: null,
         subtotal: quotation.subtotal,
         tax_rate: quotation.tax_rate,
         tax_amount: quotation.tax_amount,
         total_amount: quotation.total_amount,
-        notes: quotation.notes as { zh: string; en: string } | null,
+        notes: typeof quotation.notes === 'string'
+          ? { zh: quotation.notes, en: quotation.notes }
+          : (quotation.notes as { zh: string; en: string } | null),
       },
       customer: {
-        name: quotation.customers.name as { zh: string; en: string },
-        email: quotation.customers.email,
-        phone: quotation.customers.phone,
-        address: quotation.customers.address as { zh: string; en: string } | null,
+        name: customer.name as { zh: string; en: string },
+        email: customer.email,
+        phone: customer.phone || null,
+        address: customer.address as { zh: string; en: string } | null,
       },
-      items: (items || []).map((item) => ({
+      items: items.map((item) => ({
         id: item.id,
         product: {
-          name: item.products.name as { zh: string; en: string },
-          description: item.products.description as { zh: string; en: string } | null,
+          name: item.products?.name as { zh: string; en: string } || { zh: '未知產品', en: 'Unknown Product' },
+          description: item.products?.description as { zh: string; en: string } | null || null,
         },
         quantity: item.quantity,
         unit_price: item.unit_price,

@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import PDFDownloadButton from '@/components/PDFDownloadButton'
 import EmailSendButton from '@/components/EmailSendButton'
+import PDFDownloadButton from '@/components/PDFDownloadButton'
+import ShareButton from '@/components/ShareButton'
 
 interface QuotationDetailProps {
   quotation: any
@@ -42,12 +43,25 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
     }
   }
 
-  const getStatusBadge = (status: string) => {
+  // 判斷報價單是否已過期
+  const isExpired = (validUntil: string) => {
+    return new Date(validUntil) < new Date()
+  }
+
+  const getStatusBadge = (quotationData: any) => {
+    let status = quotationData.status
+
+    // 如果狀態是 sent 或 draft 且已經過期，顯示為 expired
+    if ((status === 'sent' || status === 'draft') && isExpired(quotationData.valid_until)) {
+      status = 'expired'
+    }
+
     const statusColors = {
       draft: 'bg-gray-100 text-gray-800',
       sent: 'bg-blue-100 text-blue-800',
       accepted: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
+      expired: 'bg-orange-100 text-orange-800',
     }
 
     return (
@@ -81,18 +95,31 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {getStatusBadge(quotation.status)}
+            {getStatusBadge(quotation)}
+            <button
+              onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              {t('common.edit')}
+            </button>
+            <ShareButton
+              quotationId={quotation.id}
+              locale={locale as 'zh' | 'en'}
+            />
+            <PDFDownloadButton
+              quotationId={quotation.id}
+              locale={locale as 'zh' | 'en'}
+              variant="secondary"
+              showLanguageOptions={true}
+            />
             <EmailSendButton
               quotationId={quotation.id}
               recipientEmail={quotation.customers?.email || ''}
               locale={locale as 'zh' | 'en'}
               onSuccess={() => router.refresh()}
-            />
-            <PDFDownloadButton
-              quotationId={quotation.id}
-              locale={locale as 'zh' | 'en'}
-              variant="primary"
-              showLanguageOptions={true}
             />
           </div>
         </div>

@@ -81,7 +81,7 @@ export default function EmailSendButton({
       {/* 發送按鈕 */}
       <button
         onClick={() => setShowModal(true)}
-        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2 cursor-pointer"
       >
         <svg
           className="w-4 h-4"

@@ -51,6 +51,19 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
 
   const filteredQuotations = quotations.filter((quotation) => {
     if (statusFilter === 'all') return true
+
+    // 特殊處理過期狀態
+    if (statusFilter === 'expired') {
+      // 包含明確標記為expired的，以及draft/sent狀態但已過期的
+      return quotation.status === 'expired' ||
+             ((quotation.status === 'draft' || quotation.status === 'sent') && isExpired(quotation.valid_until))
+    }
+
+    // 如果篩選其他狀態，要排除那些實際已過期的draft/sent
+    if ((statusFilter === 'draft' || statusFilter === 'sent')) {
+      return quotation.status === statusFilter && !isExpired(quotation.valid_until)
+    }
+
     return quotation.status === statusFilter
   })
 
@@ -306,6 +319,9 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
                   {t('quotation.issueDate')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('quotation.validUntil')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('quotation.status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -349,6 +365,21 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
                             day: 'numeric'
                           })
                         : new Date(quotation.issue_date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {locale === 'zh'
+                        ? new Date(quotation.valid_until).toLocaleDateString('zh-TW', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })
+                        : new Date(quotation.valid_until).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'

@@ -69,6 +69,8 @@ export default function QuotationForm({
   const [selectedProducts, setSelectedProducts] = useState<Record<number, Product | null>>({})
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [customTemplates, setCustomTemplates] = useState<Record<string, string>>({})
+  const [selectedTemplate, setSelectedTemplate] = useState('')
+  const [customExchangeRate, setCustomExchangeRate] = useState<string>('')
 
   const [formData, setFormData] = useState({
     customerId: quotation?.customer_id || '',
@@ -79,7 +81,15 @@ export default function QuotationForm({
     notes: quotation?.notes || '',
   })
 
-  const [items, setItems] = useState<QuotationItem[]>(quotation?.items || [])
+  const [items, setItems] = useState<QuotationItem[]>(
+    quotation?.items?.map(item => ({
+      product_id: item.product_id,
+      quantity: parseFloat(item.quantity?.toString() || '0'),
+      unit_price: parseFloat(item.unit_price?.toString() || '0'),
+      discount: parseFloat(item.discount?.toString() || '0'),
+      subtotal: parseFloat(item.subtotal?.toString() || '0'),
+    })) || []
+  )
 
   // 載入自訂模版
   useEffect(() => {
@@ -354,7 +364,7 @@ export default function QuotationForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="customerId" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="customerId" className="block text-sm font-semibold text-gray-900 mb-1">
             {t('quotation.customer')}
             <span className="text-red-500 ml-1">*</span>
           </label>
@@ -366,15 +376,22 @@ export default function QuotationForm({
             }}
           >
             <div className="relative">
-              <Combobox.Input
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                displayValue={(customer: Customer | null) =>
-                  customer ? `${customer.name[locale as 'zh' | 'en']} (${customer.email})` : ''
-                }
-                onChange={(event) => setCustomerQuery(event.target.value)}
-                placeholder={t('quotation.selectCustomer')}
-              />
-              <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white py-1 shadow-lg border border-gray-300 focus:outline-none">
+              <Combobox.Button as="div" className="relative">
+                <Combobox.Input
+                  className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 cursor-pointer placeholder-gray-900"
+                  displayValue={(customer: Customer | null) =>
+                    customer ? `${customer.name[locale as 'zh' | 'en']} (${customer.email})` : ''
+                  }
+                  onChange={(event) => setCustomerQuery(event.target.value)}
+                  placeholder={t('quotation.selectCustomer')}
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </Combobox.Button>
+              <Combobox.Options className="absolute z-10 mt-1 w-full max-h-60 overflow-auto rounded-lg bg-white py-1 shadow-lg border border-gray-300 focus:outline-none">
                 {filteredCustomers.length === 0 && customerQuery !== '' ? (
                   <div className="px-3 py-2 text-sm text-gray-500">{t('common.noResults')}</div>
                 ) : (
@@ -405,30 +422,57 @@ export default function QuotationForm({
           </button>
         </div>
 
-        <div>
-          <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">
-            {t('quotation.currency')}
-            <span className="text-red-500 ml-1">*</span>
-          </label>
-          <select
-            id="currency"
-            value={formData.currency}
-            onChange={(e) => handleCurrencyChange(e.target.value)}
-            required
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {CURRENCIES.map((currency) => (
-              <option key={currency} value={currency}>
-                {t(`currency.${currency}`)}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="currency" className="block text-sm font-semibold text-gray-900 mb-1">
+              {t('quotation.currency')}
+              <span className="text-red-500 ml-1">*</span>
+            </label>
+            <select
+              id="currency"
+              value={formData.currency}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
+              required
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+            >
+              {CURRENCIES.map((currency) => {
+                const rate = exchangeRates[currency]
+                const rateDisplay = rate && rate !== 0 ? ` (${(1 / rate).toFixed(4)})` : ''
+                return (
+                  <option key={currency} value={currency}>
+                    {t(`currency.${currency}`)} {rateDisplay}
+                  </option>
+                )
+              })}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {locale === 'zh' ? '匯率僅供參考' : 'Exchange rate for reference only'}
+            </p>
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="customExchangeRate" className="block text-sm font-semibold text-gray-900 mb-1">
+              {locale === 'zh' ? '自訂匯率（可選）' : 'Custom Exchange Rate (Optional)'}
+            </label>
+            <input
+              type="number"
+              id="customExchangeRate"
+              value={customExchangeRate}
+              onChange={(e) => setCustomExchangeRate(e.target.value)}
+              step="0.0001"
+              min="0"
+              placeholder={locale === 'zh' ? '留空使用 API 匯率' : 'Leave empty to use API rate'}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {locale === 'zh' ? '設定自訂匯率以覆蓋 API 自動換算' : 'Set custom rate to override API conversion'}
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-semibold text-gray-900 mb-1">
             {t('quotation.issueDate')}
           </label>
           <div className="block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
@@ -446,14 +490,29 @@ export default function QuotationForm({
           </div>
         </div>
 
-        <FormInput
-          label={t('quotation.validUntil')}
-          name="validUntil"
-          type="date"
-          value={formData.validUntil}
-          onChange={(value) => setFormData({ ...formData, validUntil: value })}
-          required
-        />
+        <div>
+          <label htmlFor="validUntil" className="block text-sm font-semibold text-gray-900 mb-1">
+            {t('quotation.validUntil')}
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+          <div
+            className="relative"
+            onClick={() => {
+              const input = document.getElementById('validUntil') as HTMLInputElement
+              if (input) input.showPicker?.()
+            }}
+          >
+            <input
+              type="date"
+              id="validUntil"
+              name="validUntil"
+              value={formData.validUntil}
+              onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+              required
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm cursor-pointer text-gray-900"
+            />
+          </div>
+        </div>
       </div>
 
       <div>
@@ -473,11 +532,11 @@ export default function QuotationForm({
             <div key={index} className="border border-gray-200 rounded-lg p-4">
               <div className="grid grid-cols-6 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     {t('product.name')}
                   </label>
                   <Combobox
-                    value={selectedProducts[index]}
+                    value={selectedProducts[index] || null}
                     onChange={(product) => {
                       setSelectedProducts({ ...selectedProducts, [index]: product })
                       if (product) {
@@ -486,15 +545,22 @@ export default function QuotationForm({
                     }}
                   >
                     <div className="relative">
-                      <Combobox.Input
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                        displayValue={(product: Product | null) =>
-                          product ? (product.name?.[locale as 'zh' | 'en'] || product.name?.zh || product.name?.en || 'Unknown Product') : ''
-                        }
-                        onChange={(event) => setProductQueries({ ...productQueries, [index]: event.target.value })}
-                        placeholder={t('quotation.selectProduct')}
-                      />
-                      <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white py-1 shadow-lg border border-gray-300 focus:outline-none">
+                      <Combobox.Button as="div" className="relative">
+                        <Combobox.Input
+                          className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900 cursor-pointer placeholder-gray-900"
+                          displayValue={(product: Product | null) =>
+                            product ? (product.name?.[locale as 'zh' | 'en'] || product.name?.zh || product.name?.en || 'Unknown Product') : ''
+                          }
+                          onChange={(event) => setProductQueries({ ...productQueries, [index]: event.target.value })}
+                          placeholder={t('quotation.selectProduct')}
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </Combobox.Button>
+                      <Combobox.Options className="absolute z-10 mt-1 w-full max-h-60 overflow-auto rounded-lg bg-white py-1 shadow-lg border border-gray-300 focus:outline-none">
                         {getFilteredProducts(index).length === 0 && (productQueries[index] || '') !== '' ? (
                           <div className="px-3 py-2 text-sm text-gray-500">{t('common.noResults')}</div>
                         ) : (
@@ -526,7 +592,7 @@ export default function QuotationForm({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     {t('quotation.quantity')}
                   </label>
                   <input
@@ -535,12 +601,12 @@ export default function QuotationForm({
                     onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value))}
                     min="1"
                     required
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     {t('quotation.unitPrice')}
                   </label>
                   <input
@@ -550,12 +616,12 @@ export default function QuotationForm({
                     min="0"
                     step="0.01"
                     required
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
                     {t('quotation.discount')}
                   </label>
                   <input
@@ -570,26 +636,26 @@ export default function QuotationForm({
                     max="0"
                     step="0.01"
                     placeholder="-100.00"
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
 
-                <div className="flex items-end">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('quotation.subtotal')}
-                    </label>
-                    <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
+                    {t('quotation.subtotal')}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900">
                       {item.subtotal.toFixed(2)}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                    >
+                      ✕
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(index)}
-                    className="ml-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
-                  >
-                    ✕
-                  </button>
                 </div>
               </div>
             </div>
@@ -606,13 +672,13 @@ export default function QuotationForm({
       <div className="border-t pt-4">
         <div className="max-w-md ml-auto space-y-2">
           <div className="flex justify-between">
-            <span className="text-gray-700">{t('quotation.subtotal')}:</span>
-            <span className="font-medium">{formData.currency} {subtotal.toFixed(2)}</span>
+            <span className="text-gray-900">{t('quotation.subtotal')}:</span>
+            <span className="font-medium text-gray-900">{formData.currency} {subtotal.toFixed(2)}</span>
           </div>
 
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-gray-700">{t('quotation.tax')}:</span>
+              <span className="text-gray-900 font-semibold">{t('quotation.tax')}:</span>
               <input
                 type="number"
                 value={formData.taxRate}
@@ -620,28 +686,30 @@ export default function QuotationForm({
                 min="0"
                 max="100"
                 step="0.01"
-                className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900"
               />
-              <span className="text-gray-700">%</span>
+              <span className="text-gray-900">%</span>
             </div>
-            <span className="font-medium">{formData.currency} {taxAmount.toFixed(2)}</span>
+            <span className="font-medium text-gray-900">{formData.currency} {taxAmount.toFixed(2)}</span>
           </div>
 
-          <div className="flex justify-between text-lg font-bold border-t pt-2">
-            <span>{t('quotation.total')}:</span>
-            <span>{formData.currency} {total.toFixed(2)}</span>
+          <div className="flex justify-between text-lg border-t pt-2">
+            <span className="font-bold text-gray-900">{t('quotation.total')}:</span>
+            <span className="font-bold text-gray-900">{formData.currency} {total.toFixed(2)}</span>
           </div>
         </div>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-semibold text-gray-900">
             {t('quotation.notes')}
           </label>
           <div className="flex gap-2">
             <select
+              value={selectedTemplate}
               onChange={(e) => {
+                setSelectedTemplate(e.target.value)
                 if (e.target.value) {
                   // 檢查是否為自訂模版
                   if (e.target.value.startsWith('custom:')) {
@@ -654,7 +722,7 @@ export default function QuotationForm({
                   setShowSaveTemplate(true)
                 }
               }}
-              className="text-sm px-2 py-1 border border-gray-300 rounded cursor-pointer hover:bg-gray-50"
+              className="text-sm px-2 py-1 border border-gray-300 rounded cursor-pointer hover:bg-gray-50 text-gray-900"
             >
               <option value="">{t('quotation.selectTemplate')}</option>
               <option value="standard">{t('quotation.template.standard')}</option>
@@ -666,29 +734,72 @@ export default function QuotationForm({
                   <option disabled>──────────</option>
                   {Object.keys(customTemplates).map((key) => (
                     <option key={key} value={`custom:${key}`}>
-                      {key} {locale === 'zh' ? '(自訂)' : '(Custom)'}
+                      {key}
                     </option>
                   ))}
                 </>
               )}
             </select>
             {showSaveTemplate && formData.notes && (
-              <button
-                type="button"
-                onClick={() => {
-                  const name = prompt(locale === 'zh' ? '請輸入模版名稱：' : 'Enter template name:')
-                  if (name) {
-                    // 儲存到 localStorage 作為自訂模版
-                    const updatedTemplates = { ...customTemplates, [name]: formData.notes }
-                    localStorage.setItem('customNoteTemplates', JSON.stringify(updatedTemplates))
-                    setCustomTemplates(updatedTemplates)
-                    alert(locale === 'zh' ? '模版已儲存！' : 'Template saved!')
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // 檢查是否已選擇自訂模版
+                    if (selectedTemplate.startsWith('custom:')) {
+                      // 覆蓋現有模版
+                      const templateKey = selectedTemplate.replace('custom:', '')
+                      const confirmMessage = locale === 'zh'
+                        ? `確定要覆蓋模版「${templateKey}」嗎？`
+                        : `Overwrite template "${templateKey}"?`
+                      if (confirm(confirmMessage)) {
+                        const updatedTemplates = { ...customTemplates, [templateKey]: formData.notes }
+                        localStorage.setItem('customNoteTemplates', JSON.stringify(updatedTemplates))
+                        setCustomTemplates(updatedTemplates)
+                        alert(locale === 'zh' ? '模版已更新！' : 'Template updated!')
+                      }
+                    } else {
+                      // 新增模版
+                      const name = prompt(locale === 'zh' ? '請輸入模版名稱：' : 'Enter template name:')
+                      if (name) {
+                        const updatedTemplates = { ...customTemplates, [name]: formData.notes }
+                        localStorage.setItem('customNoteTemplates', JSON.stringify(updatedTemplates))
+                        setCustomTemplates(updatedTemplates)
+                        setSelectedTemplate(`custom:${name}`)
+                        alert(locale === 'zh' ? '模版已儲存！' : 'Template saved!')
+                      }
+                    }
+                  }}
+                  className="text-sm px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 cursor-pointer"
+                >
+                  {selectedTemplate.startsWith('custom:')
+                    ? (locale === 'zh' ? '更新模版' : 'Update Template')
+                    : (locale === 'zh' ? '儲存為模版' : 'Save as Template')
                   }
-                }}
-                className="text-sm px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 cursor-pointer"
-              >
-                {locale === 'zh' ? '儲存為模版' : 'Save as Template'}
-              </button>
+                </button>
+                {selectedTemplate.startsWith('custom:') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const templateKey = selectedTemplate.replace('custom:', '')
+                      const confirmMessage = locale === 'zh'
+                        ? `確定要刪除模版「${templateKey}」嗎？`
+                        : `Delete template "${templateKey}"?`
+                      if (confirm(confirmMessage)) {
+                        const updatedTemplates = { ...customTemplates }
+                        delete updatedTemplates[templateKey]
+                        localStorage.setItem('customNoteTemplates', JSON.stringify(updatedTemplates))
+                        setCustomTemplates(updatedTemplates)
+                        setSelectedTemplate('')
+                        alert(locale === 'zh' ? '模版已刪除！' : 'Template deleted!')
+                      }
+                    }}
+                    className="text-sm px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 cursor-pointer"
+                  >
+                    {locale === 'zh' ? '刪除模版' : 'Delete Template'}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -700,7 +811,7 @@ export default function QuotationForm({
           }}
           placeholder={t('quotation.notesPlaceholder')}
           rows={3}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 placeholder-gray-900"
         />
       </div>
 
