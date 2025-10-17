@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import PageHeader from '@/components/ui/PageHeader'
 import QuotationForm from '../QuotationForm'
+import { getCustomers, getProducts } from '@/lib/services/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,18 +24,9 @@ export default async function NewQuotationPage({
     redirect('/login')
   }
 
-  // Fetch customers and products for the form
-  const { data: customers } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('name->en')
-
-  const { data: products } = await supabase
-    .from('products')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('name->en')
+  // 使用 Zeabur PostgreSQL 獲取客戶和產品列表
+  const customers = await getCustomers(user.id)
+  const products = await getProducts(user.id)
 
   return (
     <div className="space-y-6">
@@ -43,8 +35,8 @@ export default async function NewQuotationPage({
       <div className="bg-white rounded-lg shadow p-6">
         <QuotationForm
           locale={locale}
-          customers={customers || []}
-          products={products || []}
+          customers={customers}
+          products={products}
         />
       </div>
     </div>

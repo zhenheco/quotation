@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -24,7 +23,6 @@ interface CustomerListProps {
 export default function CustomerList({ customers, locale }: CustomerListProps) {
   const t = useTranslations()
   const router = useRouter()
-  const supabase = createClient()
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; customer: Customer | null }>({
     isOpen: false,
     customer: null,
@@ -44,18 +42,20 @@ export default function CustomerList({ customers, locale }: CustomerListProps) {
 
     setIsDeleting(true)
     try {
-      const { error } = await supabase
-        .from('customers')
-        .delete()
-        .eq('id', deleteModal.customer.id)
+      const response = await fetch(`/api/customers/${deleteModal.customer.id}`, {
+        method: 'DELETE',
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete customer')
+      }
 
       setDeleteModal({ isOpen: false, customer: null })
       router.refresh()
     } catch (error) {
       console.error('Error deleting customer:', error)
-      alert('Failed to delete customer')
+      alert(error instanceof Error ? error.message : 'Failed to delete customer')
     } finally {
       setIsDeleting(false)
     }
@@ -131,13 +131,13 @@ export default function CustomerList({ customers, locale }: CustomerListProps) {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => router.push(`/${locale}/customers/${customer.id}`)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-4"
+                      className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer"
                     >
                       {t('common.edit')}
                     </button>
                     <button
                       onClick={() => setDeleteModal({ isOpen: true, customer })}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-red-600 hover:text-red-900 cursor-pointer"
                     >
                       {t('common.delete')}
                     </button>

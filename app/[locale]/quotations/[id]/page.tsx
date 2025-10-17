@@ -3,6 +3,12 @@ import { getTranslations } from 'next-intl/server'
 import { redirect, notFound } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import QuotationDetail from './QuotationDetail'
+import {
+  getQuotationById,
+  getCustomerById,
+  getQuotationItems,
+  getProductById,
+} from '@/lib/services/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,38 +29,51 @@ export default async function QuotationDetailPage({
     redirect('/login')
   }
 
-  const { data: quotation, error } = await supabase
-    .from('quotations')
-    .select(`
-      *,
-      customers (
-        id,
-        name,
-        email,
-        phone,
-        address
-      )
-    `)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
+  // 使用 Zeabur PostgreSQL 獲取報價單
+  const quotation = await getQuotationById(id, user.id)
 
-  if (error || !quotation) {
+  if (!quotation) {
     notFound()
   }
 
-  const { data: items } = await supabase
-    .from('quotation_items')
-    .select(`
-      *,
-      products (
-        id,
-        name,
-        description
-      )
-    `)
-    .eq('quotation_id', id)
-    .order('line_order')
+  // 獲取客戶資訊
+  const customer = await getCustomerById(quotation.customer_id, user.id)
+
+  // 獲取報價單項目
+  const items = await getQuotationItems(quotation.id, user.id)
+
+  // 為每個項目獲取產品詳情
+  const itemsWithProducts = await Promise.all(
+    items.map(async (item) => {
+      const product = item.product_id
+        ? await getProductById(item.product_id, user.id)
+        : null
+      return {
+        ...item,
+        products: product
+          ? {
+              id: product.id,
+              name: product.name,
+              description: product.description,
+            }
+          : null,
+      }
+    })
+  )
+
+  // 組合報價單和客戶資訊
+  const quotationWithCustomer = {
+    ...quotation,
+    customers: customer
+      ? {
+          id: customer.id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          address: customer.address,
+        }
+      : null,
+  }
 
   return (
     <div className="space-y-6">
@@ -67,8 +86,8 @@ export default async function QuotationDetailPage({
       />
 
       <QuotationDetail
-        quotation={quotation}
-        items={items || []}
+        quotation={quotationWithCustomer}
+        items={itemsWithProducts}
         locale={locale}
       />
     </div>

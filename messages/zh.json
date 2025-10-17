@@ -200,8 +200,8 @@
     "update": "更新",
     "deleteConfirm": {
       "title": "確認批次刪除",
-      "description": "您確定要刪除所選的 {{count}} 個報價單嗎？此操作無法復原。"
+      "description": "您確定要刪除所選的 {count} 個報價單嗎？此操作無法復原。"
     },
-    "updateStatusDescription": "將 {{count}} 個報價單的狀態更新為："
+    "updateStatusDescription": "將 {count} 個報價單的狀態更新為："
   }
 }

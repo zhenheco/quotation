@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import PDFDownloadButton from '@/components/PDFDownloadButton'
 import EmailSendButton from '@/components/EmailSendButton'
 
@@ -16,23 +15,28 @@ interface QuotationDetailProps {
 export default function QuotationDetail({ quotation, items, locale }: QuotationDetailProps) {
   const t = useTranslations()
   const router = useRouter()
-  const supabase = createClient()
   const [isUpdating, setIsUpdating] = useState(false)
 
   const handleStatusChange = async (newStatus: string) => {
     setIsUpdating(true)
     try {
-      const { error } = await supabase
-        .from('quotations')
-        .update({ status: newStatus })
-        .eq('id', quotation.id)
+      const response = await fetch(`/api/quotations/${quotation.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update status')
+      }
 
       router.refresh()
     } catch (error) {
       console.error('Error updating status:', error)
-      alert('Failed to update status')
+      alert(error instanceof Error ? error.message : 'Failed to update status')
     } finally {
       setIsUpdating(false)
     }

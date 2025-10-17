@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import FormInput from '@/components/ui/FormInput'
 
 interface Customer {
@@ -15,8 +14,8 @@ interface Customer {
 interface Product {
   id: string
   name: { zh: string; en: string }
-  base_price: number
-  base_currency: string
+  unit_price: number
+  currency: string
 }
 
 interface QuotationItem {
@@ -44,7 +43,6 @@ export default function QuotationForm({
 }: QuotationFormProps) {
   const t = useTranslations()
   const router = useRouter()
-  const supabase = createClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -93,7 +91,7 @@ export default function QuotationForm({
     const product = products.find((p) => p.id === productId)
     if (product) {
       updateItem(index, 'product_id', productId)
-      updateItem(index, 'unit_price', product.base_price)
+      updateItem(index, 'unit_price', product.unit_price)
     }
   }
 
@@ -113,14 +111,6 @@ export default function QuotationForm({
     setError('')
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        throw new Error('User not authenticated')
-      }
-
       if (!formData.customerId) {
         throw new Error('Please select a customer')
       }
@@ -129,77 +119,50 @@ export default function QuotationForm({
         throw new Error('Please add at least one item')
       }
 
-      // Generate quotation number
-      const quotationNumber = `Q-${Date.now()}`
-
       const quotationData = {
-        quotation_number: quotationNumber,
         customer_id: formData.customerId,
         issue_date: formData.issueDate,
         valid_until: formData.validUntil,
-        status: 'draft',
         currency: formData.currency,
         subtotal,
         tax_rate: parseFloat(formData.taxRate),
         tax_amount: taxAmount,
         total_amount: total,
         notes: formData.notes || null,
-        user_id: user.id,
+        items: items.map((item) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          discount: item.discount,
+          subtotal: item.subtotal,
+        })),
       }
+
+      let response
 
       if (quotation) {
         // Update existing quotation
-        const { error: updateError } = await supabase
-          .from('quotations')
-          .update(quotationData)
-          .eq('id', quotation.id)
-
-        if (updateError) throw updateError
-
-        // Delete existing items and re-insert
-        await supabase.from('quotation_items').delete().eq('quotation_id', quotation.id)
-
-        const quotationItems = items.map((item, index) => ({
-          quotation_id: quotation.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          discount: item.discount,
-          subtotal: item.subtotal,
-          line_order: index,
-        }))
-
-        const { error: itemsError } = await supabase
-          .from('quotation_items')
-          .insert(quotationItems)
-
-        if (itemsError) throw itemsError
+        response = await fetch(`/api/quotations/${quotation.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(quotationData),
+        })
       } else {
         // Create new quotation
-        const { data: newQuotation, error: insertError } = await supabase
-          .from('quotations')
-          .insert([quotationData])
-          .select()
-          .single()
+        response = await fetch('/api/quotations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(quotationData),
+        })
+      }
 
-        if (insertError) throw insertError
-
-        // Insert items
-        const quotationItems = items.map((item, index) => ({
-          quotation_id: newQuotation.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          discount: item.discount,
-          subtotal: item.subtotal,
-          line_order: index,
-        }))
-
-        const { error: itemsError } = await supabase
-          .from('quotation_items')
-          .insert(quotationItems)
-
-        if (itemsError) throw itemsError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save quotation')
       }
 
       router.push(`/${locale}/quotations`)

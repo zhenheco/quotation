@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -35,7 +34,6 @@ interface QuotationListProps {
 export default function QuotationList({ quotations, locale }: QuotationListProps) {
   const t = useTranslations()
   const router = useRouter()
-  const supabase = createClient()
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; quotation: Quotation | null }>({
     isOpen: false,
     quotation: null,
@@ -163,27 +161,20 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
 
     setIsDeleting(true)
     try {
-      // First delete quotation items
-      const { error: itemsError } = await supabase
-        .from('quotation_items')
-        .delete()
-        .eq('quotation_id', deleteModal.quotation.id)
+      const response = await fetch(`/api/quotations/${deleteModal.quotation.id}`, {
+        method: 'DELETE',
+      })
 
-      if (itemsError) throw itemsError
-
-      // Then delete the quotation
-      const { error } = await supabase
-        .from('quotations')
-        .delete()
-        .eq('id', deleteModal.quotation.id)
-
-      if (error) throw error
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete quotation')
+      }
 
       setDeleteModal({ isOpen: false, quotation: null })
       router.refresh()
     } catch (error) {
       console.error('Error deleting quotation:', error)
-      alert('Failed to delete quotation')
+      alert(error instanceof Error ? error.message : 'Failed to delete quotation')
     } finally {
       setIsDeleting(false)
     }
@@ -241,7 +232,7 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
                   setIsBatchOperation(!isBatchOperation)
                   setSelectedIds(new Set())
                 }}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
                   isBatchOperation
                     ? 'bg-red-100 text-red-700 hover:bg-red-200'
                     : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -256,20 +247,20 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
             <div className="flex gap-2">
               <button
                 onClick={() => setBatchStatusModal(true)}
-                className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 font-medium text-sm"
+                className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 font-medium text-sm cursor-pointer"
               >
                 {t('batch.updateStatus')} ({selectedIds.size})
               </button>
               <button
                 onClick={handleBatchExport}
                 disabled={isProcessing}
-                className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium text-sm disabled:opacity-50"
+                className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium text-sm disabled:opacity-50 cursor-pointer"
               >
                 {t('batch.exportPDF')} ({selectedIds.size})
               </button>
               <button
                 onClick={() => setBatchDeleteModal(true)}
-                className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium text-sm"
+                className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium text-sm cursor-pointer"
               >
                 {t('batch.delete')} ({selectedIds.size})
               </button>
@@ -351,13 +342,13 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => router.push(`/${locale}/quotations/${quotation.id}`)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-4"
+                      className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer"
                     >
                       {t('common.view')}
                     </button>
                     <button
                       onClick={() => setDeleteModal({ isOpen: true, quotation })}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-red-600 hover:text-red-900 cursor-pointer"
                     >
                       {t('common.delete')}
                     </button>
@@ -421,14 +412,14 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => setBatchStatusModal(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 cursor-pointer"
               >
                 {t('common.cancel')}
               </button>
               <button
                 onClick={handleBatchStatusUpdate}
                 disabled={isProcessing}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
               >
                 {isProcessing ? t('common.saving') : t('batch.update')}
               </button>

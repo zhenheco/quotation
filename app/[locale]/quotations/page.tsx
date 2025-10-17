@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import QuotationList from './QuotationList'
+import { getQuotations, getCustomerById } from '@/lib/services/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,22 +24,25 @@ export default async function QuotationsPage({
     redirect('/login')
   }
 
-  const { data: quotations, error } = await supabase
-    .from('quotations')
-    .select(`
-      *,
-      customers (
-        id,
-        name,
-        email
-      )
-    `)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  // 使用 Zeabur PostgreSQL 獲取報價單列表
+  const quotations = await getQuotations(user.id)
 
-  if (error) {
-    console.error('Error fetching quotations:', error)
-  }
+  // 為每個報價單獲取客戶資訊
+  const quotationsWithCustomers = await Promise.all(
+    quotations.map(async (quotation) => {
+      const customer = await getCustomerById(quotation.customer_id, user.id)
+      return {
+        ...quotation,
+        customers: customer
+          ? {
+              id: customer.id,
+              name: customer.name,
+              email: customer.email,
+            }
+          : null,
+      }
+    })
+  )
 
   return (
     <div className="space-y-6">
@@ -52,7 +56,7 @@ export default async function QuotationsPage({
 
       <div className="bg-white rounded-lg shadow">
         <QuotationList
-          quotations={quotations || []}
+          quotations={quotationsWithCustomers}
           locale={locale}
         />
       </div>

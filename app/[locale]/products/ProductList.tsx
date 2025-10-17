@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -25,7 +24,6 @@ interface ProductListProps {
 export default function ProductList({ products, locale }: ProductListProps) {
   const t = useTranslations()
   const router = useRouter()
-  const supabase = createClient()
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; product: Product | null }>({
     isOpen: false,
     product: null,
@@ -45,18 +43,20 @@ export default function ProductList({ products, locale }: ProductListProps) {
 
     setIsDeleting(true)
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', deleteModal.product.id)
+      const response = await fetch(`/api/products/${deleteModal.product.id}`, {
+        method: 'DELETE',
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete product')
+      }
 
       setDeleteModal({ isOpen: false, product: null })
       router.refresh()
     } catch (error) {
       console.error('Error deleting product:', error)
-      alert('Failed to delete product')
+      alert(error instanceof Error ? error.message : 'Failed to delete product')
     } finally {
       setIsDeleting(false)
     }
@@ -128,19 +128,19 @@ export default function ProductList({ products, locale }: ProductListProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {product.base_currency} {product.base_price.toLocaleString()}
+                      {product.currency} {product.unit_price.toLocaleString()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => router.push(`/${locale}/products/${product.id}`)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-4"
+                      className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer"
                     >
                       {t('common.edit')}
                     </button>
                     <button
                       onClick={() => setDeleteModal({ isOpen: true, product })}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-red-600 hover:text-red-900 cursor-pointer"
                     >
                       {t('common.delete')}
                     </button>

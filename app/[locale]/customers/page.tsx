@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import CustomerList from './CustomerList'
+import { getCustomers } from '@/lib/services/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,14 +24,14 @@ export default async function CustomersPage({
     redirect('/login')
   }
 
-  const { data: customers, error } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  let customers = []
+  let error = null
 
-  if (error) {
-    console.error('Error fetching customers:', error)
+  try {
+    customers = await getCustomers(user.id)
+  } catch (e) {
+    error = e
+    console.error('Error fetching customers:', e)
   }
 
   return (

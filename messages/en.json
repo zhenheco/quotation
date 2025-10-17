@@ -200,8 +200,8 @@
     "update": "Update",
     "deleteConfirm": {
       "title": "Confirm Batch Delete",
-      "description": "Are you sure you want to delete {{count}} selected quotations? This action cannot be undone."
+      "description": "Are you sure you want to delete {count} selected quotations? This action cannot be undone."
     },
-    "updateStatusDescription": "Update the status of {{count}} quotations to:"
+    "updateStatusDescription": "Update the status of {count} quotations to:"
   }
 }

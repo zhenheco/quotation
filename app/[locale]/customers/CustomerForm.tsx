@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import FormInput from '@/components/ui/FormInput'
 import BilingualFormInput from '@/components/ui/BilingualFormInput'
 
@@ -23,7 +22,6 @@ interface CustomerFormProps {
 export default function CustomerForm({ locale, customer }: CustomerFormProps) {
   const t = useTranslations()
   const router = useRouter()
-  const supabase = createClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -42,14 +40,6 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
     setError('')
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        throw new Error('User not authenticated')
-      }
-
       const customerData = {
         name: {
           zh: formData.nameZh,
@@ -61,24 +51,33 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
           zh: formData.addressZh,
           en: formData.addressEn,
         },
-        user_id: user.id,
       }
+
+      let response
 
       if (customer) {
         // Update existing customer
-        const { error: updateError } = await supabase
-          .from('customers')
-          .update(customerData)
-          .eq('id', customer.id)
-
-        if (updateError) throw updateError
+        response = await fetch(`/api/customers/${customer.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(customerData),
+        })
       } else {
         // Create new customer
-        const { error: insertError } = await supabase
-          .from('customers')
-          .insert([customerData])
+        response = await fetch('/api/customers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(customerData),
+        })
+      }
 
-        if (insertError) throw insertError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save customer')
       }
 
       router.push(`/${locale}/customers`)

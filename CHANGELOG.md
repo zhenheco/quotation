@@ -9,23 +9,80 @@
 
 ## [Unreleased]
 
-### 🔧 Fixed (修復中)
-- **權限錯誤修復** - permission denied for table customers/products/quotations
-  - 創建 Supabase 資料庫遷移腳本 `supabase-migrations/001_initial_schema.sql`
-  - 統一使用 Supabase 作為主要資料庫（認證 + 業務數據）
-  - 架構調整：Zeabur PostgreSQL 僅用於匯率數據
+### 🔧 Fixed (修復中 - Phase 2: P0 Blockers)
+- **資料庫 Schema 不一致問題** ✅ 已準備修復腳本
+  - ❌ `ERROR: 42703: column "sku" does not exist`
+  - ❌ `ERROR: 42501: permission denied for table customers/products/quotations`
+  - ✅ 創建完整 drop-and-recreate migration: `supabase-migrations/000_drop_and_recreate.sql`
+  - ✅ 包含所有缺失欄位：`sku`, `tax_id`, `contact_person`
+  - ✅ 修正欄位命名：`unit_price`, `total_amount`
+  - ✅ 完整 RLS 策略配置
+  - ⏳ **等待執行** - 需在 Supabase Dashboard 執行 SQL
 
 ### 📝 Added (新增)
-- 📄 `docs/SUPABASE_MIGRATION_GUIDE.md` - 完整的遷移執行指南
-- 📄 `QUICK_FIX.md` - 快速修復指南（5分鐘解決方案）
-- 📄 `scripts/run-supabase-migration.ts` - 自動執行遷移腳本（備用）
+- 📄 `supabase-migrations/000_drop_and_recreate.sql` (273 行) - **主要修復腳本**
+  - 完整刪除並重建所有業務表
+  - 修復所有 schema 不一致問題
+  - 配置所有 RLS 策略和索引
+- 📄 `supabase-migrations/001_initial_schema.sql` (291 行) - 初始版本（已被 000 取代）
+- 📄 `docs/MIGRATION_EXECUTION_GUIDE.md` - **詳細執行指南** ⭐
+  - 三種執行方式（Dashboard/psql/CLI）
+  - 完整驗證步驟
+  - 常見問題 FAQ
+  - 預期結果說明
+- 📄 `scripts/migrate-supabase.sh` - Migration 輔助腳本
+  - 顯示所有執行選項
+  - SQL 內容摘要
+  - 清晰的操作指引
+- 📄 `scripts/run-supabase-migration.ts` - 自動執行腳本（需 service role key）
+- 📄 `scripts/diagnose-supabase.ts` - 資料庫診斷工具
+- 📄 `QUICK_FIX.md` - 5分鐘快速修復指南
+- 📄 `docs/SUPABASE_MIGRATION_GUIDE.md` - 遷移指南
+
+### 🏗️ Layout Structure (佈局結構優化)
+- ✅ **統一佈局系統** - 所有認證頁面加入 Sidebar + Navbar
+  - 📄 `app/[locale]/customers/layout.tsx` - 客戶管理佈局
+  - 📄 `app/[locale]/products/layout.tsx` - 產品管理佈局
+  - 📄 `app/[locale]/quotations/layout.tsx` - 報價單管理佈局
+  - 每個 layout 包含：
+    - ✅ 認證檢查（redirect to /login if not authenticated）
+    - ✅ Navbar 導航欄
+    - ✅ Sidebar 側邊欄（可收合）
+    - ✅ 一致的頁面結構
+
+### 🎨 UI/UX Improvements (介面優化)
+- ✅ **Login 頁面增強** (`app/[locale]/login/page.tsx`)
+  - 修復 Next.js 15 async params 錯誤
+  - 新增 Logo 圖示（藍色文件圖示）
+  - 改進漸層背景設計
+  - 更好的按鈕樣式和懸停效果
+- ✅ **LoginButton 優化** (`app/[locale]/login/LoginButton.tsx`)
+  - 改進 hover 動畫（scale transform）
+  - 更清晰的視覺回饋
 
 ### 🔄 Changed (變更)
-- 業務表結構優化：修正欄位名稱以匹配實際代碼使用
-  - `products.base_price` → `products.unit_price`
-  - `quotations.total` → `quotations.total_amount`
-  - 新增 `products.sku`, `customers.tax_id`, `customers.contact_person`
-- 簡化 `quotation_items` 表結構，移除未使用欄位
+- 🔧 **業務表結構優化**：
+  ```sql
+  -- 欄位重命名
+  products.base_price     → products.unit_price
+  quotations.total        → quotations.total_amount
+
+  -- 新增欄位
+  products.sku            VARCHAR(100)
+  customers.tax_id        VARCHAR(50)
+  customers.contact_person JSONB
+  ```
+- 🔧 **修復 Next.js 15 相容性**
+  - Login page: `params: Promise<{ locale: string }>` (await params)
+  - 移除直接存取 params.locale 的錯誤
+- 🔧 **簡化 quotation_items 表結構**，移除未使用欄位
+
+### 📊 Code Architecture Analysis (代碼架構分析)
+- ✅ **Tech Lead 全面評估完成**
+  - 健康分數：6.5/10
+  - 識別 10 個優先級問題（P0-P4）
+  - 生成 6 階段修復路線圖
+  - 詳細技術債務清單
 
 ### 待優化項目
 - [ ] 修復批次匯出的 N+1 查詢問題 (21次查詢→2次)

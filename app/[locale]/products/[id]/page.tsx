@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import { redirect, notFound } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import ProductForm from '../ProductForm'
+import { getProductById } from '@/lib/services/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,14 +24,16 @@ export default async function EditProductPage({
     redirect('/login')
   }
 
-  const { data: product, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
+  // 使用 Zeabur PostgreSQL 查詢產品資料
+  let product = null
 
-  if (error || !product) {
+  try {
+    product = await getProductById(id, user.id)
+  } catch (e) {
+    console.error('Error fetching product:', e)
+  }
+
+  if (!product) {
     notFound()
   }
 

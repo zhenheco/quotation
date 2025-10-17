@@ -25,14 +25,14 @@ export default function Navbar({ locale }: { locale: string }) {
         <div className="flex items-center justify-end gap-4">
           <button
             onClick={toggleLocale}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
           >
             {locale === 'en' ? '中文' : 'English'}
           </button>
 
           <button
             onClick={handleSignOut}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors cursor-pointer"
           >
             {locale === 'en' ? 'Sign Out' : '登出'}
           </button>

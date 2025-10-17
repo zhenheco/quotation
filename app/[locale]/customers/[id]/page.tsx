@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import { redirect, notFound } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import CustomerForm from '../CustomerForm'
+import { getCustomerById } from '@/lib/services/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,12 +24,15 @@ export default async function EditCustomerPage({
     redirect('/login')
   }
 
-  const { data: customer, error } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
+  let customer = null
+  let error = null
+
+  try {
+    customer = await getCustomerById(id, user.id)
+  } catch (e) {
+    error = e
+    console.error('Error fetching customer:', e)
+  }
 
   if (error || !customer) {
     notFound()

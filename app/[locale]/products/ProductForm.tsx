@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import FormInput from '@/components/ui/FormInput'
 import BilingualFormInput from '@/components/ui/BilingualFormInput'
 
@@ -11,8 +10,8 @@ interface Product {
   id: string
   name: { zh: string; en: string }
   description: { zh: string; en: string } | null
-  base_price: number
-  base_currency: string
+  unit_price: number
+  currency: string
   category: string | null
 }
 
@@ -26,7 +25,6 @@ const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'CNY']
 export default function ProductForm({ locale, product }: ProductFormProps) {
   const t = useTranslations()
   const router = useRouter()
-  const supabase = createClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -35,8 +33,8 @@ export default function ProductForm({ locale, product }: ProductFormProps) {
     nameEn: product?.name?.en || '',
     descriptionZh: product?.description?.zh || '',
     descriptionEn: product?.description?.en || '',
-    basePrice: product?.base_price?.toString() || '',
-    baseCurrency: product?.base_currency || 'TWD',
+    basePrice: product?.unit_price?.toString() || '',
+    baseCurrency: product?.currency || 'TWD',
     category: product?.category || '',
   })
 
@@ -46,14 +44,6 @@ export default function ProductForm({ locale, product }: ProductFormProps) {
     setError('')
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        throw new Error('User not authenticated')
-      }
-
       const price = parseFloat(formData.basePrice)
       if (isNaN(price) || price < 0) {
         throw new Error('Invalid price')
@@ -68,27 +58,36 @@ export default function ProductForm({ locale, product }: ProductFormProps) {
           zh: formData.descriptionZh,
           en: formData.descriptionEn,
         },
-        base_price: price,
-        base_currency: formData.baseCurrency,
+        unit_price: price,
+        currency: formData.baseCurrency,
         category: formData.category || null,
-        user_id: user.id,
       }
+
+      let response
 
       if (product) {
         // Update existing product
-        const { error: updateError } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', product.id)
-
-        if (updateError) throw updateError
+        response = await fetch(`/api/products/${product.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(productData),
+        })
       } else {
         // Create new product
-        const { error: insertError } = await supabase
-          .from('products')
-          .insert([productData])
+        response = await fetch('/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(productData),
+        })
+      }
 
-        if (insertError) throw insertError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save product')
       }
 
       router.push(`/${locale}/products`)
