@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from 'next-intl/server'
 import { redirect, notFound } from 'next/navigation'
-import PageHeader from '@/components/ui/PageHeader'
 import QuotationDetail from './QuotationDetail'
 import {
   getQuotationById,
@@ -77,13 +76,9 @@ export default async function QuotationDetailPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t('quotation.detail')}
-        action={{
-          label: t('quotation.exportPDF'),
-          href: `/${locale}/quotations/${id}/export`,
-        }}
-      />
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">{t('quotation.detail')}</h1>
+      </div>
 
       <QuotationDetail
         quotation={quotationWithCustomer}

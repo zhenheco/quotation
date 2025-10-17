@@ -107,6 +107,7 @@
     "downloadChinesePDF": "Download Chinese PDF",
     "downloadEnglishPDF": "Download English PDF",
     "downloadBilingualPDF": "Download Bilingual PDF",
+    "downloadError": "Download failed",
     "selectTemplate": "Select Note Template",
     "template": {
       "standard": "Standard Terms",
@@ -217,5 +218,21 @@
       "description": "Are you sure you want to delete {count} selected quotations? This action cannot be undone."
     },
     "updateStatusDescription": "Update the status of {count} quotations to:"
+  },
+  "share": {
+    "share": "Share",
+    "shareQuotation": "Share Quotation",
+    "shareLink": "Share Link",
+    "description": "Generate a public share link that allows customers to view the quotation without logging in.",
+    "generateLink": "Generate Share Link",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Failed to copy, please copy manually",
+    "deactivate": "Deactivate Share Link",
+    "viewCount": "View Count",
+    "lastViewed": "Last Viewed",
+    "expiresAt": "Expires At",
+    "linkGenerated": "Share link generated",
+    "linkDeactivated": "Share link deactivated"
   }
 }

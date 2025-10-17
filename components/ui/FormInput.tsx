@@ -30,9 +30,11 @@ export default function FormInput({
     error ? 'border-red-300' : 'border-gray-300'
   }`
 
+  const isDateInput = type === 'date'
+
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={name} className="block text-sm font-semibold text-gray-900 mb-1">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
@@ -47,6 +49,18 @@ export default function FormInput({
           disabled={disabled}
           rows={rows || 3}
           className={baseClasses}
+        />
+      ) : isDateInput ? (
+        <input
+          type={type}
+          id={name}
+          name={name}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          required={required}
+          disabled={disabled}
+          className={`${baseClasses} cursor-pointer text-gray-900`}
         />
       ) : (
         <input

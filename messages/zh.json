@@ -107,6 +107,7 @@
     "downloadChinesePDF": "下載中文版 PDF",
     "downloadEnglishPDF": "下載英文版 PDF",
     "downloadBilingualPDF": "下載雙語版 PDF",
+    "downloadError": "下載失敗",
     "selectTemplate": "選擇備註模板",
     "template": {
       "standard": "標準條款",
@@ -186,7 +187,7 @@
     "draft": "草稿",
     "sent": "已發送",
     "accepted": "已接受",
-    "rejected": "已過期",
+    "rejected": "已拒絕",
     "expired": "已過期"
   },
   "email": {
@@ -217,5 +218,21 @@
       "description": "您確定要刪除所選的 {count} 個報價單嗎？此操作無法復原。"
     },
     "updateStatusDescription": "將 {count} 個報價單的狀態更新為："
+  },
+  "share": {
+    "share": "分享",
+    "shareQuotation": "分享報價單",
+    "shareLink": "分享連結",
+    "description": "生成公開分享連結，讓客戶無需登入即可查看報價單。",
+    "generateLink": "生成分享連結",
+    "copy": "複製",
+    "copied": "已複製",
+    "copyFailed": "複製失敗，請手動複製",
+    "deactivate": "停用分享連結",
+    "viewCount": "查看次數",
+    "lastViewed": "最後查看",
+    "expiresAt": "過期時間",
+    "linkGenerated": "分享連結已生成",
+    "linkDeactivated": "分享連結已停用"
   }
 }
