@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getZeaburPool } from '@/lib/db/zeabur'
 
 /**
  * POST /api/quotations/[id]/share
@@ -9,6 +10,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const pool = getZeaburPool()
+
   try {
     const { id } = await params
     const supabase = await createClient()
@@ -28,14 +31,12 @@ export async function POST(
     const { expiresInDays } = body // 可選：設定過期天數
 
     // 驗證報價單是否存在且屬於當前用戶
-    const { data: quotation, error: quotationError } = await supabase
-      .from('quotations')
-      .select('id, user_id')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+    const quotationResult = await pool.query(
+      'SELECT id, user_id FROM quotations WHERE id = $1 AND user_id = $2',
+      [id, user.id]
+    )
 
-    if (quotationError || !quotation) {
+    if (quotationResult.rows.length === 0) {
       return NextResponse.json(
         { error: 'Quotation not found or access denied' },
         { status: 404 }
@@ -43,16 +44,19 @@ export async function POST(
     }
 
     // 檢查是否已存在有效的分享令牌
-    const { data: existingToken, error: existingTokenError } = await supabase
-      .from('share_tokens')
-      .select('*')
-      .eq('quotation_id', id)
-      .eq('is_active', true)
-      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-      .single()
+    const now = new Date().toISOString()
+    const existingTokenResult = await pool.query(
+      `SELECT * FROM share_tokens
+       WHERE quotation_id = $1
+       AND is_active = true
+       AND (expires_at IS NULL OR expires_at > $2)
+       LIMIT 1`,
+      [id, now]
+    )
 
     // 如果已存在有效的令牌，直接返回
-    if (existingToken && !existingTokenError) {
+    if (existingTokenResult.rows.length > 0) {
+      const existingToken = existingTokenResult.rows[0]
       return NextResponse.json({
         success: true,
         token: existingToken.token,
@@ -62,19 +66,8 @@ export async function POST(
     }
 
     // 生成新的分享令牌
-    const { data: tokenData, error: tokenError } = await supabase.rpc(
-      'generate_share_token'
-    )
-
-    if (tokenError || !tokenData) {
-      console.error('Failed to generate share token:', tokenError)
-      return NextResponse.json(
-        { error: 'Failed to generate share token' },
-        { status: 500 }
-      )
-    }
-
-    const token = tokenData
+    const tokenResult = await pool.query('SELECT generate_share_token() as token')
+    const token = tokenResult.rows[0].token
 
     // 計算過期時間
     let expiresAt = null
@@ -85,24 +78,14 @@ export async function POST(
     }
 
     // 儲存分享令牌
-    const { data: newToken, error: insertError } = await supabase
-      .from('share_tokens')
-      .insert({
-        quotation_id: id,
-        token,
-        is_active: true,
-        expires_at: expiresAt,
-      })
-      .select()
-      .single()
+    const insertResult = await pool.query(
+      `INSERT INTO share_tokens (quotation_id, token, is_active, expires_at)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [id, token, true, expiresAt]
+    )
 
-    if (insertError || !newToken) {
-      console.error('Failed to create share token:', insertError)
-      return NextResponse.json(
-        { error: 'Failed to create share token' },
-        { status: 500 }
-      )
-    }
+    const newToken = insertResult.rows[0]
 
     return NextResponse.json({
       success: true,
@@ -127,6 +110,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const pool = getZeaburPool()
+
   try {
     const { id } = await params
     const supabase = await createClient()
@@ -142,14 +127,12 @@ export async function DELETE(
     }
 
     // 驗證報價單是否存在且屬於當前用戶
-    const { data: quotation, error: quotationError } = await supabase
-      .from('quotations')
-      .select('id, user_id')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+    const quotationResult = await pool.query(
+      'SELECT id, user_id FROM quotations WHERE id = $1 AND user_id = $2',
+      [id, user.id]
+    )
 
-    if (quotationError || !quotation) {
+    if (quotationResult.rows.length === 0) {
       return NextResponse.json(
         { error: 'Quotation not found or access denied' },
         { status: 404 }
@@ -157,19 +140,10 @@ export async function DELETE(
     }
 
     // 停用所有該報價單的分享令牌
-    const { error: updateError } = await supabase
-      .from('share_tokens')
-      .update({ is_active: false })
-      .eq('quotation_id', id)
-      .eq('is_active', true)
-
-    if (updateError) {
-      console.error('Failed to deactivate share token:', updateError)
-      return NextResponse.json(
-        { error: 'Failed to deactivate share token' },
-        { status: 500 }
-      )
-    }
+    await pool.query(
+      'UPDATE share_tokens SET is_active = false WHERE quotation_id = $1 AND is_active = true',
+      [id]
+    )
 
     return NextResponse.json({
       success: true,
@@ -192,6 +166,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const pool = getZeaburPool()
+
   try {
     const { id } = await params
     const supabase = await createClient()
@@ -207,14 +183,12 @@ export async function GET(
     }
 
     // 驗證報價單是否存在且屬於當前用戶
-    const { data: quotation, error: quotationError } = await supabase
-      .from('quotations')
-      .select('id, user_id')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+    const quotationResult = await pool.query(
+      'SELECT id, user_id FROM quotations WHERE id = $1 AND user_id = $2',
+      [id, user.id]
+    )
 
-    if (quotationError || !quotation) {
+    if (quotationResult.rows.length === 0) {
       return NextResponse.json(
         { error: 'Quotation not found or access denied' },
         { status: 404 }
@@ -222,28 +196,23 @@ export async function GET(
     }
 
     // 查詢有效的分享令牌
-    const { data: shareToken, error: tokenError } = await supabase
-      .from('share_tokens')
-      .select('*')
-      .eq('quotation_id', id)
-      .eq('is_active', true)
-      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-      .single()
+    const now = new Date().toISOString()
+    const tokenResult = await pool.query(
+      `SELECT * FROM share_tokens
+       WHERE quotation_id = $1
+       AND is_active = true
+       AND (expires_at IS NULL OR expires_at > $2)
+       LIMIT 1`,
+      [id, now]
+    )
 
-    if (tokenError && tokenError.code !== 'PGRST116') {
-      // PGRST116 是 "沒有找到資料" 的錯誤代碼
-      console.error('Failed to fetch share token:', tokenError)
-      return NextResponse.json(
-        { error: 'Failed to fetch share token' },
-        { status: 500 }
-      )
-    }
-
-    if (!shareToken) {
+    if (tokenResult.rows.length === 0) {
       return NextResponse.json({
         isShared: false,
       })
     }
+
+    const shareToken = tokenResult.rows[0]
 
     return NextResponse.json({
       isShared: true,

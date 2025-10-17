@@ -107,6 +107,7 @@
     "downloadChinesePDF": "Download Chinese PDF",
     "downloadEnglishPDF": "Download English PDF",
     "downloadBilingualPDF": "Download Bilingual PDF",
+    "downloadError": "Download failed",
     "selectTemplate": "Select Note Template",
     "template": {
       "standard": "Standard Terms",

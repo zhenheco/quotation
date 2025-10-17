@@ -45,7 +45,21 @@ export default function PDFDownloadButton({
       )
 
       if (!response.ok) {
-        throw new Error('Failed to download PDF')
+        // 嘗試讀取錯誤訊息
+        let errorMessage = 'Failed to download PDF'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // 如果不是 JSON 響應，使用預設錯誤訊息
+        }
+        throw new Error(errorMessage)
+      }
+
+      // 確認響應類型是 PDF
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/pdf')) {
+        throw new Error('Invalid response format. Expected PDF.')
       }
 
       // 取得 blob 並下載
@@ -60,7 +74,8 @@ export default function PDFDownloadButton({
       document.body.removeChild(a)
     } catch (error) {
       console.error('Error downloading PDF:', error)
-      alert('Failed to download PDF. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to download PDF'
+      alert(`${t('quotation.downloadError')}: ${errorMessage}`)
     } finally {
       setIsDownloading(false)
     }

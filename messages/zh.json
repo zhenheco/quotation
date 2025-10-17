@@ -107,6 +107,7 @@
     "downloadChinesePDF": "下載中文版 PDF",
     "downloadEnglishPDF": "下載英文版 PDF",
     "downloadBilingualPDF": "下載雙語版 PDF",
+    "downloadError": "下載失敗",
     "selectTemplate": "選擇備註模板",
     "template": {
       "standard": "標準條款",

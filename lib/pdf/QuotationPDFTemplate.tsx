@@ -4,6 +4,7 @@
  */
 
 import React from 'react'
+import path from 'path'
 import {
   Document,
   Page,
@@ -15,19 +16,25 @@ import {
 import { QuotationPDFData } from './types'
 import { pdfTranslations } from './translations'
 
-// 註冊 Noto Sans 字體以支援中文
-// 注意：需要下載字體檔案並放置在 public/fonts 目錄
-// Font.register({
-//   family: 'Noto Sans TC',
-//   src: '/fonts/NotoSansTC-Regular.ttf',
-// })
+// 註冊 Noto Sans TC 字體以支援繁體中文
+// 使用檔案系統絕對路徑來載入本地字體檔案
+
+Font.register({
+  family: 'Noto Sans TC',
+  fonts: [
+    {
+      src: path.join(process.cwd(), 'public', 'fonts', 'NotoSansTC-Regular.ttf'),
+      fontWeight: 'normal',
+    },
+  ],
+})
 
 // PDF 樣式定義
 const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontSize: 10,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Noto Sans TC',
     backgroundColor: '#FFFFFF',
   },
   header: {
@@ -134,7 +141,7 @@ const styles = StyleSheet.create({
   productDescription: {
     color: '#64748B',
     fontSize: 8,
-    fontStyle: 'italic',
+    // fontStyle: 'italic', // 移除 italic，因為 Noto Sans TC 不支援
   },
   totalsSection: {
     marginLeft: 'auto',
