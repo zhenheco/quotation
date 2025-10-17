@@ -69,7 +69,7 @@
     "detail": "Quotation Details",
     "quotationNumber": "Quotation Number",
     "customer": "Customer",
-    "issueDate": "Issue Date",
+    "issueDate": "Created Date",
     "validUntil": "Valid Until",
     "status": "Status",
     "currency": "Currency",
@@ -106,7 +106,20 @@
     "downloadPDF": "Download PDF",
     "downloadChinesePDF": "Download Chinese PDF",
     "downloadEnglishPDF": "Download English PDF",
-    "downloadBilingualPDF": "Download Bilingual PDF"
+    "downloadBilingualPDF": "Download Bilingual PDF",
+    "selectTemplate": "Select Note Template",
+    "template": {
+      "standard": "Standard Terms",
+      "urgent": "Urgent Terms",
+      "wholesale": "Wholesale Terms",
+      "maintenance": "Maintenance Service"
+    },
+    "basicInfo": "Basic Information",
+    "versionHistory": "Version History",
+    "showHistory": "Show History",
+    "hideHistory": "Hide History",
+    "version": "Version",
+    "noVersionHistory": "No version history"
   },
   "customer": {
     "title": "Customers",
@@ -173,7 +186,8 @@
     "draft": "Draft",
     "sent": "Sent",
     "accepted": "Accepted",
-    "rejected": "Rejected"
+    "rejected": "Rejected",
+    "expired": "Expired"
   },
   "email": {
     "sendQuotation": "Send Quotation",

@@ -69,7 +69,7 @@
     "detail": "報價單詳情",
     "quotationNumber": "報價單號碼",
     "customer": "客戶",
-    "issueDate": "發行日期",
+    "issueDate": "建立日期",
     "validUntil": "有效期限",
     "status": "狀態",
     "currency": "幣別",
@@ -106,7 +106,20 @@
     "downloadPDF": "下載 PDF",
     "downloadChinesePDF": "下載中文版 PDF",
     "downloadEnglishPDF": "下載英文版 PDF",
-    "downloadBilingualPDF": "下載雙語版 PDF"
+    "downloadBilingualPDF": "下載雙語版 PDF",
+    "selectTemplate": "選擇備註模板",
+    "template": {
+      "standard": "標準條款",
+      "urgent": "加急條款",
+      "wholesale": "批發條款",
+      "maintenance": "維護服務"
+    },
+    "basicInfo": "基本資訊",
+    "versionHistory": "版本歷史",
+    "showHistory": "顯示歷史",
+    "hideHistory": "隱藏歷史",
+    "version": "版本",
+    "noVersionHistory": "無版本歷史記錄"
   },
   "customer": {
     "title": "客戶",
@@ -173,7 +186,8 @@
     "draft": "草稿",
     "sent": "已發送",
     "accepted": "已接受",
-    "rejected": "已拒絕"
+    "rejected": "已過期",
+    "expired": "已過期"
   },
   "email": {
     "sendQuotation": "發送報價單",

@@ -17,7 +17,7 @@ interface Quotation {
   }
   issue_date: string
   valid_until: string
-  status: 'draft' | 'sent' | 'accepted' | 'rejected'
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
   currency: string
   subtotal: number
   tax_rate: number
@@ -180,12 +180,25 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
     }
   }
 
-  const getStatusBadge = (status: string) => {
+  // 判斷報價單是否已過期
+  const isExpired = (validUntil: string) => {
+    return new Date(validUntil) < new Date()
+  }
+
+  const getStatusBadge = (quotation: Quotation) => {
+    let status = quotation.status
+
+    // 如果狀態是 sent 且已經過期，顯示為 expired
+    if ((status === 'sent' || status === 'draft') && isExpired(quotation.valid_until)) {
+      status = 'expired'
+    }
+
     const statusColors = {
       draft: 'bg-gray-100 text-gray-800',
       sent: 'bg-blue-100 text-blue-800',
       accepted: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
+      expired: 'bg-orange-100 text-orange-800',
     }
 
     return (
@@ -224,6 +237,7 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
               <option value="sent">{t('status.sent')}</option>
               <option value="accepted">{t('status.accepted')}</option>
               <option value="rejected">{t('status.rejected')}</option>
+              <option value="expired">{t('status.expired')}</option>
             </select>
 
             {quotations.length > 0 && (
@@ -328,11 +342,21 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {new Date(quotation.issue_date).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')}
+                      {locale === 'zh'
+                        ? new Date(quotation.issue_date).toLocaleDateString('zh-TW', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })
+                        : new Date(quotation.issue_date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(quotation.status)}
+                    {getStatusBadge(quotation)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
@@ -340,6 +364,12 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
+                      className="text-blue-600 hover:text-blue-900 mr-4 cursor-pointer"
+                    >
+                      {t('common.edit')}
+                    </button>
                     <button
                       onClick={() => router.push(`/${locale}/quotations/${quotation.id}`)}
                       className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer"

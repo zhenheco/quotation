@@ -44,7 +44,7 @@ interface QuotationEditFormProps {
 }
 
 const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'CNY']
-const STATUSES = ['draft', 'sent', 'accepted', 'expired']
+const STATUSES = ['draft', 'sent', 'accepted', 'rejected', 'expired']
 
 export default function QuotationEditForm({
   locale,
@@ -145,10 +145,22 @@ export default function QuotationEditForm({
       let convertedPrice = product.unit_price
 
       // 如果產品幣別與報價單幣別不同，進行匯率換算
-      if (product.currency !== formData.currency && exchangeRates[product.currency]) {
-        // exchangeRates 是以報價單幣別為基準的匯率
-        // 要將產品幣別轉換為報價單幣別，需要除以匯率
-        convertedPrice = product.unit_price / exchangeRates[product.currency]
+      if (product.currency !== formData.currency) {
+        // exchangeRates 是以報價單幣別(formData.currency)為基準的匯率
+        // 例如：報價單是 TWD，exchangeRates = { TWD: 1, USD: 0.03265, EUR: 0.02794 }
+        // 這表示：1 TWD = 0.03265 USD
+
+        // 要將產品幣別轉換為報價單幣別：
+        // 例如：產品是 USD 100，報價單是 TWD
+        // 換算：100 / 0.03265 = 3062.79 TWD
+
+        const rate = exchangeRates[product.currency]
+        if (rate && rate !== 0) {
+          convertedPrice = product.unit_price / rate
+        } else {
+          // 如果沒有對應的匯率，顯示警告並使用原價
+          console.warn(`No exchange rate found for ${product.currency} to ${formData.currency}`)
+        }
       }
 
       updateItem(index, 'product_id', productId)

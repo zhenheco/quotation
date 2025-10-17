@@ -67,7 +67,17 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
               {quotation.quotation_number}
             </h2>
             <p className="text-gray-600 mt-1">
-              {t('quotation.issueDate')}: {new Date(quotation.issue_date).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')}
+              {t('quotation.issueDate')}: {locale === 'zh'
+                ? new Date(quotation.issue_date).toLocaleDateString('zh-TW', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })
+                : new Date(quotation.issue_date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -114,7 +124,17 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
               <p>
                 <span className="text-gray-600">{t('quotation.validUntil')}:</span>{' '}
                 <span className="text-gray-900">
-                  {new Date(quotation.valid_until).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')}
+                  {locale === 'zh'
+                    ? new Date(quotation.valid_until).toLocaleDateString('zh-TW', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })
+                    : new Date(quotation.valid_until).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
                 </span>
               </p>
               <p>
@@ -227,7 +247,7 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
             <button
               onClick={() => handleStatusChange('sent')}
               disabled={isUpdating}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               {t('quotation.markAsSent')}
             </button>
@@ -237,14 +257,14 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
               <button
                 onClick={() => handleStatusChange('accepted')}
                 disabled={isUpdating}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 {t('quotation.markAsAccepted')}
               </button>
               <button
                 onClick={() => handleStatusChange('rejected')}
                 disabled={isUpdating}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 {t('quotation.markAsRejected')}
               </button>
@@ -254,7 +274,7 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
             <button
               onClick={() => handleStatusChange('draft')}
               disabled={isUpdating}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               {t('quotation.markAsDraft')}
             </button>

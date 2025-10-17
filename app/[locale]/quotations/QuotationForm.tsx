@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import FormInput from '@/components/ui/FormInput'
+import { Combobox } from '@headlessui/react'
 
 interface Customer {
   id: string
@@ -35,6 +36,22 @@ interface QuotationFormProps {
 
 const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'CNY']
 
+// 備註常用模版
+const NOTE_TEMPLATES = {
+  zh: {
+    standard: '本報價單有效期限為 7 天。\n付款條件：簽約後 30 天內付清。\n交貨時間：收到訂單後 14 個工作天。',
+    urgent: '本報價單有效期限為 3 天。\n付款條件：簽約後 7 天內付清。\n交貨時間：收到訂單後 7 個工作天（加急處理）。',
+    wholesale: '本報價單有效期限為 14 天。\n付款條件：30% 訂金，尾款於交貨前付清。\n交貨時間：收到訂金後 21 個工作天。\n批發訂單享有特別折扣。',
+    maintenance: '本報價為年度維護服務報價。\n付款條件：簽約後 30 天內付清。\n服務期間：簽約日起算一年。\n包含：定期檢查、故障排除、技術支援。',
+  },
+  en: {
+    standard: 'This quotation is valid for 7 days.\nPayment terms: Full payment within 30 days after contract signing.\nDelivery time: 14 working days after receiving the order.',
+    urgent: 'This quotation is valid for 3 days.\nPayment terms: Full payment within 7 days after contract signing.\nDelivery time: 7 working days after receiving the order (expedited processing).',
+    wholesale: 'This quotation is valid for 14 days.\nPayment terms: 30% deposit, balance before delivery.\nDelivery time: 21 working days after receiving the deposit.\nWholesale orders enjoy special discounts.',
+    maintenance: 'This quotation is for annual maintenance service.\nPayment terms: Full payment within 30 days after contract signing.\nService period: One year from the contract date.\nIncludes: Regular inspection, troubleshooting, technical support.',
+  },
+}
+
 export default function QuotationForm({
   locale,
   customers,
@@ -45,17 +62,76 @@ export default function QuotationForm({
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({})
+  const [customerQuery, setCustomerQuery] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [productQueries, setProductQueries] = useState<Record<number, string>>({})
+  const [selectedProducts, setSelectedProducts] = useState<Record<number, Product | null>>({})
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false)
+  const [customTemplates, setCustomTemplates] = useState<Record<string, string>>({})
 
   const [formData, setFormData] = useState({
     customerId: quotation?.customer_id || '',
     issueDate: quotation?.issue_date || new Date().toISOString().split('T')[0],
-    validUntil: quotation?.valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    validUntil: quotation?.valid_until || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     currency: quotation?.currency || 'TWD',
     taxRate: quotation?.tax_rate?.toString() || '5',
     notes: quotation?.notes || '',
   })
 
   const [items, setItems] = useState<QuotationItem[]>(quotation?.items || [])
+
+  // 載入自訂模版
+  useEffect(() => {
+    const templates = JSON.parse(localStorage.getItem('customNoteTemplates') || '{}')
+    setCustomTemplates(templates)
+  }, [])
+
+  // 初始化已選客戶
+  useEffect(() => {
+    if (quotation?.customer_id && customers.length > 0) {
+      const customer = customers.find(c => c.id === quotation.customer_id)
+      setSelectedCustomer(customer || null)
+    }
+  }, [quotation?.customer_id, customers])
+
+  // 過濾客戶列表
+  const filteredCustomers = useMemo(() => {
+    if (customerQuery === '') return customers
+    const query = customerQuery.toLowerCase()
+    return customers.filter(customer =>
+      customer.name.zh.toLowerCase().includes(query) ||
+      customer.name.en.toLowerCase().includes(query) ||
+      customer.email.toLowerCase().includes(query)
+    )
+  }, [customers, customerQuery])
+
+  // 過濾產品列表
+  const getFilteredProducts = (index: number) => {
+    const query = productQueries[index] || ''
+    if (query === '') return products
+    const queryLower = query.toLowerCase()
+    return products.filter(product =>
+      product.name?.zh?.toLowerCase().includes(queryLower) ||
+      product.name?.en?.toLowerCase().includes(queryLower)
+    )
+  }
+
+  // 獲取匯率數據
+  useEffect(() => {
+    const fetchExchangeRates = async () => {
+      try {
+        const response = await fetch(`/api/exchange-rates?base=${formData.currency}`)
+        const data = await response.json()
+        if (data.success) {
+          setExchangeRates(data.rates)
+        }
+      } catch (error) {
+        console.error('Failed to fetch exchange rates:', error)
+      }
+    }
+    fetchExchangeRates()
+  }, [formData.currency])
 
   const addItem = () => {
     setItems([
@@ -82,7 +158,8 @@ export default function QuotationForm({
     const quantity = parseFloat(newItems[index].quantity.toString()) || 0
     const unitPrice = parseFloat(newItems[index].unit_price.toString()) || 0
     const discount = parseFloat(newItems[index].discount.toString()) || 0
-    newItems[index].subtotal = (quantity * unitPrice) - discount
+    // 折扣為負數，所以直接相加
+    newItems[index].subtotal = (quantity * unitPrice) + discount
 
     setItems(newItems)
   }
@@ -90,8 +167,86 @@ export default function QuotationForm({
   const handleProductChange = (index: number, productId: string) => {
     const product = products.find((p) => p.id === productId)
     if (product) {
-      updateItem(index, 'product_id', productId)
-      updateItem(index, 'unit_price', product.unit_price)
+      setSelectedProducts({ ...selectedProducts, [index]: product })
+
+      let convertedPrice = product.unit_price
+
+      // 如果產品幣別與報價單幣別不同，進行匯率換算
+      if (product.currency !== formData.currency) {
+        // exchangeRates 是以報價單幣別(formData.currency)為基準的匯率
+        // 例如：報價單是 TWD，exchangeRates = { TWD: 1, USD: 0.03265, EUR: 0.02794 }
+        // 這表示：1 TWD = 0.03265 USD
+
+        // 要將產品幣別轉換為報價單幣別，需要分兩步：
+        // 1. 如果產品是 USD 100，報價單是 TWD
+        //    換算：100 / 0.03265 = 3062.79 TWD ✓
+        // 2. 如果產品是 EUR 50，報價單是 TWD
+        //    換算：50 / 0.02794 = 1789.48 TWD ✓
+
+        const rate = exchangeRates[product.currency]
+        if (rate && rate !== 0) {
+          convertedPrice = product.unit_price / rate
+        } else {
+          // 如果沒有對應的匯率，顯示警告並使用原價
+          console.warn(`No exchange rate found for ${product.currency} to ${formData.currency}`)
+        }
+      }
+
+      const newItems = [...items]
+      newItems[index] = {
+        ...newItems[index],
+        product_id: productId,
+        unit_price: convertedPrice,
+      }
+      // 重新計算小計
+      const quantity = parseFloat(newItems[index].quantity.toString()) || 0
+      const discount = parseFloat(newItems[index].discount.toString()) || 0
+      newItems[index].subtotal = (quantity * convertedPrice) + discount
+      setItems(newItems)
+    }
+  }
+
+  const handleCurrencyChange = async (newCurrency: string) => {
+    // 1. 更新表單幣別
+    setFormData({ ...formData, currency: newCurrency })
+
+    // 2. 獲取新幣別的匯率
+    try {
+      const response = await fetch(`/api/exchange-rates?base=${newCurrency}`)
+      const data = await response.json()
+      if (data.success) {
+        setExchangeRates(data.rates)
+
+        // 3. 重新計算所有產品的價格
+        const updatedItems = items.map((item, index) => {
+          if (!item.product_id) return item
+
+          const product = selectedProducts[index] || products.find(p => p.id === item.product_id)
+          if (!product) return item
+
+          let convertedPrice = product.unit_price
+          if (product.currency !== newCurrency) {
+            const rate = data.rates[product.currency]
+            if (rate && rate !== 0) {
+              convertedPrice = product.unit_price / rate
+            }
+          }
+
+          const quantity = parseFloat(item.quantity.toString()) || 0
+          const discount = parseFloat(item.discount.toString()) || 0
+          const subtotal = (quantity * convertedPrice) + discount
+
+          return {
+            ...item,
+            unit_price: convertedPrice,
+            subtotal
+          }
+        })
+
+        setItems(updatedItems)
+      }
+    } catch (error) {
+      console.error('Failed to fetch exchange rates:', error)
     }
   }
 
@@ -181,7 +336,7 @@ export default function QuotationForm({
         <p className="text-gray-600 mb-4">{t('quotation.noCustomers')}</p>
         <button
           onClick={() => router.push(`/${locale}/customers/new`)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer"
         >
           {t('customer.createNew')}
         </button>
@@ -203,20 +358,51 @@ export default function QuotationForm({
             {t('quotation.customer')}
             <span className="text-red-500 ml-1">*</span>
           </label>
-          <select
-            id="customerId"
-            value={formData.customerId}
-            onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-            required
-            className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          <Combobox
+            value={selectedCustomer}
+            onChange={(customer) => {
+              setSelectedCustomer(customer)
+              setFormData({ ...formData, customerId: customer?.id || '' })
+            }}
           >
-            <option value="">{t('quotation.selectCustomer')}</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name[locale as 'zh' | 'en']} ({customer.email})
-              </option>
-            ))}
-          </select>
+            <div className="relative">
+              <Combobox.Input
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                displayValue={(customer: Customer | null) =>
+                  customer ? `${customer.name[locale as 'zh' | 'en']} (${customer.email})` : ''
+                }
+                onChange={(event) => setCustomerQuery(event.target.value)}
+                placeholder={t('quotation.selectCustomer')}
+              />
+              <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white py-1 shadow-lg border border-gray-300 focus:outline-none">
+                {filteredCustomers.length === 0 && customerQuery !== '' ? (
+                  <div className="px-3 py-2 text-sm text-gray-500">{t('common.noResults')}</div>
+                ) : (
+                  filteredCustomers.map((customer) => (
+                    <Combobox.Option
+                      key={customer.id}
+                      value={customer}
+                      className={({ active }) =>
+                        `cursor-pointer select-none px-3 py-2 text-sm ${
+                          active ? 'bg-indigo-600 text-white' : 'text-gray-900'
+                        }`
+                      }
+                    >
+                      {customer.name[locale as 'zh' | 'en']} ({customer.email})
+                    </Combobox.Option>
+                  ))
+                )}
+              </Combobox.Options>
+            </div>
+          </Combobox>
+          <button
+            type="button"
+            onClick={() => window.open(`/${locale}/customers/new`, '_blank')}
+            className="mt-2 text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+          >
+            <span>+</span>
+            <span>{t('customer.createNew')}</span>
+          </button>
         </div>
 
         <div>
@@ -227,7 +413,7 @@ export default function QuotationForm({
           <select
             id="currency"
             value={formData.currency}
-            onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+            onChange={(e) => handleCurrencyChange(e.target.value)}
             required
             className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
@@ -241,14 +427,24 @@ export default function QuotationForm({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <FormInput
-          label={t('quotation.issueDate')}
-          name="issueDate"
-          type="date"
-          value={formData.issueDate}
-          onChange={(value) => setFormData({ ...formData, issueDate: value })}
-          required
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t('quotation.issueDate')}
+          </label>
+          <div className="block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
+            {locale === 'zh'
+              ? new Date(formData.issueDate).toLocaleDateString('zh-TW', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })
+              : new Date(formData.issueDate).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+          </div>
+        </div>
 
         <FormInput
           label={t('quotation.validUntil')}
@@ -266,7 +462,7 @@ export default function QuotationForm({
           <button
             type="button"
             onClick={addItem}
-            className="px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
+            className="px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 cursor-pointer"
           >
             {t('quotation.addItem')}
           </button>
@@ -280,19 +476,53 @@ export default function QuotationForm({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {t('product.name')}
                   </label>
-                  <select
-                    value={item.product_id}
-                    onChange={(e) => handleProductChange(index, e.target.value)}
-                    required
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  <Combobox
+                    value={selectedProducts[index]}
+                    onChange={(product) => {
+                      setSelectedProducts({ ...selectedProducts, [index]: product })
+                      if (product) {
+                        handleProductChange(index, product.id)
+                      }
+                    }}
                   >
-                    <option value="">{t('quotation.selectProduct')}</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name[locale as 'zh' | 'en']}
-                      </option>
-                    ))}
-                  </select>
+                    <div className="relative">
+                      <Combobox.Input
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        displayValue={(product: Product | null) =>
+                          product ? (product.name?.[locale as 'zh' | 'en'] || product.name?.zh || product.name?.en || 'Unknown Product') : ''
+                        }
+                        onChange={(event) => setProductQueries({ ...productQueries, [index]: event.target.value })}
+                        placeholder={t('quotation.selectProduct')}
+                      />
+                      <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white py-1 shadow-lg border border-gray-300 focus:outline-none">
+                        {getFilteredProducts(index).length === 0 && (productQueries[index] || '') !== '' ? (
+                          <div className="px-3 py-2 text-sm text-gray-500">{t('common.noResults')}</div>
+                        ) : (
+                          getFilteredProducts(index).map((product) => (
+                            <Combobox.Option
+                              key={product.id}
+                              value={product}
+                              className={({ active }) =>
+                                `cursor-pointer select-none px-3 py-2 text-sm ${
+                                  active ? 'bg-indigo-600 text-white' : 'text-gray-900'
+                                }`
+                              }
+                            >
+                              {product.name?.[locale as 'zh' | 'en'] || product.name?.zh || product.name?.en || 'Unknown Product'}
+                            </Combobox.Option>
+                          ))
+                        )}
+                      </Combobox.Options>
+                    </div>
+                  </Combobox>
+                  <button
+                    type="button"
+                    onClick={() => window.open(`/${locale}/products/new`, '_blank')}
+                    className="mt-1 text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>+</span>
+                    <span>{t('product.createNew')}</span>
+                  </button>
                 </div>
 
                 <div>
@@ -305,7 +535,7 @@ export default function QuotationForm({
                     onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value))}
                     min="1"
                     required
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
 
@@ -320,7 +550,7 @@ export default function QuotationForm({
                     min="0"
                     step="0.01"
                     required
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
 
@@ -331,10 +561,16 @@ export default function QuotationForm({
                   <input
                     type="number"
                     value={item.discount}
-                    onChange={(e) => updateItem(index, 'discount', parseFloat(e.target.value))}
-                    min="0"
+                    onChange={(e) => {
+                      let value = parseFloat(e.target.value) || 0
+                      // 確保折扣為負數
+                      if (value > 0) value = -value
+                      updateItem(index, 'discount', value)
+                    }}
+                    max="0"
                     step="0.01"
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    placeholder="-100.00"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
 
@@ -350,7 +586,7 @@ export default function QuotationForm({
                   <button
                     type="button"
                     onClick={() => removeItem(index)}
-                    className="ml-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg"
+                    className="ml-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
                   >
                     ✕
                   </button>
@@ -398,29 +634,89 @@ export default function QuotationForm({
         </div>
       </div>
 
-      <FormInput
-        label={t('quotation.notes')}
-        name="notes"
-        type="textarea"
-        value={formData.notes}
-        onChange={(value) => setFormData({ ...formData, notes: value })}
-        placeholder={t('quotation.notesPlaceholder')}
-        rows={3}
-      />
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            {t('quotation.notes')}
+          </label>
+          <div className="flex gap-2">
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  // 檢查是否為自訂模版
+                  if (e.target.value.startsWith('custom:')) {
+                    const templateKey = e.target.value.replace('custom:', '')
+                    setFormData({ ...formData, notes: customTemplates[templateKey] })
+                  } else {
+                    const template = NOTE_TEMPLATES[locale as 'zh' | 'en'][e.target.value as keyof typeof NOTE_TEMPLATES.zh]
+                    setFormData({ ...formData, notes: template })
+                  }
+                  setShowSaveTemplate(true)
+                }
+              }}
+              className="text-sm px-2 py-1 border border-gray-300 rounded cursor-pointer hover:bg-gray-50"
+            >
+              <option value="">{t('quotation.selectTemplate')}</option>
+              <option value="standard">{t('quotation.template.standard')}</option>
+              <option value="urgent">{t('quotation.template.urgent')}</option>
+              <option value="wholesale">{t('quotation.template.wholesale')}</option>
+              <option value="maintenance">{t('quotation.template.maintenance')}</option>
+              {Object.keys(customTemplates).length > 0 && (
+                <>
+                  <option disabled>──────────</option>
+                  {Object.keys(customTemplates).map((key) => (
+                    <option key={key} value={`custom:${key}`}>
+                      {key} {locale === 'zh' ? '(自訂)' : '(Custom)'}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+            {showSaveTemplate && formData.notes && (
+              <button
+                type="button"
+                onClick={() => {
+                  const name = prompt(locale === 'zh' ? '請輸入模版名稱：' : 'Enter template name:')
+                  if (name) {
+                    // 儲存到 localStorage 作為自訂模版
+                    const updatedTemplates = { ...customTemplates, [name]: formData.notes }
+                    localStorage.setItem('customNoteTemplates', JSON.stringify(updatedTemplates))
+                    setCustomTemplates(updatedTemplates)
+                    alert(locale === 'zh' ? '模版已儲存！' : 'Template saved!')
+                  }
+                }}
+                className="text-sm px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 cursor-pointer"
+              >
+                {locale === 'zh' ? '儲存為模版' : 'Save as Template'}
+              </button>
+            )}
+          </div>
+        </div>
+        <textarea
+          value={formData.notes}
+          onChange={(e) => {
+            setFormData({ ...formData, notes: e.target.value })
+            setShowSaveTemplate(e.target.value !== '')
+          }}
+          placeholder={t('quotation.notesPlaceholder')}
+          rows={3}
+          className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
 
       <div className="flex justify-end gap-4">
         <button
           type="button"
           onClick={() => router.push(`/${locale}/quotations`)}
           disabled={isSubmitting}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
           {t('common.cancel')}
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
           {isSubmitting ? t('common.saving') : t('common.save')}
         </button>
