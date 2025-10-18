@@ -3,7 +3,7 @@
  * Handles payment tracking for quotations and contracts
  */
 
-import { pool } from '../db/zeabur';
+import { query, getClient } from '../db/zeabur';
 import type {
   Payment,
   PaymentFormData,
@@ -93,7 +93,7 @@ export async function getPayments(
 
   query += ` ORDER BY p.payment_date DESC`;
 
-  const result = await pool.query(query, params);
+  const result = await query(query, params);
   return result.rows;
 }
 
@@ -101,7 +101,7 @@ export async function getPaymentById(
   paymentId: string,
   userId: string
 ): Promise<PaymentWithRelations | null> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT
        p.*,
        json_build_object(
@@ -145,7 +145,7 @@ export async function createPayment(
     throw new Error('Either quotation_id or contract_id must be provided');
   }
 
-  const result = await pool.query(
+  const result = await query(
     `INSERT INTO payments (
        user_id,
        quotation_id,
@@ -217,7 +217,7 @@ export async function updatePayment(
 
   values.push(paymentId, userId);
 
-  const result = await pool.query(
+  const result = await query(
     `UPDATE payments
      SET ${fields.join(', ')}, updated_at = NOW()
      WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1}
@@ -242,7 +242,7 @@ export async function deletePayment(
     throw new Error('Insufficient permissions to delete payment');
   }
 
-  const result = await pool.query(
+  const result = await query(
     `DELETE FROM payments
      WHERE id = $1 AND user_id = $2
      RETURNING customer_id`,
@@ -274,7 +274,7 @@ export async function getPaymentSummary(
   currency: string = 'TWD'
 ): Promise<PaymentSummary> {
   // Total paid (confirmed payments)
-  const paidResult = await pool.query(
+  const paidResult = await query(
     `SELECT COALESCE(SUM(amount), 0) as total
      FROM payments
      WHERE user_id = $1 AND currency = $2 AND status = 'confirmed'`,
@@ -282,7 +282,7 @@ export async function getPaymentSummary(
   );
 
   // Total pending (pending payment schedules)
-  const pendingResult = await pool.query(
+  const pendingResult = await query(
     `SELECT COALESCE(SUM(amount - paid_amount), 0) as total
      FROM payment_schedules
      WHERE user_id = $1 AND currency = $2 AND status = 'pending'`,
@@ -290,7 +290,7 @@ export async function getPaymentSummary(
   );
 
   // Total overdue (overdue payment schedules)
-  const overdueResult = await pool.query(
+  const overdueResult = await query(
     `SELECT COALESCE(SUM(amount - paid_amount), 0) as total
      FROM payment_schedules
      WHERE user_id = $1 AND currency = $2 AND status = 'overdue'`,
@@ -310,7 +310,7 @@ export async function getPaymentsByMonth(
   year: number,
   currency: string = 'TWD'
 ): Promise<{ month: number; total: number }[]> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT
        EXTRACT(MONTH FROM payment_date) as month,
        SUM(amount) as total
@@ -334,7 +334,7 @@ export async function getPaymentsByCustomer(
   userId: string,
   limit: number = 10
 ): Promise<{ customer_id: string; customer_name: string; total: number }[]> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT
        c.id as customer_id,
        c.company_name_zh as customer_name,
@@ -366,7 +366,7 @@ async function matchPaymentToSchedule(
   userId: string
 ): Promise<void> {
   // Find the most recent pending payment schedule for this contract
-  const result = await pool.query(
+  const result = await query(
     `SELECT * FROM payment_schedules
      WHERE contract_id = $1 AND user_id = $2 AND status = 'pending'
      ORDER BY due_date ASC
@@ -385,7 +385,7 @@ export async function calculateOutstandingBalance(
   contractId?: string
 ): Promise<number> {
   if (quotationId) {
-    const result = await pool.query(
+    const result = await query(
       `SELECT total, total_paid FROM quotations WHERE id = $1`,
       [quotationId]
     );
@@ -399,7 +399,7 @@ export async function calculateOutstandingBalance(
   }
 
   if (contractId) {
-    const result = await pool.query(
+    const result = await query(
       `SELECT
          cc.total_amount,
          COALESCE(SUM(p.amount), 0) as total_paid
@@ -429,7 +429,7 @@ export async function getCustomersNeedingPaymentReminder(
   userId: string,
   daysBeforeDue: number = 7
 ): Promise<any[]> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT
        c.*,
        ps.due_date,
@@ -450,7 +450,7 @@ export async function getCustomersNeedingPaymentReminder(
 
 export async function checkOverduePayments(userId: string): Promise<void> {
   // This function can be called by a cron job to automatically mark overdue payments
-  await pool.query(
+  await query(
     `UPDATE payment_schedules
      SET status = 'overdue'
      WHERE user_id = $1
@@ -460,7 +460,7 @@ export async function checkOverduePayments(userId: string): Promise<void> {
   );
 
   // Also update quotations payment status
-  await pool.query(
+  await query(
     `UPDATE quotations q
      SET payment_status = 'overdue'
      WHERE user_id = $1

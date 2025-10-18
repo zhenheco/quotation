@@ -3,7 +3,7 @@
  * Handles company information, logos, and bank details
  */
 
-import { pool } from '../db/zeabur';
+import { query } from '../db/zeabur';
 import type { CompanySettings, CompanySettingsFormData } from '@/types/extended.types';
 import { hasPermission } from './rbac';
 
@@ -12,7 +12,7 @@ import { hasPermission } from './rbac';
 // ============================================================================
 
 export async function getCompanySettings(userId: string): Promise<CompanySettings | null> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT * FROM company_settings WHERE user_id = $1`,
     [userId]
   );
@@ -36,7 +36,7 @@ export async function createCompanySettings(
     throw new Error('Company settings already exist. Use update instead.');
   }
 
-  const result = await pool.query(
+  const result = await query(
     `INSERT INTO company_settings (
        user_id,
        company_name_zh,
@@ -109,7 +109,7 @@ export async function updateCompanySettings(
 
   values.push(userId);
 
-  const result = await pool.query(
+  const result = await query(
     `UPDATE company_settings
      SET ${fields.join(', ')}, updated_at = NOW()
      WHERE user_id = $${paramIndex}

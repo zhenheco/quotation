@@ -3,7 +3,7 @@
  * Handles customer contract management and payment schedules
  */
 
-import { pool } from '../db/zeabur';
+import { query, getClient } from '../db/zeabur';
 import type {
   CustomerContract,
   CustomerContractFormData,
@@ -62,7 +62,7 @@ export async function getContracts(
 
   query += ` ORDER BY cc.created_at DESC`;
 
-  const result = await pool.query(query, params);
+  const result = await query(query, params);
   return result.rows;
 }
 
@@ -76,7 +76,7 @@ export async function getContractById(
     throw new Error('Insufficient permissions to view contract');
   }
 
-  const result = await pool.query(
+  const result = await query(
     `SELECT
        cc.*,
        json_build_object(
@@ -107,7 +107,7 @@ export async function createContract(
   // Generate contract number
   const contractNumber = await generateContractNumber(userId);
 
-  const result = await pool.query(
+  const result = await query(
     `INSERT INTO customer_contracts (
        user_id,
        customer_id,
@@ -143,7 +143,7 @@ export async function createContract(
   const contract = result.rows[0];
 
   // Update customer contract status
-  await pool.query(
+  await query(
     `UPDATE customers
      SET contract_status = 'contracted',
          contract_expiry_date = $1,
@@ -193,7 +193,7 @@ export async function updateContract(
 
   values.push(contractId, userId);
 
-  const result = await pool.query(
+  const result = await query(
     `UPDATE customer_contracts
      SET ${fields.join(', ')}, updated_at = NOW()
      WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1}
@@ -218,7 +218,7 @@ export async function deleteContract(
     throw new Error('Insufficient permissions to delete contract');
   }
 
-  const result = await pool.query(
+  const result = await query(
     `DELETE FROM customer_contracts
      WHERE id = $1 AND user_id = $2
      RETURNING customer_id`,
@@ -231,7 +231,7 @@ export async function deleteContract(
 
   // Update customer status
   const customerId = result.rows[0].customer_id;
-  await pool.query(
+  await query(
     `UPDATE customers
      SET contract_status = 'prospect',
          contract_expiry_date = NULL,
@@ -302,7 +302,7 @@ export async function generatePaymentSchedule(
     // Set payment day to the 5th of the month (or company default)
     dueDate.setDate(5);
 
-    const result = await pool.query(
+    const result = await query(
       `INSERT INTO payment_schedules (
          user_id,
          contract_id,
@@ -330,7 +330,7 @@ export async function generatePaymentSchedule(
 
   // Update customer next payment info
   if (schedules.length > 0) {
-    await pool.query(
+    await query(
       `UPDATE customers
        SET next_payment_due_date = $1,
            next_payment_amount = $2,
@@ -384,12 +384,12 @@ export async function getPaymentSchedules(
 
   query += ` ORDER BY ps.due_date ASC`;
 
-  const result = await pool.query(query, params);
+  const result = await query(query, params);
   return result.rows;
 }
 
 export async function getOverduePayments(userId: string): Promise<PaymentScheduleWithDetails[]> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT * FROM overdue_payments WHERE user_id = $1 ORDER BY days_overdue DESC`,
     [userId]
   );
@@ -398,7 +398,7 @@ export async function getOverduePayments(userId: string): Promise<PaymentSchedul
 }
 
 export async function getUpcomingPayments(userId: string): Promise<PaymentScheduleWithDetails[]> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT * FROM upcoming_payments WHERE user_id = $1 ORDER BY days_until_due ASC`,
     [userId]
   );
@@ -412,7 +412,7 @@ export async function markScheduleAsPaid(
   paymentId: string,
   paidDate: string
 ): Promise<PaymentSchedule> {
-  const result = await pool.query(
+  const result = await query(
     `UPDATE payment_schedules
      SET status = 'paid',
          paid_date = $1,
@@ -437,7 +437,7 @@ export async function markScheduleAsPaid(
 async function generateContractNumber(userId: string): Promise<string> {
   const year = new Date().getFullYear();
 
-  const result = await pool.query(
+  const result = await query(
     `SELECT contract_number
      FROM customer_contracts
      WHERE user_id = $1 AND contract_number LIKE $2
@@ -463,7 +463,7 @@ async function generateContractNumber(userId: string): Promise<string> {
 
 export async function updateCustomerNextPayment(customerId: string, userId: string): Promise<void> {
   // Get next pending payment schedule for this customer
-  const result = await pool.query(
+  const result = await query(
     `SELECT * FROM payment_schedules
      WHERE customer_id = $1 AND user_id = $2 AND status = 'pending'
      ORDER BY due_date ASC
@@ -473,7 +473,7 @@ export async function updateCustomerNextPayment(customerId: string, userId: stri
 
   if (result.rows.length > 0) {
     const nextSchedule = result.rows[0];
-    await pool.query(
+    await query(
       `UPDATE customers
        SET next_payment_due_date = $1,
            next_payment_amount = $2,
@@ -483,7 +483,7 @@ export async function updateCustomerNextPayment(customerId: string, userId: stri
     );
   } else {
     // No pending payments, clear next payment info
-    await pool.query(
+    await query(
       `UPDATE customers
        SET next_payment_due_date = NULL,
            next_payment_amount = NULL,

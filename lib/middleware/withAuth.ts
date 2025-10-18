@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { getUserPermissions, hasPermission as checkPermission } from '@/lib/services/rbac';
 
 export interface AuthenticatedRequest extends NextRequest {
@@ -11,7 +11,7 @@ export interface AuthenticatedRequest extends NextRequest {
  * Middleware to require authentication
  */
 export async function requireAuth(request: NextRequest) {
-  const supabase = await createServerClient();
+  const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
 
   if (error || !user) {

@@ -5,7 +5,7 @@
  * 注意：所有函數都包含 user_id 過濾，確保多租戶隔離
  */
 
-import { getZeaburPool } from '@/lib/db/zeabur'
+import { getZeaburPool, query } from '@/lib/db/zeabur'
 import { QueryResult } from 'pg'
 
 // ========================================
@@ -73,8 +73,7 @@ export interface QuotationItem {
 // ========================================
 
 export async function getCustomers(userId: string): Promise<Customer[]> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     'SELECT * FROM customers WHERE user_id = $1 ORDER BY created_at DESC',
     [userId]
   )
@@ -82,8 +81,7 @@ export async function getCustomers(userId: string): Promise<Customer[]> {
 }
 
 export async function getCustomerById(id: string, userId: string): Promise<Customer | null> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     'SELECT * FROM customers WHERE id = $1 AND user_id = $2',
     [id, userId]
   )
@@ -91,8 +89,7 @@ export async function getCustomerById(id: string, userId: string): Promise<Custo
 }
 
 export async function createCustomer(data: Omit<Customer, 'id' | 'created_at' | 'updated_at'>): Promise<Customer> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     `INSERT INTO customers (user_id, name, email, phone, address, tax_id, contact_person)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
@@ -142,7 +139,7 @@ export async function updateCustomer(
   }
 
   values.push(id, userId)
-  const result = await pool.query(
+  const result = await query(
     `UPDATE customers SET ${fields.join(', ')} WHERE id = $${paramCount} AND user_id = $${paramCount + 1} RETURNING *`,
     values
   )
@@ -151,8 +148,7 @@ export async function updateCustomer(
 }
 
 export async function deleteCustomer(id: string, userId: string): Promise<boolean> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     'DELETE FROM customers WHERE id = $1 AND user_id = $2',
     [id, userId]
   )
@@ -164,8 +160,7 @@ export async function deleteCustomer(id: string, userId: string): Promise<boolea
 // ========================================
 
 export async function getProducts(userId: string): Promise<Product[]> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     'SELECT * FROM products WHERE user_id = $1 ORDER BY created_at DESC',
     [userId]
   )
@@ -173,8 +168,7 @@ export async function getProducts(userId: string): Promise<Product[]> {
 }
 
 export async function getProductById(id: string, userId: string): Promise<Product | null> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     'SELECT * FROM products WHERE id = $1 AND user_id = $2',
     [id, userId]
   )
@@ -182,8 +176,7 @@ export async function getProductById(id: string, userId: string): Promise<Produc
 }
 
 export async function createProduct(data: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     `INSERT INTO products (user_id, sku, name, description, unit_price, currency, category)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
@@ -233,7 +226,7 @@ export async function updateProduct(
   }
 
   values.push(id, userId)
-  const result = await pool.query(
+  const result = await query(
     `UPDATE products SET ${fields.join(', ')} WHERE id = $${paramCount} AND user_id = $${paramCount + 1} RETURNING *`,
     values
   )
@@ -242,8 +235,7 @@ export async function updateProduct(
 }
 
 export async function deleteProduct(id: string, userId: string): Promise<boolean> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     'DELETE FROM products WHERE id = $1 AND user_id = $2',
     [id, userId]
   )
@@ -255,8 +247,7 @@ export async function deleteProduct(id: string, userId: string): Promise<boolean
 // ========================================
 
 export async function getQuotations(userId: string): Promise<Quotation[]> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     'SELECT * FROM quotations WHERE user_id = $1 ORDER BY created_at DESC',
     [userId]
   )
@@ -264,8 +255,7 @@ export async function getQuotations(userId: string): Promise<Quotation[]> {
 }
 
 export async function getQuotationById(id: string, userId: string): Promise<Quotation | null> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     'SELECT * FROM quotations WHERE id = $1 AND user_id = $2',
     [id, userId]
   )
@@ -273,8 +263,7 @@ export async function getQuotationById(id: string, userId: string): Promise<Quot
 }
 
 export async function createQuotation(data: Omit<Quotation, 'id' | 'created_at' | 'updated_at'>): Promise<Quotation> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     `INSERT INTO quotations (
       user_id, customer_id, quotation_number, status, issue_date, valid_until,
       currency, subtotal, tax_rate, tax_amount, total_amount, notes
@@ -346,7 +335,7 @@ export async function updateQuotation(
   }
 
   values.push(id, userId)
-  const result = await pool.query(
+  const result = await query(
     `UPDATE quotations SET ${fields.join(', ')} WHERE id = $${paramCount} AND user_id = $${paramCount + 1} RETURNING *`,
     values
   )
@@ -355,8 +344,7 @@ export async function updateQuotation(
 }
 
 export async function deleteQuotation(id: string, userId: string): Promise<boolean> {
-  const pool = getZeaburPool()
-  const result = await pool.query(
+  const result = await query(
     'DELETE FROM quotations WHERE id = $1 AND user_id = $2',
     [id, userId]
   )
@@ -376,7 +364,7 @@ export async function getQuotationItems(quotationId: string, userId: string): Pr
     throw new Error('Quotation not found or access denied')
   }
 
-  const result = await pool.query(
+  const result = await query(
     'SELECT * FROM quotation_items WHERE quotation_id = $1 ORDER BY created_at ASC',
     [quotationId]
   )
@@ -396,7 +384,7 @@ export async function createQuotationItem(
     throw new Error('Quotation not found or access denied')
   }
 
-  const result = await pool.query(
+  const result = await query(
     `INSERT INTO quotation_items (quotation_id, product_id, quantity, unit_price, discount, subtotal)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
@@ -414,7 +402,7 @@ export async function deleteQuotationItem(id: string, quotationId: string, userI
     throw new Error('Quotation not found or access denied')
   }
 
-  const result = await pool.query(
+  const result = await query(
     'DELETE FROM quotation_items WHERE id = $1 AND quotation_id = $2',
     [id, quotationId]
   )
@@ -433,7 +421,7 @@ export async function generateQuotationNumber(userId: string): Promise<string> {
   const year = new Date().getFullYear()
   const prefix = `Q${year}-`
 
-  const result = await pool.query(
+  const result = await query(
     `SELECT quotation_number FROM quotations
      WHERE user_id = $1 AND quotation_number LIKE $2
      ORDER BY quotation_number DESC

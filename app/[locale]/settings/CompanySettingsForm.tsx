@@ -1,14 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'use';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import PageHeader from '@/components/ui/PageHeader';
+import { createClient } from '@/lib/supabase/client';
 
 export default function CompanySettingsForm() {
   const t = useTranslations('settings');
+  const supabase = createClient();
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<{
+    logo?: boolean;
+    signature?: boolean;
+    passbook?: boolean;
+  }>({});
 
   useEffect(() => {
     loadSettings();
@@ -25,6 +32,57 @@ export default function CompanySettingsForm() {
       console.error('Failed to load settings:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function uploadFile(file: File, type: 'logo' | 'signature' | 'passbook') {
+    try {
+      setUploading(prev => ({ ...prev, [type]: true }));
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${type}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('company-files')
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: file.type
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('company-files')
+        .getPublicUrl(filePath);
+
+      // Update company settings with file URL
+      const updateData: any = {};
+      if (type === 'logo') updateData.logo_url = publicUrl;
+      if (type === 'signature') updateData.signature_url = publicUrl;
+      if (type === 'passbook') updateData.passbook_url = publicUrl;
+
+      const res = await fetch('/api/company-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setSettings(updated);
+        alert(`${type === 'logo' ? 'Logo' : type === 'signature' ? '簽章' : '存摺影本'}上傳成功`);
+      }
+    } catch (error) {
+      console.error(`Failed to upload ${type}:`, error);
+      alert(`上傳失敗：${error instanceof Error ? error.message : '未知錯誤'}`);
+    } finally {
+      setUploading(prev => ({ ...prev, [type]: false }));
     }
   }
 
@@ -151,6 +209,94 @@ export default function CompanySettingsForm() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 placeholder="contact@example.com"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* File Uploads */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-lg font-medium mb-4">檔案上傳</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Logo Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('upload_logo')}
+              </label>
+              {settings?.logo_url && (
+                <div className="mb-2">
+                  <img
+                    src={settings.logo_url}
+                    alt="Company Logo"
+                    className="w-32 h-32 object-contain border rounded"
+                  />
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, 'logo');
+                }}
+                disabled={uploading.logo}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+              />
+              {uploading.logo && <p className="text-sm text-gray-500 mt-1">上傳中...</p>}
+            </div>
+
+            {/* Signature Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('upload_signature')}
+              </label>
+              {settings?.signature_url && (
+                <div className="mb-2">
+                  <img
+                    src={settings.signature_url}
+                    alt="Signature"
+                    className="w-32 h-32 object-contain border rounded"
+                  />
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, 'signature');
+                }}
+                disabled={uploading.signature}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+              />
+              {uploading.signature && <p className="text-sm text-gray-500 mt-1">上傳中...</p>}
+            </div>
+
+            {/* Passbook Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('upload_passbook')}
+              </label>
+              {settings?.passbook_url && (
+                <div className="mb-2">
+                  <img
+                    src={settings.passbook_url}
+                    alt="Passbook"
+                    className="w-32 h-32 object-contain border rounded"
+                  />
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, 'passbook');
+                }}
+                disabled={uploading.passbook}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+              />
+              {uploading.passbook && <p className="text-sm text-gray-500 mt-1">上傳中...</p>}
             </div>
           </div>
         </div>

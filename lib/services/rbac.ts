@@ -3,7 +3,7 @@
  * Handles user roles, permissions, and access control
  */
 
-import { pool } from '../db/zeabur';
+import { query, getClient } from '../db/zeabur';
 import type {
   Role,
   Permission,
@@ -21,7 +21,7 @@ import type {
 // ============================================================================
 
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT * FROM user_profiles WHERE user_id = $1`,
     [userId]
   );
@@ -39,7 +39,7 @@ export async function createUserProfile(
     avatar_url?: string;
   }
 ): Promise<UserProfile> {
-  const result = await pool.query(
+  const result = await query(
     `INSERT INTO user_profiles (user_id, full_name, display_name, phone, department, avatar_url)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
@@ -83,7 +83,7 @@ export async function updateUserProfile(
 
   values.push(userId);
 
-  const result = await pool.query(
+  const result = await query(
     `UPDATE user_profiles
      SET ${fields.join(', ')}, updated_at = NOW()
      WHERE user_id = $${paramIndex}
@@ -99,7 +99,7 @@ export async function updateUserProfile(
 }
 
 export async function updateLastLogin(userId: string): Promise<void> {
-  await pool.query(
+  await query(
     `UPDATE user_profiles
      SET last_login_at = NOW()
      WHERE user_id = $1`,
@@ -112,7 +112,7 @@ export async function updateLastLogin(userId: string): Promise<void> {
 // ============================================================================
 
 export async function getAllRoles(): Promise<Role[]> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT * FROM roles ORDER BY level ASC`
   );
 
@@ -120,7 +120,7 @@ export async function getAllRoles(): Promise<Role[]> {
 }
 
 export async function getRoleByName(name: RoleName): Promise<Role | null> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT * FROM roles WHERE name = $1`,
     [name]
   );
@@ -133,7 +133,7 @@ export async function getRoleByName(name: RoleName): Promise<Role | null> {
 // ============================================================================
 
 export async function getUserRoles(userId: string): Promise<Role[]> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT r.*
      FROM roles r
      JOIN user_roles ur ON r.id = ur.role_id
@@ -157,7 +157,7 @@ export async function assignRoleToUser(
   }
 
   // Check if user already has this role
-  const existing = await pool.query(
+  const existing = await query(
     `SELECT * FROM user_roles WHERE user_id = $1 AND role_id = $2`,
     [userId, role.id]
   );
@@ -167,7 +167,7 @@ export async function assignRoleToUser(
   }
 
   // Assign role
-  const result = await pool.query(
+  const result = await query(
     `INSERT INTO user_roles (user_id, role_id, assigned_by)
      VALUES ($1, $2, $3)
      RETURNING *`,
@@ -186,14 +186,14 @@ export async function removeRoleFromUser(
     throw new Error(`Role ${roleName} not found`);
   }
 
-  await pool.query(
+  await query(
     `DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2`,
     [userId, role.id]
   );
 }
 
 export async function getUserHighestRole(userId: string): Promise<Role | null> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT r.*
      FROM roles r
      JOIN user_roles ur ON r.id = ur.role_id
@@ -211,7 +211,7 @@ export async function getUserHighestRole(userId: string): Promise<Role | null> {
 // ============================================================================
 
 export async function getUserPermissions(userId: string): Promise<UserPermissions | null> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT
        user_id,
        role_name,
@@ -245,7 +245,7 @@ export async function hasPermission(
 ): Promise<boolean> {
   const permissionName = `${resource}:${action}`;
 
-  const result = await pool.query(
+  const result = await query(
     `SELECT COUNT(*) as count
      FROM user_permissions
      WHERE user_id = $1 AND permission_name = $2`,
@@ -257,7 +257,7 @@ export async function hasPermission(
 
 export async function canAccessProductCost(userId: string): Promise<boolean> {
   // Only company_owner and accountant can see product costs
-  const result = await pool.query(
+  const result = await query(
     `SELECT COUNT(*) as count
      FROM user_roles ur
      JOIN roles r ON ur.role_id = r.id
@@ -288,7 +288,7 @@ export async function getAllUsers(requestingUserId: string): Promise<UserWithRol
     throw new Error('Insufficient permissions to view users');
   }
 
-  const result = await pool.query(
+  const result = await query(
     `SELECT
        up.*,
        json_agg(DISTINCT r.*) FILTER (WHERE r.id IS NOT NULL) as roles,
@@ -315,7 +315,7 @@ export async function getUserById(
     throw new Error('Insufficient permissions to view user');
   }
 
-  const result = await pool.query(
+  const result = await query(
     `SELECT
        up.*,
        json_agg(DISTINCT r.*) FILTER (WHERE r.id IS NOT NULL) as roles,
@@ -348,7 +348,7 @@ export async function deactivateUser(
     throw new Error('Cannot deactivate your own account');
   }
 
-  await pool.query(
+  await query(
     `UPDATE user_profiles
      SET is_active = false, updated_at = NOW()
      WHERE user_id = $1`,
@@ -366,7 +366,7 @@ export async function activateUser(
     throw new Error('Insufficient permissions to activate user');
   }
 
-  await pool.query(
+  await query(
     `UPDATE user_profiles
      SET is_active = true, updated_at = NOW()
      WHERE user_id = $1`,
@@ -423,7 +423,7 @@ export async function getUserRoleLevel(userId: string): Promise<number | null> {
 }
 
 export async function isAdmin(userId: string): Promise<boolean> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT COUNT(*) as count
      FROM user_roles ur
      JOIN roles r ON ur.role_id = r.id
@@ -436,7 +436,7 @@ export async function isAdmin(userId: string): Promise<boolean> {
 }
 
 export async function isSuperAdmin(userId: string): Promise<boolean> {
-  const result = await pool.query(
+  const result = await query(
     `SELECT COUNT(*) as count
      FROM user_roles ur
      JOIN roles r ON ur.role_id = r.id
