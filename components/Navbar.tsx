@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Menu } from '@headlessui/react'
+import CompanySelector from './CompanySelector'
 
 interface UserProfile {
   full_name?: string
@@ -61,6 +62,9 @@ export default function Navbar({ locale }: { locale: string }) {
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="px-8 py-4">
         <div className="flex items-center justify-end gap-4">
+          {/* Company Selector */}
+          <CompanySelector locale={locale} />
+
           {/* Language Toggle */}
           <button
             onClick={toggleLocale}

@@ -1,7 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
-import CompanySettingsForm from './CompanySettingsForm';
+import CompanySettings from './CompanySettings';
+import PageHeader from '@/components/ui/PageHeader';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -13,6 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'settings' });
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -21,7 +23,11 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         <Navbar locale={locale} />
         <main className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 py-8">
-            <CompanySettingsForm />
+            <PageHeader
+              title={t('title')}
+              description={locale === 'zh' ? '管理您的公司資訊、成員和設定' : 'Manage your company information, members, and settings'}
+            />
+            <CompanySettings locale={locale} />
           </div>
         </main>
       </div>
