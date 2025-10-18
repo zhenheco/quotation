@@ -447,3 +447,139 @@ export async function isSuperAdmin(userId: string): Promise<boolean> {
 
   return parseInt(result.rows[0].count) > 0;
 }
+
+// ============================================================================
+// CROSS-COMPANY PERMISSIONS (Migration 005)
+// ============================================================================
+
+/**
+ * 檢查使用者是否可以存取指定公司
+ * 超級管理員可以存取所有公司，一般使用者只能存取所屬公司
+ */
+export async function canAccessCompany(
+  userId: string,
+  companyId: string
+): Promise<boolean> {
+  const result = await query(
+    `SELECT can_access_company($1, $2) as can_access`,
+    [userId, companyId]
+  );
+
+  return result.rows[0]?.can_access || false;
+}
+
+/**
+ * 取得使用者可以管理的公司列表
+ * 超級管理員可以看到所有公司，一般使用者只能看到所屬公司
+ */
+export interface ManageableCompany {
+  company_id: string;
+  company_name: {
+    zh: string;
+    en: string;
+  };
+  role_name: string;
+  is_owner: boolean;
+  can_manage_members: boolean;
+  member_count: number;
+}
+
+export async function getManageableCompanies(
+  userId: string
+): Promise<ManageableCompany[]> {
+  const result = await query(
+    `SELECT * FROM get_manageable_companies($1)`,
+    [userId]
+  );
+
+  return result.rows.map(row => ({
+    company_id: row.company_id,
+    company_name: row.company_name,
+    role_name: row.role_name,
+    is_owner: row.is_owner,
+    can_manage_members: row.can_manage_members,
+    member_count: parseInt(row.member_count) || 0
+  }));
+}
+
+/**
+ * 檢查是否可以管理指定使用者
+ * 超級管理員可以管理任何人，公司 owner 可以管理自己公司的成員
+ */
+export async function canManageUser(
+  requestingUserId: string,
+  targetUserId: string,
+  companyId?: string
+): Promise<boolean> {
+  // 不能管理自己
+  if (requestingUserId === targetUserId) {
+    return false;
+  }
+
+  const result = await query(
+    `SELECT can_manage_user($1, $2, $3) as can_manage`,
+    [requestingUserId, targetUserId, companyId || null]
+  );
+
+  return result.rows[0]?.can_manage || false;
+}
+
+/**
+ * 檢查角色分配權限
+ * 超級管理員可以分配任何角色，公司 owner 只能分配 level >= 3 的角色
+ */
+export async function canAssignRole(
+  requestingUserId: string,
+  targetRoleName: RoleName,
+  companyId?: string
+): Promise<boolean> {
+  const result = await query(
+    `SELECT can_assign_role($1, $2, $3) as can_assign`,
+    [requestingUserId, targetRoleName, companyId || null]
+  );
+
+  return result.rows[0]?.can_assign || false;
+}
+
+/**
+ * 取得所有公司（僅超級管理員）
+ */
+export interface CompanyInfo {
+  id: string;
+  name: {
+    zh: string;
+    en: string;
+  };
+  logo_url?: string;
+  member_count: number;
+  created_at: Date;
+}
+
+export async function getAllCompanies(
+  requestingUserId: string
+): Promise<CompanyInfo[]> {
+  // 檢查是否為超級管理員
+  const isSuperAdminUser = await isSuperAdmin(requestingUserId);
+  if (!isSuperAdminUser) {
+    throw new Error('Only super admin can view all companies');
+  }
+
+  const result = await query(
+    `SELECT
+      c.id,
+      c.name,
+      c.logo_url,
+      c.created_at,
+      (SELECT COUNT(*) FROM company_members WHERE company_id = c.id AND is_active = true) as member_count
+    FROM companies c
+    ORDER BY c.created_at DESC`
+  );
+
+  return result.rows.map(row => ({
+    id: row.id,
+    name: row.name,
+    logo_url: row.logo_url,
+    member_count: parseInt(row.member_count) || 0,
+    created_at: row.created_at
+  }));
+}

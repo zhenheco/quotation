@@ -436,3 +436,212 @@ export async function updateCompanyFile(
 
   return await updateCompany(companyId, userId, { [field]: fileUrl } as any);
 }
+
+// ============================================================================
+// ENHANCED COMPANY MEMBER MANAGEMENT (Migration 005)
+// ============================================================================
+
+/**
+ * 公司成員詳細資訊
+ */
+export interface CompanyMemberDetailed extends CompanyMember {
+  full_name?: string;
+  display_name?: string;
+  email?: string;
+  phone?: string;
+  avatar_url?: string;
+  role_name_zh?: string;
+  role_name_en?: string;
+  role_level?: number;
+}
+
+/**
+ * 取得公司成員詳細資訊（包含使用者資料）
+ */
+export async function getCompanyMembersDetailed(
+  companyId: string,
+  requestingUserId: string
+): Promise<CompanyMemberDetailed[]> {
+  // 檢查權限
+  const { canAccessCompany } = await import('./rbac');
+  const canAccess = await canAccessCompany(requestingUserId, companyId);
+  if (!canAccess) {
+    throw new Error('You do not have access to this company');
+  }
+
+  const result = await query(
+    `SELECT
+      cm.id,
+      cm.company_id,
+      cm.user_id,
+      cm.role_id,
+      cm.is_owner,
+      cm.is_active,
+      cm.joined_at,
+      cm.updated_at,
+      up.full_name,
+      up.display_name,
+      up.phone,
+      up.avatar_url,
+      r.name as role_name,
+      r.name_zh as role_name_zh,
+      r.name_en as role_name_en,
+      r.level as role_level
+    FROM company_members cm
+    LEFT JOIN user_profiles up ON cm.user_id = up.user_id
+    LEFT JOIN roles r ON cm.role_id = r.id
+    WHERE cm.company_id = $1
+    ORDER BY cm.is_owner DESC, cm.joined_at ASC`,
+    [companyId]
+  );
+
+  return result.rows;
+}
+
+/**
+ * 新增成員資料（用於邀請）
+ */
+export interface AddCompanyMemberData {
+  email: string;
+  roleName: string; // 角色名稱，如 'salesperson', 'sales_manager' 等
+  fullName?: string;
+  displayName?: string;
+  phone?: string;
+}
+
+/**
+ * 新增公司成員（增強版，包含權限檢查和角色驗證）
+ */
+export async function addCompanyMemberEnhanced(
+  companyId: string,
+  requestingUserId: string,
+  memberData: AddCompanyMemberData
+): Promise<CompanyMember> {
+  const {
+    isSuperAdmin,
+    canAssignRole,
+    getRoleByName
+  } = await import('./rbac');
+
+  // 檢查是否為超管或公司 owner
+  const isSuperAdminUser = await isSuperAdmin(requestingUserId);
+  const member = await getCompanyMember(companyId, requestingUserId);
+
+  if (!isSuperAdminUser && (!member || !member.is_owner)) {
+    throw new Error('Insufficient permissions to add members');
+  }
+
+  // 檢查是否可以分配此角色
+  const canAssign = await canAssignRole(
+    requestingUserId,
+    memberData.roleName as any,
+    companyId
+  );
+
+  if (!canAssign) {
+    throw new Error(`Cannot assign role: ${memberData.roleName}`);
+  }
+
+  // 取得角色
+  const role = await getRoleByName(memberData.roleName as any);
+  if (!role) {
+    throw new Error(`Role not found: ${memberData.roleName}`);
+  }
+
+  // 檢查使用者是否存在（透過 user_profiles）
+  const userCheck = await query(
+    `SELECT user_id FROM user_profiles WHERE user_id = (
+      SELECT user_id FROM user_profiles LIMIT 1
+    )`
+  );
+
+  // 如果使用者不存在，建立佔位符（實際會在首次登入時更新）
+  // 這裡我們假設使用者已經透過 Supabase Auth 註冊
+  // 實際實作需要整合 Supabase Auth API
+
+  // 暫時：直接嘗試從 email 找到使用者（需要後續實作 Auth 整合）
+  // 這裡簡化處理，假設 user_id 已知或由前端提供
+
+  throw new Error(
+    'User registration not yet implemented. Please ensure user is registered before adding to company.'
+  );
+
+  // TODO: 整合 Supabase Auth
+  // 1. 檢查 email 是否已註冊
+  // 2. 如果未註冊，發送邀請郵件
+  // 3. 如果已註冊，直接新增到公司
+  // 4. 建立 user_profile
+  // 5. 新增 company_member 記錄
+
+  // 實際實作會類似：
+  // const newMemberUserId = await findOrInviteUser(memberData.email);
+  // await upsertUserProfile(newMemberUserId, {
+  //   full_name: memberData.fullName,
+  //   display_name: memberData.displayName,
+  //   phone: memberData.phone
+  // });
+  // return await addCompanyMember(companyId, requestingUserId, newMemberUserId, role.id);
+}
+
+/**
+ * 取得所有公司（超級管理員專用）
+ */
+export async function getAllCompaniesForAdmin(
+  requestingUserId: string
+): Promise<Company[]> {
+  const { isSuperAdmin } = await import('./rbac');
+
+  const isSuperAdminUser = await isSuperAdmin(requestingUserId);
+  if (!isSuperAdminUser) {
+    throw new Error('Only super admin can view all companies');
+  }
+
+  const result = await query(
+    `SELECT * FROM companies ORDER BY created_at DESC`
+  );
+
+  return result.rows;
+}
+
+/**
+ * 取得公司統計資訊
+ */
+export interface CompanyStats {
+  total_members: number;
+  active_members: number;
+  total_customers: number;
+  total_products: number;
+  total_quotations: number;
+}
+
+export async function getCompanyStats(
+  companyId: string,
+  requestingUserId: string
+): Promise<CompanyStats> {
+  const { canAccessCompany } = await import('./rbac');
+
+  const canAccess = await canAccessCompany(requestingUserId, companyId);
+  if (!canAccess) {
+    throw new Error('You do not have access to this company');
+  }
+
+  const result = await query(
+    `SELECT
+      (SELECT COUNT(*) FROM company_members WHERE company_id = $1) as total_members,
+      (SELECT COUNT(*) FROM company_members WHERE company_id = $1 AND is_active = true) as active_members,
+      (SELECT COUNT(*) FROM customers WHERE company_id = $1) as total_customers,
+      (SELECT COUNT(*) FROM products WHERE company_id = $1) as total_products,
+      (SELECT COUNT(*) FROM quotations WHERE company_id = $1) as total_quotations`,
+    [companyId]
+  );
+
+  const row = result.rows[0];
+
+  return {
+    total_members: parseInt(row.total_members) || 0,
+    active_members: parseInt(row.active_members) || 0,
+    total_customers: parseInt(row.total_customers) || 0,
+    total_products: parseInt(row.total_products) || 0,
+    total_quotations: parseInt(row.total_quotations) || 0
+  };
+}
