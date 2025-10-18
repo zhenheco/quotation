@@ -34,11 +34,11 @@
     "dashboard": "Dashboard",
     "quotations": "Quotations",
     "customers": "Customers",
-    "products": "Products",
+    "products": "Services/Items",
     "settings": "Settings"
   },
   "dashboard": {
-    "welcomeMessage": "Welcome to your Quotation Management System. Get started by creating your first quotation, customer, or product.",
+    "welcomeMessage": "Welcome to your Quotation Management System. Get started by creating your first quotation, customer, or service/item.",
     "monthlyRevenue": "Monthly Revenue",
     "monthlyQuotations": "Monthly Quotations",
     "conversionRate": "Conversion Rate",
@@ -50,7 +50,7 @@
     "quickActions": "Quick Actions",
     "createQuotationDesc": "Create a new quotation",
     "createCustomerDesc": "Add a new customer",
-    "createProductDesc": "Add a new product"
+    "createProductDesc": "Add a new service/item"
   },
   "charts": {
     "revenueTitle": "Revenue Trend Analysis",
@@ -82,7 +82,7 @@
     "addItem": "Add Item",
     "exportPDF": "Export PDF",
     "selectCustomer": "Select a customer",
-    "selectProduct": "Select a product",
+    "selectProduct": "Select a service/item",
     "quantity": "Quantity",
     "unitPrice": "Unit Price",
     "discount": "Discount",
@@ -150,30 +150,30 @@
     }
   },
   "product": {
-    "title": "Products",
-    "createNew": "Create Product",
-    "edit": "Edit Product",
+    "title": "Services/Items",
+    "createNew": "Create Service/Item",
+    "edit": "Edit Service/Item",
     "name": "Name",
     "description": "Description",
     "price": "Price",
     "currency": "Currency",
     "category": "Category",
     "namePlaceholder": {
-      "zh": "Product Name (Chinese)",
-      "en": "Product Name (English)"
+      "zh": "Service/Item Name (Chinese)",
+      "en": "Service/Item Name (English)"
     },
     "descriptionPlaceholder": {
-      "zh": "Product Description (Chinese)",
-      "en": "Product Description (English)"
+      "zh": "Service/Item Description (Chinese)",
+      "en": "Service/Item Description (English)"
     },
     "categoryPlaceholder": "e.g., Software, Hardware, Service",
     "emptyState": {
-      "title": "No products yet",
-      "description": "Create your first product to get started."
+      "title": "No services/items yet",
+      "description": "Create your first service/item to get started."
     },
     "deleteConfirm": {
-      "title": "Delete Product",
-      "description": "Are you sure you want to delete this product? This action cannot be undone."
+      "title": "Delete Service/Item",
+      "description": "Are you sure you want to delete this service/item? This action cannot be undone."
     }
   },
   "currency": {
