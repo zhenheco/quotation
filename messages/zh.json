@@ -234,5 +234,67 @@
     "expiresAt": "過期時間",
     "linkGenerated": "分享連結已生成",
     "linkDeactivated": "分享連結已停用"
+  },
+  "settings": {
+    "title": "系統設定",
+    "description": "管理您的公司資訊和系統設定",
+    "company_info": "公司資訊",
+    "bank_info": "銀行資訊",
+    "company_name_zh": "公司名稱（中文）",
+    "company_name_en": "公司名稱（英文）",
+    "tax_id": "統一編號",
+    "phone": "電話",
+    "email": "電子郵件",
+    "bank_name": "銀行名稱",
+    "account_number": "帳號",
+    "account_name": "戶名",
+    "save": "儲存",
+    "saving": "儲存中...",
+    "saveSuccess": "設定已儲存",
+    "saveError": "儲存失敗",
+    "upload_logo": "上傳 Logo",
+    "upload_signature": "上傳簽章",
+    "upload_passbook": "上傳存摺影本"
+  },
+  "contracts": {
+    "title": "合約管理",
+    "createNew": "建立合約",
+    "contract_number": "合約編號",
+    "payment_terms": {
+      "quarterly": "季繳",
+      "semi_annual": "半年繳",
+      "annual": "年繳"
+    },
+    "status": {
+      "draft": "草稿",
+      "active": "有效",
+      "expired": "已到期",
+      "terminated": "已終止"
+    }
+  },
+  "payments": {
+    "title": "收款管理",
+    "received": "已收款",
+    "pending": "未收款",
+    "overdue": "逾期",
+    "payment_type": {
+      "deposit": "頭款",
+      "installment": "分期款",
+      "final": "尾款",
+      "full": "全額"
+    },
+    "payment_method": {
+      "bank_transfer": "銀行轉帳",
+      "credit_card": "信用卡",
+      "check": "支票",
+      "cash": "現金"
+    }
+  },
+  "roles": {
+    "super_admin": "總管理員",
+    "company_owner": "公司負責人",
+    "sales_manager": "業務主管",
+    "salesperson": "業務人員",
+    "accountant": "會計"
   }
 }

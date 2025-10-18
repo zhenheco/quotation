@@ -13,7 +13,7 @@ const menuItems = [
   },
   {
     en: 'Products',
-    zh: '產品',
+    zh: '服務/項目',
     href: '/products',
     icon: '📦',
   },
@@ -28,6 +28,24 @@ const menuItems = [
     zh: '報價單',
     href: '/quotations',
     icon: '📄',
+  },
+  {
+    en: 'Contracts',
+    zh: '合約管理',
+    href: '/contracts',
+    icon: '📝',
+  },
+  {
+    en: 'Payments',
+    zh: '收款管理',
+    href: '/payments',
+    icon: '💰',
+  },
+  {
+    en: 'Settings',
+    zh: '系統設定',
+    href: '/settings',
+    icon: '⚙️',
   },
 ]
 
