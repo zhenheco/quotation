@@ -9,6 +9,48 @@
 
 ## [Unreleased]
 
+### 🔧 Fixed (修復)
+- **建置錯誤 - Module not found: '@/lib/auth'** ✅ 已修復
+  - ❌ **問題**: 多個 API 路由引用不存在的 `@/lib/auth` 和 `next-auth` 套件
+  - ✅ **解決方案**:
+    - 創建 `lib/auth.ts` 作為 Supabase Auth 的封裝層
+    - 提供 NextAuth 兼容的介面但使用 Supabase Auth 實作
+    - 避免安裝 NextAuth 及其依賴衝突問題
+  - 📝 **受影響檔案**: 10 個 API 路由和 middleware 檔案
+  - 🔗 **詳細記錄**: 參見 `ISSUELOG.md` [ISSUE-001]
+
+### Added (新增)
+- 📄 `lib/auth.ts` - Supabase Auth 封裝層
+  - 提供 `getServerSession()` 函數（NextAuth 兼容）
+  - 提供 `getCurrentUserId()` helper 函數
+  - 提供 `requireAuth()` 認證保護函數
+  - 完整的 TypeScript 型別定義
+- 📄 `ISSUELOG.md` - 專案問題追蹤日誌
+  - 記錄所有遇到的錯誤和解決方案
+  - 包含根本原因分析
+  - 包含預防措施建議
+
+### Changed (變更)
+- 🔧 `lib/middleware/withPermission.ts` - 改用 Supabase Auth
+  - 移除 NextAuth 依賴
+  - 改用 `@/lib/auth` 的 `getServerSession()`
+- 🔧 **所有 API 路由** (9 個檔案) - 統一認證方式
+  - `app/api/payments/route.ts`
+  - `app/api/payments/unpaid/route.ts`
+  - `app/api/payments/collected/route.ts`
+  - `app/api/payments/reminders/route.ts`
+  - `app/api/payments/[id]/mark-overdue/route.ts`
+  - `app/api/contracts/overdue/route.ts`
+  - `app/api/contracts/[id]/payment-progress/route.ts`
+  - `app/api/contracts/[id]/next-collection/route.ts`
+  - `app/api/contracts/from-quotation/route.ts`
+
+### Technical Details (技術細節)
+- **認證架構統一**: 全專案統一使用 Supabase Auth
+- **避免依賴衝突**: 不安裝 NextAuth，避免與 nodemailer@7.0.9 的衝突
+- **向後兼容**: `lib/auth.ts` 提供與 NextAuth 相同的 API 介面
+- **型別安全**: 完整的 TypeScript 型別定義
+
 ---
 
 ## [0.7.0] - 2025-01-18

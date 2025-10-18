@@ -4,8 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 import { hasPermission } from '@/lib/services/rbac';
 import type { PermissionResource, PermissionAction } from '@/types/rbac.types';
 
@@ -26,7 +25,7 @@ export function withPermission(
     return (async (req: NextRequest, context?: any) => {
       try {
         // Get user session
-        const session = await getServerSession(authOptions);
+        const session = await getServerSession();
 
         if (!session?.user?.id) {
           return NextResponse.json(
@@ -74,7 +73,7 @@ export function withPermissions(
   ): T {
     return (async (req: NextRequest, context?: any) => {
       try {
-        const session = await getServerSession(authOptions);
+        const session = await getServerSession();
 
         if (!session?.user?.id) {
           return NextResponse.json(
@@ -123,7 +122,7 @@ export function withPermissions(
 export async function canAccessProductCost(
   req: NextRequest
 ): Promise<boolean> {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
 
   if (!session?.user?.id) {
     return false;
@@ -139,7 +138,7 @@ export async function canAccessProductCost(
 export async function getCurrentUserId(
   req: NextRequest
 ): Promise<string | null> {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   return session?.user?.id || null;
 }
 
@@ -150,7 +149,7 @@ export function requireAuth<
   T extends (...args: any[]) => Promise<NextResponse>
 >(handler: T): T {
   return (async (req: NextRequest, context?: any) => {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(
