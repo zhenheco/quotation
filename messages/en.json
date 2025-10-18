@@ -234,5 +234,189 @@
     "expiresAt": "Expires At",
     "linkGenerated": "Share link generated",
     "linkDeactivated": "Share link deactivated"
+  },
+  "contracts": {
+    "title": "Contract Management",
+    "description": "Manage customer contracts and payment schedules",
+    "createNew": "Create Contract",
+    "createFromQuotation": "Create from Quotation",
+    "contract_number": "Contract Number",
+    "customer": "Customer",
+    "title_field": "Contract Title",
+    "signed_date": "Signed Date",
+    "start_date": "Start Date",
+    "end_date": "End Date",
+    "total_amount": "Total Amount",
+    "payment_frequency": "Payment Frequency",
+    "next_collection": "Next Collection",
+    "collection_date": "Collection Date",
+    "collection_amount": "Collection Amount",
+    "payment_progress": "Payment Progress",
+    "overdue_days": "Days Overdue",
+    "view_details": "View Details",
+    "update_collection": "Update Collection Info",
+    "send_reminder": "Send Reminder",
+    "record_payment": "Record Payment",
+    "payment_schedule": "Payment Schedule",
+    "payment_terms": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "semi_annual": "Semi-annual",
+      "annual": "Annual"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "expired": "Expired",
+      "terminated": "Terminated"
+    },
+    "filter": {
+      "all": "All",
+      "active": "Active",
+      "expired": "Expired",
+      "overdue": "Overdue"
+    },
+    "emptyState": {
+      "title": "No contracts yet",
+      "description": "Create your first contract from an accepted quotation"
+    },
+    "overdueAlert": {
+      "title": "Overdue Contract Alert",
+      "description": "The following contracts are overdue, please handle them as soon as possible"
+    }
+  },
+  "payments": {
+    "title": "Payment Management",
+    "description": "Track payment status and overdue reminders",
+    "received": "Received",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "unpaid_area": "Unpaid Area",
+    "collected_area": "Collected Area",
+    "record_payment": "Record Payment",
+    "payment_date": "Payment Date",
+    "amount": "Amount",
+    "payment_method": "Payment Method",
+    "reference_number": "Reference Number",
+    "receipt": "Receipt",
+    "upload_receipt": "Upload Receipt",
+    "customer": "Customer",
+    "contract_number": "Contract Number",
+    "due_date": "Due Date",
+    "days_overdue": "Days Overdue",
+    "mark_overdue": "Mark Overdue",
+    "send_reminder": "Send Reminder",
+    "filter_by_date": "Filter by Date",
+    "filter_by_customer": "Filter by Customer",
+    "filter_by_type": "Filter by Type",
+    "search_customer": "Search Customer",
+    "payment_type": {
+      "deposit": "Deposit",
+      "installment": "Installment",
+      "final": "Final",
+      "full": "Full",
+      "recurring": "Recurring"
+    },
+    "payment_frequency": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "semi_annual": "Semi-annual",
+      "annual": "Annual"
+    },
+    "payment_method": {
+      "bank_transfer": "Bank Transfer",
+      "credit_card": "Credit Card",
+      "check": "Check",
+      "cash": "Cash",
+      "other": "Other"
+    },
+    "statistics": {
+      "title": "Payment Statistics",
+      "current_month_collected": "Current Month Collected",
+      "total_pending": "Total Pending",
+      "total_overdue": "Total Overdue",
+      "collection_rate": "Collection Rate",
+      "monthly_trend": "Monthly Collection Trend"
+    },
+    "emptyState": {
+      "unpaid": {
+        "title": "No unpaid items",
+        "description": "All payments have been collected"
+      },
+      "collected": {
+        "title": "No payment records yet",
+        "description": "Start recording your payments"
+      }
+    },
+    "recordSuccess": "Payment recorded successfully",
+    "recordFailed": "Failed to record payment",
+    "markOverdueSuccess": "Marked as overdue",
+    "reminderSent": "Reminder sent"
+  },
+  "product": {
+    "title": "Services/Items",
+    "createNew": "Create Service/Item",
+    "edit": "Edit Service/Item",
+    "name": "Name",
+    "description": "Description",
+    "price": "Price",
+    "cost": "Cost",
+    "cost_price": "Cost Price",
+    "cost_currency": "Cost Currency",
+    "profit_margin": "Profit Margin",
+    "profit_amount": "Profit Amount",
+    "supplier": "Supplier",
+    "supplier_code": "Supplier Code",
+    "currency": "Currency",
+    "category": "Category",
+    "namePlaceholder": {
+      "zh": "Service/Item Name (Chinese)",
+      "en": "Service/Item Name (English)"
+    },
+    "descriptionPlaceholder": {
+      "zh": "Service/Item Description (Chinese)",
+      "en": "Service/Item Description (English)"
+    },
+    "categoryPlaceholder": "e.g., Software, Hardware, Service",
+    "emptyState": {
+      "title": "No services/items yet",
+      "description": "Create your first service/item to get started."
+    },
+    "deleteConfirm": {
+      "title": "Delete Service/Item",
+      "description": "Are you sure you want to delete this service/item? This action cannot be undone."
+    },
+    "permission": {
+      "costRestricted": "You don't have permission to view cost information",
+      "costRestrictedShort": "Restricted"
+    }
+  },
+  "settings": {
+    "title": "System Settings",
+    "description": "Manage your company information and system settings",
+    "company_info": "Company Information",
+    "bank_info": "Bank Information",
+    "company_name_zh": "Company Name (Chinese)",
+    "company_name_en": "Company Name (English)",
+    "tax_id": "Tax ID",
+    "phone": "Phone",
+    "email": "Email",
+    "bank_name": "Bank Name",
+    "account_number": "Account Number",
+    "account_name": "Account Name",
+    "save": "Save",
+    "saving": "Saving...",
+    "saveSuccess": "Settings saved",
+    "saveError": "Save failed",
+    "upload_logo": "Upload Logo",
+    "upload_signature": "Upload Signature",
+    "upload_passbook": "Upload Passbook"
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "company_owner": "Company Owner",
+    "sales_manager": "Sales Manager",
+    "salesperson": "Salesperson",
+    "accountant": "Accountant"
   }
 }

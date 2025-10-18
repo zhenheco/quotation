@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
+import ProductCostDisplay from '@/components/products/ProductCostDisplay'
+import { useCanViewCost } from '@/hooks/usePermission'
 
 interface Product {
   id: string
@@ -13,6 +15,8 @@ interface Product {
   unit_price: number
   currency: string
   category: string | null
+  cost_price?: number | null
+  cost_currency?: string | null
   created_at: string
 }
 
@@ -26,6 +30,7 @@ type ViewMode = 'list' | 'card'
 export default function ProductList({ products, locale }: ProductListProps) {
   const t = useTranslations()
   const router = useRouter()
+  const { hasPermission: canViewCost } = useCanViewCost()
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; product: Product | null }>({
     isOpen: false,
     product: null,
@@ -140,6 +145,11 @@ export default function ProductList({ products, locale }: ProductListProps) {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('product.price')}
                   </th>
+                  {canViewCost && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('product.cost')}
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('common.actions')}
                   </th>
@@ -166,6 +176,24 @@ export default function ProductList({ products, locale }: ProductListProps) {
                         {product.currency} {product.unit_price.toLocaleString()}
                       </div>
                     </td>
+                    {canViewCost && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {product.cost_price ? (
+                            <>
+                              {product.cost_currency || product.currency} {product.cost_price.toLocaleString()}
+                              {product.cost_price && product.cost_currency === product.currency && (
+                                <div className="text-xs text-green-600 mt-1">
+                                  {t('product.profit_margin')}: {(((product.unit_price - product.cost_price) / product.cost_price) * 100).toFixed(1)}%
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            '-'
+                          )}
+                        </div>
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={() => router.push(`/${locale}/products/${product.id}`)}
@@ -217,6 +245,17 @@ export default function ProductList({ products, locale }: ProductListProps) {
                         {product.currency} {product.unit_price.toLocaleString()}
                       </span>
                     </div>
+                    {canViewCost && product.cost_price && (
+                      <div className="pt-2 mt-2 border-t border-gray-100">
+                        <ProductCostDisplay
+                          costPrice={product.cost_price}
+                          costCurrency={product.cost_currency}
+                          basePrice={product.unit_price}
+                          currency={product.currency}
+                          showCalculations={true}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2 pt-4 border-t border-gray-200">

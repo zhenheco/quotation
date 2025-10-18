@@ -92,6 +92,20 @@ export interface Database {
           total: number
           notes: Json | null // { zh: string, en: string }
           user_id: string
+          // Payment tracking fields
+          payment_status: 'unpaid' | 'partial' | 'paid' | 'overdue'
+          payment_due_date: string | null
+          total_paid: number
+          deposit_amount: number | null
+          deposit_paid_date: string | null
+          final_payment_amount: number | null
+          final_payment_due_date: string | null
+          // Contract fields (when quotation is accepted)
+          contract_signed_date: string | null
+          contract_expiry_date: string | null
+          payment_frequency: 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | null
+          next_collection_date: string | null
+          next_collection_amount: number | null
           created_at: string
           updated_at: string
         }
@@ -110,6 +124,18 @@ export interface Database {
           total: number
           notes?: Json | null
           user_id: string
+          payment_status?: 'unpaid' | 'partial' | 'paid' | 'overdue'
+          payment_due_date?: string | null
+          total_paid?: number
+          deposit_amount?: number | null
+          deposit_paid_date?: string | null
+          final_payment_amount?: number | null
+          final_payment_due_date?: string | null
+          contract_signed_date?: string | null
+          contract_expiry_date?: string | null
+          payment_frequency?: 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | null
+          next_collection_date?: string | null
+          next_collection_amount?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -128,6 +154,18 @@ export interface Database {
           total?: number
           notes?: Json | null
           user_id?: string
+          payment_status?: 'unpaid' | 'partial' | 'paid' | 'overdue'
+          payment_due_date?: string | null
+          total_paid?: number
+          deposit_amount?: number | null
+          deposit_paid_date?: string | null
+          final_payment_amount?: number | null
+          final_payment_due_date?: string | null
+          contract_signed_date?: string | null
+          contract_expiry_date?: string | null
+          payment_frequency?: 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | null
+          next_collection_date?: string | null
+          next_collection_amount?: number | null
           created_at?: string
           updated_at?: string
         }

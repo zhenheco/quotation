@@ -493,3 +493,298 @@ export async function updateCustomerNextPayment(customerId: string, userId: stri
     );
   }
 }
+
+// ============================================================================
+// NEW ENHANCED CONTRACT FUNCTIONS
+// ============================================================================
+
+/**
+ * Convert quotation to contract
+ * 將報價單轉為合約，設定簽約日期、到期日、付款頻率和下次應收
+ */
+export async function convertQuotationToContract(
+  userId: string,
+  quotationId: string,
+  contractData: {
+    signed_date: string;
+    expiry_date: string;
+    payment_frequency: PaymentTerms;
+    payment_day?: number; // 每月收款日，預設為5號
+  }
+): Promise<{ contract: CustomerContract; quotation: any }> {
+  // Check permission
+  const canWrite = await hasPermission(userId, 'contracts', 'write');
+  if (!canWrite) {
+    throw new Error('Insufficient permissions to create contract from quotation');
+  }
+
+  const client = await getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    // Get quotation details
+    const quotResult = await client.query(
+      `SELECT * FROM quotations WHERE id = $1 AND user_id = $2`,
+      [quotationId, userId]
+    );
+
+    if (quotResult.rows.length === 0) {
+      throw new Error('Quotation not found');
+    }
+
+    const quotation = quotResult.rows[0];
+
+    // Generate contract number
+    const contractNumber = await generateContractNumber(userId);
+
+    // Create contract
+    const contractResult = await client.query(
+      `INSERT INTO customer_contracts (
+         user_id,
+         customer_id,
+         quotation_id,
+         contract_number,
+         title,
+         start_date,
+         end_date,
+         signed_date,
+         total_amount,
+         currency,
+         payment_terms,
+         notes,
+         status
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'active')
+       RETURNING *`,
+      [
+        userId,
+        quotation.customer_id,
+        quotationId,
+        contractNumber,
+        `合約 - ${quotation.quotation_number}`,
+        contractData.signed_date,
+        contractData.expiry_date,
+        contractData.signed_date,
+        quotation.total,
+        quotation.currency,
+        contractData.payment_frequency,
+        `由報價單 ${quotation.quotation_number} 轉換而成`,
+      ]
+    );
+
+    const contract = contractResult.rows[0];
+
+    // Update quotation with contract info
+    await client.query(
+      `UPDATE quotations
+       SET status = 'accepted',
+           contract_signed_date = $1,
+           contract_expiry_date = $2,
+           payment_frequency = $3,
+           updated_at = NOW()
+       WHERE id = $4`,
+      [
+        contractData.signed_date,
+        contractData.expiry_date,
+        contractData.payment_frequency,
+        quotationId,
+      ]
+    );
+
+    // Generate payment schedules
+    const paymentDay = contractData.payment_day || 5;
+    await client.query(
+      `SELECT generate_payment_schedules_for_contract($1, $2, $3)`,
+      [contract.id, contractData.signed_date, paymentDay]
+    );
+
+    // Get updated contract with next collection info
+    const updatedContract = await client.query(
+      `SELECT * FROM customer_contracts WHERE id = $1`,
+      [contract.id]
+    );
+
+    // Update quotation with next collection info
+    const nextCollectionResult = await client.query(
+      `SELECT next_collection_date, next_collection_amount
+       FROM customer_contracts
+       WHERE id = $1`,
+      [contract.id]
+    );
+
+    if (nextCollectionResult.rows.length > 0) {
+      const { next_collection_date, next_collection_amount } = nextCollectionResult.rows[0];
+      await client.query(
+        `UPDATE quotations
+         SET next_collection_date = $1,
+             next_collection_amount = $2
+         WHERE id = $3`,
+        [next_collection_date, next_collection_amount, quotationId]
+      );
+    }
+
+    // Update customer status
+    await client.query(
+      `UPDATE customers
+       SET contract_status = 'contracted',
+           contract_expiry_date = $1,
+           payment_terms = $2
+       WHERE id = $3`,
+      [contractData.expiry_date, contractData.payment_frequency, quotation.customer_id]
+    );
+
+    await client.query('COMMIT');
+
+    // Get updated quotation
+    const updatedQuotation = await query(
+      `SELECT * FROM quotations WHERE id = $1`,
+      [quotationId]
+    );
+
+    return {
+      contract: updatedContract.rows[0],
+      quotation: updatedQuotation.rows[0],
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Update next collection info for a contract
+ * 更新合約的下次應收資訊
+ */
+export async function updateNextCollection(
+  userId: string,
+  contractId: string,
+  data: {
+    next_collection_date: string;
+    next_collection_amount: number;
+  }
+): Promise<CustomerContract> {
+  // Check permission
+  const canWrite = await hasPermission(userId, 'contracts', 'write');
+  if (!canWrite) {
+    throw new Error('Insufficient permissions to update contract');
+  }
+
+  const result = await query(
+    `UPDATE customer_contracts
+     SET next_collection_date = $1,
+         next_collection_amount = $2,
+         updated_at = NOW()
+     WHERE id = $3 AND user_id = $4
+     RETURNING *`,
+    [data.next_collection_date, data.next_collection_amount, contractId, userId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error('Contract not found');
+  }
+
+  // Also update linked quotation if exists
+  await query(
+    `UPDATE quotations q
+     SET next_collection_date = $1,
+         next_collection_amount = $2,
+         updated_at = NOW()
+     FROM customer_contracts cc
+     WHERE cc.quotation_id = q.id
+       AND cc.id = $3`,
+    [data.next_collection_date, data.next_collection_amount, contractId]
+  );
+
+  return result.rows[0];
+}
+
+/**
+ * Get contract payment progress
+ * 取得合約的收款進度
+ */
+export async function getContractPaymentProgress(
+  userId: string,
+  contractId: string
+): Promise<any> {
+  // Check permission
+  const canRead = await hasPermission(userId, 'contracts', 'read');
+  if (!canRead) {
+    throw new Error('Insufficient permissions to view contract progress');
+  }
+
+  const result = await query(
+    `SELECT
+       cc.id as contract_id,
+       cc.contract_number,
+       cc.title,
+       c.company_name_zh as customer_name_zh,
+       c.company_name_en as customer_name_en,
+       cc.total_amount,
+       cc.currency,
+       cc.status,
+       cc.next_collection_date as next_payment_due,
+       COALESCE(SUM(CASE WHEN ps.status = 'paid' THEN ps.amount ELSE 0 END), 0) as total_paid,
+       COALESCE(SUM(CASE WHEN ps.status = 'pending' THEN ps.amount ELSE 0 END), 0) as total_pending,
+       COALESCE(SUM(CASE WHEN ps.status = 'overdue' THEN ps.amount ELSE 0 END), 0) as total_overdue,
+       CASE
+         WHEN cc.total_amount > 0 THEN
+           ROUND((COALESCE(SUM(CASE WHEN ps.status = 'paid' THEN ps.amount ELSE 0 END), 0) / cc.total_amount * 100), 2)
+         ELSE 0
+       END as payment_completion_rate
+     FROM customer_contracts cc
+     JOIN customers c ON cc.customer_id = c.id
+     LEFT JOIN payment_schedules ps ON cc.id = ps.contract_id
+     WHERE cc.id = $1 AND cc.user_id = $2
+     GROUP BY cc.id, c.id`,
+    [contractId, userId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error('Contract not found');
+  }
+
+  return result.rows[0];
+}
+
+/**
+ * Get contracts with overdue payments
+ * 取得有逾期款項的合約列表
+ */
+export async function getContractsWithOverduePayments(
+  userId: string
+): Promise<any[]> {
+  // Check permission
+  const canRead = await hasPermission(userId, 'contracts', 'read');
+  if (!canRead) {
+    throw new Error('Insufficient permissions to view contracts');
+  }
+
+  const result = await query(
+    `SELECT
+       cc.id as contract_id,
+       cc.contract_number,
+       cc.title,
+       c.id as customer_id,
+       c.company_name_zh as customer_name_zh,
+       c.company_name_en as customer_name_en,
+       c.email as customer_email,
+       c.phone as customer_phone,
+       COUNT(ps.id) as overdue_count,
+       SUM(ps.amount) as total_overdue_amount,
+       MAX(ps.days_overdue) as max_days_overdue,
+       cc.currency
+     FROM customer_contracts cc
+     JOIN customers c ON cc.customer_id = c.id
+     JOIN payment_schedules ps ON cc.id = ps.contract_id
+     WHERE cc.user_id = $1
+       AND cc.status = 'active'
+       AND ps.status = 'overdue'
+     GROUP BY cc.id, c.id
+     ORDER BY max_days_overdue DESC, total_overdue_amount DESC`,
+    [userId]
+  );
+
+  return result.rows;
+}

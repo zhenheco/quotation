@@ -258,36 +258,158 @@
   },
   "contracts": {
     "title": "合約管理",
+    "description": "管理客戶合約與付款排程",
     "createNew": "建立合約",
+    "createFromQuotation": "從報價單建立",
     "contract_number": "合約編號",
+    "customer": "客戶",
+    "title_field": "合約標題",
+    "signed_date": "簽約日期",
+    "start_date": "起始日期",
+    "end_date": "到期日",
+    "total_amount": "合約總額",
+    "payment_frequency": "付款頻率",
+    "next_collection": "下次應收",
+    "collection_date": "應收日期",
+    "collection_amount": "應收金額",
+    "payment_progress": "收款進度",
+    "overdue_days": "逾期天數",
+    "view_details": "查看詳情",
+    "update_collection": "更新應收資訊",
+    "send_reminder": "發送提醒",
+    "record_payment": "記錄收款",
+    "payment_schedule": "付款排程",
     "payment_terms": {
+      "monthly": "月繳",
       "quarterly": "季繳",
       "semi_annual": "半年繳",
       "annual": "年繳"
     },
     "status": {
       "draft": "草稿",
-      "active": "有效",
+      "active": "進行中",
       "expired": "已到期",
       "terminated": "已終止"
+    },
+    "filter": {
+      "all": "全部",
+      "active": "進行中",
+      "expired": "已到期",
+      "overdue": "逾期"
+    },
+    "emptyState": {
+      "title": "尚無合約",
+      "description": "從已接受的報價單建立第一個合約"
+    },
+    "overdueAlert": {
+      "title": "逾期合約警示",
+      "description": "以下合約已逾期，請盡快處理"
     }
   },
   "payments": {
     "title": "收款管理",
+    "description": "追蹤收款狀態與逾期提醒",
     "received": "已收款",
     "pending": "未收款",
     "overdue": "逾期",
+    "unpaid_area": "未收款區域",
+    "collected_area": "已收款區域",
+    "record_payment": "記錄收款",
+    "payment_date": "收款日期",
+    "amount": "金額",
+    "payment_method": "付款方式",
+    "reference_number": "參考編號",
+    "receipt": "收據",
+    "upload_receipt": "上傳收據",
+    "customer": "客戶",
+    "contract_number": "合約編號",
+    "due_date": "應收日期",
+    "days_overdue": "逾期天數",
+    "mark_overdue": "標記逾期",
+    "send_reminder": "發送提醒",
+    "filter_by_date": "依日期篩選",
+    "filter_by_customer": "依客戶篩選",
+    "filter_by_type": "依類型篩選",
+    "search_customer": "搜尋客戶",
     "payment_type": {
       "deposit": "頭款",
-      "installment": "分期款",
+      "installment": "期款",
       "final": "尾款",
-      "full": "全額"
+      "full": "全額",
+      "recurring": "定期款"
+    },
+    "payment_frequency": {
+      "monthly": "月繳",
+      "quarterly": "季繳",
+      "semi_annual": "半年繳",
+      "annual": "年繳"
     },
     "payment_method": {
       "bank_transfer": "銀行轉帳",
       "credit_card": "信用卡",
       "check": "支票",
-      "cash": "現金"
+      "cash": "現金",
+      "other": "其他"
+    },
+    "statistics": {
+      "title": "收款統計",
+      "current_month_collected": "本月已收",
+      "total_pending": "未收總額",
+      "total_overdue": "逾期總額",
+      "collection_rate": "收款率",
+      "monthly_trend": "月度收款趨勢"
+    },
+    "emptyState": {
+      "unpaid": {
+        "title": "無未收款項目",
+        "description": "所有款項都已收齊"
+      },
+      "collected": {
+        "title": "尚無收款記錄",
+        "description": "開始記錄您的收款"
+      }
+    },
+    "recordSuccess": "收款記錄已成功建立",
+    "recordFailed": "記錄收款失敗",
+    "markOverdueSuccess": "已標記為逾期",
+    "reminderSent": "提醒已發送"
+  },
+  "product": {
+    "title": "服務/品項",
+    "createNew": "建立服務/品項",
+    "edit": "編輯服務/品項",
+    "name": "名稱",
+    "description": "描述",
+    "price": "價格",
+    "cost": "成本",
+    "cost_price": "成本價格",
+    "cost_currency": "成本幣別",
+    "profit_margin": "利潤率",
+    "profit_amount": "利潤金額",
+    "supplier": "供應商",
+    "supplier_code": "供應商編號",
+    "currency": "幣別",
+    "category": "類別",
+    "namePlaceholder": {
+      "zh": "服務/品項名稱（中文）",
+      "en": "服務/品項名稱（英文）"
+    },
+    "descriptionPlaceholder": {
+      "zh": "服務/品項描述（中文）",
+      "en": "服務/品項描述（英文）"
+    },
+    "categoryPlaceholder": "例如：軟體、硬體、服務",
+    "emptyState": {
+      "title": "尚無服務/品項",
+      "description": "建立您的第一個服務/品項以開始使用。"
+    },
+    "deleteConfirm": {
+      "title": "刪除服務/品項",
+      "description": "確定要刪除此服務/品項嗎？此操作無法復原。"
+    },
+    "permission": {
+      "costRestricted": "您沒有權限查看成本資訊",
+      "costRestrictedShort": "權限不足"
     }
   },
   "roles": {

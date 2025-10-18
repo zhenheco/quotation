@@ -469,3 +469,358 @@ export async function checkOverduePayments(userId: string): Promise<void> {
     [userId]
   );
 }
+
+// ============================================================================
+// NEW ENHANCED PAYMENT FUNCTIONS
+// ============================================================================
+
+/**
+ * Record payment and trigger auto-update of next collection
+ * 記錄收款並自動觸發下次應收日期更新
+ */
+export async function recordPayment(
+  userId: string,
+  data: PaymentFormData & {
+    schedule_id?: string; // Optional: link to payment schedule
+  }
+): Promise<Payment> {
+  // Check permission
+  const canWrite = await hasPermission(userId, 'payments', 'write');
+  if (!canWrite) {
+    throw new Error('Insufficient permissions to record payment');
+  }
+
+  // Validate that either quotation_id or contract_id is provided
+  if (!data.quotation_id && !data.contract_id) {
+    throw new Error('Either quotation_id or contract_id must be provided');
+  }
+
+  const client = await getClient();
+
+  try {
+    await client.query('BEGIN');
+
+    // Create payment
+    const paymentResult = await client.query(
+      `INSERT INTO payments (
+         user_id,
+         quotation_id,
+         contract_id,
+         customer_id,
+         payment_type,
+         payment_date,
+         amount,
+         currency,
+         payment_method,
+         reference_number,
+         notes,
+         status
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'confirmed')
+       RETURNING *`,
+      [
+        userId,
+        data.quotation_id || null,
+        data.contract_id || null,
+        data.customer_id,
+        data.payment_type,
+        data.payment_date,
+        data.amount,
+        data.currency,
+        data.payment_method || null,
+        data.reference_number || null,
+        data.notes || null,
+      ]
+    );
+
+    const payment = paymentResult.rows[0];
+
+    // If schedule_id provided, mark that schedule as paid
+    if (data.schedule_id) {
+      await client.query(
+        `UPDATE payment_schedules
+         SET status = 'paid',
+             paid_date = $1,
+             payment_id = $2,
+             paid_amount = $3,
+             updated_at = NOW()
+         WHERE id = $4 AND user_id = $5`,
+        [data.payment_date, payment.id, data.amount, data.schedule_id, userId]
+      );
+    } else if (data.contract_id) {
+      // Auto-match to next pending schedule
+      await matchPaymentToSchedule(payment.id, data.contract_id, data.payment_date, userId);
+    }
+
+    // Update customer next payment (handled by service)
+    if (data.contract_id) {
+      const { updateCustomerNextPayment } = await import('./contracts');
+      await updateCustomerNextPayment(data.customer_id, userId);
+    }
+
+    // NOTE: Next collection date is automatically updated by database trigger
+    // (trigger: update_next_collection_date)
+
+    await client.query('COMMIT');
+
+    return payment;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Get collected payments (using view)
+ * 取得已收款列表
+ */
+export async function getCollectedPayments(
+  userId: string,
+  filters?: {
+    customer_id?: string;
+    start_date?: string;
+    end_date?: string;
+    payment_type?: string;
+  }
+): Promise<any[]> {
+  // Check permission
+  const canRead = await hasPermission(userId, 'payments', 'read');
+  if (!canRead) {
+    throw new Error('Insufficient permissions to view payments');
+  }
+
+  let sql = `
+    SELECT *
+    FROM collected_payments_summary
+    WHERE 1=1
+  `;
+
+  const params: any[] = [];
+  let paramIndex = 1;
+
+  // Note: View doesn't have user_id, so we need to filter differently
+  // We'll join with customers to filter by user
+  sql = `
+    SELECT cps.*
+    FROM collected_payments_summary cps
+    JOIN customers c ON cps.customer_id = c.id
+    WHERE c.user_id = $${paramIndex}
+  `;
+  params.push(userId);
+  paramIndex++;
+
+  if (filters?.customer_id) {
+    sql += ` AND cps.customer_id = $${paramIndex}`;
+    params.push(filters.customer_id);
+    paramIndex++;
+  }
+
+  if (filters?.start_date) {
+    sql += ` AND cps.payment_date >= $${paramIndex}`;
+    params.push(filters.start_date);
+    paramIndex++;
+  }
+
+  if (filters?.end_date) {
+    sql += ` AND cps.payment_date <= $${paramIndex}`;
+    params.push(filters.end_date);
+    paramIndex++;
+  }
+
+  if (filters?.payment_type) {
+    sql += ` AND cps.payment_type = $${paramIndex}`;
+    params.push(filters.payment_type);
+    paramIndex++;
+  }
+
+  sql += ` ORDER BY cps.payment_date DESC`;
+
+  const result = await query(sql, params);
+  return result.rows;
+}
+
+/**
+ * Get unpaid payments (>30 days, using view)
+ * 取得未收款列表（超過30天）
+ */
+export async function getUnpaidPayments(
+  userId: string,
+  filters?: {
+    customer_id?: string;
+    min_days_overdue?: number;
+  }
+): Promise<any[]> {
+  // Check permission
+  const canRead = await hasPermission(userId, 'payments', 'read');
+  if (!canRead) {
+    throw new Error('Insufficient permissions to view unpaid payments');
+  }
+
+  let sql = `
+    SELECT upp.*
+    FROM unpaid_payments_30_days upp
+    JOIN customer_contracts cc ON upp.contract_id = cc.id
+    WHERE cc.user_id = $1
+  `;
+
+  const params: any[] = [userId];
+  let paramIndex = 2;
+
+  if (filters?.customer_id) {
+    sql += ` AND upp.customer_id = $${paramIndex}`;
+    params.push(filters.customer_id);
+    paramIndex++;
+  }
+
+  if (filters?.min_days_overdue) {
+    sql += ` AND upp.days_overdue >= $${paramIndex}`;
+    params.push(filters.min_days_overdue);
+    paramIndex++;
+  }
+
+  sql += ` ORDER BY upp.days_overdue DESC, upp.due_date ASC`;
+
+  const result = await query(sql, params);
+  return result.rows;
+}
+
+/**
+ * Get next collection reminders (using view)
+ * 取得下次收款提醒列表
+ */
+export async function getNextCollectionReminders(
+  userId: string,
+  filters?: {
+    days_ahead?: number; // Default 30 days
+    status?: 'overdue' | 'due_today' | 'due_soon' | 'upcoming';
+  }
+): Promise<any[]> {
+  // Check permission
+  const canRead = await hasPermission(userId, 'payments', 'read');
+  if (!canRead) {
+    throw new Error('Insufficient permissions to view collection reminders');
+  }
+
+  let sql = `
+    SELECT ncr.*
+    FROM next_collection_reminders ncr
+    JOIN customer_contracts cc ON ncr.contract_id = cc.id
+    WHERE cc.user_id = $1
+  `;
+
+  const params: any[] = [userId];
+  let paramIndex = 2;
+
+  // Filter by days ahead (default 30 days)
+  const daysAhead = filters?.days_ahead || 30;
+  sql += ` AND ncr.days_until_collection <= $${paramIndex}`;
+  params.push(daysAhead);
+  paramIndex++;
+
+  if (filters?.status) {
+    sql += ` AND ncr.collection_status = $${paramIndex}`;
+    params.push(filters.status);
+    paramIndex++;
+  }
+
+  sql += ` ORDER BY ncr.next_collection_date ASC`;
+
+  const result = await query(sql, params);
+  return result.rows;
+}
+
+/**
+ * Mark payment as overdue (manual)
+ * 手動標記款項為逾期
+ */
+export async function markPaymentAsOverdue(
+  userId: string,
+  scheduleId: string
+): Promise<PaymentSchedule> {
+  // Check permission
+  const canWrite = await hasPermission(userId, 'payments', 'write');
+  if (!canWrite) {
+    throw new Error('Insufficient permissions to update payment schedule');
+  }
+
+  const result = await query(
+    `UPDATE payment_schedules
+     SET status = 'overdue',
+         days_overdue = CURRENT_DATE - due_date,
+         updated_at = NOW()
+     WHERE id = $1 AND user_id = $2 AND status = 'pending'
+     RETURNING *`,
+    [scheduleId, userId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error('Payment schedule not found or already processed');
+  }
+
+  return result.rows[0];
+}
+
+/**
+ * Batch mark overdue payments (call database function)
+ * 批次標記逾期款項
+ */
+export async function batchMarkOverduePayments(userId: string): Promise<{
+  updated_count: number;
+  schedule_ids: string[];
+}> {
+  // Check permission
+  const canWrite = await hasPermission(userId, 'payments', 'write');
+  if (!canWrite) {
+    throw new Error('Insufficient permissions to batch update payments');
+  }
+
+  const result = await query(
+    `SELECT * FROM mark_overdue_payments() WHERE EXISTS (
+       SELECT 1 FROM payment_schedules ps
+       WHERE ps.id = ANY(schedule_ids)
+         AND ps.user_id = $1
+     )`,
+    [userId]
+  );
+
+  if (result.rows.length === 0) {
+    return { updated_count: 0, schedule_ids: [] };
+  }
+
+  return {
+    updated_count: result.rows[0].updated_count || 0,
+    schedule_ids: result.rows[0].schedule_ids || [],
+  };
+}
+
+/**
+ * Send payment reminder (update reminder tracking)
+ * 發送收款提醒（更新提醒記錄）
+ */
+export async function recordPaymentReminder(
+  userId: string,
+  scheduleId: string
+): Promise<PaymentSchedule> {
+  // Check permission
+  const canWrite = await hasPermission(userId, 'payments', 'write');
+  if (!canWrite) {
+    throw new Error('Insufficient permissions to record reminder');
+  }
+
+  const result = await query(
+    `UPDATE payment_schedules
+     SET last_reminder_sent_at = NOW(),
+         reminder_count = reminder_count + 1,
+         updated_at = NOW()
+     WHERE id = $1 AND user_id = $2
+     RETURNING *`,
+    [scheduleId, userId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error('Payment schedule not found');
+  }
+
+  return result.rows[0];
+}

@@ -10,7 +10,8 @@
 // COMPANY SETTINGS
 // ============================================================================
 
-export type PaymentTerms = 'quarterly' | 'semi_annual' | 'annual';
+export type PaymentFrequency = 'monthly' | 'quarterly' | 'semi_annual' | 'annual';
+export type PaymentTerms = PaymentFrequency; // Alias for backward compatibility
 
 export interface CompanySettings {
   id: string;
@@ -106,7 +107,14 @@ export interface CustomerContract {
   // Financial
   total_amount: number;
   currency: string;
-  payment_terms: PaymentTerms | null;
+  payment_terms: PaymentFrequency | null;
+
+  // Next collection info (新增)
+  next_collection_date: string | null;
+  next_collection_amount: number | null;
+
+  // Quotation reference (新增)
+  quotation_id: string | null;
 
   // File uploads
   contract_file_url: string | null;
@@ -146,7 +154,7 @@ export interface CustomerContractWithCustomer extends CustomerContract {
 // ============================================================================
 
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overdue';
-export type PaymentType = 'deposit' | 'installment' | 'final' | 'full';
+export type PaymentType = 'deposit' | 'installment' | 'final' | 'full' | 'recurring';
 export type PaymentMethod = 'bank_transfer' | 'credit_card' | 'check' | 'cash' | 'other';
 export type PaymentTransactionStatus = 'pending' | 'confirmed' | 'cancelled';
 
@@ -164,6 +172,13 @@ export interface Payment {
   payment_date: string; // ISO date string
   amount: number;
   currency: string;
+
+  // Payment frequency for recurring payments (新增)
+  payment_frequency: PaymentFrequency | null;
+
+  // Overdue tracking (新增)
+  is_overdue: boolean;
+  days_overdue: number;
 
   // Payment method
   payment_method: PaymentMethod | null;
@@ -237,6 +252,11 @@ export interface PaymentSchedule {
   status: ScheduleStatus;
   paid_amount: number;
   paid_date: string | null;
+
+  // Overdue tracking (新增)
+  days_overdue: number;
+  last_reminder_sent_at: string | null;
+  reminder_count: number;
 
   // Link to payment
   payment_id: string | null;
@@ -368,6 +388,13 @@ export interface QuotationWithPayment {
   final_payment_amount: number | null;
   final_payment_due_date: string | null;
 
+  // Contract fields (新增 - 當報價單轉為合約時)
+  contract_signed_date: string | null;
+  contract_expiry_date: string | null;
+  payment_frequency: PaymentFrequency | null;
+  next_collection_date: string | null;
+  next_collection_amount: number | null;
+
   created_at: string;
   updated_at: string;
 }
@@ -429,4 +456,151 @@ export interface OverduePayment {
   currency: string;
   days_overdue: number;
   type: 'quotation' | 'contract';
+}
+
+// ============================================================================
+// COLLECTION MANAGEMENT (新增)
+// ============================================================================
+
+/**
+ * 收款狀態分類
+ */
+export type CollectionStatus = 'collected' | 'pending' | 'overdue';
+
+/**
+ * 已收款記錄 - 用於顯示在「已收款區域」
+ */
+export interface CollectedPaymentRecord {
+  id: string;
+  customer_id: string;
+  customer_name_zh: string;
+  customer_name_en: string;
+  payment_type: PaymentType;
+  payment_type_display: string; // 頭款/期款/尾款等中文顯示
+  payment_frequency: PaymentFrequency | null; // 季繳/半年繳/年繳
+  payment_date: string;
+  amount: number;
+  currency: string;
+  payment_method: PaymentMethod | null;
+  reference_number: string | null;
+  receipt_url: string | null;
+  related_number: string | null; // 關聯的報價單或合約編號
+  notes: string | null;
+}
+
+/**
+ * 未收款記錄 - 用於顯示在「未收款區域」(>30天)
+ */
+export interface UnpaidPaymentRecord {
+  id: string;
+  schedule_number: number;
+  contract_id: string;
+  contract_number: string;
+  contract_title: string;
+  customer_id: string;
+  customer_name_zh: string;
+  customer_name_en: string;
+  customer_email: string | null;
+  customer_phone: string | null;
+  due_date: string;
+  amount: number;
+  currency: string;
+  status: ScheduleStatus;
+  days_overdue: number;
+  payment_terms: PaymentFrequency | null;
+  reminder_count: number;
+  last_reminder_sent_at: string | null;
+}
+
+/**
+ * 下次收款提醒
+ */
+export interface NextCollectionReminder {
+  contract_id: string;
+  contract_number: string;
+  contract_title: string;
+  customer_id: string;
+  customer_name_zh: string;
+  customer_name_en: string;
+  customer_email: string | null;
+  customer_phone: string | null;
+  payment_terms: PaymentFrequency | null;
+  next_collection_date: string;
+  next_collection_amount: number;
+  currency: string;
+  days_until_collection: number; // 負數表示已逾期
+  collection_status: 'overdue' | 'due_today' | 'due_soon' | 'upcoming';
+}
+
+/**
+ * 收款統計摘要
+ */
+export interface CollectionStatistics {
+  // 本月統計
+  current_month: {
+    total_collected: number;
+    total_pending: number;
+    total_overdue: number;
+    currency: string;
+  };
+  // 本年統計
+  current_year: {
+    total_collected: number;
+    total_pending: number;
+    total_overdue: number;
+    currency: string;
+  };
+  // 逾期統計
+  overdue: {
+    count: number;
+    total_amount: number;
+    average_days: number;
+  };
+}
+
+/**
+ * 合約收款進度
+ */
+export interface ContractPaymentProgress {
+  contract_id: string;
+  contract_number: string;
+  customer_name_zh: string;
+  customer_name_en: string;
+  total_amount: number;
+  total_paid: number;
+  total_pending: number;
+  total_overdue: number;
+  currency: string;
+  payment_completion_rate: number; // 0-100
+  next_payment_due: string | null;
+  status: ContractStatus;
+}
+
+// ============================================================================
+// HELPER FUNCTIONS TYPES (新增)
+// ============================================================================
+
+/**
+ * 產生付款排程的參數
+ */
+export interface GeneratePaymentSchedulesParams {
+  contract_id: string;
+  start_date?: string;
+  payment_day?: number; // 1-31, default 5
+}
+
+/**
+ * 產生付款排程的結果
+ */
+export interface GeneratePaymentSchedulesResult {
+  schedule_count: number;
+  schedules: PaymentSchedule[];
+}
+
+/**
+ * 標記逾期付款的結果
+ */
+export interface MarkOverduePaymentsResult {
+  updated_count: number;
+  schedule_ids: string[];
 }
