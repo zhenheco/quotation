@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.json({
+      success: true,
       companies: companiesWithStats,
       total: companiesWithStats.length
     });
@@ -57,13 +58,13 @@ export async function GET(request: NextRequest) {
     // 檢查是否為權限錯誤
     if (error.message?.includes('Only super admin')) {
       return NextResponse.json(
-        { error: 'Forbidden: Super admin access required' },
+        { success: false, error: 'Forbidden: Super admin access required' },
         { status: 403 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch companies' },
+      { success: false, error: 'Failed to fetch companies' },
       { status: 500 }
     );
   }
