@@ -2,11 +2,23 @@
  * Zeabur PostgreSQL 數據庫服務層
  * 提供所有業務表的 CRUD 操作
  *
- * 注意：所有函數都包含 user_id 過濾，確保多租戶隔離
+ * 安全措施：
+ * 1. 所有函數都包含 user_id 過濾，確保多租戶隔離
+ * 2. 使用欄位白名單驗證，防止 SQL Injection 攻擊
+ * 3. 所有 SQL 查詢使用參數化查詢（Parameterized Queries）
+ *
+ * 注意：updateCustomer() 已升級使用新的安全驗證模組
+ *      其他 update 函式建議逐步遷移到相同模式
  */
 
 import { getZeaburPool, query } from '@/lib/db/zeabur'
 import { QueryResult } from 'pg'
+import {
+  buildUpdateFields,
+  CUSTOMER_ALLOWED_FIELDS,
+  PRODUCT_ALLOWED_FIELDS,
+  QUOTATION_ALLOWED_FIELDS
+} from '@/lib/security/field-validator'
 
 // ========================================
 // 類型定義
@@ -98,53 +110,51 @@ export async function createCustomer(data: Omit<Customer, 'id' | 'created_at' | 
   return result.rows[0]
 }
 
+/**
+ * 更新客戶資料（使用欄位白名單驗證）
+ *
+ * 安全特性：
+ * - 使用 buildUpdateFields() 進行欄位白名單驗證
+ * - 只有 CUSTOMER_ALLOWED_FIELDS 中的欄位可以被更新
+ * - 自動過濾非法欄位，防止 SQL Injection
+ * - 參數化查詢，防止 SQL 注入攻擊
+ */
 export async function updateCustomer(
   id: string,
   userId: string,
   data: Partial<Omit<Customer, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<Customer | null> {
-  const pool = getZeaburPool()
+  try {
+    // 使用欄位白名單驗證，防止 SQL Injection
+    const { fields, values, paramCount } = buildUpdateFields(
+      data,
+      CUSTOMER_ALLOWED_FIELDS
+    )
 
-  const fields: string[] = []
-  const values: any[] = []
-  let paramCount = 1
+    // 如果沒有要更新的欄位，直接返回現有資料
+    if (fields.length === 0) {
+      return getCustomerById(id, userId)
+    }
 
-  if (data.name !== undefined) {
-    fields.push(`name = $${paramCount++}`)
-    values.push(data.name)
-  }
-  if (data.email !== undefined) {
-    fields.push(`email = $${paramCount++}`)
-    values.push(data.email)
-  }
-  if (data.phone !== undefined) {
-    fields.push(`phone = $${paramCount++}`)
-    values.push(data.phone)
-  }
-  if (data.address !== undefined) {
-    fields.push(`address = $${paramCount++}`)
-    values.push(data.address)
-  }
-  if (data.tax_id !== undefined) {
-    fields.push(`tax_id = $${paramCount++}`)
-    values.push(data.tax_id)
-  }
-  if (data.contact_person !== undefined) {
-    fields.push(`contact_person = $${paramCount++}`)
-    values.push(data.contact_person)
-  }
+    // 添加 WHERE 條件參數
+    values.push(id, userId)
 
-  if (fields.length === 0) {
-    return getCustomerById(id, userId)
+    // 執行更新
+    const result = await query(
+      `UPDATE customers
+       SET ${fields.join(', ')}
+       WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
+       RETURNING *`,
+      values
+    )
+
+    return result.rows[0] || null
+  } catch (error) {
+    // 記錄錯誤但不洩漏敏感資訊
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('❌ Update customer failed:', { id, error: errorMessage })
+    throw error
   }
-
-  values.push(id, userId)
-  const result = await query(
-    `UPDATE customers SET ${fields.join(', ')} WHERE id = $${paramCount} AND user_id = $${paramCount + 1} RETURNING *`,
-    values
-  )
-
-  return result.rows[0] || null
 }
 
 export async function deleteCustomer(id: string, userId: string): Promise<boolean> {

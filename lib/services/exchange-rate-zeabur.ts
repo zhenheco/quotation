@@ -53,7 +53,7 @@ export async function fetchLatestRates(
 
   try {
     const url = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/${baseCurrency}`
-    console.log('📡 正在從 ExchangeRate-API 獲取匯率...')
+    console.log('📡 正在從 ExchangeRate-API 獲取匯率...', { baseCurrency })
 
     const response = await fetch(url, {
       next: { revalidate: 86400 } // 快取 24 小時
@@ -72,7 +72,9 @@ export async function fetchLatestRates(
 
     return data
   } catch (error) {
-    console.error('❌ 獲取匯率失敗:', error)
+    // 不直接輸出 error 物件，避免洩漏 API Key
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('❌ 獲取匯率失敗:', { baseCurrency, error: errorMessage })
     return null
   }
 }

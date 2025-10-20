@@ -69,7 +69,9 @@ export async function fetchLatestRates(baseCurrency: Currency = 'USD'): Promise<
 
     return data
   } catch (error) {
-    console.error('❌ 獲取匯率失敗:', error)
+    // 不直接輸出 error 物件，避免洩漏 API Key
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('❌ 獲取匯率失敗:', { baseCurrency, error: errorMessage })
     return null
   }
 }
