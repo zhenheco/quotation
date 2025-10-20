@@ -1,0 +1,1716 @@
+openapi: 3.1.0
+
+info:
+  title: Quotation System API
+  description: |
+    報價系統 REST API 規範文件
+
+    ## 特點
+    - 🔐 Google OAuth 認證
+    - 🌐 多語言支援 (中文/英文)
+    - 💱 多幣別支援
+    - 📄 完整的報價單管理
+    - 👥 客戶關係管理
+    - 📦 產品目錄管理
+    - 💰 付款追蹤
+    - 📊 合約管理
+
+    ## 認證
+    所有 API 端點都需要透過 Supabase Auth 進行認證。
+    請在請求標頭中包含有效的 JWT token。
+
+    ## 錯誤處理
+    API 遵循 RFC 9457 Problem Details 標準。
+
+    ## 分頁
+    列表端點支援兩種分頁模式：
+    - Offset-based: 使用 `page` 和 `pageSize` 參數
+    - Cursor-based: 使用 `cursor` 和 `limit` 參數
+
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@quotation-system.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3333/api
+    description: Development server
+  - url: https://api.quotation-system.com/api
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: 使用者認證相關操作
+  - name: Users
+    description: 使用者資料管理
+  - name: Customers
+    description: 客戶管理
+  - name: Products
+    description: 產品管理
+  - name: Quotations
+    description: 報價單管理
+  - name: Payments
+    description: 付款記錄管理
+  - name: Contracts
+    description: 合約管理
+  - name: Companies
+    description: 公司管理
+  - name: Company Settings
+    description: 公司設定
+  - name: Admin
+    description: 系統管理員功能
+  - name: Exchange Rates
+    description: 匯率管理
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase Auth JWT token
+
+  schemas:
+    # ========================================
+    # 通用 Schemas
+    # ========================================
+
+    BilingualText:
+      type: object
+      required:
+        - zh
+        - en
+      properties:
+        zh:
+          type: string
+          description: 中文文字
+          example: "客戶名稱"
+        en:
+          type: string
+          description: 英文文字
+          example: "Customer Name"
+
+    Currency:
+      type: string
+      enum: [TWD, USD, EUR, JPY, CNY]
+      example: TWD
+
+    DateString:
+      type: string
+      format: date-time
+      example: "2025-10-20T10:30:00.000Z"
+
+    # 標準成功回應
+    SuccessResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          description: 回應資料
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        message:
+          type: string
+          description: 成功訊息
+          example: "Operation completed successfully"
+
+    # 標準錯誤回應 (RFC 9457)
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          required:
+            - type
+            - title
+            - status
+            - detail
+          properties:
+            type:
+              type: string
+              description: 錯誤類型標識符
+              example: "validation_error"
+            title:
+              type: string
+              description: 錯誤標題
+              example: "Validation Failed"
+            status:
+              type: integer
+              description: HTTP 狀態碼
+              example: 422
+            detail:
+              type: string
+              description: 錯誤詳細說明
+              example: "The request contains invalid data"
+            instance:
+              type: string
+              description: 發生錯誤的端點
+              example: "/api/customers"
+            errors:
+              type: array
+              description: 詳細的驗證錯誤
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    example: "email"
+                  message:
+                    type: string
+                    example: "Email format is invalid"
+                  code:
+                    type: string
+                    example: "invalid_email"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-10-20T10:30:00.000Z"
+        requestId:
+          type: string
+          example: "req_abc123"
+
+    # 分頁 Meta
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: 總記錄數
+          example: 100
+        page:
+          type: integer
+          description: 當前頁碼
+          example: 1
+        pageSize:
+          type: integer
+          description: 每頁數量
+          example: 20
+        totalPages:
+          type: integer
+          description: 總頁數
+          example: 5
+        hasMore:
+          type: boolean
+          description: 是否有下一頁
+          example: true
+        nextCursor:
+          type: string
+          description: 下一頁游標（cursor-based 分頁）
+          example: "abc123"
+
+    # ========================================
+    # 客戶 Schemas
+    # ========================================
+
+    Customer:
+      type: object
+      required:
+        - id
+        - user_id
+        - name
+        - email
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        user_id:
+          type: string
+          format: uuid
+        name:
+          $ref: '#/components/schemas/BilingualText'
+        email:
+          type: string
+          format: email
+          example: "customer@example.com"
+        phone:
+          type: string
+          example: "+886-912-345-678"
+        address:
+          $ref: '#/components/schemas/BilingualText'
+        tax_id:
+          type: string
+          example: "12345678"
+        contact_person:
+          $ref: '#/components/schemas/BilingualText'
+        created_at:
+          $ref: '#/components/schemas/DateString'
+        updated_at:
+          $ref: '#/components/schemas/DateString'
+
+    CreateCustomerInput:
+      type: object
+      required:
+        - name
+        - email
+      properties:
+        name:
+          $ref: '#/components/schemas/BilingualText'
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        address:
+          $ref: '#/components/schemas/BilingualText'
+        tax_id:
+          type: string
+        contact_person:
+          $ref: '#/components/schemas/BilingualText'
+
+    UpdateCustomerInput:
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/BilingualText'
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        address:
+          $ref: '#/components/schemas/BilingualText'
+        tax_id:
+          type: string
+        contact_person:
+          $ref: '#/components/schemas/BilingualText'
+
+    # ========================================
+    # 產品 Schemas
+    # ========================================
+
+    Product:
+      type: object
+      required:
+        - id
+        - user_id
+        - name
+        - unit_price
+        - currency
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+          example: "PRD-001"
+        name:
+          $ref: '#/components/schemas/BilingualText'
+        description:
+          $ref: '#/components/schemas/BilingualText'
+        unit_price:
+          type: number
+          format: double
+          minimum: 0
+          example: 1000.00
+        currency:
+          $ref: '#/components/schemas/Currency'
+        category:
+          type: string
+          example: "電子產品"
+        cost_price:
+          type: number
+          format: double
+          description: 成本價
+        supplier:
+          type: string
+          description: 供應商
+        created_at:
+          $ref: '#/components/schemas/DateString'
+        updated_at:
+          $ref: '#/components/schemas/DateString'
+
+    CreateProductInput:
+      type: object
+      required:
+        - name
+        - unit_price
+        - currency
+      properties:
+        sku:
+          type: string
+        name:
+          $ref: '#/components/schemas/BilingualText'
+        description:
+          $ref: '#/components/schemas/BilingualText'
+        unit_price:
+          type: number
+          format: double
+          minimum: 0
+        currency:
+          $ref: '#/components/schemas/Currency'
+        category:
+          type: string
+        cost_price:
+          type: number
+          format: double
+        supplier:
+          type: string
+
+    # ========================================
+    # 報價單 Schemas
+    # ========================================
+
+    Quotation:
+      type: object
+      required:
+        - id
+        - user_id
+        - customer_id
+        - quotation_number
+        - status
+        - issue_date
+        - valid_until
+        - currency
+        - subtotal
+        - tax_rate
+        - tax_amount
+        - total_amount
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        customer_id:
+          type: string
+          format: uuid
+        quotation_number:
+          type: string
+          example: "Q2025-001"
+        status:
+          type: string
+          enum: [draft, sent, accepted, rejected]
+        issue_date:
+          type: string
+          format: date
+          example: "2025-10-20"
+        valid_until:
+          type: string
+          format: date
+          example: "2025-11-20"
+        currency:
+          $ref: '#/components/schemas/Currency'
+        subtotal:
+          type: number
+          format: double
+          example: 10000.00
+        tax_rate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          example: 5.0
+        tax_amount:
+          type: number
+          format: double
+          example: 500.00
+        total_amount:
+          type: number
+          format: double
+          example: 10500.00
+        notes:
+          type: string
+        created_at:
+          $ref: '#/components/schemas/DateString'
+        updated_at:
+          $ref: '#/components/schemas/DateString'
+
+    QuotationItem:
+      type: object
+      required:
+        - id
+        - quotation_id
+        - quantity
+        - unit_price
+        - discount
+        - subtotal
+      properties:
+        id:
+          type: string
+          format: uuid
+        quotation_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        quantity:
+          type: number
+          format: double
+          minimum: 0
+          example: 10
+        unit_price:
+          type: number
+          format: double
+          minimum: 0
+          example: 1000.00
+        discount:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          example: 10.0
+        subtotal:
+          type: number
+          format: double
+          example: 9000.00
+        created_at:
+          $ref: '#/components/schemas/DateString'
+        updated_at:
+          $ref: '#/components/schemas/DateString'
+
+    CreateQuotationInput:
+      type: object
+      required:
+        - customer_id
+        - issue_date
+        - valid_until
+        - currency
+        - subtotal
+        - tax_rate
+        - tax_amount
+        - total_amount
+        - items
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        issue_date:
+          type: string
+          format: date
+        valid_until:
+          type: string
+          format: date
+        currency:
+          $ref: '#/components/schemas/Currency'
+        subtotal:
+          type: number
+          format: double
+        tax_rate:
+          type: number
+          format: double
+        tax_amount:
+          type: number
+          format: double
+        total_amount:
+          type: number
+          format: double
+        notes:
+          type: string
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - quantity
+              - unit_price
+              - subtotal
+            properties:
+              product_id:
+                type: string
+                format: uuid
+              quantity:
+                type: number
+                format: double
+              unit_price:
+                type: number
+                format: double
+              discount:
+                type: number
+                format: double
+                default: 0
+              subtotal:
+                type: number
+                format: double
+
+    # ========================================
+    # 付款 Schemas
+    # ========================================
+
+    Payment:
+      type: object
+      required:
+        - id
+        - user_id
+        - customer_id
+        - payment_type
+        - payment_date
+        - amount
+        - currency
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        customer_id:
+          type: string
+          format: uuid
+        quotation_id:
+          type: string
+          format: uuid
+        contract_id:
+          type: string
+          format: uuid
+        payment_type:
+          type: string
+          enum: [deposit, installment, final, full, recurring]
+        payment_date:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+        currency:
+          $ref: '#/components/schemas/Currency'
+        payment_frequency:
+          type: string
+          enum: [monthly, quarterly, semi_annual, annual]
+        is_overdue:
+          type: boolean
+          default: false
+        days_overdue:
+          type: integer
+          default: 0
+        payment_method:
+          type: string
+          enum: [bank_transfer, credit_card, check, cash, other]
+        reference_number:
+          type: string
+        receipt_url:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [pending, confirmed, cancelled]
+        notes:
+          type: string
+        created_at:
+          $ref: '#/components/schemas/DateString'
+        updated_at:
+          $ref: '#/components/schemas/DateString'
+
+    CreatePaymentInput:
+      type: object
+      required:
+        - customer_id
+        - payment_type
+        - payment_date
+        - amount
+        - currency
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+        quotation_id:
+          type: string
+          format: uuid
+        contract_id:
+          type: string
+          format: uuid
+        payment_type:
+          type: string
+          enum: [deposit, installment, final, full, recurring]
+        payment_date:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+        currency:
+          $ref: '#/components/schemas/Currency'
+        payment_method:
+          type: string
+          enum: [bank_transfer, credit_card, check, cash, other]
+        reference_number:
+          type: string
+        notes:
+          type: string
+
+    # ========================================
+    # 合約 Schemas
+    # ========================================
+
+    Contract:
+      type: object
+      required:
+        - id
+        - user_id
+        - customer_id
+        - contract_number
+        - title
+        - start_date
+        - end_date
+        - status
+        - total_amount
+        - currency
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        customer_id:
+          type: string
+          format: uuid
+        quotation_id:
+          type: string
+          format: uuid
+        contract_number:
+          type: string
+          example: "C2025-001"
+        title:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        signed_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [draft, active, expired, terminated]
+        total_amount:
+          type: number
+          format: double
+        currency:
+          $ref: '#/components/schemas/Currency'
+        payment_terms:
+          type: string
+          enum: [monthly, quarterly, semi_annual, annual]
+        next_collection_date:
+          type: string
+          format: date
+        next_collection_amount:
+          type: number
+          format: double
+        contract_file_url:
+          type: string
+          format: uri
+        notes:
+          type: string
+        terms_and_conditions:
+          type: string
+        created_at:
+          $ref: '#/components/schemas/DateString'
+        updated_at:
+          $ref: '#/components/schemas/DateString'
+
+  parameters:
+    # 分頁參數
+    PageParam:
+      name: page
+      in: query
+      description: 頁碼（從 1 開始）
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        example: 1
+
+    PageSizeParam:
+      name: pageSize
+      in: query
+      description: 每頁數量（最大 100）
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+
+    CursorParam:
+      name: cursor
+      in: query
+      description: 游標（用於 cursor-based 分頁）
+      required: false
+      schema:
+        type: string
+        example: "abc123"
+
+    LimitParam:
+      name: limit
+      in: query
+      description: 返回數量限制
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+
+    # 排序參數
+    SortParam:
+      name: sort
+      in: query
+      description: 排序欄位（前綴 `-` 表示降序）
+      required: false
+      schema:
+        type: string
+        example: "-created_at"
+
+    # 搜尋參數
+    SearchParam:
+      name: q
+      in: query
+      description: 搜尋關鍵字
+      required: false
+      schema:
+        type: string
+        example: "客戶名稱"
+
+    # 路徑參數
+    IdParam:
+      name: id
+      in: path
+      description: 資源 ID
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440000"
+
+  responses:
+    Unauthorized:
+      description: 未認證
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: "unauthorized"
+              title: "Authentication Required"
+              status: 401
+              detail: "You must be authenticated to access this resource"
+            timestamp: "2025-10-20T10:30:00.000Z"
+
+    Forbidden:
+      description: 無權限
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: "forbidden"
+              title: "Access Denied"
+              status: 403
+              detail: "You don't have permission to perform this action"
+            timestamp: "2025-10-20T10:30:00.000Z"
+
+    NotFound:
+      description: 資源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: "not_found"
+              title: "Resource Not Found"
+              status: 404
+              detail: "The requested resource was not found"
+            timestamp: "2025-10-20T10:30:00.000Z"
+
+    ValidationError:
+      description: 驗證失敗
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: "validation_error"
+              title: "Validation Failed"
+              status: 422
+              detail: "The request contains invalid data"
+              errors:
+                - field: "email"
+                  message: "Email format is invalid"
+                  code: "invalid_email"
+                - field: "name.zh"
+                  message: "Chinese name is required"
+                  code: "required"
+            timestamp: "2025-10-20T10:30:00.000Z"
+
+    RateLimitExceeded:
+      description: 超過速率限制
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: "rate_limit_exceeded"
+              title: "Too Many Requests"
+              status: 429
+              detail: "Rate limit exceeded. Please retry after 60 seconds"
+            timestamp: "2025-10-20T10:30:00.000Z"
+      headers:
+        X-RateLimit-Limit:
+          description: 速率限制上限
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          description: 剩餘請求次數
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          description: 限制重置時間
+          schema:
+            type: string
+            format: date-time
+        Retry-After:
+          description: 建議重試等待秒數
+          schema:
+            type: integer
+
+    InternalServerError:
+      description: 伺服器內部錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              type: "internal_error"
+              title: "Internal Server Error"
+              status: 500
+              detail: "An unexpected error occurred"
+            timestamp: "2025-10-20T10:30:00.000Z"
+
+# ========================================
+# API 端點定義
+# ========================================
+
+paths:
+  # ========================================
+  # 認證 API
+  # ========================================
+
+  /me:
+    get:
+      tags:
+        - Users
+      summary: 取得當前使用者資訊
+      description: 獲取已認證使用者的個人資料
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                        format: email
+                      name:
+                        type: string
+                      avatar_url:
+                        type: string
+                        format: uri
+                      created_at:
+                        $ref: '#/components/schemas/DateString'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ========================================
+  # 客戶 API
+  # ========================================
+
+  /customers:
+    get:
+      tags:
+        - Customers
+      summary: 列出所有客戶
+      description: 獲取當前使用者的所有客戶列表
+      operationId: listCustomers
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/SearchParam'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customer'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+    post:
+      tags:
+        - Customers
+      summary: 創建新客戶
+      description: 創建一個新的客戶記錄
+      operationId: createCustomer
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerInput'
+            examples:
+              basic:
+                summary: 基本客戶資訊
+                value:
+                  name:
+                    zh: "台灣科技股份有限公司"
+                    en: "Taiwan Tech Co., Ltd."
+                  email: "contact@taiwantech.com"
+                  phone: "+886-2-1234-5678"
+              full:
+                summary: 完整客戶資訊
+                value:
+                  name:
+                    zh: "台灣科技股份有限公司"
+                    en: "Taiwan Tech Co., Ltd."
+                  email: "contact@taiwantech.com"
+                  phone: "+886-2-1234-5678"
+                  address:
+                    zh: "台北市信義區信義路五段7號"
+                    en: "No. 7, Sec. 5, Xinyi Rd., Xinyi Dist., Taipei City"
+                  tax_id: "12345678"
+                  contact_person:
+                    zh: "王大明"
+                    en: "David Wang"
+      responses:
+        '201':
+          description: 創建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/Customer'
+                  message:
+                    type: string
+                    example: "Customer created successfully"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /customers/{id}:
+    get:
+      tags:
+        - Customers
+      summary: 取得客戶詳情
+      description: 根據 ID 獲取特定客戶的詳細資訊
+      operationId: getCustomer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/Customer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Customers
+      summary: 更新客戶資訊
+      description: 更新指定客戶的資訊
+      operationId: updateCustomer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerInput'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/Customer'
+                  message:
+                    type: string
+                    example: "Customer updated successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      tags:
+        - Customers
+      summary: 刪除客戶
+      description: 刪除指定的客戶記錄
+      operationId: deleteCustomer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: 刪除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  message:
+                    type: string
+                    example: "Customer deleted successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ========================================
+  # 產品 API
+  # ========================================
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: 列出所有產品
+      description: 獲取當前使用者的所有產品列表
+      operationId: listProducts
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - name: category
+          in: query
+          description: 產品類別過濾
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+    post:
+      tags:
+        - Products
+      summary: 創建新產品
+      description: 創建一個新的產品記錄
+      operationId: createProduct
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductInput'
+            examples:
+              basic:
+                summary: 基本產品
+                value:
+                  name:
+                    zh: "筆記型電腦"
+                    en: "Laptop"
+                  unit_price: 30000
+                  currency: "TWD"
+              full:
+                summary: 完整產品資訊
+                value:
+                  sku: "PRD-001"
+                  name:
+                    zh: "筆記型電腦"
+                    en: "Laptop"
+                  description:
+                    zh: "高效能商務筆記型電腦"
+                    en: "High-performance business laptop"
+                  unit_price: 30000
+                  currency: "TWD"
+                  category: "電子產品"
+                  cost_price: 20000
+                  supplier: "某某科技"
+      responses:
+        '201':
+          description: 創建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/Product'
+                  message:
+                    type: string
+                    example: "Product created successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: 取得產品詳情
+      operationId: getProduct
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Products
+      summary: 更新產品資訊
+      operationId: updateProduct
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductInput'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/Product'
+                  message:
+                    type: string
+                    example: "Product updated successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Products
+      summary: 刪除產品
+      operationId: deleteProduct
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: 刪除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  message:
+                    type: string
+                    example: "Product deleted successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ========================================
+  # 報價單 API
+  # ========================================
+
+  /quotations:
+    post:
+      tags:
+        - Quotations
+      summary: 創建新報價單
+      description: 創建一個新的報價單
+      operationId: createQuotation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuotationInput'
+            example:
+              customer_id: "550e8400-e29b-41d4-a716-446655440000"
+              issue_date: "2025-10-20"
+              valid_until: "2025-11-20"
+              currency: "TWD"
+              subtotal: 10000
+              tax_rate: 5
+              tax_amount: 500
+              total_amount: 10500
+              notes: "感謝您的詢價"
+              items:
+                - product_id: "660e8400-e29b-41d4-a716-446655440001"
+                  quantity: 10
+                  unit_price: 1000
+                  discount: 0
+                  subtotal: 10000
+      responses:
+        '201':
+          description: 創建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/Quotation'
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /quotations/{id}:
+    put:
+      tags:
+        - Quotations
+      summary: 更新報價單
+      operationId: updateQuotation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuotationInput'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/Quotation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Quotations
+      summary: 刪除報價單
+      operationId: deleteQuotation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: 刪除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ========================================
+  # 付款 API
+  # ========================================
+
+  /payments:
+    get:
+      tags:
+        - Payments
+      summary: 列出付款記錄
+      description: 獲取付款記錄列表
+      operationId: listPayments
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: customer_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, cancelled]
+        - name: payment_type
+          in: query
+          schema:
+            type: string
+            enum: [deposit, installment, final, full, recurring]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Payments
+      summary: 記錄新付款
+      description: 記錄一筆新的付款記錄
+      operationId: createPayment
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentInput'
+            example:
+              customer_id: "550e8400-e29b-41d4-a716-446655440000"
+              quotation_id: "660e8400-e29b-41d4-a716-446655440001"
+              payment_type: "deposit"
+              payment_date: "2025-10-20"
+              amount: 5000
+              currency: "TWD"
+              payment_method: "bank_transfer"
+              reference_number: "TXN123456"
+      responses:
+        '201':
+          description: 記錄成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    $ref: '#/components/schemas/Payment'
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /payments/unpaid:
+    get:
+      tags:
+        - Payments
+      summary: 列出未收款記錄
+      description: 獲取所有未收款的記錄
+      operationId: listUnpaidPayments
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /payments/collected:
+    get:
+      tags:
+        - Payments
+      summary: 列出已收款記錄
+      description: 獲取所有已收款的記錄
+      operationId: listCollectedPayments
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ========================================
+  # 匯率 API
+  # ========================================
+
+  /exchange-rates:
+    get:
+      tags:
+        - Exchange Rates
+      summary: 取得匯率資料
+      description: 獲取最新或指定日期的匯率資料
+      operationId: getExchangeRates
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          description: 查詢日期（YYYY-MM-DD）
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  data:
+                    type: object
+                    additionalProperties:
+                      type: number
+                      format: double
+                    example:
+                      USD: 31.5
+                      EUR: 34.2
+                      JPY: 0.21
+                      CNY: 4.35
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /exchange-rates/sync:
+    post:
+      tags:
+        - Exchange Rates
+      summary: 同步匯率資料
+      description: 從外部 API 同步最新匯率資料
+      operationId: syncExchangeRates
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 同步成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum: [true]
+                  message:
+                    type: string
+                    example: "Exchange rates synced successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
