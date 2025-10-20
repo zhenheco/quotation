@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 async function getSystemStats() {
   // 公司總數
   const companiesResult = await query(
-    'SELECT COUNT(*) as count FROM companies WHERE deleted_at IS NULL'
+    'SELECT COUNT(*) as count FROM companies'
   );
   const totalCompanies = parseInt(companiesResult.rows[0]?.count || '0');
 
@@ -69,7 +69,7 @@ async function getSystemStats() {
   const activeCompaniesResult = await query(`
     SELECT COUNT(DISTINCT company_id) as count
     FROM company_members
-    WHERE deleted_at IS NULL
+    WHERE is_active = true
   `);
   const activeCompanies = parseInt(activeCompaniesResult.rows[0]?.count || '0');
 
@@ -77,7 +77,7 @@ async function getSystemStats() {
   const membersResult = await query(`
     SELECT COUNT(*) as count
     FROM company_members
-    WHERE deleted_at IS NULL
+    WHERE is_active = true
   `);
   const totalMembers = parseInt(membersResult.rows[0]?.count || '0');
 
@@ -105,7 +105,6 @@ async function getSystemStats() {
     SELECT COUNT(*) as count
     FROM companies
     WHERE created_at >= NOW() - INTERVAL '7 days'
-    AND deleted_at IS NULL
   `);
   const recentCompanies = parseInt(recentCompaniesResult.rows[0]?.count || '0');
 
