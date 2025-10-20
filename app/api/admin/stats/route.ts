@@ -84,19 +84,20 @@ async function getSystemStats() {
   // 各角色數量
   const rolesResult = await query(`
     SELECT
-      r.role_name,
-      r.display_name,
+      r.name as role_name,
+      r.name_zh,
+      r.name_en,
       COUNT(ur.user_id) as user_count
     FROM roles r
     LEFT JOIN user_roles ur ON r.id = ur.role_id
-    WHERE r.role_name != 'super_admin'
-    GROUP BY r.id, r.role_name, r.display_name
+    WHERE r.name != 'super_admin'
+    GROUP BY r.id, r.name, r.name_zh, r.name_en, r.level
     ORDER BY r.level
   `);
 
   const roleStats = rolesResult.rows.map((row: any) => ({
     role_name: row.role_name,
-    display_name: row.display_name,
+    display_name: row.name_zh, // 使用中文名稱作為顯示名稱
     count: parseInt(row.user_count || '0')
   }));
 
