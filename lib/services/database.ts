@@ -195,53 +195,51 @@ export async function createProduct(data: Omit<Product, 'id' | 'created_at' | 'u
   return result.rows[0]
 }
 
+/**
+ * 更新產品資料（使用欄位白名單驗證）
+ *
+ * 安全特性：
+ * - 使用 buildUpdateFields() 進行欄位白名單驗證
+ * - 只有 PRODUCT_ALLOWED_FIELDS 中的欄位可以被更新
+ * - 自動過濾非法欄位，防止 SQL Injection
+ * - 參數化查詢，防止 SQL 注入攻擊
+ */
 export async function updateProduct(
   id: string,
   userId: string,
   data: Partial<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<Product | null> {
-  const pool = getZeaburPool()
+  try {
+    // 使用欄位白名單驗證，防止 SQL Injection
+    const { fields, values, paramCount } = buildUpdateFields(
+      data,
+      PRODUCT_ALLOWED_FIELDS
+    )
 
-  const fields: string[] = []
-  const values: any[] = []
-  let paramCount = 1
+    // 如果沒有要更新的欄位，直接返回現有資料
+    if (fields.length === 0) {
+      return getProductById(id, userId)
+    }
 
-  if (data.sku !== undefined) {
-    fields.push(`sku = $${paramCount++}`)
-    values.push(data.sku)
-  }
-  if (data.name !== undefined) {
-    fields.push(`name = $${paramCount++}`)
-    values.push(data.name)
-  }
-  if (data.description !== undefined) {
-    fields.push(`description = $${paramCount++}`)
-    values.push(data.description)
-  }
-  if (data.unit_price !== undefined) {
-    fields.push(`unit_price = $${paramCount++}`)
-    values.push(data.unit_price)
-  }
-  if (data.currency !== undefined) {
-    fields.push(`currency = $${paramCount++}`)
-    values.push(data.currency)
-  }
-  if (data.category !== undefined) {
-    fields.push(`category = $${paramCount++}`)
-    values.push(data.category)
-  }
+    // 添加 WHERE 條件參數
+    values.push(id, userId)
 
-  if (fields.length === 0) {
-    return getProductById(id, userId)
+    // 執行更新
+    const result = await query(
+      `UPDATE products
+       SET ${fields.join(', ')}
+       WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
+       RETURNING *`,
+      values
+    )
+
+    return result.rows[0] || null
+  } catch (error) {
+    // 記錄錯誤但不洩漏敏感資訊
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('❌ Update product failed:', { id, error: errorMessage })
+    throw error
   }
-
-  values.push(id, userId)
-  const result = await query(
-    `UPDATE products SET ${fields.join(', ')} WHERE id = $${paramCount} AND user_id = $${paramCount + 1} RETURNING *`,
-    values
-  )
-
-  return result.rows[0] || null
 }
 
 export async function deleteProduct(id: string, userId: string): Promise<boolean> {
@@ -288,69 +286,51 @@ export async function createQuotation(data: Omit<Quotation, 'id' | 'created_at' 
   return result.rows[0]
 }
 
+/**
+ * 更新報價單資料（使用欄位白名單驗證）
+ *
+ * 安全特性：
+ * - 使用 buildUpdateFields() 進行欄位白名單驗證
+ * - 只有 QUOTATION_ALLOWED_FIELDS 中的欄位可以被更新
+ * - 自動過濾非法欄位，防止 SQL Injection
+ * - 參數化查詢，防止 SQL 注入攻擊
+ */
 export async function updateQuotation(
   id: string,
   userId: string,
   data: Partial<Omit<Quotation, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<Quotation | null> {
-  const pool = getZeaburPool()
+  try {
+    // 使用欄位白名單驗證，防止 SQL Injection
+    const { fields, values, paramCount } = buildUpdateFields(
+      data,
+      QUOTATION_ALLOWED_FIELDS
+    )
 
-  const fields: string[] = []
-  const values: any[] = []
-  let paramCount = 1
+    // 如果沒有要更新的欄位，直接返回現有資料
+    if (fields.length === 0) {
+      return getQuotationById(id, userId)
+    }
 
-  if (data.customer_id !== undefined) {
-    fields.push(`customer_id = $${paramCount++}`)
-    values.push(data.customer_id)
-  }
-  if (data.status !== undefined) {
-    fields.push(`status = $${paramCount++}`)
-    values.push(data.status)
-  }
-  if (data.issue_date !== undefined) {
-    fields.push(`issue_date = $${paramCount++}`)
-    values.push(data.issue_date)
-  }
-  if (data.valid_until !== undefined) {
-    fields.push(`valid_until = $${paramCount++}`)
-    values.push(data.valid_until)
-  }
-  if (data.currency !== undefined) {
-    fields.push(`currency = $${paramCount++}`)
-    values.push(data.currency)
-  }
-  if (data.subtotal !== undefined) {
-    fields.push(`subtotal = $${paramCount++}`)
-    values.push(data.subtotal)
-  }
-  if (data.tax_rate !== undefined) {
-    fields.push(`tax_rate = $${paramCount++}`)
-    values.push(data.tax_rate)
-  }
-  if (data.tax_amount !== undefined) {
-    fields.push(`tax_amount = $${paramCount++}`)
-    values.push(data.tax_amount)
-  }
-  if (data.total_amount !== undefined) {
-    fields.push(`total_amount = $${paramCount++}`)
-    values.push(data.total_amount)
-  }
-  if (data.notes !== undefined) {
-    fields.push(`notes = $${paramCount++}`)
-    values.push(data.notes)
-  }
+    // 添加 WHERE 條件參數
+    values.push(id, userId)
 
-  if (fields.length === 0) {
-    return getQuotationById(id, userId)
+    // 執行更新
+    const result = await query(
+      `UPDATE quotations
+       SET ${fields.join(', ')}
+       WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
+       RETURNING *`,
+      values
+    )
+
+    return result.rows[0] || null
+  } catch (error) {
+    // 記錄錯誤但不洩漏敏感資訊
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('❌ Update quotation failed:', { id, error: errorMessage })
+    throw error
   }
-
-  values.push(id, userId)
-  const result = await query(
-    `UPDATE quotations SET ${fields.join(', ')} WHERE id = $${paramCount} AND user_id = $${paramCount + 1} RETURNING *`,
-    values
-  )
-
-  return result.rows[0] || null
 }
 
 export async function deleteQuotation(id: string, userId: string): Promise<boolean> {
