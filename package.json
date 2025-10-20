@@ -18,6 +18,7 @@
     "migrate": "tsx scripts/run-migration.ts",
     "test:migration": "tsx scripts/test-migration.ts",
     "seed": "tsx scripts/seed-test-data.ts",
+    "seed:admin": "tsx scripts/seed-admin-test-data.ts",
     "supabase": "supabase",
     "supabase:login": "supabase login",
     "supabase:link": "supabase link",

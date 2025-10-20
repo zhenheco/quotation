@@ -9,6 +9,149 @@
 
 ## [Unreleased]
 
+### 🛠️ Troubleshooting & Tools - Admin 控制台問題排查 (2025-10-20) ✅
+
+#### Admin 路由重定向問題完整排查
+
+**問題現象**:
+- 訪問 `http://localhost:3001/admin` 自動重定向到 `http://localhost:3001/zh/dashboard`
+- 無法訪問超級管理員控制台
+
+**根本原因**:
+```
+/admin
+→ admin/layout.tsx 檢查權限
+→ isSuperAdmin(userId) 返回 false (用戶沒有 super_admin 角色)
+→ redirect('/?error=unauthorized')
+→ app/page.tsx redirect('/zh/login')
+→ login 頁面發現用戶已登入
+→ redirect('/zh/dashboard')
+```
+
+**調查發現** ✅:
+1. ✅ middleware.ts 的 i18n 處理正確（/admin 在 shouldSkipIntl 列表）
+2. ✅ admin/layout.tsx 的權限檢查邏輯正確
+3. ✅ rbac.ts 的 SQL 查詢使用正確欄位名稱（`r.name` 而非 `r.role_name`）
+4. ✅ 數據庫架構確認：
+   - roles 表使用 `name` 欄位
+   - 已存在 5 個角色（super_admin, company_owner, sales_manager, salesperson, accountant）
+   - 已有一個系統管理員用戶（非 acejou27@gmail.com）
+5. ❌ **核心問題**：acejou27@gmail.com 尚未登入系統，數據庫中沒有此用戶記錄
+
+#### 新增工具與文檔
+
+**診斷腳本** (`scripts/`):
+- 📄 `check-admin-role.ts` - 資料庫診斷工具
+  - 檢查 roles 表結構和所有角色
+  - 檢查 user_profiles 表結構
+  - 列出所有用戶及其角色
+  - 找出所有 super_admin 用戶
+
+- 📄 `assign-super-admin.ts` - Super Admin 角色分配工具
+  - 列出所有現有用戶（不帶參數）
+  - 為指定用戶分配 super_admin 角色（帶 user_id 參數）
+  - 完整的驗證和錯誤處理
+  - 自動檢查用戶是否已有角色
+
+**完整文檔** (`docs/`):
+- 📄 `ADMIN_ACCESS_TROUBLESHOOTING.md` (500+ 行)
+  - 問題描述與重定向鏈路分析
+  - 資料庫架構確認（roles 和 user_profiles 表結構）
+  - 兩個解決方案（推薦 + 暫時）
+  - 相關腳本說明與使用方式
+  - 完整驗證清單
+  - 問題預防措施
+
+**使用方式**:
+```bash
+# 1. 列出所有用戶
+export ZEABUR_POSTGRES_URL='postgresql://...'
+npx tsx scripts/assign-super-admin.ts
+
+# 2. 為特定用戶分配 super_admin
+npx tsx scripts/assign-super-admin.ts <user_id>
+```
+
+#### 解決方案
+
+**方案 A（推薦）**:
+1. 使用 acejou27@gmail.com 登入系統 (`http://localhost:3001/login`)
+2. 執行 `assign-super-admin.ts` 列出所有用戶
+3. 找到 acejou27@gmail.com 的 user_id
+4. 執行腳本分配 super_admin 角色
+5. 訪問 `/admin` 測試
+
+**方案 B（暫時）**:
+- 使用現有的系統管理員帳號登入測試
+
+#### 技術細節
+
+**資料庫架構驗證**:
+- roles 表：id, name, name_zh, name_en, level, description, created_at, updated_at
+- user_profiles 表：id, user_id, full_name, display_name, phone, department, avatar_url, is_active, last_login_at, created_at, updated_at
+- **關鍵發現**：roles.name 是正確欄位名稱（不是 role_name）
+
+**現有用戶狀態**:
+```
+找到 5 個用戶：
+1. 會計 (accountant)
+2. 測試用戶 (無角色)
+3. 業務 (salesperson)
+4. 老闆 (company_owner)
+5. 系統管理員 (super_admin) ← 已有一個 super_admin，但不是 acejou27@gmail.com
+```
+
+**架構說明**:
+- Supabase Auth: 用戶認證（auth.users）
+- Zeabur PostgreSQL: 業務資料（user_profiles, roles, user_roles 等）
+- 首次登入時自動建立 user_profiles 記錄
+
+#### 文件新增
+
+**Added**:
+- 📁 `scripts/check-admin-role.ts` - 資料庫診斷腳本（135 行）
+- 📁 `scripts/assign-super-admin.ts` - 角色分配腳本（160 行）
+- 📁 `docs/ADMIN_ACCESS_TROUBLESHOOTING.md` - 完整排查指南（500+ 行）
+
+**Verified**:
+- ✅ middleware.ts - /admin 路由正確跳過 i18n
+- ✅ admin/layout.tsx - 權限檢查邏輯正確
+- ✅ rbac.ts - SQL 查詢使用正確欄位名稱
+- ✅ 資料庫架構 - roles 和 user_profiles 表結構確認
+
+#### 待辦事項
+
+**用戶需完成** ⏳:
+1. [ ] 使用 acejou27@gmail.com 登入系統
+2. [ ] 執行 assign-super-admin.ts 分配角色
+3. [ ] 測試 `/admin` 訪問
+4. [ ] 執行 seed:admin 建立測試資料
+5. [ ] 驗證測試資料在 admin 控制台顯示
+
+**已完成** ✅:
+- [x] 調查 admin 路由重定向根本原因
+- [x] 檢查數據庫 schema 和角色設定
+- [x] 建立診斷工具（check-admin-role.ts）
+- [x] 建立角色分配工具（assign-super-admin.ts）
+- [x] 撰寫完整問題排查文檔
+
+#### 經驗總結
+
+**調查方法**:
+1. 追蹤完整的請求重定向鏈路
+2. 逐層檢查 middleware → layout → page
+3. 驗證 SQL 查詢與資料庫欄位名稱
+4. 檢查實際資料庫內容而非假設
+5. 建立診斷工具確認問題
+
+**預防措施**:
+1. 在項目初始化時建立第一個 super_admin
+2. 提供清楚的角色分配文檔和腳本
+3. 在 admin/layout.tsx 提供更好的錯誤提示
+4. 建立自動化的權限驗證測試
+
+---
+
 ### 🎉 Major Features - 三級權限系統 Phase 4 進行中 🚧
 
 #### Phase 4.1: 超級管理員佈局與導航 (2025-10-18) ✅

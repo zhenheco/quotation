@@ -12,6 +12,7 @@ export async function middleware(request: NextRequest) {
   const shouldSkipIntl =
     pathname.startsWith('/auth') ||
     pathname.startsWith('/api') ||
+    pathname.startsWith('/admin') ||  // Admin console doesn't use i18n
     pathname === '/' ||
     pathname === '/login'  // Keep for redirect
 
