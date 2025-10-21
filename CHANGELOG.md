@@ -9,6 +9,91 @@
 
 ## [Unreleased]
 
+### 🚀 Supabase Migration 準備完成 (2025-10-21) ✨
+
+#### Schema Migration 腳本已就緒
+
+**遷移目標**:
+- 從 Zeabur PostgreSQL 完全遷移到 Supabase
+- 統一使用 Supabase 管理所有報價系統資料
+- 保留 Zeabur 資料庫給塔羅牌系統使用
+
+**Schema 差異分析**:
+- ✅ Zeabur: 19 個報價系統表 (5 核心 + 5 RBAC + 3 多公司 + 3 合約收款 + 3 審計擴充)
+- ✅ Supabase: 5 個現有表 (customers, products, quotations, quotation_items, exchange_rates)
+- ⚠️ 缺少: 14 個表需要建立
+
+**新增文件**:
+
+1. **📋 Migration 計劃**
+   - `MIGRATION_PLAN.md` - 完整的 5 天遷移計劃
+     - Phase 1: 準備與 Schema 同步
+     - Phase 2: 資料遷移 (核心 → RBAC → 進階 → 擴充)
+     - Phase 3: 程式碼更新
+     - Phase 4: 測試與驗證
+     - Phase 5: 上線與清理
+
+2. **🔍 Schema 分析工具**
+   - `scripts/analyze-schema-diff.ts` - 自動比對 Zeabur 和 Supabase schema
+     - 列出所有表差異
+     - 顯示索引數量 (91 個需遷移)
+     - 顯示外鍵數量 (21 個需建立)
+     - 詳細的欄位結構比對
+
+3. **📦 Migration SQL**
+   - `supabase-migrations/004_zeabur_tables_migration.sql` - 完整的 schema 遷移檔 (700+ 行)
+     - Part 1: RBAC 系統 (5 表 + 預設資料)
+       - roles, permissions, role_permissions, user_roles, user_profiles
+       - 5 個預設角色 (super_admin → accountant)
+       - 21 個權限定義
+     - Part 2: 多公司架構 (3 表)
+       - companies, company_members, company_settings
+     - Part 3: 合約與收款 (3 表)
+       - customer_contracts, payments, payment_schedules
+     - Part 4: 審計與擴充 (3 表)
+       - audit_logs, quotation_shares, quotation_versions
+     - Part 5: 91 個索引 (含 CONCURRENTLY 選項)
+     - Part 6: 21 個外鍵約束
+     - Part 7: 14 個 updated_at 觸發器
+     - Part 8: 完整的 RLS Policies (每表 4+ policies)
+
+4. **🚀 執行腳本**
+   - `scripts/execute-migration.ts` - Supabase client 執行腳本
+   - `scripts/execute-migration-pg.ts` - PostgreSQL 直接連接執行腳本
+   - `MIGRATION_EXECUTION_GUIDE.md` - 詳細執行指南
+     - 方法 1: Supabase Dashboard (推薦)
+     - 方法 2: Supabase CLI
+     - 方法 3: PostgreSQL 直接連接
+     - 完整的驗證步驟
+     - 常見問題解決方案
+
+**執行狀態**:
+- ✅ Schema 分析完成
+- ✅ Migration SQL 生成完成
+- ✅ 執行腳本和指南準備完成
+- ⏳ 待執行: 在 Supabase 建立 14 個新表
+- ⏳ 待完成: 資料遷移 (從 Zeabur 複製實際資料)
+
+**下一步**:
+```bash
+# 1. 執行 Schema Migration (3 種方式任選其一)
+#    推薦: 使用 Supabase Dashboard SQL Editor
+
+# 2. 驗證 Schema
+npx tsx scripts/test-db-health.ts
+
+# 3. 執行資料遷移 (待開發)
+npx tsx scripts/migrate-data-to-supabase.ts
+```
+
+**Migration 影響範圍**:
+- 🔧 Schema: 14 個新表 + 91 個索引 + 21 個外鍵
+- 📊 資料: 需遷移所有 Zeabur 報價系統資料
+- 💻 程式碼: 需更新所有使用 Zeabur 連接的程式碼
+- 🔒 安全: 所有新表都包含完整的 RLS policies
+
+---
+
 ### 🗄️ 資料庫系統健康檢查 (2025-10-21) ✨
 
 #### 完整資料庫架構驗證

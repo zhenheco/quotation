@@ -10,8 +10,35 @@
  * 5. 索引存在性測試
  */
 
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
 import { Pool } from 'pg'
 import { createClient } from '@supabase/supabase-js'
+
+// 手動載入 .env.local
+try {
+  const envPath = resolve(process.cwd(), '.env.local')
+  const envContent = readFileSync(envPath, 'utf-8')
+
+  envContent.split('\n').forEach(line => {
+    const trimmed = line.trim()
+    if (trimmed && !trimmed.startsWith('#')) {
+      const match = trimmed.match(/^([^=]+)=(.*)$/)
+      if (match) {
+        const key = match[1].trim()
+        let value = match[2].trim()
+        // 移除引號
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1)
+        }
+        process.env[key] = value
+      }
+    }
+  })
+} catch (error) {
+  console.log('⚠️  無法載入 .env.local，使用現有環境變數')
+}
 
 // ============================================================================
 // 顏色輸出
