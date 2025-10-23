@@ -9,6 +9,85 @@
 
 ## [Unreleased]
 
+### 📋 報價單系統測試開發 (2025-10-24)
+
+#### 完成項目
+
+1. **報價單系統測試腳本** ✅
+   - 建立完整測試腳本 `scripts/test-quotation-system.ts`
+   - 涵蓋 9 個測試類別：
+     - 報價單 CRUD（建立、讀取）
+     - 報價單項目管理（新增、查詢）
+     - 計算邏輯驗證（小計、稅額、總計）
+     - 狀態流程測試（draft → sent）
+     - 版本控制（待 RLS 策略修復）
+     - 分享功能（待 RLS 策略修復）
+     - 匯率管理
+   - **初次測試結果**: 7/9 測試通過（77.8%）
+
+2. **報價單 RLS 策略修復準備** ✅
+   - 診斷發現 `quotation_versions` 和 `quotation_shares` 缺少 INSERT/UPDATE/DELETE 策略
+   - 建立修復腳本 `scripts/FIX_QUOTATION_RLS_POLICIES.sql`
+   - 為兩個表準備 8 個完整的 RLS 策略
+   - **待執行**: 需在 Supabase Dashboard 執行 SQL 腳本
+
+#### 測試結果詳情
+
+**通過的測試** (7/9):
+- ✅ 建立報價單（QT-{timestamp} 格式）
+- ✅ 讀取報價單（JOIN customers 表）
+- ✅ 新增報價單項目（數量 × 單價 × 折扣）
+- ✅ 查詢報價單項目（JOIN products 表）
+- ✅ 更新報價單總額（小計 + 稅額計算驗證）
+- ✅ 變更報價單狀態（draft → sent）
+- ✅ 新增匯率（USD → TWD）
+
+**失敗的測試** (2/9):
+- ❌ 建立報價單版本 - RLS 策略缺失
+- ❌ 建立分享連結 - RLS 策略缺失
+
+#### 技術重點
+
+**計算邏輯驗證**:
+```typescript
+subtotal = quantity × unit_price × (1 - discount_rate/100)
+tax_amount = subtotal × (tax_rate/100)
+total_amount = subtotal + tax_amount
+```
+
+**測試資料示例**:
+- 產品: HP 商用筆電，單價 30,000 TWD
+- 數量: 5，折扣: 5%
+- 小計: 142,500 TWD
+- 稅額: 7,125 TWD (5%)
+- 總計: 149,625 TWD
+
+**資料表關聯**:
+```
+quotations (主表)
+  ├─ quotation_items (1:N, CASCADE DELETE)
+  ├─ quotation_versions (1:N, CASCADE DELETE)
+  └─ quotation_shares (1:N, CASCADE DELETE)
+```
+
+#### 測試工具
+
+**測試腳本**:
+- `scripts/test-quotation-system.ts` - 報價單系統完整測試
+
+**SQL 工具**:
+- `scripts/FIX_QUOTATION_RLS_POLICIES.sql` - 修復 quotation_versions 和 quotation_shares RLS 策略
+
+#### 下一步
+
+- [x] 建立報價單系統測試腳本
+- [x] 執行初次測試並診斷問題
+- [ ] 在 Supabase Dashboard 執行 RLS 策略修復
+- [ ] 重新執行測試達到 100% 通過率（預期 9/9）
+- [ ] 建立報價單測試成功報告
+
+---
+
 ### 🔐 RBAC 權限系統測試完成 (2025-10-24)
 
 #### 完成項目
