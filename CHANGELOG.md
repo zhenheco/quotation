@@ -9,6 +9,80 @@
 
 ## [Unreleased]
 
+### 🔐 RBAC 權限系統測試完成 (2025-10-24)
+
+#### 完成項目
+
+1. **RBAC RLS 策略修復** ✅
+   - 診斷發現 RBAC 表的 RLS 策略不完整
+   - 建立診斷腳本 `scripts/check-rbac-rls.sql`
+   - 建立修復腳本 `scripts/FIX_RBAC_RLS_POLICIES.sql`
+   - 為 5 個 RBAC 表建立 20 個完整的 RLS 策略
+   - **根本原因**: Migration 只有 SELECT 策略，缺少 INSERT/UPDATE/DELETE
+   - **結果**: 測試成功率從 40% → 100%
+
+2. **RBAC 完整功能測試** ✅
+   - 建立完整測試腳本 `scripts/test-rbac-system.ts`
+   - 測試 12 個功能項目，全部通過
+   - **角色管理**: 建立、讀取、更新（3/3）
+   - **權限管理**: 建立、讀取（2/2）
+   - **角色權限關聯**: 分配、查詢（2/2）
+   - **使用者資料**: 建立、讀取（2/2）
+   - **使用者角色**: 分配、查詢角色、查詢權限（3/3）
+   - **最終結果**: 100% 成功率（12/12 測試通過）
+
+#### 測試覆蓋範圍
+
+**已測試的表和功能**:
+- ✅ `roles` - 角色管理（CREATE, READ, UPDATE）
+- ✅ `permissions` - 權限管理（CREATE, READ）
+- ✅ `role_permissions` - 角色權限關聯（INSERT, 關聯查詢）
+- ✅ `user_profiles` - 使用者資料（CREATE, READ）
+- ✅ `user_roles` - 使用者角色分配（INSERT, 多層 JOIN 查詢）
+
+**RLS 策略驗證**:
+- roles: 4 個策略（SELECT, INSERT, UPDATE, DELETE）
+- permissions: 4 個策略（SELECT, INSERT, UPDATE, DELETE）
+- role_permissions: 4 個策略（SELECT, INSERT, UPDATE, DELETE）
+- user_profiles: 4 個策略（SELECT, INSERT, UPDATE, DELETE）
+- user_roles: 4 個策略（SELECT, INSERT, UPDATE, DELETE）
+
+#### 測試工具
+
+**測試腳本**:
+- `scripts/test-rbac-system.ts` - RBAC 完整功能測試
+
+**SQL 工具**:
+- `scripts/check-rbac-rls.sql` - RBAC RLS 診斷
+- `scripts/FIX_RBAC_RLS_POLICIES.sql` - 修復 RBAC RLS 策略
+
+**文檔**:
+- `docs/RBAC_TEST_SUCCESS_REPORT.md` - RBAC 測試完整報告
+
+#### 技術重點
+
+**權限繼承驗證**:
+```
+使用者 → user_roles → roles → role_permissions → permissions
+```
+成功驗證多層 JOIN 查詢，可以正確查詢使用者通過角色獲得的所有權限。
+
+**唯一性約束驗證**:
+- roles.name - 防止重複角色名稱
+- permissions.name - 防止重複權限名稱
+- role_permissions(role_id, permission_id) - 防止重複分配
+- user_roles(user_id, role_id, company_id) - 防止重複分配
+
+#### 下一步
+
+- [x] 建立 RBAC 權限系統測試
+- [x] 測試角色和權限管理
+- [ ] 建立權限檢查函數
+- [ ] 整合前端頁面與 Supabase
+- [ ] 測試報價單建立流程
+
+---
+
 ### 🔒 資料庫權限修復與 CRUD 測試完成 (2025-10-24)
 
 #### 完成項目
