@@ -9,6 +9,82 @@
 
 ## [Unreleased]
 
+### 🔒 資料庫權限修復與 CRUD 測試完成 (2025-10-24)
+
+#### 完成項目
+
+1. **資料庫權限修復** ✅
+   - 建立權限診斷腳本 `scripts/CHECK_TABLE_OWNERSHIP.sql`
+   - 建立權限修復腳本 `scripts/FIX_TABLE_PERMISSIONS.sql`
+   - 為所有 19 個表授予 `service_role` 和 `authenticated` 完整權限
+   - 為 `anon` 角色授予部分表的 SELECT 權限
+   - **根本原因**: Migration 缺少 GRANT 語句，導致即使 Service Key 也無法操作資料庫
+   - **結果**: 所有權限測試通過（4/4 權限檢查返回 true）
+
+2. **RLS 策略修復** ✅
+   - 建立診斷腳本 `scripts/check-actual-schema.sql`
+   - 建立 RLS 修復腳本 `scripts/FIX_RLS_POLICIES.sql`
+   - 為所有策略添加 `TO authenticated` 子句
+   - 建立完整診斷指南 `RLS_DIAGNOSTIC_GUIDE.md`
+   - **結果**: 8 個 RLS 策略正確建立（customers 和 products 各 4 個）
+
+3. **測試腳本 Schema 修復** ✅
+   - 修復 `scripts/test-crud-operations.ts` 中的欄位名稱不符問題
+   - 更正 products 表欄位：
+     - ❌ `unit_price_twd` → ✅ `unit_price`
+     - ❌ `cost_price_twd` → ✅ 移除（不存在）
+     - ❌ `unit` → ✅ 移除（不存在）
+     - ❌ `stock_quantity` → ✅ 移除（不存在）
+     - ✅ 新增 `currency` 欄位
+   - **結果**: CRUD 測試從 83.3% 提升到 100% 成功率
+
+4. **完整 CRUD 測試驗證** ✅
+   - 執行完整測試套件：9 個測試項目
+   - ✅ 認證：使用者登入
+   - ✅ 客戶 CRUD：建立、讀取、更新、刪除
+   - ✅ 產品 CRUD：建立、讀取、更新、刪除
+   - **最終結果**: 100% 成功率（9/9 測試通過）
+
+#### 診斷和修復工具
+
+**SQL 診斷腳本**:
+- `scripts/check-actual-schema.sql` - 檢查表結構、RLS 狀態和策略
+- `scripts/CHECK_TABLE_OWNERSHIP.sql` - 檢查表擁有者和權限
+- `scripts/FIX_RLS_POLICIES.sql` - 修復 RLS 策略
+- `scripts/FIX_TABLE_PERMISSIONS.sql` - 授予資料庫權限
+
+**TypeScript 測試腳本**:
+- `scripts/test-crud-simplified.ts` - 簡化版 CRUD 測試（使用正確 schema）
+- `scripts/test-with-service-key.ts` - 使用 Service Key 繞過 RLS 測試
+- `scripts/diagnose-schema.ts` - Schema 診斷工具
+
+**文檔**:
+- `RLS_DIAGNOSTIC_GUIDE.md` - RLS 問題診斷完整指南
+
+#### 技術總結
+
+**問題診斷過程**:
+1. 初始錯誤：`permission denied for table customers` (Code: 42501)
+2. 第一假設：RLS 策略缺少 `TO authenticated` → 修復後仍失敗
+3. 深入診斷：使用 Service Key 測試發現即使管理員也被阻擋
+4. 根本原因：Migration 從未執行 GRANT 語句，表沒有授予任何角色權限
+5. 最終修復：執行完整的 GRANT 語句為所有表授權
+
+**安全架構驗證**:
+- ✅ `service_role`: 完整權限（用於 Service Key）
+- ✅ `authenticated`: 完整權限（用於已登入使用者）
+- ✅ `anon`: 僅 SELECT 部分表（用於公開資料）
+- ✅ RLS 策略：基於 `auth.uid() = user_id` 的行級安全
+
+#### 下一步
+
+- [ ] 建立 RBAC 權限系統測試
+- [ ] 測試角色和權限管理
+- [ ] 整合前端頁面與 Supabase
+- [ ] 測試報價單建立流程
+
+---
+
 ### 🧪 Supabase 連接與認證測試 (2025-10-23)
 
 #### 完成項目

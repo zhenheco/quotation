@@ -247,6 +247,7 @@ async function runCrudTests() {
   console.log('📋 測試 3.1: 建立產品 (CREATE)')
   const productData = {
     user_id: userId,
+    sku: 'SRV-HP-001',
     name: {
       zh: '高效能伺服器',
       en: 'High Performance Server'
@@ -255,18 +256,9 @@ async function runCrudTests() {
       zh: 'Intel Xeon 處理器，64GB RAM，2TB SSD',
       en: 'Intel Xeon CPU, 64GB RAM, 2TB SSD'
     },
-    category: 'hardware',
-    sku: 'SRV-HP-001',
-    unit: '台',
-    unit_price_twd: 150000,
-    cost_price_twd: 120000,
-    stock_quantity: 5,
-    specifications: {
-      cpu: 'Intel Xeon E5-2680 v4',
-      ram: '64GB DDR4',
-      storage: '2TB NVMe SSD',
-      warranty: '3 years'
-    }
+    unit_price: 150000,
+    currency: 'TWD',
+    category: 'hardware'
   }
 
   const { data: createdProduct, error: createProductError } = await supabase
@@ -295,7 +287,7 @@ async function runCrudTests() {
     console.log(`   ID: ${productId}`)
     console.log(`   名稱: ${createdProduct.name.zh}`)
     console.log(`   SKU: ${createdProduct.sku}`)
-    console.log(`   單價: NT$ ${createdProduct.unit_price_twd.toLocaleString()}\n`)
+    console.log(`   單價: ${createdProduct.currency} ${createdProduct.unit_price.toLocaleString()}\n`)
   }
 
   // 3.2 讀取產品
@@ -325,7 +317,7 @@ async function runCrudTests() {
       console.log(`✅ 讀取成功`)
       console.log(`   ID: ${readProduct.id}`)
       console.log(`   名稱: ${readProduct.name.zh}`)
-      console.log(`   庫存: ${readProduct.stock_quantity} ${readProduct.unit}\n`)
+      console.log(`   單價: ${readProduct.currency} ${readProduct.unit_price.toLocaleString()}\n`)
     }
   }
 
@@ -335,8 +327,11 @@ async function runCrudTests() {
     const { data: updatedProduct, error: updateProductError } = await supabase
       .from('products')
       .update({
-        unit_price_twd: 145000,
-        stock_quantity: 3
+        unit_price: 145000,
+        description: {
+          zh: 'Intel Xeon 處理器，64GB RAM，2TB SSD（已更新）',
+          en: 'Intel Xeon CPU, 64GB RAM, 2TB SSD (Updated)'
+        }
       })
       .eq('id', productId)
       .select()
@@ -357,13 +352,13 @@ async function runCrudTests() {
         message: '更新成功',
         details: {
           id: updatedProduct.id,
-          price: updatedProduct.unit_price_twd,
-          stock: updatedProduct.stock_quantity
+          price: updatedProduct.unit_price,
+          description: updatedProduct.description.zh
         }
       })
       console.log(`✅ 更新成功`)
-      console.log(`   新單價: NT$ ${updatedProduct.unit_price_twd.toLocaleString()}`)
-      console.log(`   新庫存: ${updatedProduct.stock_quantity}\n`)
+      console.log(`   新單價: ${updatedProduct.currency} ${updatedProduct.unit_price.toLocaleString()}`)
+      console.log(`   新描述: ${updatedProduct.description.zh}\n`)
     }
   }
 
