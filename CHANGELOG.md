@@ -29,15 +29,25 @@
    - 建立認證設定指南 `docs/AUTH_SETUP_GUIDE.md`
    - **狀態**: 需要調整 Email 設定（使用 Mailinator 或關閉 Email 確認）
 
+3. **CRUD 操作測試** ✅
+   - 建立 CRUD 測試腳本 `scripts/test-crud-operations.ts`
+   - 支援客戶 (customers) 完整 CRUD
+   - 支援產品 (products) 完整 CRUD
+   - 測試 RLS 策略運作
+   - 自動清理測試資料
+   - **功能**: 需要已認證使用者執行
+
 #### 測試腳本
 
 - `scripts/test-supabase-connection.ts` - Supabase 連接和表驗證
 - `scripts/test-auth-flow.ts` - 完整認證流程測試
 - `scripts/test-auth-with-mailinator.ts` - 使用 Mailinator 的認證測試
+- `scripts/test-crud-operations.ts` - 客戶和產品 CRUD 測試
 
 #### 文檔
 
 - `docs/AUTH_SETUP_GUIDE.md` - 認證系統設定完整指南
+- `docs/TESTING_GUIDE.md` - 完整測試流程指南
 
 #### 待處理事項
 
