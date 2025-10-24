@@ -9,6 +9,157 @@
 
 ## [Unreleased]
 
+### 📊 儀表板與統計功能整合 (2025-10-25)
+
+#### 整合概述
+- ✅ **完整整合**：儀表板與統計功能已完全整合到 API hooks 系統
+- ✅ **文檔完成**：建立完整的整合文檔 `docs/DASHBOARD_INTEGRATION.md`
+- ✅ **自動刷新**：實作智能自動刷新機制（統計 10 分鐘、提醒 5 分鐘）
+
+#### 新增檔案
+
+##### Hooks 層
+1. **`hooks/useAnalytics.ts`** - 儀表板統計 hooks
+   - `useRevenueTrend(months)` - 營收趨勢（預設 6 個月）
+   - `useCurrencyDistribution()` - 幣別分布
+   - `useStatusStatistics()` - 報價單狀態統計
+   - `useDashboardSummary()` - 儀表板摘要（成長率、轉換率等）
+   - `useDashboardStats()` - 完整業務統計
+   - `useFullDashboardData(months)` - 一次性獲取所有儀表板數據
+
+##### API 端點
+1. **`app/api/analytics/dashboard-stats/route.ts`**
+   - 完整的儀表板統計數據（報價單、合約、付款、客戶、產品）
+
+2. **`app/api/analytics/revenue-trend/route.ts`**
+   - 營收趨勢數據（按月份統計）
+
+3. **`app/api/analytics/currency-distribution/route.ts`**
+   - 幣別分布數據
+
+4. **`app/api/analytics/status-statistics/route.ts`**
+   - 報價單狀態統計數據
+
+5. **`app/api/analytics/dashboard-summary/route.ts`**
+   - 儀表板摘要（關鍵指標）
+
+##### UI 元件
+1. **`app/[locale]/dashboard/DashboardClient.tsx`** - 主儀表板 Client Component
+   - 統計卡片（本月營收、報價單、轉換率等）
+   - 提醒卡片（逾期合約、即將到期的付款）
+   - 業務統計（活躍合約、本月收款、未收款、客戶數）
+   - 圖表區域（營收趨勢、幣別分布、狀態統計）
+   - 快速操作區（建立報價單、客戶、產品等）
+
+2. **`app/[locale]/dashboard/page.tsx`** - 簡化的 Server Component
+   - 用戶認證檢查
+   - 傳遞參數給 DashboardClient
+
+3. **`components/LoadingSpinner.tsx`** - 載入狀態指示器
+
+#### 架構改進
+
+##### 整合前（Server Component 架構）
+```
+Dashboard Page (Server Component)
+  ├── 直接調用 analytics.ts 服務函數
+  ├── 在伺服器端獲取所有數據
+  └── 無法自動刷新或即時更新
+```
+
+##### 整合後（Client Component + API Hooks 架構）
+```
+Dashboard Page (Server Component - 認證檢查)
+  └── DashboardClient (Client Component)
+      ├── useFullDashboardData() - 統一數據獲取
+      ├── usePaymentStatistics() - 付款統計
+      ├── usePaymentReminders() - 付款提醒
+      └── useOverdueContracts() - 逾期合約
+```
+
+#### 功能特性
+- 🔄 **自動刷新**：統計數據 10 分鐘、提醒數據 5 分鐘自動刷新
+- ⚡ **並行查詢**：使用 Promise.all 並行獲取多個統計數據
+- 📊 **完整統計**：報價單、合約、付款、客戶、產品全面統計
+- ⚠️ **即時提醒**：逾期合約和即將到期付款的即時提醒
+- 📈 **趨勢分析**：營收趨勢、幣別分布、狀態統計圖表
+- 📱 **響應式設計**：手機、平板、桌面完美適配
+- 🎯 **快速操作**：一鍵進入常用功能
+- 🔐 **權限控制**：基於 user_id 的數據過濾
+
+#### 自動刷新機制
+- **統計數據（10 分鐘刷新）**：
+  - `useRevenueTrend()`
+  - `useCurrencyDistribution()`
+  - `useStatusStatistics()`
+  - `useDashboardSummary()`
+  - `useDashboardStats()`
+  - `usePaymentStatistics()`
+
+- **提醒數據（5 分鐘刷新）**：
+  - `usePaymentReminders()`
+  - `useOverdueContracts()`
+
+#### 響應式設計
+- **手機端（< 640px）**：單列顯示,滾動查看
+- **平板端（640px - 1024px）**：雙列顯示
+- **桌面端（> 1024px）**：四列顯示（統計卡片）
+
+#### 顯示區塊
+1. **提醒與警告區**
+   - 逾期合約提醒（錯誤級別）
+   - 即將到期的付款提醒（警告級別）
+
+2. **主要統計卡片**
+   - 本月營收（含成長率）
+   - 本月報價單（含成長率）
+   - 轉換率
+   - 待處理項目
+
+3. **業務統計卡片**
+   - 活躍合約
+   - 本月收款
+   - 未收款總額
+   - 客戶總數
+
+4. **圖表區域**
+   - 營收趨勢圖（Recharts）
+   - 幣別分布圖（Recharts）
+   - 狀態統計圖（Recharts）
+
+5. **快速操作區**
+   - 建立報價單
+   - 新增客戶
+   - 新增產品
+   - 管理合約
+   - 收款記錄
+   - 報價單列表
+
+#### 技術亮點
+- 使用 React Query 進行狀態管理和快取
+- 完整的 TypeScript 型別安全
+- 智能錯誤處理和載入狀態
+- 手動刷新功能（refetchAll）
+- 並行 API 請求優化
+- Supabase RLS 安全過濾
+
+#### 效能優化
+- React Query 智能快取（staleTime: 10 分鐘）
+- 並行數據獲取（Promise.all）
+- 資料庫查詢優化
+- 自動背景更新
+
+#### 文檔
+- `docs/DASHBOARD_INTEGRATION.md` - 完整的整合文檔
+  - 架構設計
+  - API 端點說明
+  - Hook 使用方式
+  - 響應式設計指南
+  - 效能優化建議
+  - 未來改進方向
+
+---
+
 ### 📦 產品管理模組整合驗證 (2025-10-25)
 
 #### 驗證結果
