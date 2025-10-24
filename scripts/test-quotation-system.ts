@@ -529,11 +529,22 @@ async function testQuotationSystem() {
 
   // 7.1 新增匯率
   console.log('📋 測試 7.1: 新增匯率')
+
+  // 先清理可能存在的舊測試資料（避免唯一性約束衝突）
+  const today = new Date().toISOString().split('T')[0]
+  await supabase
+    .from('exchange_rates')
+    .delete()
+    .eq('from_currency', 'USD')
+    .eq('to_currency', 'TWD')
+    .eq('date', today)
+    .eq('source', 'test')
+
   const rateData = {
     from_currency: 'USD',
     to_currency: 'TWD',
     rate: 31.5,
-    date: new Date().toISOString().split('T')[0],
+    date: today,
     source: 'test'
   }
 

@@ -9,42 +9,65 @@
 
 ## [Unreleased]
 
-### 📋 報價單系統測試開發 (2025-10-24)
+### 📋 報價單系統測試完成 (2025-10-24) 🎉
 
 #### 完成項目
 
-1. **報價單系統測試腳本** ✅
+1. **報價單系統完整測試** ✅
    - 建立完整測試腳本 `scripts/test-quotation-system.ts`
    - 涵蓋 9 個測試類別：
-     - 報價單 CRUD（建立、讀取）
-     - 報價單項目管理（新增、查詢）
-     - 計算邏輯驗證（小計、稅額、總計）
-     - 狀態流程測試（draft → sent）
-     - 版本控制（待 RLS 策略修復）
-     - 分享功能（待 RLS 策略修復）
-     - 匯率管理
-   - **初次測試結果**: 7/9 測試通過（77.8%）
+     - ✅ 報價單 CRUD（建立、讀取）
+     - ✅ 報價單項目管理（新增、查詢）
+     - ✅ 計算邏輯驗證（小計、稅額、總計）
+     - ✅ 狀態流程測試（draft → sent）
+     - ✅ 版本控制
+     - ✅ 分享功能
+     - ✅ 匯率管理
+   - **最終測試結果**: 9/9 測試通過（100%）
 
-2. **報價單 RLS 策略修復準備** ✅
+2. **報價單 RLS 策略修復** ✅
    - 診斷發現 `quotation_versions` 和 `quotation_shares` 缺少 INSERT/UPDATE/DELETE 策略
    - 建立修復腳本 `scripts/FIX_QUOTATION_RLS_POLICIES.sql`
-   - 為兩個表準備 8 個完整的 RLS 策略
-   - **待執行**: 需在 Supabase Dashboard 執行 SQL 腳本
+   - 在 Supabase Dashboard 成功執行
+   - 為兩個表建立 8 個完整的 RLS 策略（每表 4 個）
+   - **結果**: 測試成功率從 77.8% → 88.9%
+
+3. **匯率測試唯一性約束修復** ✅
+   - 診斷發現 `duplicate key constraint violation` 錯誤
+   - 修改測試腳本加入預清理邏輯
+   - 在插入前先刪除可能存在的舊測試資料
+   - **結果**: 測試成功率從 88.9% → 100%
+
+#### 測試進度歷程
+
+**第一階段** - 初次測試 (7/9, 77.8%):
+- ✅ 報價單 CRUD、項目管理、計算邏輯、狀態流程、匯率
+- ❌ 版本控制（RLS 策略缺失）
+- ❌ 分享功能（RLS 策略缺失）
+
+**第二階段** - RLS 修復後 (8/9, 88.9%):
+- ✅ 版本控制測試通過
+- ✅ 分享功能測試通過
+- ❌ 匯率（唯一性約束衝突）
+
+**第三階段** - 完全修復 (9/9, 100%) 🎉:
+- ✅ 所有測試通過
+- ✅ 計算邏輯完全正確
+- ✅ RLS 策略完整驗證
+- ✅ 自動清理機制正常運作
 
 #### 測試結果詳情
 
-**通過的測試** (7/9):
+**所有測試通過** (9/9):
 - ✅ 建立報價單（QT-{timestamp} 格式）
 - ✅ 讀取報價單（JOIN customers 表）
 - ✅ 新增報價單項目（數量 × 單價 × 折扣）
 - ✅ 查詢報價單項目（JOIN products 表）
 - ✅ 更新報價單總額（小計 + 稅額計算驗證）
 - ✅ 變更報價單狀態（draft → sent）
-- ✅ 新增匯率（USD → TWD）
-
-**失敗的測試** (2/9):
-- ❌ 建立報價單版本 - RLS 策略缺失
-- ❌ 建立分享連結 - RLS 策略缺失
+- ✅ 建立報價單版本（JSONB 快照）
+- ✅ 建立分享連結（Token 生成 + 到期時間）
+- ✅ 新增匯率（USD → TWD，含預清理）
 
 #### 技術重點
 
@@ -70,21 +93,69 @@ quotations (主表)
   └─ quotation_shares (1:N, CASCADE DELETE)
 ```
 
-#### 測試工具
+#### 建立的工具和文檔
 
 **測試腳本**:
-- `scripts/test-quotation-system.ts` - 報價單系統完整測試
+- `scripts/test-quotation-system.ts` - 報價單系統完整測試（9 個測試類別）
 
-**SQL 工具**:
-- `scripts/FIX_QUOTATION_RLS_POLICIES.sql` - 修復 quotation_versions 和 quotation_shares RLS 策略
+**SQL 診斷和修復工具**:
+- `scripts/FIX_QUOTATION_RLS_POLICIES.sql` - 完整 RLS 策略修復
+- `scripts/FIX_QUOTATION_VERSIONS_RLS.sql` - 單獨修復 quotation_versions
+- `scripts/FIX_QUOTATION_SHARES_RLS.sql` - 單獨修復 quotation_shares
+- `scripts/CHECK_QUOTATION_RLS_STATUS.sql` - 檢查 RLS 策略狀態
 
-#### 下一步
+**TypeScript 執行腳本**:
+- `scripts/apply-quotation-rls-fix.ts` - RLS 修復 TypeScript 版本（備用）
+
+**文檔報告**:
+- `docs/QUOTATION_TEST_SUCCESS_REPORT.md` - 完整測試成功報告
+- `docs/QUOTATION_TEST_NEXT_STEPS.md` - 執行指南
+- `docs/PROJECT_STATUS_2025-10-24.md` - 專案狀態報告
+
+#### 完成檢查清單
 
 - [x] 建立報價單系統測試腳本
 - [x] 執行初次測試並診斷問題
-- [ ] 在 Supabase Dashboard 執行 RLS 策略修復
-- [ ] 重新執行測試達到 100% 通過率（預期 9/9）
-- [ ] 建立報價單測試成功報告
+- [x] 在 Supabase Dashboard 執行 RLS 策略修復
+- [x] 修復匯率測試唯一性約束問題
+- [x] 重新執行測試達到 100% 通過率
+- [x] 建立報價單測試成功報告
+- [x] 更新 CHANGELOG 記錄完成狀態
+
+#### 測試覆蓋的資料表
+
+**已測試表** (9/19, 47.4%):
+- ✅ customers
+- ✅ products
+- ✅ quotations
+- ✅ quotation_items
+- ✅ quotation_versions
+- ✅ quotation_shares
+- ✅ exchange_rates
+- ✅ roles, permissions, role_permissions, user_profiles, user_roles（RBAC）
+
+**待測試表** (10/19):
+- ⏳ companies, company_members, company_settings（公司管理）
+- ⏳ customer_contracts（客戶合約）
+- ⏳ payments, payment_schedules（付款系統）
+- ⏳ audit_logs（稽核日誌）
+- ⏳ 其他表
+
+#### 下一階段
+
+根據之前的優先級選擇「1和3先來」，報價單測試已完成，接下來建議：
+
+**優先級 1**: 公司管理系統測試
+- companies, company_members, company_settings
+- 預計 10-12 個測試
+
+**優先級 2**: 合約與付款系統測試
+- customer_contracts, payments, payment_schedules
+- 預計 12-15 個測試
+
+**優先級 3**: 稽核系統測試
+- audit_logs
+- 預計 5-8 個測試
 
 ---
 
