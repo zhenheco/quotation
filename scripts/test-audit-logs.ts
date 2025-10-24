@@ -27,7 +27,7 @@ const envPath = resolve(__dirname, '../.env.local')
 const envContent = readFileSync(envPath, 'utf-8')
 const envVars: Record<string, string> = {}
 
-envContent.split('\n').forEach(line => {
+envContent.split('\n').forEach((line: string) => {
   const match = line.match(/^([^=:#]+)=(.*)$/)
   if (match) {
     const key = match[1].trim()
