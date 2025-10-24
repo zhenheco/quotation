@@ -9,6 +9,156 @@
 
 ## [Unreleased]
 
+### 📝 稽核日誌系統測試完成 (2025-10-24) 🎉
+
+#### 完成項目
+
+1. **稽核日誌系統完整測試** ✅
+   - 建立完整測試腳本 `scripts/test-audit-logs.ts`
+   - 涵蓋 18 個測試案例：
+     - ✅ 認證與初始化（2 個測試）
+     - ✅ 稽核日誌建立（4 個測試：create、update、delete、多表支援）
+     - ✅ 查詢功能（8 個測試：user_id、table_name、record_id、action、時間範圍、JSONB、組合查詢、分頁）
+     - ✅ 資料驗證（3 個測試：JSONB 格式、時間戳記、必填欄位）
+     - ✅ 清理測試資料（1 個測試）
+   - **最終測試結果**: 18/18 測試通過（100%）
+
+2. **audit_logs 表結構重建** ✅
+   - 問題: 表結構錯誤，缺少必要欄位（table_name、old_values、new_values）
+   - 建立診斷工具：
+     - `scripts/CHECK_AUDIT_LOGS_EXISTS.sql` - 檢查表是否存在
+     - `scripts/DIAGNOSE_AUDIT_LOGS_SCHEMA.sql` - 完整表結構診斷
+   - 建立修復腳本：
+     - `scripts/RECREATE_AUDIT_LOGS_TABLE.sql` - 強制刪除並重建表
+   - **結果**: 表結構完整，包含所有必要欄位
+
+3. **audit_logs 表權限設定** ✅
+   - 問題: RLS 策略存在，但缺少表級別權限
+   - 建立診斷工具：
+     - `scripts/VERIFY_AUDIT_LOGS_RLS.sql` - 驗證 RLS 策略和權限
+   - 建立修復腳本：
+     - `scripts/GRANT_AUDIT_LOGS_PERMISSIONS.sql` - 授予 authenticated 角色權限
+   - 授予權限：
+     - `GRANT SELECT ON audit_logs TO authenticated`
+     - `GRANT INSERT ON audit_logs TO authenticated`
+     - `GRANT DELETE ON audit_logs TO authenticated`
+   - **結果**: authenticated 角色擁有完整操作權限
+
+4. **RLS 策略建立與驗證** ✅
+   - 建立 3 個 RLS 策略：
+     - `Users can view their audit logs` (SELECT)
+     - `Users can create audit logs` (INSERT)
+     - `Users can delete their audit logs` (DELETE)
+   - 策略設計: `user_id = auth.uid()`
+   - **結果**: 資料隔離正常，使用者只能存取自己的稽核日誌
+
+5. **索引建立與驗證** ✅
+   - 建立 5 個索引：
+     - `audit_logs_pkey` - 主鍵索引
+     - `idx_audit_logs_user_id` - 使用者查詢優化
+     - `idx_audit_logs_table_name` - 表名稱查詢優化
+     - `idx_audit_logs_record_id` - 記錄 ID 查詢優化
+     - `idx_audit_logs_created_at` - 時間範圍查詢優化
+   - **結果**: 查詢性能良好
+
+6. **Schema Cache 刷新工具** ✅
+   - 建立 `scripts/REFRESH_SCHEMA_CACHE.sql`
+   - 使用 `NOTIFY pgrst, 'reload schema'` 刷新 Supabase cache
+   - **結果**: 表結構和權限變更即時生效
+
+#### 故障排除過程
+
+**第一階段** - 表結構錯誤 (0%):
+- 錯誤: `column "table_name" of relation "audit_logs" does not exist`
+- 原因: audit_logs 表存在但結構不完整
+- 診斷: 執行 CHECK_AUDIT_LOGS_EXISTS.sql 確認問題
+- 解決: 執行 RECREATE_AUDIT_LOGS_TABLE.sql 重建表
+- **結果**: 表結構完整，欄位錯誤解決
+
+**第二階段** - 權限不足 (11.1%):
+- 錯誤: `permission denied for table audit_logs`
+- 原因: 缺少表級別權限授予 authenticated 角色
+- 診斷: 執行 VERIFY_AUDIT_LOGS_RLS.sql 發現只有 postgres 有權限
+- 解決: 執行 GRANT_AUDIT_LOGS_PERMISSIONS.sql 授予權限
+- **結果**: 認證測試通過，但仍有權限問題
+
+**第三階段** - Schema Cache 未更新 (11.1%):
+- 問題: 權限已授予但 Supabase API 未更新
+- 解決: 執行 REFRESH_SCHEMA_CACHE.sql 刷新 cache
+- 等待 10 秒讓 PostgREST 重新載入
+- **結果**: 測試成功率 11.1% → **100.0%** 🎉
+
+#### 測試結果詳情
+
+**認證與初始化測試** (2/2):
+- ✅ 使用者認證（使用 test@example.com）
+- ✅ 準備測試資料（生成 record_id）
+
+**稽核日誌建立測試** (4/4):
+- ✅ 建立 create 類型日誌（記錄報價單建立，包含 new_values）
+- ✅ 建立 update 類型日誌（記錄狀態變更，包含 old_values 和 new_values）
+- ✅ 建立 delete 類型日誌（記錄刪除操作，包含 old_values）
+- ✅ 建立其他表的日誌（測試 customer_contracts，驗證多表支援）
+
+**查詢功能測試** (8/8):
+- ✅ 按 user_id 查詢（返回 ≥4 筆記錄，RLS 隔離正常）
+- ✅ 按 table_name 查詢（quotations 表的 3 筆記錄）
+- ✅ 按 record_id 查詢（單一記錄的完整歷史）
+- ✅ 按 action 類型查詢（過濾 update 操作）
+- ✅ 時間範圍查詢（最近 1 小時）
+- ✅ JSONB 欄位查詢（new_values 非 null）
+- ✅ 組合查詢（user_id + table_name + action）
+- ✅ 分頁查詢（LIMIT、OFFSET、結果不重複）
+
+**資料驗證測試** (3/3):
+- ✅ 驗證 JSONB 格式（old_values 和 new_values 為有效 JSON）
+- ✅ 驗證時間戳記（created_at 自動設定，非未來時間）
+- ✅ 驗證必填欄位（缺少欄位時正確拋出錯誤）
+
+**清理測試資料** (1/1):
+- ✅ 刪除所有測試記錄（RLS DELETE 策略正常）
+
+#### 驗證的功能特性
+
+**資料表結構**:
+- ✅ 10 個欄位（id、user_id、table_name、record_id、action、old_values、new_values、ip_address、user_agent、created_at）
+- ✅ 5 個索引優化查詢性能
+- ✅ JSONB 欄位儲存複雜資料結構
+- ✅ 時間戳記自動記錄
+
+**核心功能**:
+- ✅ 支援三種操作類型（create、update、delete）
+- ✅ 多表稽核追蹤
+- ✅ 完整的變更歷史記錄
+- ✅ 多維度查詢（user、table、record、action、time）
+- ✅ 分頁支援
+
+**安全與權限**:
+- ✅ RLS 啟用，資料隔離正常
+- ✅ 使用者只能存取自己的日誌
+- ✅ 三層權限控制（表權限 + RLS 策略）
+
+#### 建立的工具套件
+
+**診斷工具**:
+1. `scripts/CHECK_AUDIT_LOGS_EXISTS.sql` - 檢查表是否存在
+2. `scripts/DIAGNOSE_AUDIT_LOGS_SCHEMA.sql` - 完整表結構診斷
+3. `scripts/VERIFY_AUDIT_LOGS_RLS.sql` - RLS 策略驗證
+4. `scripts/CHECK_AUDIT_LOGS_RLS.sql` - RLS 狀態檢查
+
+**修復工具**:
+1. `scripts/CREATE_AUDIT_LOGS_TABLE.sql` - 建立表（IF NOT EXISTS）
+2. `scripts/RECREATE_AUDIT_LOGS_TABLE.sql` - 強制重建表
+3. `scripts/GRANT_AUDIT_LOGS_PERMISSIONS.sql` - 授予權限
+4. `scripts/FIX_AUDIT_LOGS_RLS_POLICIES.sql` - 修復 RLS 策略
+5. `scripts/REFRESH_SCHEMA_CACHE.sql` - 刷新 schema cache
+
+**文檔**:
+1. `scripts/AUDIT_LOGS_TROUBLESHOOTING_STEPS.md` - 故障排除指南
+2. `docs/AUDIT_LOGS_TEST_SUCCESS_REPORT.md` - 測試成功報告
+
+---
+
 ### 💰 合約與付款系統測試完成 (2025-10-24) 🎉
 
 #### 完成項目
@@ -186,26 +336,35 @@ CREATE POLICY "Users can view their payment schedules"
 
 #### 累計測試進度
 
-**已測試資料表** (15/19, 78.9%):
+**已測試資料表** (16/19, 84.2%):
 - ✅ users, roles, permissions, user_roles (認證與權限)
 - ✅ quotations, quotation_items, quotation_versions, quotation_shares, exchange_rates (報價單)
 - ✅ companies, company_members, company_settings (公司管理)
 - ✅ customer_contracts, payments, payment_schedules (合約與付款)
+- ✅ audit_logs (稽核日誌)
+
+**部分測試的表** (2 個):
+- ⚠️ customers (在報價單和合約測試中使用)
+- ⚠️ products (在報價單測試中使用)
+
+**未測試的表** (1 個):
+- ❌ user_profiles
 
 **測試統計**:
-- 總測試數量: 71
-- 通過測試: 71 ✅
+- 總測試數量: 89
+- 通過測試: 89 ✅
 - 失敗測試: 0
 - **成功率: 100%** 🎉
 
 **進度分佈**:
 | 系統 | 表數 | 測試數 | 成功率 |
 |------|-----|--------|--------|
-| 認證與權限 | 4 | 29 | 100% |
-| 報價單系統 | 5 | 9 | 100% |
-| 公司管理 | 3 | 11 | 100% |
+| 認證與權限 | 4 | 9 | 100% |
+| 報價單系統 | 5 | 33 | 100% |
+| 公司管理 | 3 | 7 | 100% |
 | 合約與付款 | 3 | 22 | 100% |
-| **總計** | **15** | **71** | **100%** |
+| 稽核日誌 | 1 | 18 | 100% |
+| **總計** | **16** | **89** | **100%** |
 
 ---
 
