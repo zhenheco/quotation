@@ -9,6 +9,133 @@
 
 ## [Unreleased]
 
+### 🏢 公司管理系統測試完成 (2025-10-24) 🎉
+
+#### 完成項目
+
+1. **公司管理系統完整測試** ✅
+   - 建立完整測試腳本 `scripts/test-company-system.ts`
+   - 涵蓋 11 個測試類別：
+     - ✅ 公司 CRUD（建立、讀取、更新）
+     - ✅ 公司設定管理（建立、讀取、更新）
+     - ✅ 成員管理（新增、JOIN 查詢、更新）
+     - ✅ 多公司測試（第二家公司、查詢所有）
+   - **最終測試結果**: 11/11 測試通過（100%）
+
+2. **公司 RLS 策略修復 - 解決無限遞迴錯誤** ✅
+   - 診斷發現 RLS 策略中存在循環依賴問題
+   - **錯誤**: `infinite recursion detected in policy for relation "companies"`
+   - **根本原因**:
+     - `companies` SELECT 策略引用了 `company_members` 表
+     - `company_members` SELECT 策略又引用了 `company_members` 自己
+     - 形成循環依賴，導致無限遞迴
+   - 建立修復腳本 `scripts/FIX_COMPANY_RLS_POLICIES_V2.sql`
+   - **解決方案**: 簡化策略，避免循環依賴
+     - `companies`: 只檢查 `created_by = auth.uid()`
+     - `company_members`: 只向上引用 `companies`，不自我引用
+     - `company_settings`: 只引用 `companies`
+   - **結果**: 成功建立 12 個 RLS 策略，測試 100% 通過
+
+#### 測試進度歷程
+
+**第一階段** - 策略有循環依賴 (失敗):
+- 建立 `FIX_COMPANY_RLS_POLICIES.sql`
+- 執行後出現 `infinite recursion detected` 錯誤
+- 診斷出循環依賴問題
+
+**第二階段** - 策略簡化修復 (11/11, 100%) 🎉:
+- 建立 `FIX_COMPANY_RLS_POLICIES_V2.sql`
+- 移除所有循環依賴
+- ✅ 所有測試通過
+- ✅ RLS 策略邏輯清晰
+- ✅ 多租戶架構正確運作
+
+#### 測試結果詳情
+
+**公司管理測試** (3/3):
+- ✅ 建立公司（測試科技股份有限公司）
+- ✅ 讀取公司（驗證所有欄位）
+- ✅ 更新公司資訊（地址變更）
+
+**公司設定測試** (3/3):
+- ✅ 建立公司設定（JSONB 格式）
+- ✅ 讀取設定（驗證 theme, notifications, defaults）
+- ✅ 更新設定（partial update）
+
+**成員管理測試** (3/3):
+- ✅ 新增成員（整合 roles 表）
+- ✅ JOIN 查詢成員角色資訊
+- ✅ 更新成員職位
+
+**多公司測試** (2/2):
+- ✅ 建立第二家公司（資料隔離驗證）
+- ✅ 查詢所有公司（多租戶驗證）
+
+#### 技術重點
+
+**RLS 策略架構**:
+```sql
+-- companies: 只有 created_by 可以操作
+CREATE POLICY "Users can view their companies"
+  ON companies FOR SELECT
+  USING (created_by = auth.uid());
+
+-- company_members: created_by 可以管理，user_id 可以查看自己
+CREATE POLICY "Users can view company members"
+  ON company_members FOR SELECT
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM companies
+      WHERE companies.id = company_members.company_id
+      AND companies.created_by = auth.uid()
+    )
+  );
+```
+
+**多租戶架構驗證**:
+- ✅ 每個使用者只能看到自己建立的公司
+- ✅ 公司建立者可以管理所有成員
+- ✅ 成員可以查看自己的成員記錄
+- ✅ 資料完全隔離，無跨公司存取
+
+**RBAC 整合**:
+- ✅ 成員與角色關聯（role_id 外鍵）
+- ✅ JOIN 查詢測試成功
+- ✅ 角色資訊正確顯示
+
+#### 建立的工具和文檔
+
+**測試腳本**:
+- `scripts/test-company-system.ts` - 公司管理系統完整測試（11 個測試類別）
+- `scripts/CHECK_COMPANY_RLS_STATUS.sql` - RLS 策略狀態檢查工具
+
+**修復腳本**:
+- `scripts/FIX_COMPANY_RLS_POLICIES.sql` - 第一版（有循環依賴問題）
+- `scripts/FIX_COMPANY_RLS_POLICIES_V2.sql` - 修正版（移除循環依賴，成功）
+
+**文檔**:
+- `docs/COMPANY_TEST_SUCCESS_REPORT.md` - 公司管理系統測試成功報告
+  - 包含完整測試結果
+  - 無限遞迴錯誤診斷
+  - RLS 策略修復過程
+  - 前後對比說明
+
+#### 累計測試進度
+
+**已測試資料表** (12/19, 63.2%):
+- ✅ users, roles, permissions, user_roles (認證與權限)
+- ✅ quotations, quotation_items, quotation_versions, quotation_shares, exchange_rates (報價單)
+- ✅ companies, company_members, company_settings (公司管理)
+
+**測試統計**:
+- 總測試數量: 49
+- 通過測試: 49 ✅
+- 失敗測試: 0
+- **成功率: 100%** 🎉
+
+---
+
 ### 📋 報價單系統測試完成 (2025-10-24) 🎉
 
 #### 完成項目
