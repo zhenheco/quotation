@@ -9,6 +9,206 @@
 
 ## [Unreleased]
 
+### 💰 合約與付款系統測試完成 (2025-10-24) 🎉
+
+#### 完成項目
+
+1. **合約與付款系統完整測試** ✅
+   - 建立完整測試腳本 `scripts/test-contract-payment-system.ts`
+   - 涵蓋 22 個測試類別：
+     - ✅ 合約管理 CRUD（建立、讀取、更新）
+     - ✅ 付款排程（RPC 函數自動生成、觸發器偵測逾期）
+     - ✅ 付款記錄（CRUD、觸發器自動更新下次收款）
+     - ✅ 排程狀態更新（觸發器重置逾期天數）
+     - ✅ 整合測試（3 個視圖查詢）
+     - ✅ 資料清理（級聯刪除）
+   - **最終測試結果**: 22/22 測試通過（100%）
+
+2. **合約與付款 RLS 策略建立** ✅
+   - 為 3 個表建立完整的 RLS 策略（每表 4 個，共 12 個）
+   - 建立修復腳本 `scripts/FIX_CONTRACT_PAYMENT_RLS_POLICIES.sql`
+   - 策略設計：
+     - `customer_contracts`: 使用者只能操作自己的合約（user_id）
+     - `payments`: 使用者只能操作自己的付款記錄（user_id）
+     - `payment_schedules`: 使用者只能操作自己的排程（user_id）
+   - **結果**: 簡化設計，避免循環依賴，測試 100% 通過
+
+3. **執行 Migration 004 增強功能** ✅
+   - 執行 `migrations/004_contracts_and_payments_enhancement.sql`
+   - 新增欄位：next_collection_date, next_collection_amount
+   - 建立 RPC 函數：
+     - `generate_payment_schedules_for_contract` - 自動生成付款排程
+     - `mark_overdue_payments` - 批次標記逾期
+   - 建立資料庫觸發器：
+     - `update_next_collection_date` - 自動更新下次收款資訊
+     - `check_payment_schedules_overdue` - 自動偵測逾期
+   - 建立資料視圖：
+     - `collected_payments_summary` - 已收款彙總
+     - `next_collection_reminders` - 下次收款提醒
+     - `unpaid_payments_30_days` - 未收款列表（>30天）
+   - **結果**: 所有高級功能正常運作
+
+4. **修復視圖權限問題** ✅
+   - 建立修復腳本 `scripts/FIX_VIEW_PERMISSIONS.sql`
+   - 授予 authenticated 角色對 3 個視圖的 SELECT 權限
+   - **結果**: 視圖查詢測試通過
+
+5. **診斷 payment_type 欄位問題** ✅
+   - 發現 `customer_contracts` 表有 NOT NULL 的 `payment_type` 欄位
+   - 建立診斷工具：
+     - `scripts/check-contract-schema.ts`
+     - `scripts/CHECK_TABLE_COLUMNS.sql`
+     - `scripts/DIAGNOSE_CONTRACT_SCHEMA.sql`
+   - **解決方案**: 在測試資料中添加 `payment_type: 'recurring'`
+
+#### 測試進度歷程
+
+**第一階段** - RLS 策略缺失 (0%):
+- 錯誤: `new row violates row-level security policy`
+- 建立 RLS 策略修復腳本
+- **結果**: 基本 CRUD 測試通過
+
+**第二階段** - payment_type 欄位問題 (0%):
+- 錯誤: `null value in column "payment_type" violates not-null constraint`
+- 診斷資料表結構
+- 修正測試腳本添加 payment_type
+- **結果**: 合約建立測試通過
+
+**第三階段** - 高級功能未執行 (61.9%):
+- 錯誤: 函數、視圖、欄位不存在
+- 執行 Migration 004
+- **結果**: 測試成功率 61.9% → 86.4%
+
+**第四階段** - 視圖權限問題 (86.4%):
+- 錯誤: `permission denied for view`
+- 授予視圖查詢權限
+- **結果**: 測試成功率 86.4% → **100.0%** 🎉
+
+#### 測試結果詳情
+
+**合約管理測試** (3/3):
+- ✅ 建立合約（SaaS 訂閱服務，一年期，120,000 TWD）
+- ✅ 讀取合約（JOIN customers）
+- ✅ 更新合約備註
+
+**付款排程測試** (4/4):
+- ✅ 生成付款排程（RPC 函數，自動生成 13 個月份排程）
+- ✅ 讀取付款排程（JOIN customer_contracts）
+- ✅ 逾期偵測（觸發器自動標記，35 天逾期）
+- ✅ 批次標記逾期（RPC 函數）
+
+**付款記錄測試** (5/5):
+- ✅ 建立第一期付款（recurring, bank_transfer, 10,000 TWD）
+- ✅ 下次收款日期自動更新（觸發器，2025-11-05）
+- ✅ 建立第二期付款（recurring, credit_card, 10,000 TWD）
+- ✅ 讀取付款記錄（JOIN customers 和 customer_contracts）
+- ✅ 更新付款記錄
+
+**排程狀態更新** (1/1):
+- ✅ 更新排程為已付款（觸發器自動重置逾期天數為 0）
+
+**整合測試 - 視圖查詢** (3/3):
+- ✅ 查詢已收款彙總視圖（2 筆已收款）
+- ✅ 查詢下次收款提醒視圖（1 個提醒）
+- ✅ 查詢未收款列表視圖（1 筆逾期 30 天以上）
+
+**資料清理** (4/4):
+- ✅ 清理付款記錄（2 筆）
+- ✅ 清理付款排程（14 個）
+- ✅ 清理合約（1 個）
+- ✅ 清理客戶資料（1 個）
+
+**認證與準備** (2/2):
+- ✅ 登入測試用戶
+- ✅ 建立測試客戶
+
+#### 技術重點
+
+**RLS 策略架構**:
+```sql
+-- customer_contracts: 只有 user_id 可以操作
+CREATE POLICY "Users can view their contracts"
+  ON customer_contracts FOR SELECT
+  USING (user_id = auth.uid());
+
+-- payments: 只有 user_id 可以操作
+CREATE POLICY "Users can view their payments"
+  ON payments FOR SELECT
+  USING (user_id = auth.uid());
+
+-- payment_schedules: 只有 user_id 可以操作
+CREATE POLICY "Users can view their payment schedules"
+  ON payment_schedules FOR SELECT
+  USING (user_id = auth.uid());
+```
+
+**資料庫觸發器驗證**:
+- ✅ `update_next_collection_date`: 付款確認後自動更新下次收款資訊
+- ✅ `check_payment_schedules_overdue`: 自動偵測並標記逾期排程
+
+**RPC 函數驗證**:
+- ✅ `generate_payment_schedules_for_contract`: 根據合約自動生成 13 個月份排程
+- ✅ `mark_overdue_payments`: 批次標記逾期付款
+
+**資料視圖驗證**:
+- ✅ `collected_payments_summary`: 已收款彙總（含客戶、合約資訊）
+- ✅ `next_collection_reminders`: 下次收款提醒（含收款狀態分類）
+- ✅ `unpaid_payments_30_days`: 未收款列表（含逾期天數、客戶聯絡資訊）
+
+**業務邏輯驗證**:
+- ✅ 定期收款合約管理
+- ✅ 自動化排程生成（根據頻率計算期數和到期日）
+- ✅ 付款記錄與追蹤
+- ✅ 逾期管理與提醒（自動計算逾期天數）
+- ✅ 財務報表與分析（三個視圖）
+
+#### 建立的工具和文檔
+
+**測試腳本**:
+- `scripts/test-contract-payment-system.ts` - 合約與付款系統完整測試（22 個測試類別）
+- `scripts/check-contract-schema.ts` - 合約資料表結構檢查工具
+
+**SQL 診斷工具**:
+- `scripts/CHECK_CONTRACT_PAYMENT_RLS_STATUS.sql` - RLS 策略狀態檢查
+- `scripts/CHECK_TABLE_COLUMNS.sql` - 資料表欄位檢查
+- `scripts/DIAGNOSE_CONTRACT_SCHEMA.sql` - 完整資料表診斷
+
+**SQL 修復腳本**:
+- `scripts/FIX_CONTRACT_PAYMENT_RLS_POLICIES.sql` - RLS 策略修復（12 個策略）
+- `scripts/FIX_VIEW_PERMISSIONS.sql` - 視圖權限修復（3 個視圖）
+
+**文檔**:
+- `docs/CONTRACT_PAYMENT_TEST_SUCCESS_REPORT.md` - 合約與付款系統測試成功報告
+  - 包含完整測試結果（22/22 測試）
+  - 修復歷程（4 個階段）
+  - 業務邏輯驗證
+  - 技術架構說明
+
+#### 累計測試進度
+
+**已測試資料表** (15/19, 78.9%):
+- ✅ users, roles, permissions, user_roles (認證與權限)
+- ✅ quotations, quotation_items, quotation_versions, quotation_shares, exchange_rates (報價單)
+- ✅ companies, company_members, company_settings (公司管理)
+- ✅ customer_contracts, payments, payment_schedules (合約與付款)
+
+**測試統計**:
+- 總測試數量: 71
+- 通過測試: 71 ✅
+- 失敗測試: 0
+- **成功率: 100%** 🎉
+
+**進度分佈**:
+| 系統 | 表數 | 測試數 | 成功率 |
+|------|-----|--------|--------|
+| 認證與權限 | 4 | 29 | 100% |
+| 報價單系統 | 5 | 9 | 100% |
+| 公司管理 | 3 | 11 | 100% |
+| 合約與付款 | 3 | 22 | 100% |
+| **總計** | **15** | **71** | **100%** |
+
+---
+
 ### 🏢 公司管理系統測試完成 (2025-10-24) 🎉
 
 #### 完成項目
