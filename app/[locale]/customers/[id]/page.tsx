@@ -1,39 +1,36 @@
-import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from 'next-intl/server'
-import { redirect, notFound } from 'next/navigation'
+'use client'
+
+import { useTranslations } from 'next-intl'
+import { useParams } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import CustomerForm from '../CustomerForm'
-import { getCustomerById } from '@/lib/services/database'
+import { useCustomer } from '@/hooks/useCustomers'
 
-export const dynamic = 'force-dynamic'
+export default function EditCustomerPage() {
+  const t = useTranslations()
+  const params = useParams()
+  const locale = params.locale as string
+  const id = params.id as string
 
-export default async function EditCustomerPage({
-  params,
-}: {
-  params: Promise<{ locale: string; id: string }>
-}) {
-  const { locale, id } = await params
-  const supabase = await createClient()
-  const t = await getTranslations()
+  // 使用 hook 取得客戶資料
+  const { data: customer, isLoading, error } = useCustomer(id)
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
+  // 載入狀態
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title={t('customer.edit')} />
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  let customer = null
-  let error = null
-
-  try {
-    customer = await getCustomerById(id, user.id)
-  } catch (e) {
-    error = e
-    console.error('Error fetching customer:', e)
-  }
-
+  // 錯誤或找不到客戶
   if (error || !customer) {
     notFound()
   }

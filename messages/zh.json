@@ -147,6 +147,18 @@
     "deleteConfirm": {
       "title": "刪除客戶",
       "description": "確定要刪除此客戶嗎？此操作無法復原。"
+    },
+    "createSuccess": "客戶建立成功",
+    "updateSuccess": "客戶更新成功",
+    "deleteSuccess": "客戶刪除成功",
+    "createError": "建立客戶失敗",
+    "updateError": "更新客戶失敗",
+    "deleteError": "刪除客戶失敗",
+    "fetchError": "載入客戶資料失敗",
+    "saveError": "儲存客戶失敗",
+    "validation": {
+      "nameRequired": "請輸入客戶名稱（中文和英文）",
+      "emailRequired": "請輸入電子郵件地址"
     }
   },
   "product": {
