@@ -140,6 +140,38 @@ async function updateNextCollection(
   return data.contract || data.data
 }
 
+async function updateContract(
+  contractId: string,
+  params: UpdateContractParams
+): Promise<CustomerContract> {
+  const response = await fetch(`/api/contracts/${contractId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to update contract')
+  }
+
+  const data = await response.json()
+  return data.contract || data.data
+}
+
+async function deleteContract(contractId: string): Promise<void> {
+  const response = await fetch(`/api/contracts/${contractId}`, {
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to delete contract')
+  }
+}
+
 // ============================================================================
 // React Query Hooks
 // ============================================================================
@@ -308,6 +340,47 @@ export function useCreateContractFromQuotation() {
 }
 
 /**
+ * 更新合約
+ *
+ * @param contractId - 合約 ID
+ *
+ * @example
+ * ```tsx
+ * function ContractEditForm({ contract }: { contract: CustomerContract }) {
+ *   const updateContract = useUpdateContract(contract.id)
+ *
+ *   const onSubmit = async (data: UpdateContractParams) => {
+ *     try {
+ *       await updateContract.mutateAsync(data)
+ *       toast.success('合約更新成功')
+ *     } catch (error) {
+ *       toast.error('更新失敗')
+ *     }
+ *   }
+ *
+ *   return <form onSubmit={handleSubmit(onSubmit)}>...</form>
+ * }
+ * ```
+ */
+export function useUpdateContract(contractId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (params: UpdateContractParams) => updateContract(contractId, params),
+    onSuccess: (updatedContract) => {
+      // 更新合約列表
+      queryClient.invalidateQueries({ queryKey: ['contracts'] })
+
+      // 更新單一合約快取
+      queryClient.setQueryData(['contracts', contractId], updatedContract)
+
+      // 更新付款進度
+      queryClient.invalidateQueries({ queryKey: ['contracts', contractId, 'progress'] })
+    },
+  })
+}
+
+/**
  * 更新下次收款資訊
  *
  * @param contractId - 合約 ID
@@ -353,6 +426,65 @@ export function useUpdateNextCollection(contractId: string) {
 
       // 更新付款進度
       queryClient.invalidateQueries({ queryKey: ['contracts', contractId, 'progress'] })
+    },
+  })
+}
+
+/**
+ * 刪除合約
+ *
+ * @example
+ * ```tsx
+ * function ContractActions({ contract }: { contract: CustomerContract }) {
+ *   const deleteContract = useDeleteContract()
+ *
+ *   const handleDelete = async () => {
+ *     if (!confirm('確定要刪除此合約？')) return
+ *
+ *     try {
+ *       await deleteContract.mutateAsync(contract.id)
+ *       toast.success('合約已刪除')
+ *     } catch (error) {
+ *       toast.error('刪除失敗')
+ *     }
+ *   }
+ *
+ *   return <button onClick={handleDelete}>刪除</button>
+ * }
+ * ```
+ */
+export function useDeleteContract() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: deleteContract,
+    onMutate: async (contractId) => {
+      // 取消進行中的查詢
+      await queryClient.cancelQueries({ queryKey: ['contracts'] })
+
+      // 儲存前一個狀態
+      const previousContracts = queryClient.getQueryData(['contracts'])
+
+      // 樂觀更新：從列表中移除合約
+      queryClient.setQueriesData({ queryKey: ['contracts'] }, (old: any) => {
+        if (!old) return old
+        if (Array.isArray(old)) {
+          return old.filter((c: any) => c.id !== contractId)
+        }
+        return old
+      })
+
+      return { previousContracts }
+    },
+    onSuccess: () => {
+      // 使所有合約相關查詢失效
+      queryClient.invalidateQueries({ queryKey: ['contracts'] })
+    },
+    onError: (err, contractId, context) => {
+      // 如果失敗，還原資料
+      if (context?.previousContracts) {
+        queryClient.setQueryData(['contracts'], context.previousContracts)
+      }
     },
   })
 }

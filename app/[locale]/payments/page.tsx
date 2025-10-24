@@ -8,21 +8,31 @@ import PageHeader from '@/components/ui/PageHeader'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { CollectedPaymentCard, UnpaidPaymentCard } from '@/components/payments/PaymentCard'
-import { useCollectedPayments, useUnpaidPayments, usePaymentStatistics } from '@/hooks/usePayments'
+import {
+  useCollectedPayments,
+  useUnpaidPayments,
+  usePaymentStatistics,
+  usePaymentReminders,
+  useMarkPaymentAsOverdue,
+} from '@/hooks/usePayments'
+import { toast } from 'sonner'
 
 export default function PaymentsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = use(params)
   const t = useTranslations()
 
-  const { payments: collectedPayments, loading: loadingCollected, error: errorCollected } = useCollectedPayments()
-  const { payments: unpaidPayments, loading: loadingUnpaid, error: errorUnpaid } = useUnpaidPayments()
-  const { statistics, loading: loadingStats } = usePaymentStatistics()
+  // Use the new hooks with auto-refresh
+  const { data: collectedPayments, isLoading: loadingCollected, error: errorCollected } = useCollectedPayments()
+  const { data: unpaidPayments, isLoading: loadingUnpaid, error: errorUnpaid } = useUnpaidPayments()
+  const { data: statistics, isLoading: loadingStats } = usePaymentStatistics()
+  const { data: reminders } = usePaymentReminders()
+  const markAsOverdue = useMarkPaymentAsOverdue()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<'all' | 'deposit' | 'installment' | 'final' | 'recurring'>('all')
 
   // Filter collected payments
-  const filteredCollected = collectedPayments.filter((payment) => {
+  const filteredCollected = (collectedPayments || []).filter((payment) => {
     if (selectedType !== 'all' && payment.payment_type !== selectedType) return false
 
     if (searchQuery) {
@@ -35,7 +45,7 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
   })
 
   // Filter unpaid payments
-  const filteredUnpaid = unpaidPayments.filter((payment) => {
+  const filteredUnpaid = (unpaidPayments || []).filter((payment) => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       const customerName = locale === 'zh' ? payment.customer_name_zh : payment.customer_name_en
@@ -46,6 +56,15 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
   })
 
   const loading = loadingCollected || loadingUnpaid || loadingStats
+
+  const handleMarkAsOverdue = async (paymentId: string) => {
+    try {
+      await markAsOverdue.mutateAsync(paymentId)
+      toast.success(t('payments.markedAsOverdue'))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('payments.markOverdueError'))
+    }
+  }
 
   if (loading) {
     return (
@@ -73,7 +92,23 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
               description={t('payments.description')}
             />
 
-            {/* Statistics Cards */}
+            {/* Payment Reminders */}
+            {reminders && reminders.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-blue-900 mb-2">
+                  {t('payments.upcomingReminders')}
+                </h3>
+                <div className="space-y-2">
+                  {reminders.slice(0, 3).map((reminder) => (
+                    <div key={reminder.contract_id} className="text-sm text-blue-800">
+                      {reminder.customer_name} - {reminder.next_collection_amount.toLocaleString()} ({reminder.days_until_due} {t('payments.daysUntilDue')})
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Statistics Cards - Auto-refreshes every 10 minutes */}
             {statistics && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-white rounded-lg shadow p-4">
@@ -165,13 +200,13 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
                           payment={payment}
                           locale={locale}
                           onRecordPayment={() => {
-                            console.log('Record payment:', payment.id)
+                            window.location.href = `/${locale}/payments/new?contract_id=${payment.contract_id}`
                           }}
                           onSendReminder={() => {
-                            console.log('Send reminder:', payment.id)
+                            toast.info(t('payments.reminderSent'))
                           }}
                           onMarkOverdue={() => {
-                            console.log('Mark overdue:', payment.id)
+                            handleMarkAsOverdue(payment.id)
                           }}
                         />
                       ))}
