@@ -4,13 +4,11 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 
 interface LoginTabsProps {
-  locale: string
   googleTab: React.ReactNode
   emailTab: React.ReactNode
 }
 
 export default function LoginTabs({
-  locale,
   googleTab,
   emailTab,
 }: LoginTabsProps) {

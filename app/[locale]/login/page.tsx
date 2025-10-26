@@ -53,7 +53,6 @@ export default async function LoginPage({
         {/* 登入卡片 */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <LoginTabs
-            locale={locale}
             googleTab={<LoginButton locale={locale} />}
             emailTab={<EmailLoginForm locale={locale} />}
           />
