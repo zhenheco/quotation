@@ -75,7 +75,7 @@ export default function RegisterForm({ locale }: RegisterFormProps) {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/${locale}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/${locale}/login&verified=true`,
         },
       })
 
@@ -316,6 +316,7 @@ export default function RegisterForm({ locale }: RegisterFormProps) {
           <a
             href={`/${locale}/terms`}
             target="_blank"
+            rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800 hover:underline"
           >
             {t('termsOfService')}

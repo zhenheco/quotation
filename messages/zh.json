@@ -99,6 +99,35 @@
     "rememberPassword": "想起密碼了？",
     "loginHere": "在此登入"
   },
+  "updatePassword": {
+    "title": "更新密碼",
+    "description": "設定您的新密碼",
+    "heading": "設定新密碼",
+    "subtitle": "請輸入您的新密碼",
+    "newPassword": "新密碼",
+    "confirmPassword": "確認新密碼",
+    "passwordPlaceholder": "至少 8 個字元",
+    "confirmPasswordPlaceholder": "再次輸入新密碼",
+    "updateButton": "更新密碼",
+    "updating": "更新中...",
+    "allFieldsRequired": "請填寫所有欄位",
+    "passwordsNotMatch": "密碼不一致",
+    "passwordTooShort": "密碼至少需要 8 個字元",
+    "updateSuccess": "密碼更新成功！",
+    "updateError": "密碼更新失敗，請稍後再試",
+    "passwordSameAsOld": "新密碼不能與舊密碼相同，請輸入不同的密碼",
+    "passwordWeak": "密碼強度：弱",
+    "passwordMedium": "密碼強度：中",
+    "passwordStrong": "密碼強度：強",
+    "passwordMinLength": "至少 8 個字元",
+    "passwordUppercase": "包含大寫字母",
+    "passwordNumber": "包含數字",
+    "successTitle": "密碼更新成功",
+    "successDescription": "您的密碼已成功更新，即將跳轉至登入頁面。",
+    "redirecting": "跳轉中...",
+    "rememberPassword": "想起密碼了？",
+    "loginHere": "在此登入"
+  },
   "nav": {
     "dashboard": "儀表板",
     "quotations": "報價單",
@@ -499,5 +528,64 @@
     "sales_manager": "業務主管",
     "salesperson": "業務人員",
     "accountant": "會計"
+  },
+  "terms": {
+    "title": "服務條款",
+    "description": "報價單系統服務條款",
+    "heading": "服務條款",
+    "lastUpdated": "最後更新日期：2025年10月",
+    "backToRegister": "返回註冊",
+    "acceptAndRegister": "同意並註冊",
+    "backToLogin": "返回登入",
+    "section1": {
+      "title": "1. 接受條款",
+      "content1": "歡迎使用報價單系統（以下簡稱「本系統」）。使用本系統即表示您同意遵守以下服務條款。如果您不同意這些條款，請勿使用本系統。",
+      "content2": "我們保留隨時修改這些條款的權利。任何修改將在本頁面上發布，並在發布後立即生效。繼續使用本系統即表示您接受修改後的條款。"
+    },
+    "section2": {
+      "title": "2. 服務說明",
+      "content": "本系統提供以下功能和服務：",
+      "list": {
+        "item1": "建立、管理和發送報價單",
+        "item2": "客戶資料管理",
+        "item3": "服務/品項管理",
+        "item4": "多幣別支援與匯率管理"
+      }
+    },
+    "section3": {
+      "title": "3. 用戶責任",
+      "content": "作為本系統的用戶，您同意：",
+      "list": {
+        "item1": "提供準確、完整的註冊資訊，並及時更新",
+        "item2": "保護您的帳號和密碼安全，不與他人分享",
+        "item3": "對您帳號下的所有活動負責",
+        "item4": "不使用本系統進行任何非法或未經授權的活動"
+      }
+    },
+    "section4": {
+      "title": "4. 資料與隱私",
+      "content": "我們重視您的隱私，並承諾：",
+      "list": {
+        "item1": "您的資料僅用於提供服務和改善用戶體驗",
+        "item2": "我們採取適當的安全措施保護您的資料",
+        "item3": "未經您同意，我們不會向第三方出售或分享您的個人資料"
+      }
+    },
+    "section5": {
+      "title": "5. 智慧財產權",
+      "content": "本系統及其所有內容（包括但不限於軟體、設計、文字、圖形）均為本公司或其授權方所有。未經書面授權，您不得複製、修改、分發或以其他方式使用這些內容。"
+    },
+    "section6": {
+      "title": "6. 服務變更與終止",
+      "content": "我們保留隨時修改、暫停或終止本系統或其任何部分的權利，恕不另行通知。我們不對任何修改、暫停或終止服務造成的損失負責。"
+    },
+    "section7": {
+      "title": "7. 免責聲明",
+      "content": "本系統按「現狀」提供，不提供任何明示或暗示的保證。我們不保證服務不會中斷或無錯誤。在法律允許的最大範圍內，我們不對因使用或無法使用本系統而產生的任何直接、間接、偶然或後果性損害負責。"
+    },
+    "section8": {
+      "title": "8. 聯絡方式",
+      "content": "如果您對這些條款有任何疑問，請通過系統內的客服功能或電子郵件與我們聯繫。"
+    }
   }
 }
