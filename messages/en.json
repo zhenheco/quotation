@@ -28,7 +28,105 @@
     "title": "Quotation System",
     "subtitle": "Sign in to manage your quotations",
     "googleSignIn": "Sign in with Google",
-    "poweredBy": "Powered by Supabase & Next.js"
+    "emailSignIn": "Sign in with Email",
+    "poweredBy": "Powered by Supabase & Next.js",
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "example@company.com",
+    "passwordPlaceholder": "Enter your password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "registerNow": "Register now",
+    "emailPasswordRequired": "Please enter email and password",
+    "invalidCredentials": "Invalid email or password",
+    "emailNotConfirmed": "Please verify your email first",
+    "loginSuccess": "Login successful",
+    "loginError": "Login failed, please try again later",
+    "loggingIn": "Logging in...",
+    "emailTab": "Email Login",
+    "googleTab": "Google Login",
+    "googleLoginDescription": "Sign in quickly with your Google account, no password to remember",
+    "registrationSuccessNotice": "✅ Registration successful! Please check your email and click the confirmation link to activate your account."
+  },
+  "register": {
+    "title": "Create Account",
+    "description": "Create an account to start using the quotation system",
+    "heading": "Create Account",
+    "subtitle": "Join us and start managing your quotations",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "emailPlaceholder": "example@company.com",
+    "passwordPlaceholder": "At least 8 characters",
+    "confirmPasswordPlaceholder": "Re-enter password",
+    "agreeToTerms": "I agree to the",
+    "termsOfService": "Terms of Service",
+    "registerButton": "Register",
+    "registering": "Registering...",
+    "backToLogin": "Back to Login",
+    "allFieldsRequired": "Please fill in all fields",
+    "passwordsNotMatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "mustAcceptTerms": "Please accept the terms of service",
+    "emailAlreadyExists": "This email is already registered",
+    "registerSuccess": "Registration successful! Please check your email to confirm your account",
+    "registerError": "Registration failed, please try again later",
+    "passwordWeak": "Password Strength: Weak",
+    "passwordMedium": "Password Strength: Medium",
+    "passwordStrong": "Password Strength: Strong",
+    "passwordMinLength": "At least 8 characters",
+    "passwordUppercase": "Contains uppercase letter",
+    "passwordNumber": "Contains number"
+  },
+  "resetPassword": {
+    "title": "Reset Password",
+    "description": "Reset your account password",
+    "heading": "Reset Password",
+    "subtitle": "Enter your email to receive a reset link",
+    "email": "Email",
+    "emailPlaceholder": "example@company.com",
+    "sendResetLink": "Send Reset Link",
+    "sending": "Sending...",
+    "backToLogin": "Back to Login",
+    "emailRequired": "Please enter your email address",
+    "resetEmailSent": "Reset link sent, please check your email",
+    "resetError": "Failed to send, please try again later",
+    "instructions": "Enter the email address you used to register and we will send you a password reset link.",
+    "emailSentTitle": "Reset Link Sent",
+    "emailSentDescription": "We have sent a password reset link to your email. Please click the link to reset your password.",
+    "sentTo": "Sent to",
+    "tryDifferentEmail": "Use a different email",
+    "rememberPassword": "Remember your password?",
+    "loginHere": "Login here"
+  },
+  "updatePassword": {
+    "title": "Update Password",
+    "description": "Set your new password",
+    "heading": "Set New Password",
+    "subtitle": "Please enter your new password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "passwordPlaceholder": "At least 8 characters",
+    "confirmPasswordPlaceholder": "Re-enter new password",
+    "updateButton": "Update Password",
+    "updating": "Updating...",
+    "allFieldsRequired": "Please fill in all fields",
+    "passwordsNotMatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "updateSuccess": "Password updated successfully!",
+    "updateError": "Password update failed, please try again later",
+    "passwordSameAsOld": "New password must be different from the old password",
+    "passwordWeak": "Password Strength: Weak",
+    "passwordMedium": "Password Strength: Medium",
+    "passwordStrong": "Password Strength: Strong",
+    "passwordMinLength": "At least 8 characters",
+    "passwordUppercase": "Contains uppercase letter",
+    "passwordNumber": "Contains number",
+    "successTitle": "Password Updated Successfully",
+    "successDescription": "Your password has been updated successfully. Redirecting to login page.",
+    "redirecting": "Redirecting...",
+    "rememberPassword": "Remember your password?",
+    "loginHere": "Login here"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -147,6 +245,18 @@
     "deleteConfirm": {
       "title": "Delete Customer",
       "description": "Are you sure you want to delete this customer? This action cannot be undone."
+    },
+    "createSuccess": "Customer created successfully",
+    "updateSuccess": "Customer updated successfully",
+    "deleteSuccess": "Customer deleted successfully",
+    "createError": "Failed to create customer",
+    "updateError": "Failed to update customer",
+    "deleteError": "Failed to delete customer",
+    "fetchError": "Failed to load customer data",
+    "saveError": "Failed to save customer",
+    "validation": {
+      "nameRequired": "Please enter customer name (both Chinese and English)",
+      "emailRequired": "Please enter email address"
     }
   },
   "product": {
@@ -418,5 +528,64 @@
     "sales_manager": "Sales Manager",
     "salesperson": "Salesperson",
     "accountant": "Accountant"
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "description": "Quotation System Terms of Service",
+    "heading": "Terms of Service",
+    "lastUpdated": "Last Updated: October 2025",
+    "backToRegister": "Back to Register",
+    "acceptAndRegister": "Accept and Register",
+    "backToLogin": "Back to Login",
+    "section1": {
+      "title": "1. Acceptance of Terms",
+      "content1": "Welcome to the Quotation System (\"the System\"). By using this System, you agree to comply with the following terms of service. If you do not agree to these terms, please do not use the System.",
+      "content2": "We reserve the right to modify these terms at any time. Any modifications will be posted on this page and will take effect immediately upon posting. Continued use of the System constitutes acceptance of the modified terms."
+    },
+    "section2": {
+      "title": "2. Service Description",
+      "content": "The System provides the following features and services:",
+      "list": {
+        "item1": "Create, manage, and send quotations",
+        "item2": "Customer data management",
+        "item3": "Service/item management",
+        "item4": "Multi-currency support and exchange rate management"
+      }
+    },
+    "section3": {
+      "title": "3. User Responsibilities",
+      "content": "As a user of the System, you agree to:",
+      "list": {
+        "item1": "Provide accurate and complete registration information and keep it updated",
+        "item2": "Protect the security of your account and password, and not share with others",
+        "item3": "Be responsible for all activities under your account",
+        "item4": "Not use the System for any illegal or unauthorized activities"
+      }
+    },
+    "section4": {
+      "title": "4. Data and Privacy",
+      "content": "We value your privacy and commit to:",
+      "list": {
+        "item1": "Use your data solely for providing services and improving user experience",
+        "item2": "Take appropriate security measures to protect your data",
+        "item3": "Not sell or share your personal data with third parties without your consent"
+      }
+    },
+    "section5": {
+      "title": "5. Intellectual Property Rights",
+      "content": "The System and all its content (including but not limited to software, design, text, graphics) are owned by us or our licensors. You may not copy, modify, distribute, or otherwise use this content without written authorization."
+    },
+    "section6": {
+      "title": "6. Service Changes and Termination",
+      "content": "We reserve the right to modify, suspend, or terminate the System or any part of it at any time without notice. We are not liable for any losses resulting from any modification, suspension, or termination of services."
+    },
+    "section7": {
+      "title": "7. Disclaimer",
+      "content": "The System is provided \"as is\" without any express or implied warranties. We do not guarantee that the service will be uninterrupted or error-free. To the maximum extent permitted by law, we are not liable for any direct, indirect, incidental, or consequential damages arising from use or inability to use the System."
+    },
+    "section8": {
+      "title": "8. Contact Information",
+      "content": "If you have any questions about these terms, please contact us through the customer service function within the System or via email."
+    }
   }
 }

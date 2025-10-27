@@ -1,43 +1,74 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import {
+  useQuotation,
+  useUpdateQuotation,
+  useSendQuotation,
+  useConvertToContract,
+  useExportQuotationPDF,
+  type QuotationStatus,
+} from '@/hooks/useQuotations'
 import PDFDownloadButton from '@/components/PDFDownloadButton'
+import { toast } from 'sonner'
 
 interface QuotationDetailProps {
-  quotation: any
-  items: any[]
+  quotationId: string
   locale: string
 }
 
-export default function QuotationDetail({ quotation, items, locale }: QuotationDetailProps) {
+export default function QuotationDetail({ quotationId, locale }: QuotationDetailProps) {
   const t = useTranslations()
   const router = useRouter()
-  const [isUpdating, setIsUpdating] = useState(false)
 
-  const handleStatusChange = async (newStatus: string) => {
-    setIsUpdating(true)
+  // Hooks
+  const { data: quotation, isLoading, error } = useQuotation(quotationId)
+  const updateQuotation = useUpdateQuotation(quotationId)
+  const sendQuotation = useSendQuotation(quotationId)
+  const convertToContract = useConvertToContract(quotationId)
+  const exportPDF = useExportQuotationPDF(quotationId)
+
+  const handleStatusChange = async (newStatus: QuotationStatus) => {
     try {
-      const response = await fetch(`/api/quotations/${quotation.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to update status')
-      }
-
-      router.refresh()
+      await updateQuotation.mutateAsync({ status: newStatus })
+      toast.success(`狀態已更新為 ${t(`status.${newStatus}`)}`)
     } catch (error) {
+      toast.error('更新狀態失敗')
       console.error('Error updating status:', error)
-      alert(error instanceof Error ? error.message : 'Failed to update status')
-    } finally {
-      setIsUpdating(false)
+    }
+  }
+
+  const handleSend = async () => {
+    try {
+      await sendQuotation.mutateAsync()
+      toast.success('報價單已發送')
+    } catch (error) {
+      toast.error('發送失敗')
+      console.error('Error sending quotation:', error)
+    }
+  }
+
+  const handleConvertToContract = async () => {
+    if (!confirm('確定要將此報價單轉換為合約？')) return
+
+    try {
+      await convertToContract.mutateAsync()
+      toast.success('已成功轉換為合約')
+      router.push(`/${locale}/contracts`)
+    } catch (error) {
+      toast.error('轉換失敗')
+      console.error('Error converting to contract:', error)
+    }
+  }
+
+  const handleExportPDF = async (pdfLocale: 'zh' | 'en') => {
+    try {
+      await exportPDF.mutateAsync(pdfLocale)
+      toast.success(`已匯出 ${pdfLocale === 'zh' ? '中文' : '英文'} PDF`)
+    } catch (error) {
+      toast.error('匯出失敗')
+      console.error('Error exporting PDF:', error)
     }
   }
 
@@ -46,12 +77,12 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
     return new Date(validUntil) < new Date()
   }
 
-  const getStatusBadge = (quotationData: any) => {
-    let status = quotationData.status
+  const getStatusBadge = (status: QuotationStatus, validUntil: string) => {
+    let displayStatus = status
 
     // 如果狀態是 sent 或 draft 且已經過期，顯示為 expired
-    if ((status === 'sent' || status === 'draft') && isExpired(quotationData.valid_until)) {
-      status = 'expired'
+    if ((status === 'sent' || status === 'draft') && isExpired(validUntil)) {
+      displayStatus = 'expired' as QuotationStatus
     }
 
     const statusColors = {
@@ -59,15 +90,34 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
       sent: 'bg-blue-100 text-blue-800',
       accepted: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
-      expired: 'bg-orange-100 text-orange-800',
     }
 
     return (
-      <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[status as keyof typeof statusColors]}`}>
-        {t(`status.${status}`)}
+      <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[displayStatus as keyof typeof statusColors] || 'bg-orange-100 text-orange-800'}`}>
+        {t(`status.${displayStatus}`)}
       </span>
     )
   }
+
+  // 載入狀態
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    )
+  }
+
+  // 錯誤狀態
+  if (error || !quotation) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p className="text-red-800">載入報價單失敗：{error?.message || '報價單不存在'}</p>
+      </div>
+    )
+  }
+
+  const isUpdating = updateQuotation.isPending || sendQuotation.isPending || convertToContract.isPending
 
   return (
     <div className="space-y-6">
@@ -93,7 +143,7 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {getStatusBadge(quotation)}
+            {getStatusBadge(quotation.status, quotation.valid_until)}
             <button
               onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 cursor-pointer"
@@ -103,12 +153,22 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
               </svg>
               {t('common.edit')}
             </button>
-            <PDFDownloadButton
-              quotationId={quotation.id}
-              locale={locale as 'zh' | 'en'}
-              variant="secondary"
-              showLanguageOptions={true}
-            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleExportPDF('zh')}
+                disabled={exportPDF.isPending}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {exportPDF.isPending ? '匯出中...' : '匯出中文PDF'}
+              </button>
+              <button
+                onClick={() => handleExportPDF('en')}
+                disabled={exportPDF.isPending}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {exportPDF.isPending ? '匯出中...' : '匯出英文PDF'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -118,17 +178,8 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
               {t('quotation.customer')}
             </h3>
             <p className="text-gray-900 font-medium">
-              {quotation.customers?.name[locale as 'zh' | 'en']}
+              客戶 ID: {quotation.customer_id}
             </p>
-            <p className="text-gray-600 text-sm">{quotation.customers?.email}</p>
-            {quotation.customers?.phone && (
-              <p className="text-gray-600 text-sm">{quotation.customers.phone}</p>
-            )}
-            {quotation.customers?.address && (
-              <p className="text-gray-600 text-sm mt-2">
-                {quotation.customers.address[locale as 'zh' | 'en']}
-              </p>
-            )}
           </div>
 
           <div>
@@ -165,83 +216,27 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
         </div>
       </div>
 
-      {/* Items */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">{t('quotation.items')}</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('product.name')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('quotation.quantity')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('quotation.unitPrice')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('quotation.discount')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('quotation.subtotal')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">
-                      {item.products?.name[locale as 'zh' | 'en']}
-                    </div>
-                    {item.products?.description && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {item.products.description[locale as 'zh' | 'en']}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.quantity}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {quotation.currency} {item.unit_price.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.discount > 0 ? `${quotation.currency} ${item.discount.toLocaleString()}` : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {quotation.currency} {item.subtotal.toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-          <div className="max-w-md ml-auto space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">{t('quotation.subtotal')}:</span>
-              <span className="text-gray-900 font-medium">
-                {quotation.currency} {quotation.subtotal.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">
-                {t('quotation.tax')} ({quotation.tax_rate}%):
-              </span>
-              <span className="text-gray-900 font-medium">
-                {quotation.currency} {quotation.tax_amount.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between text-lg font-bold border-t pt-2">
-              <span>{t('quotation.total')}:</span>
-              <span>{quotation.currency} {quotation.total_amount.toLocaleString()}</span>
-            </div>
+      {/* Summary */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.summary')}</h3>
+        <div className="max-w-md space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">{t('quotation.subtotal')}:</span>
+            <span className="text-gray-900 font-medium">
+              {quotation.currency} {quotation.subtotal?.toLocaleString() || '0'}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">
+              {t('quotation.tax')} ({quotation.tax_rate}%):
+            </span>
+            <span className="text-gray-900 font-medium">
+              {quotation.currency} {quotation.tax_amount?.toLocaleString() || '0'}
+            </span>
+          </div>
+          <div className="flex justify-between text-lg font-bold border-t pt-2">
+            <span>{t('quotation.total')}:</span>
+            <span>{quotation.currency} {quotation.total?.toLocaleString() || '0'}</span>
           </div>
         </div>
       </div>
@@ -250,17 +245,21 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
       {quotation.notes && (
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-2">{t('quotation.notes')}</h3>
-          <p className="text-gray-600 whitespace-pre-wrap">{quotation.notes}</p>
+          <p className="text-gray-600 whitespace-pre-wrap">
+            {typeof quotation.notes === 'string'
+              ? quotation.notes
+              : quotation.notes[locale as 'zh' | 'en']}
+          </p>
         </div>
       )}
 
       {/* Status Actions */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.updateStatus')}</h3>
-        <div className="flex gap-3">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.actions')}</h3>
+        <div className="flex gap-3 flex-wrap">
           {quotation.status === 'draft' && (
             <button
-              onClick={() => handleStatusChange('sent')}
+              onClick={handleSend}
               disabled={isUpdating}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
@@ -284,6 +283,15 @@ export default function QuotationDetail({ quotation, items, locale }: QuotationD
                 {t('quotation.markAsRejected')}
               </button>
             </>
+          )}
+          {quotation.status === 'accepted' && (
+            <button
+              onClick={handleConvertToContract}
+              disabled={isUpdating}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              {t('quotation.convertToContract')}
+            </button>
           )}
           {(quotation.status === 'accepted' || quotation.status === 'rejected') && (
             <button

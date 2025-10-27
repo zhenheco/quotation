@@ -1,39 +1,32 @@
-import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from 'next-intl/server'
-import { redirect, notFound } from 'next/navigation'
+'use client'
+
+import { useTranslations } from 'next-intl'
+import { useParams } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import ProductForm from '../ProductForm'
-import { getProductById } from '@/lib/services/database'
+import { useProduct } from '@/hooks/useProducts'
 
-export const dynamic = 'force-dynamic'
+export default function EditProductPage() {
+  const t = useTranslations()
+  const params = useParams()
+  const locale = params.locale as string
+  const id = params.id as string
 
-export default async function EditProductPage({
-  params,
-}: {
-  params: Promise<{ locale: string; id: string }>
-}) {
-  const { locale, id } = await params
-  const supabase = await createClient()
-  const t = await getTranslations()
+  // 使用 hook 取得產品資料
+  const { data: product, isLoading, error } = useProduct(id)
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
+  // 載入狀態
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    )
   }
 
-  // 使用 Zeabur PostgreSQL 查詢產品資料
-  let product = null
-
-  try {
-    product = await getProductById(id, user.id)
-  } catch (e) {
-    console.error('Error fetching product:', e)
-  }
-
-  if (!product) {
+  // 錯誤或找不到
+  if (error || !product) {
     notFound()
   }
 

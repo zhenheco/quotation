@@ -5,7 +5,7 @@ import { query } from '@/lib/db/zeabur'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/en/dashboard'
+  const next = searchParams.get('next') ?? '/en/login'
 
   if (code) {
     const supabase = await createClient()

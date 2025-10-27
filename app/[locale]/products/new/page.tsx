@@ -1,27 +1,14 @@
-import { getTranslations } from 'next-intl/server'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useTranslations } from 'next-intl'
+import { useParams } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import ProductForm from '../ProductForm'
 
-export const dynamic = 'force-dynamic'
-
-export default async function NewProductPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
-  const { locale } = await params
-  const supabase = await createClient()
-  const t = await getTranslations()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+export default function NewProductPage() {
+  const t = useTranslations()
+  const params = useParams()
+  const locale = params.locale as string
 
   return (
     <div className="space-y-6">

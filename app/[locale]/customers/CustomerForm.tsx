@@ -3,16 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import FormInput from '@/components/ui/FormInput'
 import BilingualFormInput from '@/components/ui/BilingualFormInput'
-
-interface Customer {
-  id: string
-  name: { zh: string; en: string }
-  email: string
-  phone: string | null
-  address: { zh: string; en: string } | null
-}
+import { useCreateCustomer, useUpdateCustomer, type Customer } from '@/hooks/useCustomers'
 
 interface CustomerFormProps {
   locale: string
@@ -22,82 +16,74 @@ interface CustomerFormProps {
 export default function CustomerForm({ locale, customer }: CustomerFormProps) {
   const t = useTranslations()
   const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState('')
+
+  // 使用 hooks
+  const createCustomer = useCreateCustomer()
+  const updateCustomer = useUpdateCustomer(customer?.id || '')
+
+  // 表單狀態
+  const name = customer?.name as { zh: string; en: string } | undefined
+  const address = customer?.address as { zh: string; en: string } | null | undefined
 
   const [formData, setFormData] = useState({
-    nameZh: customer?.name?.zh || '',
-    nameEn: customer?.name?.en || '',
+    nameZh: name?.zh || '',
+    nameEn: name?.en || '',
     email: customer?.email || '',
     phone: customer?.phone || '',
-    addressZh: customer?.address?.zh || '',
-    addressEn: customer?.address?.en || '',
+    addressZh: address?.zh || '',
+    addressEn: address?.en || '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
-    setError('')
+
+    // 驗證
+    if (!formData.nameZh.trim() || !formData.nameEn.trim()) {
+      toast.error(t('customer.validation.nameRequired'))
+      return
+    }
+
+    if (!formData.email.trim()) {
+      toast.error(t('customer.validation.emailRequired'))
+      return
+    }
 
     try {
       const customerData = {
         name: {
-          zh: formData.nameZh,
-          en: formData.nameEn,
+          zh: formData.nameZh.trim(),
+          en: formData.nameEn.trim(),
         },
-        email: formData.email,
-        phone: formData.phone || null,
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || undefined,
         address: {
-          zh: formData.addressZh,
-          en: formData.addressEn,
+          zh: formData.addressZh.trim(),
+          en: formData.addressEn.trim(),
         },
       }
-
-      let response
 
       if (customer) {
-        // Update existing customer
-        response = await fetch(`/api/customers/${customer.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(customerData),
-        })
+        // 更新現有客戶
+        await updateCustomer.mutateAsync(customerData)
+        toast.success(t('customer.updateSuccess'))
       } else {
-        // Create new customer
-        response = await fetch('/api/customers', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(customerData),
-        })
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to save customer')
+        // 建立新客戶
+        await createCustomer.mutateAsync(customerData)
+        toast.success(t('customer.createSuccess'))
       }
 
       router.push(`/${locale}/customers`)
-      router.refresh()
     } catch (err) {
       console.error('Error saving customer:', err)
-      setError(err instanceof Error ? err.message : 'Failed to save customer')
-    } finally {
-      setIsSubmitting(false)
+      const errorMessage = err instanceof Error ? err.message : t('customer.saveError')
+      toast.error(errorMessage)
     }
   }
 
+  const isSubmitting = customer ? updateCustomer.isPending : createCustomer.isPending
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
       <BilingualFormInput
         label={t('customer.name')}
         name="name"

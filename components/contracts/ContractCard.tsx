@@ -4,25 +4,29 @@ import React from 'react'
 import { useTranslations } from 'next-intl'
 import type { CustomerContractWithCustomer } from '@/types/extended.types'
 import PaymentProgressBar from './PaymentProgressBar'
+import { useContractProgress } from '@/hooks/useContracts'
 
 interface ContractCardProps {
   contract: CustomerContractWithCustomer
-  progress: any
   locale: string
   onViewDetails?: () => void
   onRecordPayment?: () => void
   onSendReminder?: () => void
+  onDelete?: () => void | Promise<void>
 }
 
 export default function ContractCard({
   contract,
-  progress,
   locale,
   onViewDetails,
   onRecordPayment,
   onSendReminder,
+  onDelete,
 }: ContractCardProps) {
   const t = useTranslations()
+
+  // Fetch payment progress for this contract
+  const { data: progress, isLoading: progressLoading } = useContractProgress(contract.id)
 
   const isOverdue = contract.status === 'active' && new Date(contract.end_date) < new Date()
   const daysOverdue = isOverdue
@@ -126,6 +130,14 @@ export default function ContractCard({
               {t('contracts.send_reminder')}
             </button>
           </>
+        )}
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+          >
+            {t('common.delete')}
+          </button>
         )}
       </div>
     </div>

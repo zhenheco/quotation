@@ -1,76 +1,54 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
-
-interface Quotation {
-  id: string
-  quotation_number: string
-  customer_id: string
-  customers: {
-    id: string
-    name: { zh: string; en: string }
-    email: string
-  }
-  issue_date: string
-  valid_until: string
-  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
-  currency: string
-  subtotal: number
-  tax_rate: number
-  tax_amount: number
-  total_amount: number
-  created_at: string
-}
+import {
+  useQuotations,
+  useDeleteQuotation,
+  useBatchDeleteQuotations,
+  useBatchUpdateStatus,
+  useBatchExportPDFs,
+  type Quotation,
+  type QuotationStatus,
+} from '@/hooks/useQuotations'
+import { toast } from 'sonner'
 
 interface QuotationListProps {
-  quotations: Quotation[]
   locale: string
 }
 
-export default function QuotationList({ quotations, locale }: QuotationListProps) {
+export default function QuotationList({ locale }: QuotationListProps) {
   const t = useTranslations()
   const router = useRouter()
+
+  // Hooks
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const { data: quotations = [], isLoading, error } = useQuotations(
+    statusFilter !== 'all' ? { status: statusFilter as QuotationStatus } : undefined
+  )
+  const deleteQuotation = useDeleteQuotation()
+  const batchDelete = useBatchDeleteQuotations()
+  const batchUpdateStatus = useBatchUpdateStatus()
+  const batchExport = useBatchExportPDFs()
+
+  // 狀態
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; quotation: Quotation | null }>({
     isOpen: false,
     quotation: null,
   })
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-
-  // 批次操作狀態
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isBatchOperation, setIsBatchOperation] = useState(false)
   const [batchDeleteModal, setBatchDeleteModal] = useState(false)
   const [batchStatusModal, setBatchStatusModal] = useState(false)
-  const [newBatchStatus, setNewBatchStatus] = useState<string>('sent')
-  const [isProcessing, setIsProcessing] = useState(false)
-
-  const filteredQuotations = quotations.filter((quotation) => {
-    if (statusFilter === 'all') return true
-
-    // 特殊處理過期狀態
-    if (statusFilter === 'expired') {
-      // 包含明確標記為expired的，以及draft/sent狀態但已過期的
-      return quotation.status === 'expired' ||
-             ((quotation.status === 'draft' || quotation.status === 'sent') && isExpired(quotation.valid_until))
-    }
-
-    // 如果篩選其他狀態，要排除那些實際已過期的draft/sent
-    if ((statusFilter === 'draft' || statusFilter === 'sent')) {
-      return quotation.status === statusFilter && !isExpired(quotation.valid_until)
-    }
-
-    return quotation.status === statusFilter
-  })
+  const [newBatchStatus, setNewBatchStatus] = useState<QuotationStatus>('sent')
 
   // 批次操作處理函數
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(new Set(filteredQuotations.map(q => q.id)))
+      setSelectedIds(new Set(quotations.map(q => q.id)))
     } else {
       setSelectedIds(new Set())
     }
@@ -87,109 +65,59 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
   }
 
   const handleBatchDelete = async () => {
-    setIsProcessing(true)
     try {
-      const response = await fetch('/api/quotations/batch/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: Array.from(selectedIds) })
-      })
-
-      if (!response.ok) throw new Error('Failed to delete quotations')
-
+      const result = await batchDelete.mutateAsync({ ids: Array.from(selectedIds) })
+      toast.success(`已刪除 ${result.deleted} 個報價單`)
       setBatchDeleteModal(false)
       setSelectedIds(new Set())
       setIsBatchOperation(false)
-      router.refresh()
     } catch (error) {
+      toast.error('批次刪除失敗')
       console.error('Batch delete error:', error)
-      alert('批次刪除失敗')
-    } finally {
-      setIsProcessing(false)
     }
   }
 
   const handleBatchStatusUpdate = async () => {
-    setIsProcessing(true)
     try {
-      const response = await fetch('/api/quotations/batch/status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ids: Array.from(selectedIds),
-          status: newBatchStatus
-        })
+      const result = await batchUpdateStatus.mutateAsync({
+        ids: Array.from(selectedIds),
+        status: newBatchStatus,
       })
-
-      if (!response.ok) throw new Error('Failed to update status')
-
+      toast.success(`已更新 ${result.updated} 個報價單狀態`)
       setBatchStatusModal(false)
       setSelectedIds(new Set())
       setIsBatchOperation(false)
-      router.refresh()
     } catch (error) {
+      toast.error('批次更新狀態失敗')
       console.error('Batch status update error:', error)
-      alert('批次更新狀態失敗')
-    } finally {
-      setIsProcessing(false)
     }
   }
 
   const handleBatchExport = async () => {
-    setIsProcessing(true)
     try {
-      const response = await fetch('/api/quotations/batch/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ids: Array.from(selectedIds),
-          locale
-        })
+      await batchExport.mutateAsync({
+        ids: Array.from(selectedIds),
+        locale: locale as 'zh' | 'en',
       })
-
-      if (!response.ok) throw new Error('Failed to export PDFs')
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `quotations_${new Date().toISOString().split('T')[0]}.zip`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
+      toast.success('批次匯出成功')
       setSelectedIds(new Set())
       setIsBatchOperation(false)
     } catch (error) {
+      toast.error('批次匯出失敗')
       console.error('Batch export error:', error)
-      alert('批次匯出失敗')
-    } finally {
-      setIsProcessing(false)
     }
   }
 
   const handleDelete = async () => {
     if (!deleteModal.quotation) return
 
-    setIsDeleting(true)
     try {
-      const response = await fetch(`/api/quotations/${deleteModal.quotation.id}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to delete quotation')
-      }
-
+      await deleteQuotation.mutateAsync(deleteModal.quotation.id)
+      toast.success('報價單已刪除')
       setDeleteModal({ isOpen: false, quotation: null })
-      router.refresh()
     } catch (error) {
+      toast.error('刪除失敗')
       console.error('Error deleting quotation:', error)
-      alert(error instanceof Error ? error.message : 'Failed to delete quotation')
-    } finally {
-      setIsDeleting(false)
     }
   }
 
@@ -201,9 +129,9 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
   const getStatusBadge = (quotation: Quotation) => {
     let status = quotation.status
 
-    // 如果狀態是 sent 且已經過期，顯示為 expired
+    // 如果狀態是 sent 或 draft 且已經過期，顯示為 expired
     if ((status === 'sent' || status === 'draft') && isExpired(quotation.valid_until)) {
-      status = 'expired'
+      status = 'expired' as QuotationStatus
     }
 
     const statusColors = {
@@ -221,7 +149,28 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
     )
   }
 
-  if (quotations.length === 0) {
+  // 載入狀態
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    )
+  }
+
+  // 錯誤狀態
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">載入報價單失敗：{error.message}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 空狀態
+  if (quotations.length === 0 && statusFilter === 'all') {
     return (
       <EmptyState
         icon="📄"
@@ -250,7 +199,6 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
               <option value="sent">{t('status.sent')}</option>
               <option value="accepted">{t('status.accepted')}</option>
               <option value="rejected">{t('status.rejected')}</option>
-              <option value="expired">{t('status.expired')}</option>
             </select>
 
             {quotations.length > 0 && (
@@ -280,10 +228,10 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
               </button>
               <button
                 onClick={handleBatchExport}
-                disabled={isProcessing}
+                disabled={batchExport.isPending}
                 className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium text-sm disabled:opacity-50 cursor-pointer"
               >
-                {t('batch.exportPDF')} ({selectedIds.size})
+                {batchExport.isPending ? '匯出中...' : `${t('batch.exportPDF')} (${selectedIds.size})`}
               </button>
               <button
                 onClick={() => setBatchDeleteModal(true)}
@@ -303,7 +251,7 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
                   <th className="px-6 py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedIds.size === filteredQuotations.length && filteredQuotations.length > 0}
+                      checked={selectedIds.size === quotations.length && quotations.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />
@@ -333,7 +281,7 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredQuotations.map((quotation) => (
+              {quotations.map((quotation) => (
                 <tr key={quotation.id} className="hover:bg-gray-50">
                   {isBatchOperation && (
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -352,9 +300,8 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {quotation.customers?.name[locale as 'zh' | 'en']}
+                      {quotation.customer_id}
                     </div>
-                    <div className="text-xs text-gray-500">{quotation.customers?.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
@@ -391,7 +338,7 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {quotation.currency} {quotation.total_amount.toLocaleString()}
+                      {quotation.currency} {quotation.total?.toLocaleString() || '0'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -420,7 +367,7 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
           </table>
         </div>
 
-        {filteredQuotations.length === 0 && statusFilter !== 'all' && (
+        {quotations.length === 0 && statusFilter !== 'all' && (
           <div className="text-center py-8 text-gray-500">
             {t('common.noResults')}
           </div>
@@ -435,7 +382,7 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
         description={t('quotation.deleteConfirm.description')}
         confirmText={t('common.delete')}
         cancelText={t('common.cancel')}
-        isLoading={isDeleting}
+        isLoading={deleteQuotation.isPending}
       />
 
       {/* 批次刪除確認彈窗 */}
@@ -447,7 +394,7 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
         description={t('batch.deleteConfirm.description', { count: selectedIds.size })}
         confirmText={t('common.delete')}
         cancelText={t('common.cancel')}
-        isLoading={isProcessing}
+        isLoading={batchDelete.isPending}
       />
 
       {/* 批次更新狀態彈窗 */}
@@ -462,7 +409,7 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
             </p>
             <select
               value={newBatchStatus}
-              onChange={(e) => setNewBatchStatus(e.target.value)}
+              onChange={(e) => setNewBatchStatus(e.target.value as QuotationStatus)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
             >
               <option value="draft">{t('status.draft')}</option>
@@ -479,10 +426,10 @@ export default function QuotationList({ quotations, locale }: QuotationListProps
               </button>
               <button
                 onClick={handleBatchStatusUpdate}
-                disabled={isProcessing}
+                disabled={batchUpdateStatus.isPending}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
               >
-                {isProcessing ? t('common.saving') : t('batch.update')}
+                {batchUpdateStatus.isPending ? t('common.saving') : t('batch.update')}
               </button>
             </div>
           </div>
