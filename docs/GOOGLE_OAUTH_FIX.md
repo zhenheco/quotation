@@ -9,9 +9,33 @@
 已封鎖存取權：「報價單系統」的要求無效
 ```
 
+或者：
+
+```
+{"code":500,"error_code":"unexpected_failure","msg":"Unexpected failure, please check server logs for more information"}
+```
+
 ## 錯誤原因
 
-此錯誤發生於 Google Cloud Console 中配置的授權重定向 URI 與應用程式實際請求的 URI 不匹配。
+1. **redirect_uri_mismatch**: Google Cloud Console 中配置的授權重定向 URI 與應用程式實際請求的 URI 不匹配
+2. **unexpected_failure**: Supabase Dashboard 的 Site URL 設定錯誤（包含多餘空格或端口不正確）
+
+## ✅ 已修復（2025-10-27）
+
+此問題已成功解決，修復步驟如下：
+
+1. **Supabase Dashboard 配置**：
+   - Site URL: `http://localhost:3333` （修正為正確端口，移除多餘空格）
+   - Redirect URLs:
+     - `http://localhost:3333/**`
+     - `https://nxlqtnnssfzzpbyfjnby.supabase.co/**`
+
+2. **Google Cloud Console 配置**：
+   - 已授權的重新導向 URI：
+     - `https://nxlqtnnssfzzpbyfjnby.supabase.co/auth/v1/callback`
+     - `http://localhost:3333/auth/callback`
+
+3. **驗證成功**：Google 登入功能正常，可成功重定向至 Dashboard
 
 ## 解決步驟
 
