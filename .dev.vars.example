@@ -1,0 +1,29 @@
+# Cloudflare Workers 環境變數範例
+# 複製此檔案為 .dev.vars 用於本地開發
+# 生產環境變數請在 Cloudflare Dashboard 設定
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://nxlqtnnssfzzpbyfjnby.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_DB_URL=your_db_url
+
+# Database (Zeabur PostgreSQL)
+ZEABUR_POSTGRES_URL=your_zeabur_postgres_url
+
+# Email (Gmail)
+GMAIL_USER=your_email@gmail.com
+GMAIL_APP_PASSWORD=your_app_password
+
+# Exchange Rate API
+EXCHANGE_RATE_API_KEY=your_api_key
+
+# Company
+COMPANY_NAME=振禾有限公司
+
+# Security
+CRON_SECRET=your_cron_secret
+ADMIN_API_KEY=your_admin_api_key
+
+# Environment
+NODE_ENV=production
