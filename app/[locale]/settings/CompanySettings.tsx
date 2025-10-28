@@ -48,7 +48,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
       const response = await fetch('/api/companies');
       if (response.ok) {
         const data = await response.json();
-        setCompanies(data.map((c: any) => ({
+        setCompanies(data.map((c: { company_id: string; company_name: { zh: string; en: string }; logo_url?: string }) => ({
           id: c.company_id,
           name: c.company_name,
           logo_url: c.logo_url
@@ -172,7 +172,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
         .getPublicUrl(filePath);
 
       // Update company with file URL
-      const updateData: any = {};
+      const updateData: Record<string, string> = {};
       if (type === 'logo') updateData.logo_url = publicUrl;
       if (type === 'signature') updateData.signature_url = publicUrl;
       if (type === 'passbook') updateData.passbook_url = publicUrl;

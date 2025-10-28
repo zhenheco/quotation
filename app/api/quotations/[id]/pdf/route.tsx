@@ -127,7 +127,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const filename = `quotation-${quotation.quotation_number}-${locale}${showBothLanguages ? '-bilingual' : ''}.pdf`
 
     // 返回 PDF 串流
-    return new NextResponse(stream as any, {
+    return new NextResponse(stream as unknown, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,

@@ -4,7 +4,8 @@
  * Lists all unpaid payments (>30 days overdue) using the database view
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { getUnpaidPayments } from '@/lib/services/payments';
 
@@ -57,18 +58,18 @@ export async function GET(req: NextRequest) {
         by_currency: currencyGroups,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get unpaid payments error:', error);
 
-    if (error.message.includes('permissions')) {
+    if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 403 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to get unpaid payments', message: error.message },
+      { error: 'Failed to get unpaid payments', message: getErrorMessage(error) },
       { status: 500 }
     );
   }

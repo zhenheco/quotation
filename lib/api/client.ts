@@ -139,7 +139,7 @@ async function runErrorInterceptors(error: ApiError): Promise<void> {
 /**
  * 建構完整的 URL
  */
-function buildUrl(endpoint: string, params?: Record<string, any>): string {
+function buildUrl(endpoint: string, params?: Record<string, unknown>): string {
   const url = new URL(endpoint, window.location.origin)
 
   if (params) {

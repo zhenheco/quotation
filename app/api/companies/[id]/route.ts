@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { withAuth } from '@/lib/middleware/withAuth';
 import { getCompanyById, updateCompany, deleteCompany } from '@/lib/services/company';
 
@@ -6,7 +7,7 @@ import { getCompanyById, updateCompany, deleteCompany } from '@/lib/services/com
  * GET /api/companies/[id]
  * Get a specific company by ID
  */
-export const GET = withAuth(async (request, { userId, params }) => {
+export const GET = withAuth(async (_request, { userId, params }) => {
   try {
     const { id } = await params;
     const company = await getCompanyById(id, userId);
@@ -16,9 +17,9 @@ export const GET = withAuth(async (request, { userId, params }) => {
     }
 
     return NextResponse.json(company);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching company:', error);
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 403 });
   }
 });
 
@@ -32,9 +33,9 @@ export const PUT = withAuth(async (request, { userId, params }) => {
     const body = await request.json();
     const company = await updateCompany(id, userId, body);
     return NextResponse.json(company);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating company:', error);
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 403 });
   }
 });
 
@@ -42,13 +43,13 @@ export const PUT = withAuth(async (request, { userId, params }) => {
  * DELETE /api/companies/[id]
  * Delete a company (owner only)
  */
-export const DELETE = withAuth(async (request, { userId, params }) => {
+export const DELETE = withAuth(async (_request, { userId, params }) => {
   try {
     const { id } = await params;
     await deleteCompany(id, userId);
     return NextResponse.json({ message: 'Company deleted successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting company:', error);
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 403 });
   }
 });

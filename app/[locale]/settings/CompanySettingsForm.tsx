@@ -8,7 +8,18 @@ import { createClient } from '@/lib/supabase/client';
 export default function CompanySettingsForm() {
   const t = useTranslations('settings');
   const supabase = createClient();
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<{
+    company_name?: { zh: string; en: string };
+    tax_id?: string;
+    phone?: string;
+    email?: string;
+    bank_name?: string;
+    account_number?: string;
+    account_name?: string;
+    logo_url?: string;
+    signature_url?: string;
+    passbook_url?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<{
@@ -62,7 +73,7 @@ export default function CompanySettingsForm() {
         .getPublicUrl(filePath);
 
       // Update company settings with file URL
-      const updateData: any = {};
+      const updateData: Record<string, string> = {};
       if (type === 'logo') updateData.logo_url = publicUrl;
       if (type === 'signature') updateData.signature_url = publicUrl;
       if (type === 'passbook') updateData.passbook_url = publicUrl;
@@ -131,7 +142,7 @@ export default function CompanySettingsForm() {
     return <div className="flex items-center justify-center h-64">加載中...</div>;
   }
 
-  const companyName = settings?.company_name || {};
+  const companyName = settings?.company_name || { zh: '', en: '' };
 
   return (
     <div>

@@ -307,13 +307,12 @@ export function getCsrfTokenFromMeta(): string | null {
  * ```
  */
 export function useCsrfToken(): string | null {
-  if (typeof window === 'undefined') {
-    return null
-  }
-
   const [token, setToken] = React.useState<string | null>(null)
 
   React.useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
     const csrfToken = getCsrfTokenFromMeta() || getCsrfTokenFromCookie()
     setToken(csrfToken)
   }, [])

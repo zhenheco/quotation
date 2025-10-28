@@ -1,0 +1,275 @@
+
+> quotation-app@0.1.0 build /Users/avyshiu/Claudecode/quotation-system
+> next build --turbopack
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/avyshiu/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /Users/avyshiu/Claudecode/quotation-system/pnpm-lock.yaml
+
+   ▲ Next.js 15.5.5 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ⚠ Slow filesystem detected. The benchmark took 257ms. If /Users/avyshiu/Claudecode/quotation-system/.next is a network drive, consider moving it to a local folder. If you have an antivirus enabled, consider excluding your project directory.
+ ✓ Finished writing to disk in 2.2s
+ ✓ Compiled successfully in 27.7s
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./app/[locale]/quotations/QuotationForm.tsx
+15:28  Warning: 'Product' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/[locale]/quotations/[id]/edit/QuotationEditForm.tsx
+3:31  Warning: 'useMemo' is defined but never used.  @typescript-eslint/no-unused-vars
+81:3  Warning: 'customers' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/[locale]/settings/CompanySettings.tsx
+44:6  Warning: React Hook useEffect has a missing dependency: 'fetchCompanies'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+164:15  Warning: 'data' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+231:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+428:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+445:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+462:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/[locale]/settings/CompanySettingsForm.tsx
+61:15  Warning: 'data' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+239:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+266:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+293:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/admin/users/[id]/page.tsx
+156:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/admin/users/page.tsx
+218:29  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./app/api/admin/companies/route.ts
+11:27  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/admin/stats/route.ts
+14:27  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/admin/users/[id]/role/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+4:57  Warning: 'removeRoleFromUser' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/admin/users/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+11:27  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/analytics/revenue-trend/route.ts
+12:27  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/company/manageable/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+12:27  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/contracts/overdue/route.ts
+11:27  Warning: 'req' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/cron/exchange-rates/route.ts
+67:27  Warning: 'request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/customers/[id]/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/customers/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+9:28  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/exchange-rates/route.ts
+7:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+10:27  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/exchange-rates/sync/route.ts
+7:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/me/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/payments/reminders/route.ts
+43:29  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/api/products/[id]/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/products/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+9:28  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/quotations/[id]/pdf/route.tsx
+15:3  Warning: 'getProducts' is defined but never used.  @typescript-eslint/no-unused-vars
+130:39  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/api/quotations/[id]/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/quotations/batch/delete/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/quotations/batch/export/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/quotations/batch/status/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+63:33  Warning: 'data' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/quotations/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+14:28  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/seed-test-data/route.ts
+9:28  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/test-admin/route.ts
+4:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/test-email/route.ts
+40:28  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/user/companies/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+10:27  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/user/permissions/route.ts
+3:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+12:27  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/user-info/route.ts
+2:10  Warning: 'getErrorMessage' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/test-permissions/page.tsx
+22:3  Warning: 'CompanyOwnerOnly' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/CompanySelector.tsx
+104:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/DashboardCharts.tsx
+46:10  Warning: 'selectedPeriod' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+46:26  Warning: 'setSelectedPeriod' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/Navbar.tsx
+24:6  Warning: React Hook useEffect has a missing dependency: 'loadUserProfile'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+89:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/charts/CurrencyChart.tsx
+34:6  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+55:47  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+79:32  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+84:30  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/charts/RevenueChart.tsx
+24:54  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/charts/StatusChart.tsx
+35:54  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/contracts/ContractCard.tsx
+29:38  Warning: 'progressLoading' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/permission/RoleSelector.tsx
+70:3  Warning: 'excludeSuperAdmin' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/api/client.ts
+142:61  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/api/errors.ts
+166:18  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/api/hooks.ts
+122:32  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/db/zeabur.ts
+55:52  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/errors/api-error.ts
+82:29  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+207:15  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+373:44  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+380:39  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/logger/index.ts
+51:18  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+166:25  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/middleware/withAuth.ts
+3:10  Warning: 'getUserPermissions' is defined but never used.  @typescript-eslint/no-unused-vars
+7:21  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+13:35  Warning: 'request' is defined but never used.  @typescript-eslint/no-unused-vars
+35:63  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+35:78  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/middleware/withPermission.ts
+22:40  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+71:40  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+123:3  Warning: 'req' is defined but never used.  @typescript-eslint/no-unused-vars
+139:3  Warning: 'req' is defined but never used.  @typescript-eslint/no-unused-vars
+149:23  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/pdf/QuotationPDFTemplate.tsx
+250:9  Warning: 'tAlt' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/pdf/generator.ts
+11:14  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+12:10  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/security/field-validator.ts
+133:57  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+138:11  Warning: 'strict' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+197:60  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+201:32  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+206:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+231:24  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+245:24  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+259:24  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/services/company.ts
+197:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+233:28  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+437:73  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+537:28  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+546:59  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+552:9  Warning: 'userCheck' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/services/contracts.ts
+48:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+181:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+249:85  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+378:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+514:53  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+757:12  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/services/database.ts
+15:10  Warning: 'QueryResult' is defined but never used.  @typescript-eslint/no-unused-vars
+349:9  Warning: 'pool' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+369:9  Warning: 'pool' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+387:9  Warning: 'pool' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+410:9  Warning: 'pool' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/services/payments.ts
+61:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+205:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+265:80  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+431:12  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+586:12  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+599:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+653:12  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+667:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+698:12  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+712:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/services/rbac.ts
+6:17  Warning: 'getClient' is defined but never used.  @typescript-eslint/no-unused-vars
+9:3  Warning: 'Permission' is defined but never used.  @typescript-eslint/no-unused-vars
+71:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/supabase/middleware.ts
+18:48  Warning: 'options' is defined but never used.  @typescript-eslint/no-unused-vars
+35:13  Warning: 'user' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+ ELIFECYCLE  Command failed with exit code 1.

@@ -48,7 +48,7 @@ export interface LogContext {
   ip?: string
   userAgent?: string
   duration?: number
-  [key: string]: any
+  [key: string]: unknown
 }
 
 /**
@@ -163,7 +163,7 @@ class Logger {
       entry.error = {
         message: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-        code: (error as any).code
+        code: (error as unknown).code
       }
     }
 

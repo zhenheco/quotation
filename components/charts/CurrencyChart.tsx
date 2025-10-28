@@ -31,7 +31,7 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
     innerRadius,
     outerRadius,
     percent,
-  }: any) => {
+  }: unknown) => {
     const RADIAN = Math.PI / 180
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5
     const x = cx + radius * Math.cos(-midAngle * RADIAN)
@@ -52,7 +52,7 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
   }
 
   // 自訂 Tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: unknown) => {
     if (active && payload && payload[0]) {
       const data = payload[0].payload
       return (
@@ -76,12 +76,12 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
   }
 
   // 自訂圖例
-  const renderLegend = (props: any) => {
+  const renderLegend = (props: unknown) => {
     const { payload } = props
 
     return (
       <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: unknown, index: number) => (
           <li key={`item-${index}`} className="flex items-center text-sm">
             <span
               className="inline-block w-3 h-3 rounded-full mr-2"

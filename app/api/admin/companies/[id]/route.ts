@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { isSuperAdmin } from '@/lib/services/rbac';
 import { getCompanyById, getCompanyMembersDetailed, getCompanyStats } from '@/lib/services/company';
 
@@ -9,7 +10,7 @@ import { getCompanyById, getCompanyMembersDetailed, getCompanyStats } from '@/li
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -32,7 +33,7 @@ export async function GET(
       );
     }
 
-    const companyId = params.id;
+    const { id: companyId } = await params;
 
     // 取得公司資訊（超管可以存取任何公司）
     const company = await getCompanyById(companyId, user.id);
@@ -55,10 +56,10 @@ export async function GET(
       stats
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching company details:', error);
 
-    if (error.message?.includes('do not have access')) {
+    if (getErrorMessage(error)?.includes('do not have access')) {
       return NextResponse.json(
         { error: 'Forbidden: Access denied' },
         { status: 403 }

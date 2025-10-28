@@ -3,13 +3,14 @@
  * GET /api/contracts/[id]/payment-progress
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { getContractPaymentProgress } from '@/lib/services/contracts';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -22,7 +23,7 @@ export async function GET(
     }
 
     const userId = session.user.id;
-    const contractId = params.id;
+    const { id: contractId } = await params;
 
     const progress = await getContractPaymentProgress(userId, contractId);
 
@@ -30,25 +31,25 @@ export async function GET(
       success: true,
       data: progress,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get contract payment progress error:', error);
 
-    if (error.message.includes('permissions')) {
+    if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 403 }
       );
     }
 
-    if (error.message.includes('not found')) {
+    if (getErrorMessage(error).includes('not found')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to get payment progress', message: error.message },
+      { error: 'Failed to get payment progress', message: getErrorMessage(error) },
       { status: 500 }
     );
   }

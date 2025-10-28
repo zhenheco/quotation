@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { withAuth, withPermission } from '@/lib/middleware/withAuth';
 import { getUserCompanies, getCompanyById, createCompany, updateCompany } from '@/lib/services/company';
 
-export const GET = withAuth(async (request, { userId }) => {
+export const GET = withAuth(async (_request, { userId }) => {
   try {
     const companies = await getUserCompanies(userId);
 
@@ -14,22 +15,22 @@ export const GET = withAuth(async (request, { userId }) => {
     const companySettings = await getCompanyById(companyId, userId);
 
     return NextResponse.json(companySettings);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 });
 
-export const POST = withPermission('company_settings', 'write', async (request, { userId }) => {
+export const POST = withPermission('company_settings', 'write', async (_request, { userId }) => {
   try {
     const body = await request.json();
     const company = await createCompany(userId, body);
     return NextResponse.json(company, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 });
 
-export const PUT = withPermission('company_settings', 'write', async (request, { userId }) => {
+export const PUT = withPermission('company_settings', 'write', async (_request, { userId }) => {
   try {
     const body = await request.json();
     const { companyId, ...data } = body;
@@ -40,7 +41,7 @@ export const PUT = withPermission('company_settings', 'write', async (request, {
 
     const company = await updateCompany(companyId, userId, data);
     return NextResponse.json(company);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 });

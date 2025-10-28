@@ -21,7 +21,7 @@ export default function RevenueChart({ data, currency }: RevenueChartProps) {
   }
 
   // 自訂 Tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: unknown) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">

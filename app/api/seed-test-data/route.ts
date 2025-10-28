@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createClient } from '@/lib/supabase/server'
 
 /**
  * 建立測試數據的 API 端點
  * 只能由已登入的用戶執行
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const supabase = await createClient()
 
@@ -352,7 +353,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Seed test data error:', error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Internal server error', details: error instanceof Error ? getErrorMessage(error) : 'Unknown error' },
       { status: 500 }
     )
   }

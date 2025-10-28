@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getUserPermissions, isSuperAdmin } from '@/lib/services/rbac';
 import { getUserCompanies } from '@/lib/services/company';
 
@@ -8,7 +9,7 @@ import { getUserCompanies } from '@/lib/services/company';
  * 取得當前使用者的權限資訊
  * 包含：全域角色、公司角色、權限列表
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
       companies: companiesWithPermissions
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching user permissions:', error);
 
     return NextResponse.json(

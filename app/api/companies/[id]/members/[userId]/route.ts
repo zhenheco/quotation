@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { withAuth } from '@/lib/middleware/withAuth';
 import { updateCompanyMemberRole, removeCompanyMember } from '@/lib/services/company';
 
@@ -19,9 +20,9 @@ export const PUT = withAuth(async (request, { userId: currentUserId, params }) =
 
     const member = await updateCompanyMemberRole(id, currentUserId, targetUserId, role_id);
     return NextResponse.json(member);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating member role:', error);
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 403 });
   }
 });
 
@@ -29,13 +30,13 @@ export const PUT = withAuth(async (request, { userId: currentUserId, params }) =
  * DELETE /api/companies/[id]/members/[userId]
  * Remove a member from a company
  */
-export const DELETE = withAuth(async (request, { userId: currentUserId, params }) => {
+export const DELETE = withAuth(async (_request, { userId: currentUserId, params }) => {
   try {
     const { id, userId: targetUserId } = await params;
     await removeCompanyMember(id, currentUserId, targetUserId);
     return NextResponse.json({ message: 'Member removed successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error removing member:', error);
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 403 });
   }
 });

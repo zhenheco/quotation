@@ -194,7 +194,7 @@ export async function updateCompany(
   }
 
   const fields: string[] = [];
-  const values: any[] = [];
+  const values: unknown[] = [];
   let paramIndex = 1;
 
   // Handle name update
@@ -230,7 +230,7 @@ export async function updateCompany(
   simpleFields.forEach(field => {
     if (field in data) {
       fields.push(`${field} = $${paramIndex}`);
-      values.push((data as any)[field]);
+      values.push((data as unknown)[field]);
       paramIndex++;
     }
   });
@@ -434,7 +434,7 @@ export async function updateCompanyFile(
 
   const field = fieldMap[fileType];
 
-  return await updateCompany(companyId, userId, { [field]: fileUrl } as any);
+  return await updateCompany(companyId, userId, { [field]: fileUrl } as unknown);
 }
 
 // ============================================================================
@@ -534,7 +534,7 @@ export async function addCompanyMemberEnhanced(
   // 檢查是否可以分配此角色
   const canAssign = await canAssignRole(
     requestingUserId,
-    memberData.roleName as any,
+    memberData.roleName as unknown,
     companyId
   );
 
@@ -543,7 +543,7 @@ export async function addCompanyMemberEnhanced(
   }
 
   // 取得角色
-  const role = await getRoleByName(memberData.roleName as any);
+  const role = await getRoleByName(memberData.roleName as unknown);
   if (!role) {
     throw new Error(`Role not found: ${memberData.roleName}`);
   }

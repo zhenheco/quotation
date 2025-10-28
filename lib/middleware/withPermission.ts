@@ -19,10 +19,10 @@ export function withPermission(
   resource: PermissionResource,
   action: PermissionAction
 ) {
-  return function <T extends (...args: any[]) => Promise<NextResponse>>(
+  return function <T extends (...args: unknown[]) => Promise<NextResponse>>(
     handler: T
   ): T {
-    return (async (req: NextRequest, context?: any) => {
+    return (async (req: NextRequest, context?: unknown) => {
       try {
         // Get user session
         const session = await getServerSession();
@@ -51,7 +51,7 @@ export function withPermission(
 
         // Call the original handler
         return await handler(req, context);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Permission middleware error:', error);
         return NextResponse.json(
           { error: 'Internal server error', message: error.message },
@@ -68,10 +68,10 @@ export function withPermission(
 export function withPermissions(
   checks: Array<{ resource: PermissionResource; action: PermissionAction }>
 ) {
-  return function <T extends (...args: any[]) => Promise<NextResponse>>(
+  return function <T extends (...args: unknown[]) => Promise<NextResponse>>(
     handler: T
   ): T {
-    return (async (req: NextRequest, context?: any) => {
+    return (async (req: NextRequest, context?: unknown) => {
       try {
         const session = await getServerSession();
 
@@ -105,7 +105,7 @@ export function withPermissions(
 
         // All checks passed
         return await handler(req, context);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Permissions middleware error:', error);
         return NextResponse.json(
           { error: 'Internal server error', message: error.message },
@@ -146,9 +146,9 @@ export async function getCurrentUserId(
  * Require authentication middleware
  */
 export function requireAuth<
-  T extends (...args: any[]) => Promise<NextResponse>
+  T extends (...args: unknown[]) => Promise<NextResponse>
 >(handler: T): T {
-  return (async (req: NextRequest, context?: any) => {
+  return (async (req: NextRequest, context?: unknown) => {
     const session = await getServerSession();
 
     if (!session?.user?.id) {

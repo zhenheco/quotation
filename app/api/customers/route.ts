@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createCustomer } from '@/lib/services/database'
 
 /**
  * POST /api/customers - 建立新客戶
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const supabase = await createClient()
 

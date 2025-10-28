@@ -4,7 +4,8 @@
  * Lists next collection reminders using the database view
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { getNextCollectionReminders } from '@/lib/services/payments';
 
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
       }
       acc[status].push(r);
       return acc;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, unknown[]>);
 
     // Calculate totals
     const totalAmount = reminders.reduce((sum, r) => sum + parseFloat(r.next_collection_amount), 0);
@@ -68,18 +69,18 @@ export async function GET(req: NextRequest) {
       },
       grouped: groupedByStatus,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get payment reminders error:', error);
 
-    if (error.message.includes('permissions')) {
+    if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 403 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to get payment reminders', message: error.message },
+      { error: 'Failed to get payment reminders', message: getErrorMessage(error) },
       { status: 500 }
     );
   }

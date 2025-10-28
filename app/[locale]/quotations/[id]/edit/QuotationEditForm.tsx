@@ -26,18 +26,47 @@ interface QuotationItem {
   subtotal: number
 }
 
+interface VersionChanges {
+  [key: string]: {
+    from: string | number
+    to: string | number
+  } | string
+}
+
 interface Version {
   id: string
   quotation_id: string
   version_number: number
-  changes: any
+  changes: VersionChanges
   changed_by: string
   created_at: string
 }
 
+interface Quotation {
+  id: string
+  customer_id: string
+  issue_date: string
+  valid_until: string
+  currency: string
+  status: string
+  tax_rate?: number
+  notes?: string
+  items?: Array<{
+    product_id?: string
+    quantity: number
+    unit_price: number
+    discount: number
+    amount: number
+  }>
+  customers?: {
+    name: { zh: string; en: string }
+    email: string
+  }
+}
+
 interface QuotationEditFormProps {
   locale: string
-  quotation: any
+  quotation: Quotation
   customers: Customer[]
   products: Product[]
   versions: Version[]
@@ -72,7 +101,7 @@ export default function QuotationEditForm({
   })
 
   const [items, setItems] = useState<QuotationItem[]>(
-    quotation.items?.map((item: any) => ({
+    quotation.items?.map((item) => ({
       product_id: item.product_id || '',
       quantity: item.quantity,
       unit_price: item.unit_price,
@@ -125,7 +154,7 @@ export default function QuotationEditForm({
     setItems(items.filter((_, i) => i !== index))
   }
 
-  const updateItem = (index: number, field: keyof QuotationItem, value: any) => {
+  const updateItem = (index: number, field: keyof QuotationItem, value: string | number) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [field]: value }
 
@@ -179,8 +208,8 @@ export default function QuotationEditForm({
   const { subtotal, taxAmount, total } = calculateTotals()
 
   // 記錄變更
-  const getChanges = () => {
-    const changes: any = {}
+  const getChanges = (): VersionChanges => {
+    const changes: VersionChanges = {}
 
     if (formData.validUntil !== quotation.valid_until) {
       changes.valid_until = {

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getCompanyMembersDetailed, addCompanyMember, getCompanyMember } from '@/lib/services/company';
 import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/services/rbac';
 import { query } from '@/lib/db/zeabur';
@@ -10,7 +11,7 @@ import { query } from '@/lib/db/zeabur';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -24,7 +25,7 @@ export async function GET(
       );
     }
 
-    const companyId = params.id;
+    const { id: companyId } = await params;
 
     // 取得公司成員（內部會檢查權限）
     const members = await getCompanyMembersDetailed(companyId, user.id);
@@ -33,10 +34,10 @@ export async function GET(
       members
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching company members:', error);
 
-    if (error.message?.includes('do not have access')) {
+    if (getErrorMessage(error)?.includes('do not have access')) {
       return NextResponse.json(
         { error: 'Forbidden: Access denied' },
         { status: 403 }
@@ -56,7 +57,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -70,7 +71,7 @@ export async function POST(
       );
     }
 
-    const companyId = params.id;
+    const { id: companyId } = await params;
     const body = await request.json();
     const { user_id, role_name, full_name, display_name, phone } = body;
 
@@ -132,11 +133,11 @@ export async function POST(
 
     return NextResponse.json(newMember, { status: 201 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error adding company member:', error);
 
     // 檢查是否為重複新增
-    if (error.message?.includes('duplicate') || error.code === '23505') {
+    if (getErrorMessage(error)?.includes('duplicate') || error.code === '23505') {
       return NextResponse.json(
         { error: 'User is already a member of this company' },
         { status: 409 }

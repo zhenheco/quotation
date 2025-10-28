@@ -3,13 +3,14 @@
  * PUT /api/contracts/[id]/next-collection
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { updateNextCollection } from '@/lib/services/contracts';
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -22,7 +23,7 @@ export async function PUT(
     }
 
     const userId = session.user.id;
-    const contractId = params.id;
+    const { id: contractId } = await params;
     const body = await req.json();
 
     // Validate required fields
@@ -60,25 +61,25 @@ export async function PUT(
       data: contract,
       message: '下次應收資訊已更新',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update next collection error:', error);
 
-    if (error.message.includes('permissions')) {
+    if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 403 }
       );
     }
 
-    if (error.message.includes('not found')) {
+    if (getErrorMessage(error).includes('not found')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to update next collection', message: error.message },
+      { error: 'Failed to update next collection', message: getErrorMessage(error) },
       { status: 500 }
     );
   }

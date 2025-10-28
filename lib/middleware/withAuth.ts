@@ -4,7 +4,7 @@ import { getUserPermissions, hasPermission as checkPermission } from '@/lib/serv
 
 export interface AuthenticatedRequest extends NextRequest {
   userId: string;
-  userPermissions?: any;
+  userPermissions?: unknown;
 }
 
 /**
@@ -32,7 +32,7 @@ export async function requirePermission(
   resource: string,
   action: string
 ) {
-  const hasAccess = await checkPermission(userId, resource as any, action as any);
+  const hasAccess = await checkPermission(userId, resource as unknown, action as unknown);
 
   if (!hasAccess) {
     return NextResponse.json(

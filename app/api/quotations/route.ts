@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import {
   createQuotation,
   createQuotationItem,
@@ -10,7 +11,7 @@ import {
 /**
  * POST /api/quotations - 建立新報價單
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const supabase = await createClient()
 

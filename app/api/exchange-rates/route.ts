@@ -3,10 +3,11 @@
  * GET /api/exchange-rates - 從 Zeabur PostgreSQL 獲取最新匯率
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getExchangeRates, Currency } from '@/lib/services/exchange-rate-zeabur'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const baseCurrency = (searchParams.get('base') || 'TWD') as Currency
 

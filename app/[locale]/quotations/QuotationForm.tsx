@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Combobox } from '@headlessui/react'
-import FormInput from '@/components/ui/FormInput'
 import {
   useCreateQuotation,
   useUpdateQuotation,
@@ -12,8 +11,8 @@ import {
   type CreateQuotationItemInput,
   type BilingualText,
 } from '@/hooks/useQuotations'
-import { useCustomers } from '@/hooks/useCustomers'
-import { useProducts } from '@/hooks/useProducts'
+import { useCustomers, type Customer } from '@/hooks/useCustomers'
+import { useProducts, type Product } from '@/hooks/useProducts'
 import { toast } from 'sonner'
 
 interface QuotationFormProps {
@@ -44,7 +43,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
   // 狀態
   const [customerQuery, setCustomerQuery] = useState('')
-  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [formData, setFormData] = useState({
     customerId: '',
     issueDate: new Date().toISOString().split('T')[0],
@@ -67,7 +66,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         taxRate: existingQuotation.tax_rate?.toString() || '5',
         notes: typeof existingQuotation.notes === 'string'
           ? existingQuotation.notes
-          : existingQuotation.notes?.[locale as 'zh' | 'en'] || '',
+          : (existingQuotation.notes as unknown as BilingualText)?.[locale as 'zh' | 'en'] || '',
       })
 
       // 設定已選客戶
@@ -84,7 +83,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     : customers.filter((customer) => {
         const name = typeof customer.name === 'string'
           ? customer.name
-          : customer.name[locale as 'zh' | 'en']
+          : (customer.name as unknown as BilingualText)[locale as 'zh' | 'en']
         return (
           name.toLowerCase().includes(customerQuery.toLowerCase()) ||
           customer.email?.toLowerCase().includes(customerQuery.toLowerCase())
@@ -111,7 +110,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   }
 
   // 更新行項目
-  const handleItemChange = (index: number, field: keyof QuotationItem, value: any) => {
+  const handleItemChange = (index: number, field: keyof QuotationItem, value: string | number) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [field]: value }
 
@@ -128,10 +127,10 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     if (field === 'product_id') {
       const product = products.find(p => p.id === value)
       if (product) {
-        newItems[index].unit_price = product.unit_price
+        newItems[index].unit_price = product.base_price
         const quantity = parseFloat(newItems[index].quantity.toString()) || 0
         const discount = parseFloat(newItems[index].discount.toString()) || 0
-        newItems[index].subtotal = quantity * product.unit_price - discount
+        newItems[index].subtotal = quantity * product.base_price - discount
       }
     }
 
@@ -176,17 +175,21 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           zh: formData.notes,
           en: formData.notes,
         } as BilingualText : undefined,
-        items: items.map((item) => ({
-          product_id: item.product_id || undefined,
-          description: {
-            zh: products.find(p => p.id === item.product_id)?.name?.zh || '',
-            en: products.find(p => p.id === item.product_id)?.name?.en || '',
-          },
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          discount: item.discount,
-          amount: item.subtotal,
-        } as CreateQuotationItemInput)),
+        items: items.map((item) => {
+          const product = products.find(p => p.id === item.product_id)
+          const productName = product?.name as BilingualText | undefined
+          return {
+            product_id: item.product_id || undefined,
+            description: {
+              zh: productName?.zh || '',
+              en: productName?.en || '',
+            },
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount: item.discount,
+            amount: item.subtotal,
+          } as CreateQuotationItemInput
+        }),
       }
 
       if (quotationId) {
@@ -258,11 +261,11 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
               <Combobox.Button as="div" className="relative">
                 <Combobox.Input
                   className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 cursor-pointer"
-                  displayValue={(customer: any) => {
+                  displayValue={(customer: Customer | null) => {
                     if (!customer) return ''
                     const name = typeof customer.name === 'string'
                       ? customer.name
-                      : customer.name?.[locale as 'zh' | 'en'] || ''
+                      : (customer.name as unknown as BilingualText)?.[locale as 'zh' | 'en'] || ''
                     return `${name} (${customer.email})`
                   }}
                   onChange={(event) => setCustomerQuery(event.target.value)}
@@ -281,7 +284,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                   filteredCustomers.map((customer) => {
                     const name = typeof customer.name === 'string'
                       ? customer.name
-                      : customer.name?.[locale as 'zh' | 'en'] || ''
+                      : (customer.name as unknown as BilingualText)?.[locale as 'zh' | 'en'] || ''
                     return (
                       <Combobox.Option
                         key={customer.id}
@@ -303,46 +306,66 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         </div>
 
         <div>
-          <FormInput
-            label={t('quotation.currency')}
-            name="currency"
-            type="select"
-            value={formData.currency}
-            onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-            options={CURRENCIES.map(c => ({ value: c, label: c }))}
-            required
-          />
+          <div>
+            <label htmlFor="currency" className="block text-sm font-semibold text-gray-900 mb-1">
+              {t('quotation.currency')}
+              <span className="text-red-500 ml-1">*</span>
+            </label>
+            <select
+              id="currency"
+              value={formData.currency}
+              onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            >
+              {CURRENCIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
-          <FormInput
-            label={t('quotation.issueDate')}
-            name="issueDate"
+          <label htmlFor="issueDate" className="block text-sm font-semibold text-gray-900 mb-1">
+            {t('quotation.issueDate')}
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+          <input
             type="date"
+            id="issueDate"
             value={formData.issueDate}
             onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
+            className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             required
           />
         </div>
 
         <div>
-          <FormInput
-            label={t('quotation.validUntil')}
-            name="validUntil"
+          <label htmlFor="validUntil" className="block text-sm font-semibold text-gray-900 mb-1">
+            {t('quotation.validUntil')}
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+          <input
             type="date"
+            id="validUntil"
             value={formData.validUntil}
             onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+            className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             required
           />
         </div>
 
         <div>
-          <FormInput
-            label={`${t('quotation.taxRate')} (%)`}
-            name="taxRate"
+          <label htmlFor="taxRate" className="block text-sm font-semibold text-gray-900 mb-1">
+            {t('quotation.taxRate')} (%)
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+          <input
             type="number"
+            id="taxRate"
             value={formData.taxRate}
             onChange={(e) => setFormData({ ...formData, taxRate: e.target.value })}
+            className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             min="0"
             max="100"
             step="0.01"
@@ -381,10 +404,10 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                     {products.map((product) => {
                       const name = typeof product.name === 'string'
                         ? product.name
-                        : product.name?.[locale as 'zh' | 'en'] || ''
+                        : (product.name as unknown as BilingualText)?.[locale as 'zh' | 'en'] || ''
                       return (
                         <option key={product.id} value={product.id}>
-                          {name} ({product.currency} {product.unit_price})
+                          {name} ({product.base_currency} {product.base_price})
                         </option>
                       )
                     })}

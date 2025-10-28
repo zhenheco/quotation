@@ -130,7 +130,7 @@ export function isFieldAllowed(
  * // malicious 欄位被自動過濾掉
  * ```
  */
-export function validateFields<T extends Record<string, any>>(
+export function validateFields<T extends Record<string, unknown>>(
   data: T,
   allowedFields: readonly string[],
   options: { strict?: boolean; throwOnInvalid?: boolean } = {}
@@ -194,16 +194,16 @@ export function validateFields<T extends Record<string, any>>(
  * const params = [...values, id, userId]
  * ```
  */
-export function buildUpdateFields<T extends Record<string, any>>(
+export function buildUpdateFields<T extends Record<string, unknown>>(
   data: T,
   allowedFields: readonly string[],
   startParam: number = 1
-): { fields: string[]; values: any[]; paramCount: number } {
+): { fields: string[]; values: unknown[]; paramCount: number } {
   // 先驗證欄位
   const validatedData = validateFields(data, allowedFields, { throwOnInvalid: true })
 
   const fields: string[] = []
-  const values: any[] = []
+  const values: unknown[] = []
   let paramCount = startParam
 
   for (const [key, value] of Object.entries(validatedData)) {
@@ -228,7 +228,7 @@ export function buildUpdateFields<T extends Record<string, any>>(
  * @returns 是否包含非法欄位
  */
 export function hasInvalidFields(
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   allowedFields: readonly string[]
 ): boolean {
   return Object.keys(data).some(key => !isFieldAllowed(key, allowedFields))
@@ -242,7 +242,7 @@ export function hasInvalidFields(
  * @returns 非法欄位名稱陣列
  */
 export function getInvalidFields(
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   allowedFields: readonly string[]
 ): string[] {
   return Object.keys(data).filter(key => !isFieldAllowed(key, allowedFields))
@@ -256,7 +256,7 @@ export function getInvalidFields(
  * @returns 錯誤訊息，如果沒有錯誤則返回 null
  */
 export function validateFieldsWithError(
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   allowedFields: readonly string[]
 ): string | null {
   const invalidFields = getInvalidFields(data, allowedFields)

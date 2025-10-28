@@ -5,12 +5,13 @@
  * 取得系統統計資訊
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createClient } from '@/lib/supabase/server';
 import { isSuperAdmin } from '@/lib/services/rbac';
 import { query } from '@/lib/db/zeabur';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // 驗證使用者身份
     const supabase = await createClient();
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching system stats:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Internal server error', details: error instanceof Error ? getErrorMessage(error) : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -95,7 +96,7 @@ async function getSystemStats() {
     ORDER BY r.level
   `);
 
-  const roleStats = rolesResult.rows.map((row: any) => ({
+  const roleStats = rolesResult.rows.map((row: unknown) => ({
     role_name: row.role_name,
     display_name: row.name_zh, // 使用中文名稱作為顯示名稱
     count: parseInt(row.user_count || '0')

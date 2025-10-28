@@ -52,7 +52,7 @@ export function getZeaburPool(): Pool {
 /**
  * 執行單一查詢
  */
-export async function query(text: string, params?: any[]) {
+export async function query(text: string, params?: unknown[]) {
   const pool = getZeaburPool()
   return pool.query(text, params)
 }

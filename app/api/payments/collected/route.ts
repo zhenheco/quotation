@@ -4,7 +4,8 @@
  * Lists all collected (confirmed) payments using the database view
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { getCollectedPayments } from '@/lib/services/payments';
 
@@ -51,18 +52,18 @@ export async function GET(req: NextRequest) {
         by_currency: currencyGroups,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get collected payments error:', error);
 
-    if (error.message.includes('permissions')) {
+    if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 403 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to get collected payments', message: error.message },
+      { error: 'Failed to get collected payments', message: getErrorMessage(error) },
       { status: 500 }
     );
   }

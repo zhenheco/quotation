@@ -3,7 +3,8 @@
  * POST /api/contracts/from-quotation
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { convertQuotationToContract } from '@/lib/services/contracts';
 import type { PaymentTerms } from '@/types/extended.types';
@@ -81,25 +82,25 @@ export async function POST(req: NextRequest) {
       data: result,
       message: '報價單已成功轉換為合約',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Convert quotation to contract error:', error);
 
-    if (error.message.includes('permissions')) {
+    if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 403 }
       );
     }
 
-    if (error.message.includes('not found')) {
+    if (getErrorMessage(error).includes('not found')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to convert quotation to contract', message: error.message },
+      { error: 'Failed to convert quotation to contract', message: getErrorMessage(error) },
       { status: 500 }
     );
   }

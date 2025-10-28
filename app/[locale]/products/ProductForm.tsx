@@ -34,7 +34,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
   const product = fetchedProduct || initialProduct
 
   // 權限檢查
-  const { hasPermission: canSeeCost, loading: permissionLoading } = usePermission(
+  const { hasPermission: canSeeCost } = usePermission(
     'products',
     'read_cost'
   )

@@ -119,7 +119,7 @@ export function useMutationApi<TData = unknown, TVariables = unknown, TContext =
     onError: (error, variables, context) => {
       // 回滾樂觀更新
       if (config?.optimisticUpdate && context) {
-        const ctx = context as any
+        const ctx = context as unknown
         rollbackOptimisticUpdate(
           queryClient,
           config.optimisticUpdate.queryKey,

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { isSuperAdmin, canAssignRole, assignRoleToUser, removeRoleFromUser } from '@/lib/services/rbac';
 
 /**
@@ -8,7 +9,7 @@ import { isSuperAdmin, canAssignRole, assignRoleToUser, removeRoleFromUser } fro
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -31,7 +32,7 @@ export async function PATCH(
       );
     }
 
-    const targetUserId = params.id;
+    const { id: targetUserId } = await params;
     const body = await request.json();
     const { role_name, company_id } = body;
 
@@ -76,7 +77,7 @@ export async function PATCH(
       { status: 400 }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating user role:', error);
 
     return NextResponse.json(

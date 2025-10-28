@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getAllCompanies } from '@/lib/services/rbac';
 import { query } from '@/lib/db/zeabur';
 
@@ -7,7 +8,7 @@ import { query } from '@/lib/db/zeabur';
  * GET /api/admin/companies
  * 取得所有公司列表（僅超級管理員）
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -52,11 +53,11 @@ export async function GET(request: NextRequest) {
       total: companiesWithStats.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching companies:', error);
 
     // 檢查是否為權限錯誤
-    if (error.message?.includes('Only super admin')) {
+    if (getErrorMessage(error)?.includes('Only super admin')) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: Super admin access required' },
         { status: 403 }

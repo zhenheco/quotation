@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getUserCompanies } from '@/lib/services/company';
 
 /**
  * GET /api/user/companies
  * 取得使用者所屬的公司列表
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
       total: companies.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching user companies:', error);
 
     return NextResponse.json(

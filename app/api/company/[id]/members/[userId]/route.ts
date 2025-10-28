@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import {
   updateCompanyMemberRole,
   removeCompanyMember,
@@ -13,7 +14,7 @@ import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/services/rbac'
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; userId: string } }
+  { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -27,8 +28,7 @@ export async function PATCH(
       );
     }
 
-    const companyId = params.id;
-    const targetUserId = params.userId;
+    const { id: companyId, userId: targetUserId } = await params;
     const body = await request.json();
     const { role_name } = body;
 
@@ -79,17 +79,17 @@ export async function PATCH(
 
     return NextResponse.json(updatedMember);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating company member:', error);
 
-    if (error.message?.includes('Cannot change owner')) {
+    if (getErrorMessage(error)?.includes('Cannot change owner')) {
       return NextResponse.json(
         { error: 'Cannot change owner role' },
         { status: 403 }
       );
     }
 
-    if (error.message?.includes('Insufficient permissions')) {
+    if (getErrorMessage(error)?.includes('Insufficient permissions')) {
       return NextResponse.json(
         { error: 'Forbidden: Insufficient permissions' },
         { status: 403 }
@@ -109,7 +109,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; userId: string } }
+  { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -123,8 +123,7 @@ export async function DELETE(
       );
     }
 
-    const companyId = params.id;
-    const targetUserId = params.userId;
+    const { id: companyId, userId: targetUserId } = await params;
 
     // 檢查是否為超管或公司 owner
     const isAdmin = await isSuperAdmin(user.id);
@@ -144,17 +143,17 @@ export async function DELETE(
       message: 'Member removed successfully'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error removing company member:', error);
 
-    if (error.message?.includes('Cannot remove owner')) {
+    if (getErrorMessage(error)?.includes('Cannot remove owner')) {
       return NextResponse.json(
         { error: 'Cannot remove company owner' },
         { status: 403 }
       );
     }
 
-    if (error.message?.includes('Insufficient permissions')) {
+    if (getErrorMessage(error)?.includes('Insufficient permissions')) {
       return NextResponse.json(
         { error: 'Forbidden: Insufficient permissions' },
         { status: 403 }

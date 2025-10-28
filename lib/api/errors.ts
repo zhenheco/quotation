@@ -163,7 +163,7 @@ export function createErrorFromStatus(
  * 從 Response 物件建立錯誤
  */
 export async function createErrorFromResponse(response: Response): Promise<ApiError> {
-  let errorData: any
+  let errorData: unknown
   let message = response.statusText
 
   try {

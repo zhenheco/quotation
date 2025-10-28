@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 
 export const dynamic = 'force-dynamic'
 
@@ -128,8 +129,8 @@ export async function GET() {
         products: productStats,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to fetch dashboard stats:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }

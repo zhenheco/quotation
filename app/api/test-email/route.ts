@@ -4,7 +4,8 @@
  * POST /api/test-email - 發送測試 Email
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 
 // GET - 測試連線
 export async function GET() {
@@ -24,11 +25,11 @@ export async function GET() {
         company: process.env.COMPANY_NAME || 'Not configured'
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Connection test failed'
+        error: getErrorMessage(error) || 'Connection test failed'
       },
       { status: 500 }
     )
@@ -36,7 +37,7 @@ export async function GET() {
 }
 
 // POST - 發送測試 Email
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const body = await request.json()
     const { to, locale = 'zh' } = body
@@ -104,12 +105,12 @@ export async function POST(request: NextRequest) {
       message: 'Email service not yet configured',
       testData
     }, { status: 501 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Test email error:', error)
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Failed to send test email'
+        error: getErrorMessage(error) || 'Failed to send test email'
       },
       { status: 500 }
     )

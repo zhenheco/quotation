@@ -45,7 +45,7 @@ export async function getContracts(
     WHERE cc.user_id = $1
   `;
 
-  const params: any[] = [userId];
+  const params: unknown[] = [userId];
   let paramIndex = 2;
 
   if (filters?.customer_id) {
@@ -178,7 +178,7 @@ export async function updateContract(
   }
 
   const fields: string[] = [];
-  const values: any[] = [];
+  const values: unknown[] = [];
   let paramIndex = 1;
 
   Object.entries(data).forEach(([key, value]) => {
@@ -246,7 +246,7 @@ export async function updateContractFile(
   userId: string,
   fileUrl: string
 ): Promise<CustomerContract> {
-  return await updateContract(contractId, userId, { contract_file_url: fileUrl } as any);
+  return await updateContract(contractId, userId, { contract_file_url: fileUrl } as unknown);
 }
 
 // ============================================================================
@@ -375,7 +375,7 @@ export async function getPaymentSchedules(
     WHERE ps.user_id = $1
   `;
 
-  const params: any[] = [userId];
+  const params: unknown[] = [userId];
 
   if (contractId) {
     query += ` AND ps.contract_id = $2`;
@@ -511,7 +511,7 @@ export async function convertQuotationToContract(
     payment_frequency: PaymentTerms;
     payment_day?: number; // 每月收款日，預設為5號
   }
-): Promise<{ contract: CustomerContract; quotation: any }> {
+): Promise<{ contract: CustomerContract; quotation: unknown }> {
   // Check permission
   const canWrite = await hasPermission(userId, 'contracts', 'write');
   if (!canWrite) {
@@ -707,7 +707,7 @@ export async function updateNextCollection(
 export async function getContractPaymentProgress(
   userId: string,
   contractId: string
-): Promise<any> {
+): Promise<unknown> {
   // Check permission
   const canRead = await hasPermission(userId, 'contracts', 'read');
   if (!canRead) {
@@ -754,7 +754,7 @@ export async function getContractPaymentProgress(
  */
 export async function getContractsWithOverduePayments(
   userId: string
-): Promise<any[]> {
+): Promise<unknown[]> {
   // Check permission
   const canRead = await hasPermission(userId, 'contracts', 'read');
   if (!canRead) {

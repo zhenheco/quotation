@@ -32,7 +32,7 @@ export default function StatusChart({ data, currency }: StatusChartProps) {
   }))
 
   // 自訂 Tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: unknown) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">

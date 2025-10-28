@@ -4,13 +4,14 @@
  * Manually mark a payment schedule as overdue
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { markPaymentAsOverdue } from '@/lib/services/payments';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -23,7 +24,7 @@ export async function POST(
     }
 
     const userId = session.user.id;
-    const scheduleId = params.id;
+    const { id: scheduleId } = await params;
 
     const schedule = await markPaymentAsOverdue(userId, scheduleId);
 
@@ -32,25 +33,25 @@ export async function POST(
       data: schedule,
       message: '付款排程已標記為逾期',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Mark payment as overdue error:', error);
 
-    if (error.message.includes('permissions')) {
+    if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 403 }
       );
     }
 
-    if (error.message.includes('not found') || error.message.includes('already processed')) {
+    if (getErrorMessage(error).includes('not found') || getErrorMessage(error).includes('already processed')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to mark payment as overdue', message: error.message },
+      { error: 'Failed to mark payment as overdue', message: getErrorMessage(error) },
       { status: 500 }
     );
   }

@@ -68,7 +68,7 @@ export async function updateUserProfile(
   }>
 ): Promise<UserProfile> {
   const fields: string[] = [];
-  const values: any[] = [];
+  const values: unknown[] = [];
   let paramIndex = 1;
 
   Object.entries(data).forEach(([key, value]) => {

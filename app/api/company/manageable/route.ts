@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getManageableCompanies } from '@/lib/services/rbac';
 
 /**
@@ -8,7 +9,7 @@ import { getManageableCompanies } from '@/lib/services/rbac';
  * 超級管理員：所有公司
  * 一般使用者：所屬公司（且為 owner 才能管理成員）
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
       total: companies.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching manageable companies:', error);
 
     return NextResponse.json(

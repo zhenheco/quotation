@@ -3,7 +3,8 @@
  * GET /api/contracts/overdue
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { getContractsWithOverduePayments } from '@/lib/services/contracts';
 
@@ -27,18 +28,18 @@ export async function GET(req: NextRequest) {
       data: contracts,
       count: contracts.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get overdue contracts error:', error);
 
-    if (error.message.includes('permissions')) {
+    if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 403 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to get overdue contracts', message: error.message },
+      { error: 'Failed to get overdue contracts', message: getErrorMessage(error) },
       { status: 500 }
     );
   }

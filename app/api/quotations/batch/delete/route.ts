@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
 
-export async function POST(request: NextRequest) {
-  return batchRateLimiter(request, async () => {
+export async function POST(_request: NextRequest) {
+  return batchRateLimiter(_request, async () => {
     try {
       const supabase = await createClient()
 

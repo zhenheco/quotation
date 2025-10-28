@@ -4,7 +4,8 @@
  * POST /api/payments - Record new payment
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { getPayments, recordPayment } from '@/lib/services/payments';
 import type { PaymentFormData, PaymentType, PaymentMethod } from '@/types/extended.types';
@@ -38,18 +39,18 @@ export async function GET(req: NextRequest) {
       data: payments,
       count: payments.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get payments error:', error);
 
-    if (error.message.includes('permissions')) {
+    if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 403 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to get payments', message: error.message },
+      { error: 'Failed to get payments', message: getErrorMessage(error) },
       { status: 500 }
     );
   }
@@ -149,25 +150,25 @@ export async function POST(req: NextRequest) {
       data: payment,
       message: '收款記錄已建立，下次應收日期已自動更新',
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Record payment error:', error);
 
-    if (error.message.includes('permissions')) {
+    if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 403 }
       );
     }
 
-    if (error.message.includes('not found')) {
+    if (getErrorMessage(error).includes('not found')) {
       return NextResponse.json(
-        { error: error.message },
+        { error: getErrorMessage(error) },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to record payment', message: error.message },
+      { error: 'Failed to record payment', message: getErrorMessage(error) },
       { status: 500 }
     );
   }

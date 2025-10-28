@@ -28,7 +28,6 @@ export default function ProductList({ locale }: ProductListProps) {
     isOpen: false,
     product: null,
   })
-  const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [filters, setFilters] = useState<ProductFilters>({
     search: '',

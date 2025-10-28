@@ -10,7 +10,6 @@ import {
   useExportQuotationPDF,
   type QuotationStatus,
 } from '@/hooks/useQuotations'
-import PDFDownloadButton from '@/components/PDFDownloadButton'
 import { toast } from 'sonner'
 
 interface QuotationDetailProps {

@@ -8,8 +8,41 @@ import { createElement } from 'react'
 import QuotationPDFTemplate from './QuotationPDFTemplate'
 
 export interface QuotationPDFData {
-  quotation: any
-  items: any[]
+  quotation: {
+    quotation_number: string
+    issue_date: string
+    valid_until: string
+    status: string
+    currency: string
+    subtotal: number
+    tax_rate: number
+    tax_amount: number
+    total_amount: number
+    notes?: { zh: string; en: string }
+  }
+  items: Array<{
+    id: string
+    product: {
+      name: { zh: string; en: string }
+      description?: { zh: string; en: string }
+    }
+    quantity: number
+    unit_price: number
+    discount: number
+    subtotal: number
+  }>
+  customer?: {
+    name: { zh: string; en: string }
+    email: string
+    phone?: string
+    address?: { zh: string; en: string }
+  }
+  company?: {
+    name: { zh: string; en: string }
+    email?: string
+    phone?: string
+    address?: { zh: string; en: string }
+  }
   locale: 'zh' | 'en'
 }
 

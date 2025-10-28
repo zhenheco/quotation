@@ -79,14 +79,14 @@ export enum ErrorCode {
 export class ApiError extends Error {
   public readonly statusCode: number
   public readonly code: ErrorCode | string
-  public readonly details?: any
+  public readonly details?: unknown
   public readonly isOperational: boolean
 
   constructor(
     statusCode: number,
     code: ErrorCode | string,
     message: string,
-    details?: any,
+    details?: unknown,
     isOperational: boolean = true
   ) {
     super(message)
@@ -107,7 +107,7 @@ export class ApiError extends Error {
  * 400 Bad Request - 客戶端輸入錯誤
  */
 export class BadRequestError extends ApiError {
-  constructor(message: string = 'Bad Request', details?: any) {
+  constructor(message: string = 'Bad Request', details?: unknown) {
     super(400, ErrorCode.INVALID_INPUT, message, details)
   }
 }
@@ -116,7 +116,7 @@ export class BadRequestError extends ApiError {
  * 401 Unauthorized - 未認證
  */
 export class UnauthorizedError extends ApiError {
-  constructor(message: string = 'Unauthorized', details?: any) {
+  constructor(message: string = 'Unauthorized', details?: unknown) {
     super(401, ErrorCode.UNAUTHORIZED, message, details)
   }
 }
@@ -125,7 +125,7 @@ export class UnauthorizedError extends ApiError {
  * 403 Forbidden - 無權限
  */
 export class ForbiddenError extends ApiError {
-  constructor(message: string = 'Forbidden', details?: any) {
+  constructor(message: string = 'Forbidden', details?: unknown) {
     super(403, ErrorCode.FORBIDDEN, message, details)
   }
 }
@@ -134,7 +134,7 @@ export class ForbiddenError extends ApiError {
  * 404 Not Found - 資源不存在
  */
 export class NotFoundError extends ApiError {
-  constructor(resource: string = 'Resource', details?: any) {
+  constructor(resource: string = 'Resource', details?: unknown) {
     super(404, ErrorCode.NOT_FOUND, `${resource} not found`, details)
   }
 }
@@ -143,7 +143,7 @@ export class NotFoundError extends ApiError {
  * 409 Conflict - 資源衝突
  */
 export class ConflictError extends ApiError {
-  constructor(message: string = 'Resource conflict', details?: any) {
+  constructor(message: string = 'Resource conflict', details?: unknown) {
     super(409, ErrorCode.CONFLICT, message, details)
   }
 }
@@ -152,7 +152,7 @@ export class ConflictError extends ApiError {
  * 422 Unprocessable Entity - 驗證失敗
  */
 export class ValidationError extends ApiError {
-  constructor(message: string = 'Validation failed', details?: any) {
+  constructor(message: string = 'Validation failed', details?: unknown) {
     super(422, ErrorCode.VALIDATION_FAILED, message, details)
   }
 }
@@ -170,7 +170,7 @@ export class RateLimitError extends ApiError {
  * 500 Internal Server Error - 伺服器錯誤
  */
 export class InternalServerError extends ApiError {
-  constructor(message: string = 'Internal server error', details?: any) {
+  constructor(message: string = 'Internal server error', details?: unknown) {
     super(500, ErrorCode.INTERNAL_ERROR, message, details, false)
   }
 }
@@ -179,7 +179,7 @@ export class InternalServerError extends ApiError {
  * 503 Service Unavailable - 外部服務錯誤
  */
 export class ServiceUnavailableError extends ApiError {
-  constructor(service: string = 'Service', details?: any) {
+  constructor(service: string = 'Service', details?: unknown) {
     super(503, ErrorCode.EXTERNAL_SERVICE_ERROR, `${service} is unavailable`, details, false)
   }
 }
@@ -188,7 +188,7 @@ export class ServiceUnavailableError extends ApiError {
  * 504 Gateway Timeout - 超時
  */
 export class TimeoutError extends ApiError {
-  constructor(message: string = 'Request timeout', details?: any) {
+  constructor(message: string = 'Request timeout', details?: unknown) {
     super(504, ErrorCode.TIMEOUT, message, details)
   }
 }
@@ -204,7 +204,7 @@ export interface ErrorResponse {
   error: {
     code: string
     message: string
-    details?: any
+    details?: unknown
     timestamp?: string
     path?: string
     requestId?: string
@@ -325,8 +325,8 @@ export function isOperationalError(error: unknown): boolean {
 /**
  * 從 Zod 驗證錯誤創建 ValidationError
  */
-export function fromZodError(error: any): ValidationError {
-  const details = error.errors?.map((e: any) => ({
+export function fromZodError(error: { errors?: Array<{ path: string[]; message: string }> }): ValidationError {
+  const details = error.errors?.map((e) => ({
     field: e.path.join('.'),
     message: e.message
   }))
@@ -337,7 +337,7 @@ export function fromZodError(error: any): ValidationError {
 /**
  * 從資料庫錯誤創建 ApiError
  */
-export function fromDatabaseError(error: any): ApiError {
+export function fromDatabaseError(error: { code?: string; constraint?: string; column?: string }): ApiError {
   // PostgreSQL 錯誤代碼
   const code = error.code
 
@@ -370,14 +370,14 @@ export function fromDatabaseError(error: any): ApiError {
  *
  * 自動捕獲非同步函式的錯誤並使用 handleApiError 處理
  */
-export function withErrorHandler<T extends any[], R>(
+export function withErrorHandler<T extends unknown[], R>(
   handler: (...args: T) => Promise<R>
 ) {
   return async (...args: T): Promise<R | NextResponse> => {
     try {
       return await handler(...args)
     } catch (error) {
-      return handleApiError(error) as any
+      return handleApiError(error)
     }
   }
 }
@@ -390,12 +390,12 @@ export function withErrorHandler<T extends any[], R>(
  * 快速創建常用錯誤的便利函式
  */
 export const errors = {
-  badRequest: (message: string, details?: any) => new BadRequestError(message, details),
+  badRequest: (message: string, details?: unknown) => new BadRequestError(message, details),
   unauthorized: (message?: string) => new UnauthorizedError(message),
   forbidden: (message?: string) => new ForbiddenError(message),
   notFound: (resource?: string) => new NotFoundError(resource),
-  conflict: (message: string, details?: any) => new ConflictError(message, details),
-  validation: (message: string, details?: any) => new ValidationError(message, details),
+  conflict: (message: string, details?: unknown) => new ConflictError(message, details),
+  validation: (message: string, details?: unknown) => new ValidationError(message, details),
   rateLimit: (retryAfter?: number) => new RateLimitError(undefined, retryAfter),
   internal: (message?: string) => new InternalServerError(message),
   serviceUnavailable: (service: string) => new ServiceUnavailableError(service),

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { withAuth } from '@/lib/middleware/withAuth';
 import { getCompanyMembers, addCompanyMember } from '@/lib/services/company';
 
@@ -6,14 +7,14 @@ import { getCompanyMembers, addCompanyMember } from '@/lib/services/company';
  * GET /api/companies/[id]/members
  * Get all members of a company
  */
-export const GET = withAuth(async (request, { userId, params }) => {
+export const GET = withAuth(async (_request, { userId, params }) => {
   try {
     const { id } = await params;
     const members = await getCompanyMembers(id, userId);
     return NextResponse.json(members);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching company members:', error);
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 403 });
   }
 });
 
@@ -22,7 +23,7 @@ export const GET = withAuth(async (request, { userId, params }) => {
  * Add a new member to a company
  * Body: { user_id: string, role_id: string }
  */
-export const POST = withAuth(async (request, { userId, params }) => {
+export const POST = withAuth(async (_request, { userId, params }) => {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -37,8 +38,8 @@ export const POST = withAuth(async (request, { userId, params }) => {
 
     const member = await addCompanyMember(id, userId, user_id, role_id);
     return NextResponse.json(member, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error adding company member:', error);
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 403 });
   }
 });

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { isSuperAdmin } from '@/lib/services/rbac';
 import { query } from '@/lib/db/zeabur';
 
@@ -7,7 +8,7 @@ import { query } from '@/lib/db/zeabur';
  * GET /api/admin/users
  * 取得所有使用者列表（僅超級管理員）
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
       total: users.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching users:', error);
 
     return NextResponse.json(

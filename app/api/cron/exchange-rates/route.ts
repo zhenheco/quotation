@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { syncRatesToDatabase, SUPPORTED_CURRENCIES } from '@/lib/services/exchange-rate-zeabur'
 import { headers } from 'next/headers'
 
@@ -22,7 +23,7 @@ async function sendErrorNotification(error: Error) {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: `*Exchange Rate Sync Failed*\n\`\`\`${error.message}\`\`\``
+              text: `*Exchange Rate Sync Failed*\n\`\`\`${getErrorMessage(error)}\`\`\``
             }
           },
           {
@@ -135,7 +136,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         error: 'Exchange rate sync failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? getErrorMessage(error) : 'Unknown error'
       },
       { status: 500 }
     )

@@ -58,7 +58,7 @@ export async function getPayments(
     WHERE p.user_id = $1
   `;
 
-  const params: any[] = [userId];
+  const params: unknown[] = [userId];
   let paramIndex = 2;
 
   if (filters?.customer_id) {
@@ -202,7 +202,7 @@ export async function updatePayment(
   }
 
   const fields: string[] = [];
-  const values: any[] = [];
+  const values: unknown[] = [];
   let paramIndex = 1;
 
   Object.entries(data).forEach(([key, value]) => {
@@ -262,7 +262,7 @@ export async function updatePaymentReceipt(
   userId: string,
   receiptUrl: string
 ): Promise<Payment> {
-  return await updatePayment(paymentId, userId, { receipt_url: receiptUrl } as any);
+  return await updatePayment(paymentId, userId, { receipt_url: receiptUrl } as unknown);
 }
 
 // ============================================================================
@@ -428,7 +428,7 @@ export async function calculateOutstandingBalance(
 export async function getCustomersNeedingPaymentReminder(
   userId: string,
   daysBeforeDue: number = 7
-): Promise<any[]> {
+): Promise<unknown[]> {
   const result = await query(
     `SELECT
        c.*,
@@ -583,7 +583,7 @@ export async function getCollectedPayments(
     end_date?: string;
     payment_type?: string;
   }
-): Promise<any[]> {
+): Promise<unknown[]> {
   // Check permission
   const canRead = await hasPermission(userId, 'payments', 'read');
   if (!canRead) {
@@ -596,7 +596,7 @@ export async function getCollectedPayments(
     WHERE 1=1
   `;
 
-  const params: any[] = [];
+  const params: unknown[] = [];
   let paramIndex = 1;
 
   // Note: View doesn't have user_id, so we need to filter differently
@@ -650,7 +650,7 @@ export async function getUnpaidPayments(
     customer_id?: string;
     min_days_overdue?: number;
   }
-): Promise<any[]> {
+): Promise<unknown[]> {
   // Check permission
   const canRead = await hasPermission(userId, 'payments', 'read');
   if (!canRead) {
@@ -664,7 +664,7 @@ export async function getUnpaidPayments(
     WHERE cc.user_id = $1
   `;
 
-  const params: any[] = [userId];
+  const params: unknown[] = [userId];
   let paramIndex = 2;
 
   if (filters?.customer_id) {
@@ -695,7 +695,7 @@ export async function getNextCollectionReminders(
     days_ahead?: number; // Default 30 days
     status?: 'overdue' | 'due_today' | 'due_soon' | 'upcoming';
   }
-): Promise<any[]> {
+): Promise<unknown[]> {
   // Check permission
   const canRead = await hasPermission(userId, 'payments', 'read');
   if (!canRead) {
@@ -709,7 +709,7 @@ export async function getNextCollectionReminders(
     WHERE cc.user_id = $1
   `;
 
-  const params: any[] = [userId];
+  const params: unknown[] = [userId];
   let paramIndex = 2;
 
   // Filter by days ahead (default 30 days)
