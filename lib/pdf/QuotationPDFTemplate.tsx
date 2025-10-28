@@ -470,3 +470,5 @@ export const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({
     </Document>
   )
 }
+
+export default QuotationPDFTemplate

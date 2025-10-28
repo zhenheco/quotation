@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, withPermission } from '@/lib/middleware/withAuth';
-import { getCompanySettings, createCompanySettings, updateCompanySettings } from '@/lib/services/company';
+import { getUserCompanies, getCompanyById, createCompany, updateCompany } from '@/lib/services/company';
 
 export const GET = withAuth(async (request, { userId }) => {
   try {
-    const settings = await getCompanySettings(userId);
+    const companies = await getUserCompanies(userId);
 
-    if (!settings) {
-      return NextResponse.json({ error: 'Settings not found' }, { status: 404 });
+    if (!companies || companies.length === 0) {
+      return NextResponse.json({ error: 'No companies found' }, { status: 404 });
     }
 
-    return NextResponse.json(settings);
+    const companyId = companies[0].company_id;
+    const companySettings = await getCompanyById(companyId, userId);
+
+    return NextResponse.json(companySettings);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -19,8 +22,8 @@ export const GET = withAuth(async (request, { userId }) => {
 export const POST = withPermission('company_settings', 'write', async (request, { userId }) => {
   try {
     const body = await request.json();
-    const settings = await createCompanySettings(userId, body);
-    return NextResponse.json(settings, { status: 201 });
+    const company = await createCompany(userId, body);
+    return NextResponse.json(company, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -29,8 +32,14 @@ export const POST = withPermission('company_settings', 'write', async (request, 
 export const PUT = withPermission('company_settings', 'write', async (request, { userId }) => {
   try {
     const body = await request.json();
-    const settings = await updateCompanySettings(userId, body);
-    return NextResponse.json(settings);
+    const { companyId, ...data } = body;
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'Company ID is required' }, { status: 400 });
+    }
+
+    const company = await updateCompany(companyId, userId, data);
+    return NextResponse.json(company);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

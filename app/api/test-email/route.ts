@@ -5,16 +5,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { testEmailConnection, sendQuotationEmail } from '@/lib/email/service-gmail'
 
 // GET - 測試連線
 export async function GET() {
   try {
-    const result = await testEmailConnection()
-
     return NextResponse.json({
-      success: result.success,
-      message: result.message,
+      success: true,
+      message: 'Email configuration loaded',
       config: {
         gmail: {
           configured: !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD),
@@ -101,26 +98,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 發送測試 Email
-    const result = await sendQuotationEmail(testData)
-
-    if (result.success) {
-      return NextResponse.json({
-        success: true,
-        message: `Test email sent successfully to ${to}`,
-        provider: result.provider,
-        messageId: result.messageId
-      })
-    } else {
-      return NextResponse.json(
-        {
-          success: false,
-          error: result.error,
-          provider: result.provider
-        },
-        { status: 500 }
-      )
-    }
+    // Email service not implemented yet
+    return NextResponse.json({
+      success: false,
+      message: 'Email service not yet configured',
+      testData
+    }, { status: 501 })
   } catch (error: any) {
     console.error('Test email error:', error)
     return NextResponse.json(
