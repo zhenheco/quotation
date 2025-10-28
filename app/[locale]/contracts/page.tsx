@@ -167,7 +167,7 @@ export default function ContractsPage({ params }: { params: Promise<{ locale: st
                 description={t('contracts.emptyState.description')}
                 action={{
                   label: t('contracts.createFromQuotation'),
-                  href: `/${locale}/contracts/new`,
+                  onClick: () => router.push(`/${locale}/contracts/new`),
                 }}
               />
             ) : (
