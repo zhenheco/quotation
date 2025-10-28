@@ -50,6 +50,12 @@ export interface Database {
           base_currency: string
           category: string | null
           user_id: string
+          cost_price: number | null
+          cost_currency: string | null
+          profit_margin: number | null
+          supplier: string | null
+          supplier_code: string | null
+          sku: string | null
           created_at: string
           updated_at: string
         }
@@ -61,6 +67,12 @@ export interface Database {
           base_currency: string
           category?: string | null
           user_id: string
+          cost_price?: number | null
+          cost_currency?: string | null
+          profit_margin?: number | null
+          supplier?: string | null
+          supplier_code?: string | null
+          sku?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -72,6 +84,12 @@ export interface Database {
           base_currency?: string
           category?: string | null
           user_id?: string
+          cost_price?: number | null
+          cost_currency?: string | null
+          profit_margin?: number | null
+          supplier?: string | null
+          supplier_code?: string | null
+          sku?: string | null
           created_at?: string
           updated_at?: string
         }

@@ -187,6 +187,7 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
 
                 {filteredUnpaid.length === 0 ? (
                   <EmptyState
+                    icon="💰"
                     title={t('payments.emptyState.unpaid.title')}
                     description={t('payments.emptyState.unpaid.description')}
                   />
@@ -231,6 +232,7 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
 
                 {filteredCollected.length === 0 ? (
                   <EmptyState
+                    icon="✅"
                     title={t('payments.emptyState.collected.title')}
                     description={t('payments.emptyState.collected.description')}
                   />

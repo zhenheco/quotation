@@ -221,7 +221,7 @@ export default function DashboardClient({ locale }: { locale: string }) {
           items={
             overdueContracts?.map((contract) => ({
               id: contract.id,
-              name: contract.customers?.company_name || '',
+              name: locale === 'zh' ? contract.customer?.company_name_zh : contract.customer?.company_name_en || '',
               date: contract.next_collection_date || '',
               amount: contract.next_collection_amount || 0,
             })) || []

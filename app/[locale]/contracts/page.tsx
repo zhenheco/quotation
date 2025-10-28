@@ -1,6 +1,7 @@
 'use client'
 
 import { use, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
@@ -19,6 +20,7 @@ import { toast } from 'sonner'
 
 export default function ContractsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = use(params)
+  const router = useRouter()
   const t = useTranslations()
   const [filter, setFilter] = useState<'all' | 'active' | 'expired' | 'overdue'>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -163,6 +165,7 @@ export default function ContractsPage({ params }: { params: Promise<{ locale: st
 
             {filteredContracts.length === 0 ? (
               <EmptyState
+                icon="📄"
                 title={t('contracts.emptyState.title')}
                 description={t('contracts.emptyState.description')}
                 action={{

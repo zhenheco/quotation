@@ -247,7 +247,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
           <p className="text-gray-600 whitespace-pre-wrap">
             {typeof quotation.notes === 'string'
               ? quotation.notes
-              : quotation.notes[locale as 'zh' | 'en']}
+              : (quotation.notes as Record<string, string>)[locale as 'zh' | 'en']}
           </p>
         </div>
       )}

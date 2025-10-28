@@ -27,6 +27,7 @@ export type PermissionAction =
   | 'write'
   | 'delete'
   | 'read_cost'
+  | 'write_cost'
   | 'assign_roles';
 
 export interface Role {

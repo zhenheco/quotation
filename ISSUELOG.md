@@ -4,6 +4,86 @@
 
 ---
 
+## [ISSUE-014] - 2025-10-28: Cloudflare Workers 部署 - standalone 目錄結構錯誤
+
+**狀態**: ✅ Resolved
+
+**嚴重程度**: 🔴 Critical (阻止部署)
+
+### 錯誤描述
+
+OpenNext Cloudflare 建置時找不到 pages-manifest.json：
+```
+Error: ENOENT: no such file or directory, open '/Users/avyshiu/Claudecode/quotation-system/.next/standalone/.next/server/pages-manifest.json'
+```
+
+### 發生位置
+
+- 工具: `opennextjs-cloudflare build`
+- 預期路徑: `.next/standalone/.next/server/pages-manifest.json`
+- 實際路徑: `.next/standalone/Claudecode/quotation-system/.next/server/pages-manifest.json`
+
+### 根本原因分析
+
+1. **Workspace root 推斷錯誤**: Next.js 偵測到多個 lockfiles：
+   - `/Users/avyshiu/package-lock.json` (被誤認為 root)
+   - `/Users/avyshiu/Claudecode/quotation-system/pnpm-lock.yaml` (正確的專案 root)
+
+2. **Standalone 輸出結構**: Next.js 使用推斷的 root 作為基準，導致輸出完整路徑：
+   ```
+   .next/standalone/Claudecode/quotation-system/.next/  (錯誤)
+   .next/standalone/.next/                             (正確)
+   ```
+
+### 解決方案
+
+在 `next.config.ts` 加上 `outputFileTracingRoot` 設定：
+
+```typescript
+const nextConfig: NextConfig = {
+  output: 'standalone',
+  outputFileTracingRoot: '/Users/avyshiu/Claudecode/quotation-system',  // 明確指定專案 root
+  // ... 其他設定
+};
+```
+
+### 驗證步驟
+
+1. 清除舊的 build：
+   ```bash
+   rm -rf .next .open-next
+   ```
+
+2. 重新建置：
+   ```bash
+   pnpm run build
+   ```
+
+3. 驗證 standalone 結構：
+   ```bash
+   ls .next/standalone/.next/server/pages-manifest.json
+   ```
+
+4. 打包並部署：
+   ```bash
+   pnpm exec opennextjs-cloudflare build --skipBuild
+   pnpm exec opennextjs-cloudflare deploy
+   ```
+
+### 結果
+
+✅ 部署成功：https://quotation-system.acejou27.workers.dev
+- 首頁: 307 重定向到 `/zh/login`
+- 登入頁: 200 狀態碼
+
+### 學到的教訓
+
+1. 多個 lockfiles 會導致 Next.js workspace root 推斷錯誤
+2. 使用 `outputFileTracingRoot` 明確指定專案根目錄
+3. OpenNext 需要正確的 standalone 目錄結構才能正常工作
+
+---
+
 ## [ISSUE-001] - 2025-10-18: 建置錯誤 - Module not found: '@/lib/auth'
 
 **狀態**: ✅ Resolved
@@ -146,15 +226,136 @@ getServerSession(authOptions) → getServerSession()
 
 ---
 
+## [ISSUE-002] - 2025-10-28: Cloudflare Workers 部署錯誤 - Failed to load chunk server
+
+**狀態**: ✅ Resolved
+
+**嚴重程度**: 🔴 Critical (阻止 Cloudflare Workers 運行)
+
+### 錯誤描述
+
+部署到 Cloudflare Workers 後，所有頁面返回 500 Internal Server Error：
+```
+Error: Failed to load chunk server/chunks/ssr/[root-of-the-server]__768361fc._.js from runtime for chunk server/app/page.js
+Error: Failed to load chunk server/chunks/ssr/[root-of-the-server]__9285a355._.js from runtime for chunk server/pages/_document.js
+```
+
+### 發生位置
+
+- 環境: Cloudflare Workers (Production)
+- URL: https://quotation-system.acejou27.workers.dev
+- 所有路徑都受影響
+
+### 根本原因分析
+
+1. **使用了 Turbopack 構建**:
+   - `package.json` 中的 `build` 腳本使用了 `--turbopack` 標誌
+   - OpenNext Cloudflare 不支持 Turbopack 構建的輸出
+
+2. **為什麼 Turbopack 不相容**:
+   - Turbopack 使用與 Webpack 不同的 chunk 分割策略
+   - OpenNext 的 Cloudflare 適配器期望 Webpack 的輸出格式
+   - Cloudflare Workers 需要所有檔案在構建時打包，不支持運行時動態載入
+
+3. **官方文檔確認**:
+   - OpenNext Troubleshooting 文檔明確說明不支持 Turbopack
+   - 必須使用 `next build` 而非 `next build --turbo`
+
+### 解決方案
+
+**步驟 1**: 移除 Turbopack 標誌
+
+修改 `package.json`:
+```diff
+  "scripts": {
+    "dev": "next dev --turbopack",
+-   "build": "next build --turbopack",
++   "build": "next build",
+    "start": "next start",
+```
+
+**步驟 2**: 清理舊構建並重新部署
+
+```bash
+rm -rf .next .open-next
+pnpm run deploy:cf
+```
+
+**步驟 3**: 驗證部署成功
+
+- ✅ 首頁返回 307 重定向（正確行為）
+- ✅ `/zh/login` 返回 200 狀態碼
+- ✅ 頁面標題正確顯示
+- ✅ 沒有 500 錯誤
+
+### 技術細節
+
+1. **構建輸出差異**:
+   - Webpack 構建: 傳統的 chunk 格式，OpenNext 支持
+   - Turbopack 構建: 新的優化格式，OpenNext 尚未支持
+
+2. **Cloudflare Workers 限制**:
+   - 不支持檔案系統 API
+   - 所有資源必須在構建時打包
+   - 動態 import 需要特殊處理
+
+3. **OpenNext 版本**:
+   - `@opennextjs/cloudflare`: 1.11.0
+   - Next.js: 15.5.5
+   - 需要 compatibility_date: 2025-03-25 或更新
+
+### 預防措施
+
+1. **CI/CD 檢查**:
+   - 在部署前檢查 build 腳本是否包含 `--turbopack`
+   - 添加 lint 規則檢查 package.json
+
+2. **文檔更新**:
+   - 在 README 中說明 Cloudflare 部署限制
+   - 記錄 dev 和 build 腳本的不同用途
+
+3. **監控**:
+   - 使用 `wrangler tail` 監控部署後的日誌
+   - 設置 Cloudflare Workers 錯誤告警
+
+### 驗證步驟
+
+部署後執行以下檢查：
+```bash
+# 檢查首頁
+curl -I https://quotation-system.acejou27.workers.dev
+
+# 檢查登入頁
+curl -I https://quotation-system.acejou27.workers.dev/zh/login
+
+# 查看實時日誌
+pnpm exec wrangler tail quotation-system
+```
+
+### 相關資源
+
+- [OpenNext Cloudflare Troubleshooting](https://opennext.js.org/cloudflare/troubleshooting)
+- [Cloudflare Workers Compatibility](https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/)
+- [Next.js Turbopack Documentation](https://nextjs.org/docs/architecture/turbopack)
+
+### 學到的教訓
+
+1. **不是所有 Next.js 功能都能在邊緣運行**: Turbopack 是為本地開發優化的
+2. **閱讀平台文檔很重要**: OpenNext 文檔明確說明了不支持 Turbopack
+3. **保持 dev 和 production 一致**: 雖然 dev 用 Turbopack 更快，但 production 必須用 Webpack
+4. **部署前測試**: 使用 `pnpm run preview:cf` 在本地測試 Cloudflare Workers
+
+---
+
 ## 問題統計
 
-- **總問題數**: 1
-- **已解決**: 1
+- **總問題數**: 2
+- **已解決**: 2
 - **進行中**: 0
 - **未解決**: 0
 
 ### 按嚴重程度
 
-- 🔴 Critical: 1 (已解決)
+- 🔴 Critical: 2 (已解決)
 - 🟡 Medium: 0
 - 🟢 Low: 0

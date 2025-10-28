@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { isSuperAdmin, canAssignRole, getRoleByName } from '@/lib/services/rbac';
 import { addCompanyMember } from '@/lib/services/company';
@@ -89,7 +89,11 @@ export async function POST(
     console.error('Error adding company member:', error);
 
     // 檢查是否為重複新增
-    if (getErrorMessage(error)?.includes('duplicate') || error.code === '23505') {
+    const errorMessage = getErrorMessage(error);
+    const isDuplicate = errorMessage?.includes('duplicate') ||
+                       (error && typeof error === 'object' && 'code' in error && error.code === '23505');
+
+    if (isDuplicate) {
       return NextResponse.json(
         { error: 'User is already a member of this company' },
         { status: 409 }

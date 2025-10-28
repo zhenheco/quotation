@@ -439,7 +439,7 @@ export function useFilteredProducts(filters: ProductFilters) {
 export function useProductCategories() {
   const { data: products } = useProducts()
 
-  const categories = [...new Set(products?.map((p) => p.category).filter(Boolean))]
+  const categories = [...new Set(products?.map((p) => p.category).filter((c): c is string => Boolean(c)))]
 
   return {
     data: categories,

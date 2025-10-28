@@ -5,7 +5,7 @@
  * 取得系統統計資訊
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createClient } from '@/lib/supabase/server';
 import { isSuperAdmin } from '@/lib/services/rbac';
@@ -96,11 +96,14 @@ async function getSystemStats() {
     ORDER BY r.level
   `);
 
-  const roleStats = rolesResult.rows.map((row: unknown) => ({
-    role_name: row.role_name,
-    display_name: row.name_zh, // 使用中文名稱作為顯示名稱
-    count: parseInt(row.user_count || '0')
-  }));
+  const roleStats = rolesResult.rows.map((row: unknown) => {
+    const r = row as Record<string, any>;
+    return {
+      role_name: r.role_name,
+      display_name: r.name_zh, // 使用中文名稱作為顯示名稱
+      count: parseInt(r.user_count || '0')
+    };
+  });
 
   // 最近新增的公司（最近7天）
   const recentCompaniesResult = await query(`

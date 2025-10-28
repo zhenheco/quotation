@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getUserPermissions, isSuperAdmin } from '@/lib/services/rbac';
 import { getUserCompanies } from '@/lib/services/company';

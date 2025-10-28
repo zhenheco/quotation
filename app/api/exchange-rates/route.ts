@@ -3,7 +3,7 @@
  * GET /api/exchange-rates - 從 Zeabur PostgreSQL 獲取最新匯率
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getExchangeRates, Currency } from '@/lib/services/exchange-rate-zeabur'
 
