@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
  *
  * 取得營收趨勢數據（按月份統計）
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
 

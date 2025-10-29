@@ -1,11 +1,11 @@
 /**
- * Zeabur PostgreSQL 資料庫客戶端
- * 用於直接連接到 Zeabur 上的業務資料庫
+ * Supabase PostgreSQL 資料庫客戶端
+ * 用於直接連接到 Supabase 上的業務資料庫
  */
 
 import { Pool, PoolClient } from 'pg'
 
-// Zeabur PostgreSQL 連接池
+// Supabase PostgreSQL 連接池
 let pool: Pool | null = null
 
 /**
@@ -13,14 +13,14 @@ let pool: Pool | null = null
  */
 export function getZeaburPool(): Pool {
   if (!pool) {
-    const connectionString = process.env.ZEABUR_POSTGRES_URL
+    const connectionString = process.env.SUPABASE_DB_URL
 
     // 確保環境變數已設置
     if (!connectionString) {
       throw new Error(
-        '❌ ZEABUR_POSTGRES_URL environment variable is required.\n' +
+        '❌ SUPABASE_DB_URL environment variable is required.\n' +
         '請在 .env.local 檔案中設置資料庫連線字串:\n' +
-        'ZEABUR_POSTGRES_URL=postgresql://user:password@host:port/database'
+        'SUPABASE_DB_URL=postgresql://user:password@host:port/database'
       )
     }
 
@@ -29,11 +29,11 @@ export function getZeaburPool(): Pool {
       /:([^@]+)@/,
       ':****@'
     )
-    console.log('📦 Connecting to Zeabur PostgreSQL:', maskedUrl)
+    console.log('📦 Connecting to Supabase PostgreSQL:', maskedUrl)
 
     pool = new Pool({
       connectionString,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      ssl: { rejectUnauthorized: false },
       max: 20, // 最大連接數
       idleTimeoutMillis: 30000, // 閒置連接超時
       connectionTimeoutMillis: 2000 // 連接超時

@@ -3,10 +3,39 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createCustomer } from '@/lib/services/database'
 
+export const dynamic = 'force-dynamic'
+
+/**
+ * GET /api/customers - 取得所有客戶
+ */
+export async function GET() {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: customers, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    return NextResponse.json(customers)
+  } catch (error: unknown) {
+    console.error('Error fetching customers:', error)
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+  }
+}
+
 /**
  * POST /api/customers - 建立新客戶
  */
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
 

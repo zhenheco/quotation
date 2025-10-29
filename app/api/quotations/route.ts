@@ -8,10 +8,42 @@ import {
   validateCustomerOwnership
 } from '@/lib/services/database'
 
+export const dynamic = 'force-dynamic'
+
+/**
+ * GET /api/quotations - 取得所有報價單
+ */
+export async function GET() {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: quotations, error } = await supabase
+      .from('quotations')
+      .select(`
+        *,
+        customer:customers(*)
+      `)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    return NextResponse.json(quotations)
+  } catch (error: unknown) {
+    console.error('Error fetching quotations:', error)
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+  }
+}
+
 /**
  * POST /api/quotations - 建立新報價單
  */
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
 
