@@ -21,7 +21,7 @@ export const GET = withAuth(async (_request, { userId }) => {
  * POST /api/companies
  * Create a new company
  */
-export const POST = withAuth(async (_request, { userId }) => {
+export const POST = withAuth(async (request, { userId }) => {
   try {
     const body = await request.json();
     const company = await createCompany(userId, body);

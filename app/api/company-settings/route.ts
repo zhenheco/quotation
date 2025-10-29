@@ -20,7 +20,7 @@ export const GET = withAuth(async (_request, { userId }) => {
   }
 });
 
-export const POST = withPermission('company_settings', 'write', async (_request, { userId }) => {
+export const POST = withPermission('company_settings', 'write', async (request, { userId }) => {
   try {
     const body = await request.json();
     const company = await createCompany(userId, body);
@@ -30,7 +30,7 @@ export const POST = withPermission('company_settings', 'write', async (_request,
   }
 });
 
-export const PUT = withPermission('company_settings', 'write', async (_request, { userId }) => {
+export const PUT = withPermission('company_settings', 'write', async (request, { userId }) => {
   try {
     const body = await request.json();
     const { companyId, ...data } = body;

@@ -3,7 +3,7 @@
  * POST /api/contracts/from-quotation
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { convertQuotationToContract } from '@/lib/services/contracts';

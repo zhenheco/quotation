@@ -4,7 +4,7 @@
  * Lists all collected (confirmed) payments using the database view
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { getCollectedPayments } from '@/lib/services/payments';

@@ -12,7 +12,7 @@ export const GET = withAuth(async (_request, { userId }) => {
   }
 });
 
-export const PUT = withAuth(async (_request, { userId }) => {
+export const PUT = withAuth(async (request, { userId }) => {
   try {
     const body = await request.json();
     const profile = await updateUserProfile(userId, body);

@@ -4,7 +4,7 @@
  * Lists next collection reminders using the database view
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { getNextCollectionReminders } from '@/lib/services/payments';

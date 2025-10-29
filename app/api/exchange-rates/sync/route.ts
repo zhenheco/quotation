@@ -3,13 +3,13 @@
  * POST /api/exchange-rates/sync - 手動同步匯率到 Zeabur PostgreSQL
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { syncRatesToDatabase, SUPPORTED_CURRENCIES, Currency } from '@/lib/services/exchange-rate-zeabur'
 import { syncRateLimiter } from '@/lib/middleware/rate-limiter'
 
-export async function POST(_request: NextRequest) {
-  return syncRateLimiter(_request, async () => {
+export async function POST(request: NextRequest) {
+  return syncRateLimiter(request, async () => {
     try {
     const body = await request.json().catch(() => ({}))
     const baseCurrency = (body.baseCurrency || 'TWD') as Currency

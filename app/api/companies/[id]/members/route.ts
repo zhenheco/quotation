@@ -23,7 +23,7 @@ export const GET = withAuth(async (_request, { userId, params }) => {
  * Add a new member to a company
  * Body: { user_id: string, role_id: string }
  */
-export const POST = withAuth(async (_request, { userId, params }) => {
+export const POST = withAuth(async (request, { userId, params }) => {
   try {
     const { id } = await params;
     const body = await request.json();

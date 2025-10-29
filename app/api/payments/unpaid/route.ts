@@ -4,7 +4,7 @@
  * Lists all unpaid payments (>30 days overdue) using the database view
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { getUnpaidPayments } from '@/lib/services/payments';

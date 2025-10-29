@@ -3,7 +3,7 @@
  * GET /api/contracts/overdue
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { getContractsWithOverduePayments } from '@/lib/services/contracts';

@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
 
 type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
 
-export async function POST(_request: NextRequest) {
-  return batchRateLimiter(_request, async () => {
+export async function POST(request: NextRequest) {
+  return batchRateLimiter(request, async () => {
     try {
     const supabase = await createClient()
 
