@@ -30,6 +30,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     console.error('Get overdue contracts error:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    console.error('Error type:', typeof error);
+    console.error('Error constructor:', error?.constructor?.name);
 
     if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
@@ -39,7 +42,13 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to get overdue contracts', message: getErrorMessage(error) },
+      {
+        error: 'Failed to get overdue contracts',
+        message: getErrorMessage(error),
+        errorType: typeof error,
+        errorConstructor: error?.constructor?.name,
+        rawError: String(error)
+      },
       { status: 500 }
     );
   }

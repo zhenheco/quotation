@@ -3,7 +3,7 @@
  * Handles customer contract management and payment schedules
  */
 
-import { query, getClient } from '../db/zeabur';
+import { createClient } from '@/lib/supabase/server';
 import type {
   CustomerContract,
   CustomerContractFormData,
@@ -25,134 +25,140 @@ export async function getContracts(
     status?: string;
   }
 ): Promise<CustomerContractWithCustomer[]> {
-  // Check permission
   const canRead = await hasPermission(userId, 'contracts', 'read');
   if (!canRead) {
     throw new Error('Insufficient permissions to view contracts');
   }
 
-  let query = `
-    SELECT
-      cc.*,
-      json_build_object(
-        'id', c.id,
-        'company_name_zh', c.company_name_zh,
-        'company_name_en', c.company_name_en,
-        'contact_person', c.contact_person
-      ) as customer
-    FROM customer_contracts cc
-    JOIN customers c ON cc.customer_id = c.id
-    WHERE cc.user_id = $1
-  `;
-
-  const params: unknown[] = [userId];
-  let paramIndex = 2;
+  const supabase = await createClient();
+  let query = supabase
+    .from('customer_contracts')
+    .select(`
+      *,
+      customers!inner(
+        id,
+        name,
+        contact_person
+      )
+    `)
+    .eq('user_id', userId);
 
   if (filters?.customer_id) {
-    query += ` AND cc.customer_id = $${paramIndex}`;
-    params.push(filters.customer_id);
-    paramIndex++;
+    query = query.eq('customer_id', filters.customer_id);
   }
 
   if (filters?.status) {
-    query += ` AND cc.status = $${paramIndex}`;
-    params.push(filters.status);
-    paramIndex++;
+    query = query.eq('status', filters.status);
   }
 
-  query += ` ORDER BY cc.created_at DESC`;
+  query = query.order('created_at', { ascending: false });
 
-  const result = await query(query, params);
-  return result.rows;
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data || []).map(row => {
+    const customerName = row.customers.name || { zh: '', en: '' };
+    return {
+      ...row,
+      customer: {
+        id: row.customers.id,
+        company_name_zh: typeof customerName === 'string' ? customerName : (customerName.zh || ''),
+        company_name_en: typeof customerName === 'string' ? customerName : (customerName.en || ''),
+        contact_person: row.customers.contact_person,
+      },
+    };
+  }) as CustomerContractWithCustomer[];
 }
 
 export async function getContractById(
   contractId: string,
   userId: string
 ): Promise<CustomerContractWithCustomer | null> {
-  // Check permission
   const canRead = await hasPermission(userId, 'contracts', 'read');
   if (!canRead) {
     throw new Error('Insufficient permissions to view contract');
   }
 
-  const result = await query(
-    `SELECT
-       cc.*,
-       json_build_object(
-         'id', c.id,
-         'company_name_zh', c.company_name_zh,
-         'company_name_en', c.company_name_en,
-         'contact_person', c.contact_person
-       ) as customer
-     FROM customer_contracts cc
-     JOIN customers c ON cc.customer_id = c.id
-     WHERE cc.id = $1 AND cc.user_id = $2`,
-    [contractId, userId]
-  );
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('customer_contracts')
+    .select(`
+      *,
+      customers!inner(
+        id,
+        name,
+        contact_person
+      )
+    `)
+    .eq('id', contractId)
+    .eq('user_id', userId)
+    .single();
 
-  return result.rows[0] || null;
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  if (!data) return null;
+
+  const customerName = data.customers.name || { zh: '', en: '' };
+
+  return {
+    ...data,
+    customer: {
+      id: data.customers.id,
+      company_name_zh: typeof customerName === 'string' ? customerName : (customerName.zh || ''),
+      company_name_en: typeof customerName === 'string' ? customerName : (customerName.en || ''),
+      contact_person: data.customers.contact_person,
+    },
+  } as CustomerContractWithCustomer;
 }
 
 export async function createContract(
   userId: string,
   data: CustomerContractFormData
 ): Promise<CustomerContract> {
-  // Check permission
   const canWrite = await hasPermission(userId, 'contracts', 'write');
   if (!canWrite) {
     throw new Error('Insufficient permissions to create contract');
   }
 
-  // Generate contract number
   const contractNumber = await generateContractNumber(userId);
 
-  const result = await query(
-    `INSERT INTO customer_contracts (
-       user_id,
-       customer_id,
-       contract_number,
-       title,
-       start_date,
-       end_date,
-       signed_date,
-       total_amount,
-       currency,
-       payment_terms,
-       notes,
-       terms_and_conditions,
-       status
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'active')
-     RETURNING *`,
-    [
-      userId,
-      data.customer_id,
-      contractNumber,
-      data.title,
-      data.start_date,
-      data.end_date,
-      data.signed_date || null,
-      data.total_amount,
-      data.currency,
-      data.payment_terms || null,
-      data.notes || null,
-      data.terms_and_conditions || null,
-    ]
-  );
+  const supabase = await createClient();
+  const { data: contract, error: contractError } = await supabase
+    .from('customer_contracts')
+    .insert({
+      user_id: userId,
+      customer_id: data.customer_id,
+      contract_number: contractNumber,
+      title: data.title,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      signed_date: data.signed_date || null,
+      total_amount: data.total_amount,
+      currency: data.currency,
+      payment_terms: data.payment_terms || null,
+      notes: data.notes || null,
+      terms_and_conditions: data.terms_and_conditions || null,
+      status: 'active',
+    })
+    .select()
+    .single();
 
-  const contract = result.rows[0];
+  if (contractError) throw contractError;
 
-  // Update customer contract status
-  await query(
-    `UPDATE customers
-     SET contract_status = 'contracted',
-         contract_expiry_date = $1,
-         payment_terms = $2
-     WHERE id = $3`,
-    [data.end_date, data.payment_terms, data.customer_id]
-  );
+  const { error: customerError } = await supabase
+    .from('customers')
+    .update({
+      contract_status: 'contracted',
+      contract_expiry_date: data.end_date,
+      payment_terms: data.payment_terms,
+    })
+    .eq('id', data.customer_id);
 
-  // Generate payment schedule if payment terms are specified
+  if (customerError) throw customerError;
+
   if (data.payment_terms) {
     await generatePaymentSchedule(userId, contract.id, data.customer_id, {
       start_date: data.start_date,
@@ -163,7 +169,7 @@ export async function createContract(
     });
   }
 
-  return contract;
+  return contract as CustomerContract;
 }
 
 export async function updateContract(
@@ -171,74 +177,61 @@ export async function updateContract(
   userId: string,
   data: Partial<CustomerContractFormData> & { status?: string }
 ): Promise<CustomerContract> {
-  // Check permission
   const canWrite = await hasPermission(userId, 'contracts', 'write');
   if (!canWrite) {
     throw new Error('Insufficient permissions to update contract');
   }
 
-  const fields: string[] = [];
-  const values: unknown[] = [];
-  let paramIndex = 1;
-
-  Object.entries(data).forEach(([key, value]) => {
-    fields.push(`${key} = $${paramIndex}`);
-    values.push(value);
-    paramIndex++;
-  });
-
-  if (fields.length === 0) {
+  if (Object.keys(data).length === 0) {
     throw new Error('No fields to update');
   }
 
-  values.push(contractId, userId);
+  const supabase = await createClient();
+  const { data: updated, error } = await supabase
+    .from('customer_contracts')
+    .update(data)
+    .eq('id', contractId)
+    .eq('user_id', userId)
+    .select()
+    .single();
 
-  const result = await query(
-    `UPDATE customer_contracts
-     SET ${fields.join(', ')}, updated_at = NOW()
-     WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1}
-     RETURNING *`,
-    values
-  );
+  if (error) throw error;
+  if (!updated) throw new Error('Contract not found');
 
-  if (result.rows.length === 0) {
-    throw new Error('Contract not found');
-  }
-
-  return result.rows[0];
+  return updated as CustomerContract;
 }
 
 export async function deleteContract(
   contractId: string,
   userId: string
 ): Promise<void> {
-  // Check permission
   const canDelete = await hasPermission(userId, 'contracts', 'delete');
   if (!canDelete) {
     throw new Error('Insufficient permissions to delete contract');
   }
 
-  const result = await query(
-    `DELETE FROM customer_contracts
-     WHERE id = $1 AND user_id = $2
-     RETURNING customer_id`,
-    [contractId, userId]
-  );
+  const supabase = await createClient();
+  const { data: deleted, error: deleteError } = await supabase
+    .from('customer_contracts')
+    .delete()
+    .eq('id', contractId)
+    .eq('user_id', userId)
+    .select('customer_id')
+    .single();
 
-  if (result.rows.length === 0) {
-    throw new Error('Contract not found');
-  }
+  if (deleteError) throw deleteError;
+  if (!deleted) throw new Error('Contract not found');
 
-  // Update customer status
-  const customerId = result.rows[0].customer_id;
-  await query(
-    `UPDATE customers
-     SET contract_status = 'prospect',
-         contract_expiry_date = NULL,
-         payment_terms = NULL
-     WHERE id = $1`,
-    [customerId]
-  );
+  const { error: customerError } = await supabase
+    .from('customers')
+    .update({
+      contract_status: 'prospect',
+      contract_expiry_date: null,
+      payment_terms: null,
+    })
+    .eq('id', deleted.customer_id);
+
+  if (customerError) throw customerError;
 }
 
 export async function updateContractFile(
@@ -246,7 +239,7 @@ export async function updateContractFile(
   userId: string,
   fileUrl: string
 ): Promise<CustomerContract> {
-  return await updateContract(contractId, userId, { contract_file_url: fileUrl } as unknown);
+  return await updateContract(contractId, userId, { contract_file_url: fileUrl } as Partial<CustomerContractFormData>);
 }
 
 // ============================================================================
@@ -269,7 +262,6 @@ export async function generatePaymentSchedule(
 
   const schedules: PaymentSchedule[] = [];
 
-  // Calculate number of payments and amount per payment
   let numberOfPayments: number;
   let intervalMonths: number;
 
@@ -292,52 +284,45 @@ export async function generatePaymentSchedule(
 
   const amountPerPayment = total_amount / numberOfPayments;
 
-  // Generate payment schedules
   const startDate = new Date(start_date);
+
+  const supabase = await createClient();
 
   for (let i = 0; i < numberOfPayments; i++) {
     const dueDate = new Date(startDate);
     dueDate.setMonth(dueDate.getMonth() + i * intervalMonths);
-
-    // Set payment day to the 5th of the month (or company default)
     dueDate.setDate(5);
 
-    const result = await query(
-      `INSERT INTO payment_schedules (
-         user_id,
-         contract_id,
-         customer_id,
-         schedule_number,
-         due_date,
-         amount,
-         currency,
-         status
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
-       RETURNING *`,
-      [
-        userId,
-        contractId,
-        customerId,
-        i + 1,
-        dueDate.toISOString().split('T')[0],
-        amountPerPayment,
-        currency,
-      ]
-    );
+    const { data, error } = await supabase
+      .from('payment_schedules')
+      .insert({
+        user_id: userId,
+        contract_id: contractId,
+        customer_id: customerId,
+        schedule_number: i + 1,
+        due_date: dueDate.toISOString().split('T')[0],
+        amount: amountPerPayment,
+        currency: currency,
+        status: 'pending',
+      })
+      .select()
+      .single();
 
-    schedules.push(result.rows[0]);
+    if (error) throw error;
+    schedules.push(data as PaymentSchedule);
   }
 
-  // Update customer next payment info
   if (schedules.length > 0) {
-    await query(
-      `UPDATE customers
-       SET next_payment_due_date = $1,
-           next_payment_amount = $2,
-           payment_currency = $3
-       WHERE id = $4`,
-      [schedules[0].due_date, schedules[0].amount, schedules[0].currency, customerId]
-    );
+    const { error } = await supabase
+      .from('customers')
+      .update({
+        next_payment_due_date: schedules[0].due_date,
+        next_payment_amount: schedules[0].amount,
+        payment_currency: schedules[0].currency,
+      })
+      .eq('id', customerId);
+
+    if (error) throw error;
   }
 
   return schedules;
@@ -347,63 +332,44 @@ export async function getPaymentSchedules(
   userId: string,
   contractId?: string
 ): Promise<PaymentScheduleWithDetails[]> {
-  let query = `
-    SELECT
-      ps.*,
-      json_build_object(
-        'id', c.id,
-        'company_name_zh', c.company_name_zh,
-        'company_name_en', c.company_name_en,
-        'contact_person', c.contact_person
-      ) as customer,
-      json_build_object(
-        'id', cc.id,
-        'contract_number', cc.contract_number,
-        'title', cc.title
-      ) as contract,
-      CASE
-        WHEN ps.status = 'overdue' THEN CURRENT_DATE - ps.due_date
-        ELSE NULL
-      END as days_overdue,
-      CASE
-        WHEN ps.status = 'pending' THEN ps.due_date - CURRENT_DATE
-        ELSE NULL
-      END as days_until_due
-    FROM payment_schedules ps
-    JOIN customers c ON ps.customer_id = c.id
-    JOIN customer_contracts cc ON ps.contract_id = cc.id
-    WHERE ps.user_id = $1
-  `;
+  const supabase = await createClient();
 
-  const params: unknown[] = [userId];
+  const { data, error } = await supabase.rpc('get_payment_schedules_with_details', {
+    p_user_id: userId,
+    p_contract_id: contractId || null,
+  });
 
-  if (contractId) {
-    query += ` AND ps.contract_id = $2`;
-    params.push(contractId);
-  }
+  if (error) throw error;
 
-  query += ` ORDER BY ps.due_date ASC`;
-
-  const result = await query(query, params);
-  return result.rows;
+  return (data || []) as PaymentScheduleWithDetails[];
 }
 
 export async function getOverduePayments(userId: string): Promise<PaymentScheduleWithDetails[]> {
-  const result = await query(
-    `SELECT * FROM overdue_payments WHERE user_id = $1 ORDER BY days_overdue DESC`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return result.rows;
+  const { data, error } = await supabase
+    .from('overdue_payments')
+    .select('*')
+    .eq('user_id', userId)
+    .order('days_overdue', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []) as PaymentScheduleWithDetails[];
 }
 
 export async function getUpcomingPayments(userId: string): Promise<PaymentScheduleWithDetails[]> {
-  const result = await query(
-    `SELECT * FROM upcoming_payments WHERE user_id = $1 ORDER BY days_until_due ASC`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return result.rows;
+  const { data, error } = await supabase
+    .from('upcoming_payments')
+    .select('*')
+    .eq('user_id', userId)
+    .order('days_until_due', { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []) as PaymentScheduleWithDetails[];
 }
 
 export async function markScheduleAsPaid(
@@ -412,22 +378,24 @@ export async function markScheduleAsPaid(
   paymentId: string,
   paidDate: string
 ): Promise<PaymentSchedule> {
-  const result = await query(
-    `UPDATE payment_schedules
-     SET status = 'paid',
-         paid_date = $1,
-         payment_id = $2,
-         updated_at = NOW()
-     WHERE id = $3 AND user_id = $4
-     RETURNING *`,
-    [paidDate, paymentId, scheduleId, userId]
-  );
+  const supabase = await createClient();
 
-  if (result.rows.length === 0) {
-    throw new Error('Payment schedule not found');
-  }
+  const { data, error } = await supabase
+    .from('payment_schedules')
+    .update({
+      status: 'paid',
+      paid_date: paidDate,
+      payment_id: paymentId,
+    })
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .select()
+    .single();
 
-  return result.rows[0];
+  if (error) throw error;
+  if (!data) throw new Error('Payment schedule not found');
+
+  return data as PaymentSchedule;
 }
 
 // ============================================================================
@@ -437,21 +405,23 @@ export async function markScheduleAsPaid(
 async function generateContractNumber(userId: string): Promise<string> {
   const year = new Date().getFullYear();
 
-  const result = await query(
-    `SELECT contract_number
-     FROM customer_contracts
-     WHERE user_id = $1 AND contract_number LIKE $2
-     ORDER BY created_at DESC
-     LIMIT 1`,
-    [userId, `C${year}-%`]
-  );
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('customer_contracts')
+    .select('contract_number')
+    .eq('user_id', userId)
+    .like('contract_number', `C${year}-%`)
+    .order('created_at', { ascending: false })
+    .limit(1);
 
-  if (result.rows.length === 0) {
+  if (error) throw error;
+
+  if (!data || data.length === 0) {
     return `C${year}-001`;
   }
 
-  const lastNumber = result.rows[0].contract_number;
-  const match = lastNumber.match(/C\d{4}-(\d{3})/);
+  const lastNumber = data[0].contract_number;
+  const match = lastNumber?.match(/C\d{4}-(\d{3})/);
 
   if (!match) {
     return `C${year}-001`;
@@ -462,35 +432,42 @@ async function generateContractNumber(userId: string): Promise<string> {
 }
 
 export async function updateCustomerNextPayment(customerId: string, userId: string): Promise<void> {
-  // Get next pending payment schedule for this customer
-  const result = await query(
-    `SELECT * FROM payment_schedules
-     WHERE customer_id = $1 AND user_id = $2 AND status = 'pending'
-     ORDER BY due_date ASC
-     LIMIT 1`,
-    [customerId, userId]
-  );
+  const supabase = await createClient();
 
-  if (result.rows.length > 0) {
-    const nextSchedule = result.rows[0];
-    await query(
-      `UPDATE customers
-       SET next_payment_due_date = $1,
-           next_payment_amount = $2,
-           payment_currency = $3
-       WHERE id = $4`,
-      [nextSchedule.due_date, nextSchedule.amount, nextSchedule.currency, customerId]
-    );
+  const { data, error } = await supabase
+    .from('payment_schedules')
+    .select('*')
+    .eq('customer_id', customerId)
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .order('due_date', { ascending: true })
+    .limit(1);
+
+  if (error) throw error;
+
+  if (data && data.length > 0) {
+    const nextSchedule = data[0];
+    const { error: updateError } = await supabase
+      .from('customers')
+      .update({
+        next_payment_due_date: nextSchedule.due_date,
+        next_payment_amount: nextSchedule.amount,
+        payment_currency: nextSchedule.currency,
+      })
+      .eq('id', customerId);
+
+    if (updateError) throw updateError;
   } else {
-    // No pending payments, clear next payment info
-    await query(
-      `UPDATE customers
-       SET next_payment_due_date = NULL,
-           next_payment_amount = NULL,
-           payment_currency = NULL
-       WHERE id = $1`,
-      [customerId]
-    );
+    const { error: updateError } = await supabase
+      .from('customers')
+      .update({
+        next_payment_due_date: null,
+        next_payment_amount: null,
+        payment_currency: null,
+      })
+      .eq('id', customerId);
+
+    if (updateError) throw updateError;
   }
 }
 
@@ -509,148 +486,118 @@ export async function convertQuotationToContract(
     signed_date: string;
     expiry_date: string;
     payment_frequency: PaymentTerms;
-    payment_day?: number; // 每月收款日，預設為5號
+    payment_day?: number;
   }
 ): Promise<{ contract: CustomerContract; quotation: unknown }> {
-  // Check permission
   const canWrite = await hasPermission(userId, 'contracts', 'write');
   if (!canWrite) {
     throw new Error('Insufficient permissions to create contract from quotation');
   }
 
-  const client = await getClient();
+  const supabase = await createClient();
 
-  try {
-    await client.query('BEGIN');
+  const { data: quotation, error: quotError } = await supabase
+    .from('quotations')
+    .select('*')
+    .eq('id', quotationId)
+    .eq('user_id', userId)
+    .single();
 
-    // Get quotation details
-    const quotResult = await client.query(
-      `SELECT * FROM quotations WHERE id = $1 AND user_id = $2`,
-      [quotationId, userId]
-    );
+  if (quotError) throw quotError;
+  if (!quotation) throw new Error('Quotation not found');
 
-    if (quotResult.rows.length === 0) {
-      throw new Error('Quotation not found');
-    }
+  const contractNumber = await generateContractNumber(userId);
 
-    const quotation = quotResult.rows[0];
+  const { data: contract, error: contractError } = await supabase
+    .from('customer_contracts')
+    .insert({
+      user_id: userId,
+      customer_id: quotation.customer_id,
+      quotation_id: quotationId,
+      contract_number: contractNumber,
+      title: `合約 - ${quotation.quotation_number}`,
+      start_date: contractData.signed_date,
+      end_date: contractData.expiry_date,
+      signed_date: contractData.signed_date,
+      total_amount: quotation.total,
+      currency: quotation.currency,
+      payment_terms: contractData.payment_frequency,
+      notes: `由報價單 ${quotation.quotation_number} 轉換而成`,
+      status: 'active',
+    })
+    .select()
+    .single();
 
-    // Generate contract number
-    const contractNumber = await generateContractNumber(userId);
+  if (contractError) throw contractError;
 
-    // Create contract
-    const contractResult = await client.query(
-      `INSERT INTO customer_contracts (
-         user_id,
-         customer_id,
-         quotation_id,
-         contract_number,
-         title,
-         start_date,
-         end_date,
-         signed_date,
-         total_amount,
-         currency,
-         payment_terms,
-         notes,
-         status
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'active')
-       RETURNING *`,
-      [
-        userId,
-        quotation.customer_id,
-        quotationId,
-        contractNumber,
-        `合約 - ${quotation.quotation_number}`,
-        contractData.signed_date,
-        contractData.expiry_date,
-        contractData.signed_date,
-        quotation.total,
-        quotation.currency,
-        contractData.payment_frequency,
-        `由報價單 ${quotation.quotation_number} 轉換而成`,
-      ]
-    );
+  const { error: quotUpdateError } = await supabase
+    .from('quotations')
+    .update({
+      status: 'accepted',
+      contract_signed_date: contractData.signed_date,
+      contract_expiry_date: contractData.expiry_date,
+      payment_frequency: contractData.payment_frequency,
+    })
+    .eq('id', quotationId);
 
-    const contract = contractResult.rows[0];
+  if (quotUpdateError) throw quotUpdateError;
 
-    // Update quotation with contract info
-    await client.query(
-      `UPDATE quotations
-       SET status = 'accepted',
-           contract_signed_date = $1,
-           contract_expiry_date = $2,
-           payment_frequency = $3,
-           updated_at = NOW()
-       WHERE id = $4`,
-      [
-        contractData.signed_date,
-        contractData.expiry_date,
-        contractData.payment_frequency,
-        quotationId,
-      ]
-    );
+  const paymentDay = contractData.payment_day || 5;
+  const { error: rpcError } = await supabase.rpc('generate_payment_schedules_for_contract', {
+    p_contract_id: contract.id,
+    p_signed_date: contractData.signed_date,
+    p_payment_day: paymentDay,
+  });
 
-    // Generate payment schedules
-    const paymentDay = contractData.payment_day || 5;
-    await client.query(
-      `SELECT generate_payment_schedules_for_contract($1, $2, $3)`,
-      [contract.id, contractData.signed_date, paymentDay]
-    );
+  if (rpcError) throw rpcError;
 
-    // Get updated contract with next collection info
-    const updatedContract = await client.query(
-      `SELECT * FROM customer_contracts WHERE id = $1`,
-      [contract.id]
-    );
+  const { data: updatedContract, error: fetchError } = await supabase
+    .from('customer_contracts')
+    .select('*')
+    .eq('id', contract.id)
+    .single();
 
-    // Update quotation with next collection info
-    const nextCollectionResult = await client.query(
-      `SELECT next_collection_date, next_collection_amount
-       FROM customer_contracts
-       WHERE id = $1`,
-      [contract.id]
-    );
+  if (fetchError) throw fetchError;
 
-    if (nextCollectionResult.rows.length > 0) {
-      const { next_collection_date, next_collection_amount } = nextCollectionResult.rows[0];
-      await client.query(
-        `UPDATE quotations
-         SET next_collection_date = $1,
-             next_collection_amount = $2
-         WHERE id = $3`,
-        [next_collection_date, next_collection_amount, quotationId]
-      );
-    }
+  const { data: nextCollection } = await supabase
+    .from('customer_contracts')
+    .select('next_collection_date, next_collection_amount')
+    .eq('id', contract.id)
+    .single();
 
-    // Update customer status
-    await client.query(
-      `UPDATE customers
-       SET contract_status = 'contracted',
-           contract_expiry_date = $1,
-           payment_terms = $2
-       WHERE id = $3`,
-      [contractData.expiry_date, contractData.payment_frequency, quotation.customer_id]
-    );
+  if (nextCollection) {
+    const { error: quotUpdateError2 } = await supabase
+      .from('quotations')
+      .update({
+        next_collection_date: nextCollection.next_collection_date,
+        next_collection_amount: nextCollection.next_collection_amount,
+      })
+      .eq('id', quotationId);
 
-    await client.query('COMMIT');
-
-    // Get updated quotation
-    const updatedQuotation = await query(
-      `SELECT * FROM quotations WHERE id = $1`,
-      [quotationId]
-    );
-
-    return {
-      contract: updatedContract.rows[0],
-      quotation: updatedQuotation.rows[0],
-    };
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
+    if (quotUpdateError2) throw quotUpdateError2;
   }
+
+  const { error: customerError } = await supabase
+    .from('customers')
+    .update({
+      contract_status: 'contracted',
+      contract_expiry_date: contractData.expiry_date,
+      payment_terms: contractData.payment_frequency,
+    })
+    .eq('id', quotation.customer_id);
+
+  if (customerError) throw customerError;
+
+  const { data: updatedQuotation } = await supabase
+    .from('quotations')
+    .select('*')
+    .eq('id', quotationId)
+    .single();
+
+  return {
+    contract: updatedContract as CustomerContract,
+    quotation: updatedQuotation,
+  };
 }
 
 /**
@@ -665,39 +612,38 @@ export async function updateNextCollection(
     next_collection_amount: number;
   }
 ): Promise<CustomerContract> {
-  // Check permission
   const canWrite = await hasPermission(userId, 'contracts', 'write');
   if (!canWrite) {
     throw new Error('Insufficient permissions to update contract');
   }
 
-  const result = await query(
-    `UPDATE customer_contracts
-     SET next_collection_date = $1,
-         next_collection_amount = $2,
-         updated_at = NOW()
-     WHERE id = $3 AND user_id = $4
-     RETURNING *`,
-    [data.next_collection_date, data.next_collection_amount, contractId, userId]
-  );
+  const supabase = await createClient();
 
-  if (result.rows.length === 0) {
-    throw new Error('Contract not found');
+  const { data: updated, error } = await supabase
+    .from('customer_contracts')
+    .update({
+      next_collection_date: data.next_collection_date,
+      next_collection_amount: data.next_collection_amount,
+    })
+    .eq('id', contractId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  if (!updated) throw new Error('Contract not found');
+
+  if (updated.quotation_id) {
+    await supabase
+      .from('quotations')
+      .update({
+        next_collection_date: data.next_collection_date,
+        next_collection_amount: data.next_collection_amount,
+      })
+      .eq('id', updated.quotation_id);
   }
 
-  // Also update linked quotation if exists
-  await query(
-    `UPDATE quotations q
-     SET next_collection_date = $1,
-         next_collection_amount = $2,
-         updated_at = NOW()
-     FROM customer_contracts cc
-     WHERE cc.quotation_id = q.id
-       AND cc.id = $3`,
-    [data.next_collection_date, data.next_collection_amount, contractId]
-  );
-
-  return result.rows[0];
+  return updated as CustomerContract;
 }
 
 /**
@@ -708,44 +654,22 @@ export async function getContractPaymentProgress(
   userId: string,
   contractId: string
 ): Promise<unknown> {
-  // Check permission
   const canRead = await hasPermission(userId, 'contracts', 'read');
   if (!canRead) {
     throw new Error('Insufficient permissions to view contract progress');
   }
 
-  const result = await query(
-    `SELECT
-       cc.id as contract_id,
-       cc.contract_number,
-       cc.title,
-       c.company_name_zh as customer_name_zh,
-       c.company_name_en as customer_name_en,
-       cc.total_amount,
-       cc.currency,
-       cc.status,
-       cc.next_collection_date as next_payment_due,
-       COALESCE(SUM(CASE WHEN ps.status = 'paid' THEN ps.amount ELSE 0 END), 0) as total_paid,
-       COALESCE(SUM(CASE WHEN ps.status = 'pending' THEN ps.amount ELSE 0 END), 0) as total_pending,
-       COALESCE(SUM(CASE WHEN ps.status = 'overdue' THEN ps.amount ELSE 0 END), 0) as total_overdue,
-       CASE
-         WHEN cc.total_amount > 0 THEN
-           ROUND((COALESCE(SUM(CASE WHEN ps.status = 'paid' THEN ps.amount ELSE 0 END), 0) / cc.total_amount * 100), 2)
-         ELSE 0
-       END as payment_completion_rate
-     FROM customer_contracts cc
-     JOIN customers c ON cc.customer_id = c.id
-     LEFT JOIN payment_schedules ps ON cc.id = ps.contract_id
-     WHERE cc.id = $1 AND cc.user_id = $2
-     GROUP BY cc.id, c.id`,
-    [contractId, userId]
-  );
+  const supabase = await createClient();
 
-  if (result.rows.length === 0) {
-    throw new Error('Contract not found');
-  }
+  const { data, error } = await supabase.rpc('get_contract_payment_progress', {
+    p_user_id: userId,
+    p_contract_id: contractId,
+  });
 
-  return result.rows[0];
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error('Contract not found');
+
+  return data[0];
 }
 
 /**
@@ -755,36 +679,21 @@ export async function getContractPaymentProgress(
 export async function getContractsWithOverduePayments(
   userId: string
 ): Promise<unknown[]> {
-  // Check permission
   const canRead = await hasPermission(userId, 'contracts', 'read');
+
   if (!canRead) {
     throw new Error('Insufficient permissions to view contracts');
   }
 
-  const result = await query(
-    `SELECT
-       cc.id as contract_id,
-       cc.contract_number,
-       cc.title,
-       c.id as customer_id,
-       c.company_name_zh as customer_name_zh,
-       c.company_name_en as customer_name_en,
-       c.email as customer_email,
-       c.phone as customer_phone,
-       COUNT(ps.id) as overdue_count,
-       SUM(ps.amount) as total_overdue_amount,
-       MAX(ps.days_overdue) as max_days_overdue,
-       cc.currency
-     FROM customer_contracts cc
-     JOIN customers c ON cc.customer_id = c.id
-     JOIN payment_schedules ps ON cc.id = ps.contract_id
-     WHERE cc.user_id = $1
-       AND cc.status = 'active'
-       AND ps.status = 'overdue'
-     GROUP BY cc.id, c.id
-     ORDER BY max_days_overdue DESC, total_overdue_amount DESC`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return result.rows;
+  const { data, error } = await supabase.rpc('get_contracts_with_overdue_payments', {
+    p_user_id: userId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
 }

@@ -43,12 +43,18 @@ export async function GET(req: NextRequest) {
     }, {} as Record<string, unknown[]>);
 
     // Calculate totals
-    const totalAmount = reminders.reduce((sum, r) => sum + parseFloat(r.next_collection_amount), 0);
+    const totalAmount = reminders.reduce((sum, r) => {
+      const amount = r.next_collection_amount ? parseFloat(String(r.next_collection_amount)) : 0;
+      return sum + (isNaN(amount) ? 0 : amount);
+    }, 0);
+
     const currencyGroups = reminders.reduce((acc, r) => {
-      if (!acc[r.currency]) {
-        acc[r.currency] = 0;
+      const currency = r.currency || 'TWD';
+      if (!acc[currency]) {
+        acc[currency] = 0;
       }
-      acc[r.currency] += parseFloat(r.next_collection_amount);
+      const amount = r.next_collection_amount ? parseFloat(String(r.next_collection_amount)) : 0;
+      acc[currency] += isNaN(amount) ? 0 : amount;
       return acc;
     }, {} as Record<string, number>);
 
@@ -71,6 +77,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     console.error('Get payment reminders error:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    console.error('Error type:', typeof error);
+    console.error('Error constructor:', error?.constructor?.name);
 
     if (getErrorMessage(error).includes('permissions')) {
       return NextResponse.json(
@@ -80,7 +89,13 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to get payment reminders', message: getErrorMessage(error) },
+      {
+        error: 'Failed to get payment reminders',
+        message: getErrorMessage(error),
+        errorType: typeof error,
+        errorConstructor: error?.constructor?.name,
+        rawError: String(error)
+      },
       { status: 500 }
     );
   }

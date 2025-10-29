@@ -9,6 +9,164 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      companies: {
+        Row: {
+          id: string
+          name: Json // { zh: string, en: string }
+          logo_url: string | null
+          signature_url: string | null
+          passbook_url: string | null
+          tax_id: string | null
+          bank_name: string | null
+          bank_account: string | null
+          bank_code: string | null
+          address: Json | null // { zh: string, en: string }
+          phone: string | null
+          email: string | null
+          website: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: Json
+          logo_url?: string | null
+          signature_url?: string | null
+          passbook_url?: string | null
+          tax_id?: string | null
+          bank_name?: string | null
+          bank_account?: string | null
+          bank_code?: string | null
+          address?: Json | null
+          phone?: string | null
+          email?: string | null
+          website?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: Json
+          logo_url?: string | null
+          signature_url?: string | null
+          passbook_url?: string | null
+          tax_id?: string | null
+          bank_name?: string | null
+          bank_account?: string | null
+          bank_code?: string | null
+          address?: Json | null
+          phone?: string | null
+          email?: string | null
+          website?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      company_members: {
+        Row: {
+          id: string
+          company_id: string
+          user_id: string
+          role_id: string
+          is_owner: boolean
+          is_active: boolean
+          joined_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          user_id: string
+          role_id: string
+          is_owner?: boolean
+          is_active?: boolean
+          joined_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          user_id?: string
+          role_id?: string
+          is_owner?: boolean
+          is_active?: boolean
+          joined_at?: string
+          updated_at?: string
+        }
+      }
+      roles: {
+        Row: {
+          id: string
+          name: string
+          name_zh: string
+          name_en: string
+          level: number
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          name_zh: string
+          name_en: string
+          level: number
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          name_zh?: string
+          name_en?: string
+          level?: number
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          full_name: string | null
+          display_name: string | null
+          phone: string | null
+          department: string | null
+          avatar_url: string | null
+          is_active: boolean
+          last_login_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          full_name?: string | null
+          display_name?: string | null
+          phone?: string | null
+          department?: string | null
+          avatar_url?: string | null
+          is_active?: boolean
+          last_login_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          full_name?: string | null
+          display_name?: string | null
+          phone?: string | null
+          department?: string | null
+          avatar_url?: string | null
+          is_active?: boolean
+          last_login_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       customers: {
         Row: {
           id: string
@@ -263,7 +421,34 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_companies: {
+        Args: { p_user_id: string }
+        Returns: {
+          company_id: string
+          company_name: Json
+          role_name: string
+          is_owner: boolean
+          logo_url: string | null
+        }[]
+      }
+      get_company_members: {
+        Args: { p_company_id: string }
+        Returns: {
+          id: string
+          company_id: string
+          user_id: string
+          role_id: string
+          role_name: string
+          is_owner: boolean
+          is_active: boolean
+          joined_at: string
+          updated_at: string
+        }[]
+      }
+      is_company_member: {
+        Args: { p_user_id: string; p_company_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

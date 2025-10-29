@@ -3,7 +3,7 @@
  * Handles user roles, permissions, and access control
  */
 
-import { query, getClient } from '../db/zeabur';
+import { createClient } from '@/lib/supabase/server';
 import type {
   Role,
   Permission,
@@ -21,12 +21,20 @@ import type {
 // ============================================================================
 
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const result = await query(
-    `SELECT * FROM user_profiles WHERE user_id = $1`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return result.rows[0] || null;
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  return data as UserProfile;
 }
 
 export async function createUserProfile(
@@ -39,21 +47,24 @@ export async function createUserProfile(
     avatar_url?: string;
   }
 ): Promise<UserProfile> {
-  const result = await query(
-    `INSERT INTO user_profiles (user_id, full_name, display_name, phone, department, avatar_url)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING *`,
-    [
-      userId,
-      data.full_name || null,
-      data.display_name || null,
-      data.phone || null,
-      data.department || null,
-      data.avatar_url || null,
-    ]
-  );
+  const supabase = await createClient();
 
-  return result.rows[0];
+  const { data: profile, error } = await supabase
+    .from('user_profiles')
+    .insert({
+      user_id: userId,
+      full_name: data.full_name || null,
+      display_name: data.display_name || null,
+      phone: data.phone || null,
+      department: data.department || null,
+      avatar_url: data.avatar_url || null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return profile as UserProfile;
 }
 
 export async function updateUserProfile(
@@ -67,44 +78,34 @@ export async function updateUserProfile(
     is_active: boolean;
   }>
 ): Promise<UserProfile> {
-  const fields: string[] = [];
-  const values: unknown[] = [];
-  let paramIndex = 1;
-
-  Object.entries(data).forEach(([key, value]) => {
-    fields.push(`${key} = $${paramIndex}`);
-    values.push(value);
-    paramIndex++;
-  });
-
-  if (fields.length === 0) {
+  if (Object.keys(data).length === 0) {
     throw new Error('No fields to update');
   }
 
-  values.push(userId);
+  const supabase = await createClient();
 
-  const result = await query(
-    `UPDATE user_profiles
-     SET ${fields.join(', ')}, updated_at = NOW()
-     WHERE user_id = $${paramIndex}
-     RETURNING *`,
-    values
-  );
+  const { data: updated, error } = await supabase
+    .from('user_profiles')
+    .update(data)
+    .eq('user_id', userId)
+    .select()
+    .single();
 
-  if (result.rows.length === 0) {
-    throw new Error('User profile not found');
-  }
+  if (error) throw error;
+  if (!updated) throw new Error('User profile not found');
 
-  return result.rows[0];
+  return updated as UserProfile;
 }
 
 export async function updateLastLogin(userId: string): Promise<void> {
-  await query(
-    `UPDATE user_profiles
-     SET last_login_at = NOW()
-     WHERE user_id = $1`,
-    [userId]
-  );
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({ last_login_at: new Date().toISOString() })
+    .eq('user_id', userId);
+
+  if (error) throw error;
 }
 
 // ============================================================================
@@ -112,20 +113,33 @@ export async function updateLastLogin(userId: string): Promise<void> {
 // ============================================================================
 
 export async function getAllRoles(): Promise<Role[]> {
-  const result = await query(
-    `SELECT * FROM roles ORDER BY level ASC`
-  );
+  const supabase = await createClient();
 
-  return result.rows;
+  const { data, error } = await supabase
+    .from('roles')
+    .select('*')
+    .order('level', { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []) as Role[];
 }
 
 export async function getRoleByName(name: RoleName): Promise<Role | null> {
-  const result = await query(
-    `SELECT * FROM roles WHERE name = $1`,
-    [name]
-  );
+  const supabase = await createClient();
 
-  return result.rows[0] || null;
+  const { data, error } = await supabase
+    .from('roles')
+    .select('*')
+    .eq('name', name)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  return data as Role;
 }
 
 // ============================================================================
@@ -133,16 +147,19 @@ export async function getRoleByName(name: RoleName): Promise<Role | null> {
 // ============================================================================
 
 export async function getUserRoles(userId: string): Promise<Role[]> {
-  const result = await query(
-    `SELECT r.*
-     FROM roles r
-     JOIN user_roles ur ON r.id = ur.role_id
-     WHERE ur.user_id = $1
-     ORDER BY r.level ASC`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return result.rows;
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select(`
+      roles!inner(*)
+    `)
+    .eq('user_id', userId)
+    .order('roles(level)', { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []).map(row => row.roles) as Role[];
 }
 
 export async function assignRoleToUser(
@@ -150,31 +167,37 @@ export async function assignRoleToUser(
   roleName: RoleName,
   assignedBy: string
 ): Promise<UserRole> {
-  // Get role ID from role name
   const role = await getRoleByName(roleName);
   if (!role) {
     throw new Error(`Role ${roleName} not found`);
   }
 
-  // Check if user already has this role
-  const existing = await query(
-    `SELECT * FROM user_roles WHERE user_id = $1 AND role_id = $2`,
-    [userId, role.id]
-  );
+  const supabase = await createClient();
 
-  if (existing.rows.length > 0) {
-    return existing.rows[0];
+  const { data: existing, error: checkError } = await supabase
+    .from('user_roles')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('role_id', role.id)
+    .single();
+
+  if (!checkError && existing) {
+    return existing as UserRole;
   }
 
-  // Assign role
-  const result = await query(
-    `INSERT INTO user_roles (user_id, role_id, assigned_by)
-     VALUES ($1, $2, $3)
-     RETURNING *`,
-    [userId, role.id, assignedBy]
-  );
+  const { data, error } = await supabase
+    .from('user_roles')
+    .insert({
+      user_id: userId,
+      role_id: role.id,
+      assigned_by: assignedBy,
+    })
+    .select()
+    .single();
 
-  return result.rows[0];
+  if (error) throw error;
+
+  return data as UserRole;
 }
 
 export async function removeRoleFromUser(
@@ -186,24 +209,33 @@ export async function removeRoleFromUser(
     throw new Error(`Role ${roleName} not found`);
   }
 
-  await query(
-    `DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2`,
-    [userId, role.id]
-  );
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('user_roles')
+    .delete()
+    .eq('user_id', userId)
+    .eq('role_id', role.id);
+
+  if (error) throw error;
 }
 
 export async function getUserHighestRole(userId: string): Promise<Role | null> {
-  const result = await query(
-    `SELECT r.*
-     FROM roles r
-     JOIN user_roles ur ON r.id = ur.role_id
-     WHERE ur.user_id = $1
-     ORDER BY r.level ASC
-     LIMIT 1`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return result.rows[0] || null;
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select(`
+      roles!inner(*)
+    `)
+    .eq('user_id', userId)
+    .order('roles(level)', { ascending: true })
+    .limit(1);
+
+  if (error) throw error;
+  if (!data || data.length === 0) return null;
+
+  return data[0].roles as Role;
 }
 
 // ============================================================================
@@ -211,29 +243,24 @@ export async function getUserHighestRole(userId: string): Promise<Role | null> {
 // ============================================================================
 
 export async function getUserPermissions(userId: string): Promise<UserPermissions | null> {
-  const result = await query(
-    `SELECT
-       user_id,
-       role_name,
-       role_level,
-       permission_name
-     FROM user_permissions
-     WHERE user_id = $1`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  if (result.rows.length === 0) {
-    return null;
-  }
+  const { data, error } = await supabase
+    .from('user_permissions')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  if (!data || data.length === 0) return null;
 
   const permissions = new Set<string>(
-    result.rows.map((row) => row.permission_name)
+    data.map((row) => row.permission_name as string)
   );
 
   return {
     user_id: userId,
-    role_name: result.rows[0].role_name,
-    role_level: result.rows[0].role_level,
+    role_name: data[0].role_name as RoleName,
+    role_level: data[0].role_level as number,
     permissions,
   };
 }
@@ -243,30 +270,47 @@ export async function hasPermission(
   resource: PermissionResource,
   action: PermissionAction
 ): Promise<boolean> {
-  const permissionName = `${resource}:${action}`;
+  const actionMapping: Record<PermissionAction, string> = {
+    read: 'view',
+    write: 'edit',
+    delete: 'delete',
+    read_cost: 'view_cost',
+    write_cost: 'edit_cost',
+    assign_roles: 'assign_roles',
+  };
 
-  const result = await query(
-    `SELECT COUNT(*) as count
-     FROM user_permissions
-     WHERE user_id = $1 AND permission_name = $2`,
-    [userId, permissionName]
-  );
+  const actionVerb = actionMapping[action] || action;
+  const permissionName = `${actionVerb}_${resource}`;
 
-  return parseInt(result.rows[0].count) > 0;
+  const supabase = await createClient();
+
+  const { count, error } = await supabase
+    .from('user_permissions')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('permission_name', permissionName);
+
+  if (error) {
+    throw error;
+  }
+
+  return (count || 0) > 0;
 }
 
 export async function canAccessProductCost(userId: string): Promise<boolean> {
-  // Only company_owner and accountant can see product costs
-  const result = await query(
-    `SELECT COUNT(*) as count
-     FROM user_roles ur
-     JOIN roles r ON ur.role_id = r.id
-     WHERE ur.user_id = $1
-       AND r.name IN ('super_admin', 'company_owner', 'accountant')`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return parseInt(result.rows[0].count) > 0;
+  const { count, error } = await supabase
+    .from('user_roles')
+    .select(`
+      roles!inner(name)
+    `, { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .in('roles.name', ['super_admin', 'company_owner', 'accountant']);
+
+  if (error) throw error;
+
+  return (count || 0) > 0;
 }
 
 export async function canManageUsers(userId: string): Promise<boolean> {
@@ -282,96 +326,116 @@ export async function canAssignRoles(userId: string): Promise<boolean> {
 // ============================================================================
 
 export async function getAllUsers(requestingUserId: string): Promise<UserWithRole[]> {
-  // Check permission
   const canView = await hasPermission(requestingUserId, 'users', 'read');
   if (!canView) {
     throw new Error('Insufficient permissions to view users');
   }
 
-  const result = await query(
-    `SELECT
-       up.*,
-       json_agg(DISTINCT r.*) FILTER (WHERE r.id IS NOT NULL) as roles,
-       json_agg(DISTINCT p.*) FILTER (WHERE p.id IS NOT NULL) as permissions
-     FROM user_profiles up
-     LEFT JOIN user_roles ur ON up.user_id = ur.user_id
-     LEFT JOIN roles r ON ur.role_id = r.id
-     LEFT JOIN role_permissions rp ON r.id = rp.role_id
-     LEFT JOIN permissions p ON rp.permission_id = p.id
-     GROUP BY up.id
-     ORDER BY up.created_at DESC`
-  );
+  const supabase = await createClient();
 
-  return result.rows;
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select(`
+      *,
+      user_roles(
+        roles(*)
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map(profile => {
+    const userRoles = profile.user_roles as { roles: Role }[];
+    const roles = userRoles?.map(ur => ur.roles) || [];
+
+    return {
+      ...profile,
+      roles,
+      permissions: [],
+    } as UserWithRole;
+  });
 }
 
 export async function getUserById(
   userId: string,
   requestingUserId: string
 ): Promise<UserWithRole | null> {
-  // Check permission
   const canView = await hasPermission(requestingUserId, 'users', 'read');
   if (!canView && userId !== requestingUserId) {
     throw new Error('Insufficient permissions to view user');
   }
 
-  const result = await query(
-    `SELECT
-       up.*,
-       json_agg(DISTINCT r.*) FILTER (WHERE r.id IS NOT NULL) as roles,
-       json_agg(DISTINCT p.*) FILTER (WHERE p.id IS NOT NULL) as permissions
-     FROM user_profiles up
-     LEFT JOIN user_roles ur ON up.user_id = ur.user_id
-     LEFT JOIN roles r ON ur.role_id = r.id
-     LEFT JOIN role_permissions rp ON r.id = rp.role_id
-     LEFT JOIN permissions p ON rp.permission_id = p.id
-     WHERE up.user_id = $1
-     GROUP BY up.id`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return result.rows[0] || null;
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select(`
+      *,
+      user_roles(
+        roles(*)
+      )
+    `)
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  if (!data) return null;
+
+  const userRoles = data.user_roles as { roles: Role }[];
+  const roles = userRoles?.map(ur => ur.roles) || [];
+
+  return {
+    ...data,
+    roles,
+    permissions: [],
+  } as UserWithRole;
 }
 
 export async function deactivateUser(
   userId: string,
   requestingUserId: string
 ): Promise<void> {
-  // Check permission
   const canManage = await canManageUsers(requestingUserId);
   if (!canManage) {
     throw new Error('Insufficient permissions to deactivate user');
   }
 
-  // Cannot deactivate yourself
   if (userId === requestingUserId) {
     throw new Error('Cannot deactivate your own account');
   }
 
-  await query(
-    `UPDATE user_profiles
-     SET is_active = false, updated_at = NOW()
-     WHERE user_id = $1`,
-    [userId]
-  );
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({ is_active: false })
+    .eq('user_id', userId);
+
+  if (error) throw error;
 }
 
 export async function activateUser(
   userId: string,
   requestingUserId: string
 ): Promise<void> {
-  // Check permission
   const canManage = await canManageUsers(requestingUserId);
   if (!canManage) {
     throw new Error('Insufficient permissions to activate user');
   }
 
-  await query(
-    `UPDATE user_profiles
-     SET is_active = true, updated_at = NOW()
-     WHERE user_id = $1`,
-    [userId]
-  );
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({ is_active: true })
+    .eq('user_id', userId);
+
+  if (error) throw error;
 }
 
 // ============================================================================
@@ -423,29 +487,35 @@ export async function getUserRoleLevel(userId: string): Promise<number | null> {
 }
 
 export async function isAdmin(userId: string): Promise<boolean> {
-  const result = await query(
-    `SELECT COUNT(*) as count
-     FROM user_roles ur
-     JOIN roles r ON ur.role_id = r.id
-     WHERE ur.user_id = $1
-       AND r.name IN ('super_admin', 'company_owner')`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return parseInt(result.rows[0].count) > 0;
+  const { count, error } = await supabase
+    .from('user_roles')
+    .select(`
+      roles!inner(name)
+    `, { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .in('roles.name', ['super_admin', 'company_owner']);
+
+  if (error) throw error;
+
+  return (count || 0) > 0;
 }
 
 export async function isSuperAdmin(userId: string): Promise<boolean> {
-  const result = await query(
-    `SELECT COUNT(*) as count
-     FROM user_roles ur
-     JOIN roles r ON ur.role_id = r.id
-     WHERE ur.user_id = $1
-       AND r.name = 'super_admin'`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return parseInt(result.rows[0].count) > 0;
+  const { count, error } = await supabase
+    .from('user_roles')
+    .select(`
+      roles!inner(name)
+    `, { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('roles.name', 'super_admin');
+
+  if (error) throw error;
+
+  return (count || 0) > 0;
 }
 
 // ============================================================================
@@ -460,12 +530,17 @@ export async function canAccessCompany(
   userId: string,
   companyId: string
 ): Promise<boolean> {
-  const result = await query(
-    `SELECT can_access_company($1, $2) as can_access`,
-    [userId, companyId]
-  );
+  const supabase = await createClient();
 
-  return result.rows[0]?.can_access || false;
+  const { data, error } = await supabase
+    .rpc('can_access_company', {
+      p_user_id: userId,
+      p_company_id: companyId,
+    });
+
+  if (error) throw error;
+
+  return data || false;
 }
 
 /**
@@ -487,18 +562,22 @@ export interface ManageableCompany {
 export async function getManageableCompanies(
   userId: string
 ): Promise<ManageableCompany[]> {
-  const result = await query(
-    `SELECT * FROM get_manageable_companies($1)`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  return result.rows.map(row => ({
+  const { data, error } = await supabase
+    .rpc('get_manageable_companies', {
+      p_user_id: userId,
+    });
+
+  if (error) throw error;
+
+  return (data || []).map(row => ({
     company_id: row.company_id,
     company_name: row.company_name,
     role_name: row.role_name,
     is_owner: row.is_owner,
     can_manage_members: row.can_manage_members,
-    member_count: parseInt(row.member_count) || 0
+    member_count: parseInt(row.member_count) || 0,
   }));
 }
 
@@ -511,17 +590,22 @@ export async function canManageUser(
   targetUserId: string,
   companyId?: string
 ): Promise<boolean> {
-  // 不能管理自己
   if (requestingUserId === targetUserId) {
     return false;
   }
 
-  const result = await query(
-    `SELECT can_manage_user($1, $2, $3) as can_manage`,
-    [requestingUserId, targetUserId, companyId || null]
-  );
+  const supabase = await createClient();
 
-  return result.rows[0]?.can_manage || false;
+  const { data, error } = await supabase
+    .rpc('can_manage_user', {
+      p_requesting_user_id: requestingUserId,
+      p_target_user_id: targetUserId,
+      p_company_id: companyId || null,
+    });
+
+  if (error) throw error;
+
+  return data || false;
 }
 
 /**
@@ -533,12 +617,18 @@ export async function canAssignRole(
   targetRoleName: RoleName,
   companyId?: string
 ): Promise<boolean> {
-  const result = await query(
-    `SELECT can_assign_role($1, $2, $3) as can_assign`,
-    [requestingUserId, targetRoleName, companyId || null]
-  );
+  const supabase = await createClient();
 
-  return result.rows[0]?.can_assign || false;
+  const { data, error } = await supabase
+    .rpc('can_assign_role', {
+      p_requesting_user_id: requestingUserId,
+      p_target_role_name: targetRoleName,
+      p_company_id: companyId || null,
+    });
+
+  if (error) throw error;
+
+  return data || false;
 }
 
 /**
@@ -558,28 +648,37 @@ export interface CompanyInfo {
 export async function getAllCompanies(
   requestingUserId: string
 ): Promise<CompanyInfo[]> {
-  // 檢查是否為超級管理員
   const isSuperAdminUser = await isSuperAdmin(requestingUserId);
   if (!isSuperAdminUser) {
     throw new Error('Only super admin can view all companies');
   }
 
-  const result = await query(
-    `SELECT
-      c.id,
-      c.name,
-      c.logo_url,
-      c.created_at,
-      (SELECT COUNT(*) FROM company_members WHERE company_id = c.id AND is_active = true) as member_count
-    FROM companies c
-    ORDER BY c.created_at DESC`
+  const supabase = await createClient();
+
+  const { data: companies, error: companiesError } = await supabase
+    .from('companies')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (companiesError) throw companiesError;
+
+  const companiesWithCounts = await Promise.all(
+    (companies || []).map(async (company) => {
+      const { count } = await supabase
+        .from('company_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', company.id)
+        .eq('is_active', true);
+
+      return {
+        id: company.id,
+        name: company.name as { zh: string; en: string },
+        logo_url: company.logo_url || undefined,
+        member_count: count || 0,
+        created_at: new Date(company.created_at),
+      };
+    })
   );
 
-  return result.rows.map(row => ({
-    id: row.id,
-    name: row.name,
-    logo_url: row.logo_url,
-    member_count: parseInt(row.member_count) || 0,
-    created_at: row.created_at
-  }));
+  return companiesWithCounts;
 }

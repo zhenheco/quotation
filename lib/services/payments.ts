@@ -3,12 +3,13 @@
  * Handles payment tracking for quotations and contracts
  */
 
-import { query, getClient } from '../db/zeabur';
+import { createClient } from '@/lib/supabase/server';
 import type {
   Payment,
   PaymentFormData,
   PaymentWithRelations,
   PaymentSummary,
+  PaymentSchedule,
 } from '@/types/extended.types';
 import { hasPermission } from './rbac';
 import { markScheduleAsPaid, updateCustomerNextPayment } from './contracts';
@@ -27,167 +28,181 @@ export async function getPayments(
     payment_type?: string;
   }
 ): Promise<PaymentWithRelations[]> {
-  // Check permission
   const canRead = await hasPermission(userId, 'payments', 'read');
   if (!canRead) {
     throw new Error('Insufficient permissions to view payments');
   }
 
-  let query = `
-    SELECT
-      p.*,
-      json_build_object(
-        'id', c.id,
-        'company_name_zh', c.company_name_zh,
-        'company_name_en', c.company_name_en
-      ) as customer,
-      json_build_object(
-        'id', q.id,
-        'quotation_number', q.quotation_number,
-        'total', q.total
-      ) as quotation,
-      json_build_object(
-        'id', ct.id,
-        'contract_number', ct.contract_number,
-        'total_amount', ct.total_amount
-      ) as contract
-    FROM payments p
-    JOIN customers c ON p.customer_id = c.id
-    LEFT JOIN quotations q ON p.quotation_id = q.id
-    LEFT JOIN customer_contracts ct ON p.contract_id = ct.id
-    WHERE p.user_id = $1
-  `;
-
-  const params: unknown[] = [userId];
-  let paramIndex = 2;
+  const supabase = await createClient();
+  let query = supabase
+    .from('payments')
+    .select(`
+      *,
+      customers!inner(
+        id,
+        name
+      ),
+      quotations(
+        id,
+        quotation_number,
+        total
+      ),
+      customer_contracts(
+        id,
+        contract_number,
+        total_amount
+      )
+    `)
+    .eq('user_id', userId);
 
   if (filters?.customer_id) {
-    query += ` AND p.customer_id = $${paramIndex}`;
-    params.push(filters.customer_id);
-    paramIndex++;
+    query = query.eq('customer_id', filters.customer_id);
   }
 
   if (filters?.quotation_id) {
-    query += ` AND p.quotation_id = $${paramIndex}`;
-    params.push(filters.quotation_id);
-    paramIndex++;
+    query = query.eq('quotation_id', filters.quotation_id);
   }
 
   if (filters?.contract_id) {
-    query += ` AND p.contract_id = $${paramIndex}`;
-    params.push(filters.contract_id);
-    paramIndex++;
+    query = query.eq('contract_id', filters.contract_id);
   }
 
   if (filters?.status) {
-    query += ` AND p.status = $${paramIndex}`;
-    params.push(filters.status);
-    paramIndex++;
+    query = query.eq('status', filters.status);
   }
 
   if (filters?.payment_type) {
-    query += ` AND p.payment_type = $${paramIndex}`;
-    params.push(filters.payment_type);
-    paramIndex++;
+    query = query.eq('payment_type', filters.payment_type);
   }
 
-  query += ` ORDER BY p.payment_date DESC`;
+  query = query.order('payment_date', { ascending: false });
 
-  const result = await query(query, params);
-  return result.rows;
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data || []).map(row => {
+    const customerName = row.customers.name || { zh: '', en: '' };
+    return {
+      ...row,
+      customer: {
+        id: row.customers.id,
+        company_name_zh: typeof customerName === 'string' ? customerName : (customerName.zh || ''),
+        company_name_en: typeof customerName === 'string' ? customerName : (customerName.en || ''),
+      },
+      quotation: row.quotations ? {
+        id: row.quotations.id,
+        quotation_number: row.quotations.quotation_number,
+        total: row.quotations.total,
+      } : undefined,
+      contract: row.customer_contracts ? {
+        id: row.customer_contracts.id,
+        contract_number: row.customer_contracts.contract_number,
+        total_amount: row.customer_contracts.total_amount,
+      } : undefined,
+    };
+  }) as PaymentWithRelations[];
 }
 
 export async function getPaymentById(
   paymentId: string,
   userId: string
 ): Promise<PaymentWithRelations | null> {
-  const result = await query(
-    `SELECT
-       p.*,
-       json_build_object(
-         'id', c.id,
-         'company_name_zh', c.company_name_zh,
-         'company_name_en', c.company_name_en
-       ) as customer,
-       json_build_object(
-         'id', q.id,
-         'quotation_number', q.quotation_number,
-         'total', q.total
-       ) as quotation,
-       json_build_object(
-         'id', ct.id,
-         'contract_number', ct.contract_number,
-         'total_amount', ct.total_amount
-       ) as contract
-     FROM payments p
-     JOIN customers c ON p.customer_id = c.id
-     LEFT JOIN quotations q ON p.quotation_id = q.id
-     LEFT JOIN customer_contracts ct ON p.contract_id = ct.id
-     WHERE p.id = $1 AND p.user_id = $2`,
-    [paymentId, userId]
-  );
+  const supabase = await createClient();
 
-  return result.rows[0] || null;
+  const { data, error } = await supabase
+    .from('payments')
+    .select(`
+      *,
+      customers!inner(
+        id,
+        name
+      ),
+      quotations(
+        id,
+        quotation_number,
+        total
+      ),
+      customer_contracts(
+        id,
+        contract_number,
+        total_amount
+      )
+    `)
+    .eq('id', paymentId)
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  if (!data) return null;
+
+  const customerName = data.customers.name || { zh: '', en: '' };
+
+  return {
+    ...data,
+    customer: {
+      id: data.customers.id,
+      company_name_zh: typeof customerName === 'string' ? customerName : (customerName.zh || ''),
+      company_name_en: typeof customerName === 'string' ? customerName : (customerName.en || ''),
+    },
+    quotation: data.quotations ? {
+      id: data.quotations.id,
+      quotation_number: data.quotations.quotation_number,
+      total: data.quotations.total,
+    } : undefined,
+    contract: data.customer_contracts ? {
+      id: data.customer_contracts.id,
+      contract_number: data.customer_contracts.contract_number,
+      total_amount: data.customer_contracts.total_amount,
+    } : undefined,
+  } as PaymentWithRelations;
 }
 
 export async function createPayment(
   userId: string,
   data: PaymentFormData
 ): Promise<Payment> {
-  // Check permission
   const canWrite = await hasPermission(userId, 'payments', 'write');
   if (!canWrite) {
     throw new Error('Insufficient permissions to create payment');
   }
 
-  // Validate that either quotation_id or contract_id is provided
   if (!data.quotation_id && !data.contract_id) {
     throw new Error('Either quotation_id or contract_id must be provided');
   }
 
-  const result = await query(
-    `INSERT INTO payments (
-       user_id,
-       quotation_id,
-       contract_id,
-       customer_id,
-       payment_type,
-       payment_date,
-       amount,
-       currency,
-       payment_method,
-       reference_number,
-       notes,
-       status
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'confirmed')
-     RETURNING *`,
-    [
-      userId,
-      data.quotation_id || null,
-      data.contract_id || null,
-      data.customer_id,
-      data.payment_type,
-      data.payment_date,
-      data.amount,
-      data.currency,
-      data.payment_method || null,
-      data.reference_number || null,
-      data.notes || null,
-    ]
-  );
+  const supabase = await createClient();
 
-  const payment = result.rows[0];
+  const { data: payment, error } = await supabase
+    .from('payments')
+    .insert({
+      user_id: userId,
+      quotation_id: data.quotation_id || null,
+      contract_id: data.contract_id || null,
+      customer_id: data.customer_id,
+      payment_type: data.payment_type,
+      payment_date: data.payment_date,
+      amount: data.amount,
+      currency: data.currency,
+      payment_method: data.payment_method || null,
+      reference_number: data.reference_number || null,
+      notes: data.notes || null,
+      status: 'confirmed',
+    })
+    .select()
+    .single();
 
-  // If this is a contract payment, try to match with payment schedule
+  if (error) throw error;
+
   if (data.contract_id) {
     await matchPaymentToSchedule(payment.id, data.contract_id, data.payment_date, userId);
     await updateCustomerNextPayment(data.customer_id, userId);
   }
 
-  // Update quotation payment status (handled by trigger)
-  // Update customer next payment (if applicable)
-
-  return payment;
+  return payment as Payment;
 }
 
 export async function updatePayment(
@@ -195,65 +210,54 @@ export async function updatePayment(
   userId: string,
   data: Partial<PaymentFormData> & { status?: string }
 ): Promise<Payment> {
-  // Check permission
   const canWrite = await hasPermission(userId, 'payments', 'write');
   if (!canWrite) {
     throw new Error('Insufficient permissions to update payment');
   }
 
-  const fields: string[] = [];
-  const values: unknown[] = [];
-  let paramIndex = 1;
-
-  Object.entries(data).forEach(([key, value]) => {
-    fields.push(`${key} = $${paramIndex}`);
-    values.push(value);
-    paramIndex++;
-  });
-
-  if (fields.length === 0) {
+  if (Object.keys(data).length === 0) {
     throw new Error('No fields to update');
   }
 
-  values.push(paymentId, userId);
+  const supabase = await createClient();
 
-  const result = await query(
-    `UPDATE payments
-     SET ${fields.join(', ')}, updated_at = NOW()
-     WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1}
-     RETURNING *`,
-    values
-  );
+  const { data: updated, error } = await supabase
+    .from('payments')
+    .update(data)
+    .eq('id', paymentId)
+    .eq('user_id', userId)
+    .select()
+    .single();
 
-  if (result.rows.length === 0) {
-    throw new Error('Payment not found');
-  }
+  if (error) throw error;
+  if (!updated) throw new Error('Payment not found');
 
-  return result.rows[0];
+  return updated as Payment;
 }
 
 export async function deletePayment(
   paymentId: string,
   userId: string
 ): Promise<void> {
-  // Check permission
   const canDelete = await hasPermission(userId, 'payments', 'delete');
   if (!canDelete) {
     throw new Error('Insufficient permissions to delete payment');
   }
 
-  const result = await query(
-    `DELETE FROM payments
-     WHERE id = $1 AND user_id = $2
-     RETURNING customer_id`,
-    [paymentId, userId]
-  );
+  const supabase = await createClient();
 
-  if (result.rows.length === 0) {
-    throw new Error('Payment not found');
-  }
+  const { data: deleted, error } = await supabase
+    .from('payments')
+    .delete()
+    .eq('id', paymentId)
+    .eq('user_id', userId)
+    .select('customer_id')
+    .single();
 
-  const customerId = result.rows[0].customer_id;
+  if (error) throw error;
+  if (!deleted) throw new Error('Payment not found');
+
+  const customerId = deleted.customer_id;
   await updateCustomerNextPayment(customerId, userId);
 }
 
@@ -262,7 +266,7 @@ export async function updatePaymentReceipt(
   userId: string,
   receiptUrl: string
 ): Promise<Payment> {
-  return await updatePayment(paymentId, userId, { receipt_url: receiptUrl } as unknown);
+  return await updatePayment(paymentId, userId, { receipt_url: receiptUrl } as Partial<PaymentFormData>);
 }
 
 // ============================================================================
@@ -273,34 +277,51 @@ export async function getPaymentSummary(
   userId: string,
   currency: string = 'TWD'
 ): Promise<PaymentSummary> {
-  // Total paid (confirmed payments)
-  const paidResult = await query(
-    `SELECT COALESCE(SUM(amount), 0) as total
-     FROM payments
-     WHERE user_id = $1 AND currency = $2 AND status = 'confirmed'`,
-    [userId, currency]
+  const supabase = await createClient();
+
+  const { data: paidData, error: paidError } = await supabase
+    .from('payments')
+    .select('amount')
+    .eq('user_id', userId)
+    .eq('currency', currency)
+    .eq('status', 'confirmed');
+
+  if (paidError) throw paidError;
+
+  const totalPaid = (paidData || []).reduce((sum, row) => sum + row.amount, 0);
+
+  const { data: pendingData, error: pendingError } = await supabase
+    .from('payment_schedules')
+    .select('amount, paid_amount')
+    .eq('user_id', userId)
+    .eq('currency', currency)
+    .eq('status', 'pending');
+
+  if (pendingError) throw pendingError;
+
+  const totalPending = (pendingData || []).reduce(
+    (sum, row) => sum + (row.amount - (row.paid_amount || 0)),
+    0
   );
 
-  // Total pending (pending payment schedules)
-  const pendingResult = await query(
-    `SELECT COALESCE(SUM(amount - paid_amount), 0) as total
-     FROM payment_schedules
-     WHERE user_id = $1 AND currency = $2 AND status = 'pending'`,
-    [userId, currency]
-  );
+  const { data: overdueData, error: overdueError } = await supabase
+    .from('payment_schedules')
+    .select('amount, paid_amount')
+    .eq('user_id', userId)
+    .eq('currency', currency)
+    .eq('status', 'overdue');
 
-  // Total overdue (overdue payment schedules)
-  const overdueResult = await query(
-    `SELECT COALESCE(SUM(amount - paid_amount), 0) as total
-     FROM payment_schedules
-     WHERE user_id = $1 AND currency = $2 AND status = 'overdue'`,
-    [userId, currency]
+  if (overdueError) throw overdueError;
+
+  const totalOverdue = (overdueData || []).reduce(
+    (sum, row) => sum + (row.amount - (row.paid_amount || 0)),
+    0
   );
 
   return {
-    total_paid: parseFloat(paidResult.rows[0].total),
-    total_pending: parseFloat(pendingResult.rows[0].total),
-    total_overdue: parseFloat(overdueResult.rows[0].total),
+    total_paid: totalPaid,
+    total_pending: totalPending,
+    total_overdue: totalOverdue,
     currency,
   };
 }
@@ -310,23 +331,19 @@ export async function getPaymentsByMonth(
   year: number,
   currency: string = 'TWD'
 ): Promise<{ month: number; total: number }[]> {
-  const result = await query(
-    `SELECT
-       EXTRACT(MONTH FROM payment_date) as month,
-       SUM(amount) as total
-     FROM payments
-     WHERE user_id = $1
-       AND EXTRACT(YEAR FROM payment_date) = $2
-       AND currency = $3
-       AND status = 'confirmed'
-     GROUP BY EXTRACT(MONTH FROM payment_date)
-     ORDER BY month`,
-    [userId, year, currency]
-  );
+  const supabase = await createClient();
 
-  return result.rows.map((row) => ({
-    month: parseInt(row.month),
-    total: parseFloat(row.total),
+  const { data, error } = await supabase.rpc('get_payments_by_month', {
+    p_user_id: userId,
+    p_year: year,
+    p_currency: currency,
+  });
+
+  if (error) throw error;
+
+  return (data || []).map((row: { month: number; total: number }) => ({
+    month: row.month,
+    total: parseFloat(row.total.toString()),
   }));
 }
 
@@ -334,25 +351,47 @@ export async function getPaymentsByCustomer(
   userId: string,
   limit: number = 10
 ): Promise<{ customer_id: string; customer_name: string; total: number }[]> {
-  const result = await query(
-    `SELECT
-       c.id as customer_id,
-       c.company_name_zh as customer_name,
-       SUM(p.amount) as total
-     FROM payments p
-     JOIN customers c ON p.customer_id = c.id
-     WHERE p.user_id = $1 AND p.status = 'confirmed'
-     GROUP BY c.id, c.company_name_zh
-     ORDER BY total DESC
-     LIMIT $2`,
-    [userId, limit]
-  );
+  const supabase = await createClient();
 
-  return result.rows.map((row) => ({
-    customer_id: row.customer_id,
-    customer_name: row.customer_name,
-    total: parseFloat(row.total),
-  }));
+  const { data, error } = await supabase
+    .from('payments')
+    .select(`
+      customer_id,
+      amount,
+      customers!inner(
+        id,
+        name
+      )
+    `)
+    .eq('user_id', userId)
+    .eq('status', 'confirmed')
+    .order('amount', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+
+  const grouped = (data || []).reduce((acc: Record<string, { customer_name: string; total: number }>, row) => {
+    const customerId = row.customer_id;
+    const customer = Array.isArray(row.customers) ? row.customers[0] : row.customers;
+    const customerName = customer?.name || { zh: '', en: '' };
+    if (!acc[customerId]) {
+      acc[customerId] = {
+        customer_name: typeof customerName === 'string' ? customerName : (customerName.zh || ''),
+        total: 0,
+      };
+    }
+    acc[customerId].total += row.amount;
+    return acc;
+  }, {});
+
+  return Object.entries(grouped)
+    .map(([customer_id, data]) => ({
+      customer_id,
+      customer_name: data.customer_name,
+      total: data.total,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
 }
 
 // ============================================================================
@@ -365,17 +404,21 @@ async function matchPaymentToSchedule(
   paymentDate: string,
   userId: string
 ): Promise<void> {
-  // Find the most recent pending payment schedule for this contract
-  const result = await query(
-    `SELECT * FROM payment_schedules
-     WHERE contract_id = $1 AND user_id = $2 AND status = 'pending'
-     ORDER BY due_date ASC
-     LIMIT 1`,
-    [contractId, userId]
-  );
+  const supabase = await createClient();
 
-  if (result.rows.length > 0) {
-    const schedule = result.rows[0];
+  const { data, error } = await supabase
+    .from('payment_schedules')
+    .select('*')
+    .eq('contract_id', contractId)
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .order('due_date', { ascending: true })
+    .limit(1);
+
+  if (error) throw error;
+
+  if (data && data.length > 0) {
+    const schedule = data[0];
     await markScheduleAsPaid(schedule.id, userId, paymentId, paymentDate);
   }
 }
@@ -384,38 +427,39 @@ export async function calculateOutstandingBalance(
   quotationId?: string,
   contractId?: string
 ): Promise<number> {
+  const supabase = await createClient();
+
   if (quotationId) {
-    const result = await query(
-      `SELECT total, total_paid FROM quotations WHERE id = $1`,
-      [quotationId]
-    );
+    const { data, error } = await supabase
+      .from('quotations')
+      .select('total, total_paid')
+      .eq('id', quotationId)
+      .single();
 
-    if (result.rows.length === 0) {
-      return 0;
-    }
+    if (error || !data) return 0;
 
-    const { total, total_paid } = result.rows[0];
-    return total - (total_paid || 0);
+    return data.total - (data.total_paid || 0);
   }
 
   if (contractId) {
-    const result = await query(
-      `SELECT
-         cc.total_amount,
-         COALESCE(SUM(p.amount), 0) as total_paid
-       FROM customer_contracts cc
-       LEFT JOIN payments p ON cc.id = p.contract_id AND p.status = 'confirmed'
-       WHERE cc.id = $1
-       GROUP BY cc.id, cc.total_amount`,
-      [contractId]
-    );
+    const { data: contract, error: contractError } = await supabase
+      .from('customer_contracts')
+      .select('total_amount')
+      .eq('id', contractId)
+      .single();
 
-    if (result.rows.length === 0) {
-      return 0;
-    }
+    if (contractError || !contract) return 0;
 
-    const { total_amount, total_paid } = result.rows[0];
-    return total_amount - parseFloat(total_paid);
+    const { data: payments, error: paymentsError } = await supabase
+      .from('payments')
+      .select('amount')
+      .eq('contract_id', contractId)
+      .eq('status', 'confirmed');
+
+    if (paymentsError) return 0;
+
+    const totalPaid = (payments || []).reduce((sum, p) => sum + p.amount, 0);
+    return contract.total_amount - totalPaid;
   }
 
   return 0;
@@ -429,152 +473,141 @@ export async function getCustomersNeedingPaymentReminder(
   userId: string,
   daysBeforeDue: number = 7
 ): Promise<unknown[]> {
-  const result = await query(
-    `SELECT
-       c.*,
-       ps.due_date,
-       ps.amount,
-       ps.currency,
-       ps.due_date - CURRENT_DATE as days_until_due
-     FROM customers c
-     JOIN payment_schedules ps ON c.id = ps.customer_id
-     WHERE c.user_id = $1
-       AND ps.status = 'pending'
-       AND ps.due_date BETWEEN CURRENT_DATE AND CURRENT_DATE + $2
-     ORDER BY ps.due_date ASC`,
-    [userId, daysBeforeDue]
-  );
+  const supabase = await createClient();
 
-  return result.rows;
+  const today = new Date();
+  const futureDate = new Date();
+  futureDate.setDate(today.getDate() + daysBeforeDue);
+
+  const { data, error } = await supabase
+    .from('payment_schedules')
+    .select(`
+      *,
+      customers!inner(
+        id,
+        user_id,
+        customer_number,
+        name,
+        contact_person,
+        email,
+        phone
+      )
+    `)
+    .eq('customers.user_id', userId)
+    .eq('status', 'pending')
+    .gte('due_date', today.toISOString().split('T')[0])
+    .lte('due_date', futureDate.toISOString().split('T')[0])
+    .order('due_date', { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []).map(row => {
+    const dueDate = new Date(row.due_date);
+    const daysUntilDue = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const customer = row.customers;
+    const customerName = customer.name || { zh: '', en: '' };
+
+    return {
+      ...customer,
+      company_name_zh: typeof customerName === 'string' ? customerName : (customerName.zh || ''),
+      company_name_en: typeof customerName === 'string' ? customerName : (customerName.en || ''),
+      due_date: row.due_date,
+      amount: row.amount,
+      currency: row.currency,
+      days_until_due: daysUntilDue,
+    };
+  });
 }
 
 export async function checkOverduePayments(userId: string): Promise<void> {
-  // This function can be called by a cron job to automatically mark overdue payments
-  await query(
-    `UPDATE payment_schedules
-     SET status = 'overdue'
-     WHERE user_id = $1
-       AND status = 'pending'
-       AND due_date < CURRENT_DATE`,
-    [userId]
-  );
+  const supabase = await createClient();
+  const today = new Date().toISOString().split('T')[0];
 
-  // Also update quotations payment status
-  await query(
-    `UPDATE quotations q
-     SET payment_status = 'overdue'
-     WHERE user_id = $1
-       AND payment_status IN ('unpaid', 'partial')
-       AND payment_due_date < CURRENT_DATE`,
-    [userId]
-  );
+  const { error: scheduleError } = await supabase
+    .from('payment_schedules')
+    .update({ status: 'overdue' })
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .lt('due_date', today);
+
+  if (scheduleError) throw scheduleError;
+
+  const { error: quotationError } = await supabase
+    .from('quotations')
+    .update({ payment_status: 'overdue' })
+    .eq('user_id', userId)
+    .in('payment_status', ['unpaid', 'partial'])
+    .lt('payment_due_date', today);
+
+  if (quotationError) throw quotationError;
 }
 
 // ============================================================================
 // NEW ENHANCED PAYMENT FUNCTIONS
 // ============================================================================
 
-/**
- * Record payment and trigger auto-update of next collection
- * 記錄收款並自動觸發下次應收日期更新
- */
 export async function recordPayment(
   userId: string,
   data: PaymentFormData & {
-    schedule_id?: string; // Optional: link to payment schedule
+    schedule_id?: string;
   }
 ): Promise<Payment> {
-  // Check permission
   const canWrite = await hasPermission(userId, 'payments', 'write');
   if (!canWrite) {
     throw new Error('Insufficient permissions to record payment');
   }
 
-  // Validate that either quotation_id or contract_id is provided
   if (!data.quotation_id && !data.contract_id) {
     throw new Error('Either quotation_id or contract_id must be provided');
   }
 
-  const client = await getClient();
+  const supabase = await createClient();
 
-  try {
-    await client.query('BEGIN');
+  const { data: payment, error: paymentError } = await supabase
+    .from('payments')
+    .insert({
+      user_id: userId,
+      quotation_id: data.quotation_id || null,
+      contract_id: data.contract_id || null,
+      customer_id: data.customer_id,
+      payment_type: data.payment_type,
+      payment_date: data.payment_date,
+      amount: data.amount,
+      currency: data.currency,
+      payment_method: data.payment_method || null,
+      reference_number: data.reference_number || null,
+      notes: data.notes || null,
+      status: 'confirmed',
+    })
+    .select()
+    .single();
 
-    // Create payment
-    const paymentResult = await client.query(
-      `INSERT INTO payments (
-         user_id,
-         quotation_id,
-         contract_id,
-         customer_id,
-         payment_type,
-         payment_date,
-         amount,
-         currency,
-         payment_method,
-         reference_number,
-         notes,
-         status
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'confirmed')
-       RETURNING *`,
-      [
-        userId,
-        data.quotation_id || null,
-        data.contract_id || null,
-        data.customer_id,
-        data.payment_type,
-        data.payment_date,
-        data.amount,
-        data.currency,
-        data.payment_method || null,
-        data.reference_number || null,
-        data.notes || null,
-      ]
-    );
+  if (paymentError) throw paymentError;
 
-    const payment = paymentResult.rows[0];
+  if (data.schedule_id) {
+    const { error: scheduleError } = await supabase
+      .from('payment_schedules')
+      .update({
+        status: 'paid',
+        paid_date: data.payment_date,
+        payment_id: payment.id,
+        paid_amount: data.amount,
+      })
+      .eq('id', data.schedule_id)
+      .eq('user_id', userId);
 
-    // If schedule_id provided, mark that schedule as paid
-    if (data.schedule_id) {
-      await client.query(
-        `UPDATE payment_schedules
-         SET status = 'paid',
-             paid_date = $1,
-             payment_id = $2,
-             paid_amount = $3,
-             updated_at = NOW()
-         WHERE id = $4 AND user_id = $5`,
-        [data.payment_date, payment.id, data.amount, data.schedule_id, userId]
-      );
-    } else if (data.contract_id) {
-      // Auto-match to next pending schedule
-      await matchPaymentToSchedule(payment.id, data.contract_id, data.payment_date, userId);
-    }
-
-    // Update customer next payment (handled by service)
-    if (data.contract_id) {
-      const { updateCustomerNextPayment } = await import('./contracts');
-      await updateCustomerNextPayment(data.customer_id, userId);
-    }
-
-    // NOTE: Next collection date is automatically updated by database trigger
-    // (trigger: update_next_collection_date)
-
-    await client.query('COMMIT');
-
-    return payment;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
+    if (scheduleError) throw scheduleError;
+  } else if (data.contract_id) {
+    await matchPaymentToSchedule(payment.id, data.contract_id, data.payment_date, userId);
   }
+
+  if (data.contract_id) {
+    await updateCustomerNextPayment(data.customer_id, userId);
+  }
+
+  return payment as Payment;
 }
 
-/**
- * Get collected payments (using view)
- * 取得已收款列表
- */
 export async function getCollectedPayments(
   userId: string,
   filters?: {
@@ -584,66 +617,50 @@ export async function getCollectedPayments(
     payment_type?: string;
   }
 ): Promise<unknown[]> {
-  // Check permission
   const canRead = await hasPermission(userId, 'payments', 'read');
   if (!canRead) {
     throw new Error('Insufficient permissions to view payments');
   }
 
-  let sql = `
-    SELECT *
-    FROM collected_payments_summary
-    WHERE 1=1
-  `;
+  const supabase = await createClient();
 
-  const params: unknown[] = [];
-  let paramIndex = 1;
-
-  // Note: View doesn't have user_id, so we need to filter differently
-  // We'll join with customers to filter by user
-  sql = `
-    SELECT cps.*
-    FROM collected_payments_summary cps
-    JOIN customers c ON cps.customer_id = c.id
-    WHERE c.user_id = $${paramIndex}
-  `;
-  params.push(userId);
-  paramIndex++;
+  let query = supabase
+    .from('payments')
+    .select(`
+      *,
+      customers!inner(
+        id,
+        name,
+        user_id
+      )
+    `)
+    .eq('customers.user_id', userId)
+    .eq('status', 'confirmed');
 
   if (filters?.customer_id) {
-    sql += ` AND cps.customer_id = $${paramIndex}`;
-    params.push(filters.customer_id);
-    paramIndex++;
+    query = query.eq('customer_id', filters.customer_id);
   }
 
   if (filters?.start_date) {
-    sql += ` AND cps.payment_date >= $${paramIndex}`;
-    params.push(filters.start_date);
-    paramIndex++;
+    query = query.gte('payment_date', filters.start_date);
   }
 
   if (filters?.end_date) {
-    sql += ` AND cps.payment_date <= $${paramIndex}`;
-    params.push(filters.end_date);
-    paramIndex++;
+    query = query.lte('payment_date', filters.end_date);
   }
 
   if (filters?.payment_type) {
-    sql += ` AND cps.payment_type = $${paramIndex}`;
-    params.push(filters.payment_type);
-    paramIndex++;
+    query = query.eq('payment_type', filters.payment_type);
   }
 
-  sql += ` ORDER BY cps.payment_date DESC`;
+  query = query.order('payment_date', { ascending: false });
 
-  const result = await query(sql, params);
-  return result.rows;
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return data || [];
 }
 
-/**
- * Get unpaid payments (>30 days, using view)
- * 取得未收款列表（超過30天）
- */
 export async function getUnpaidPayments(
   userId: string,
   filters?: {
@@ -651,176 +668,254 @@ export async function getUnpaidPayments(
     min_days_overdue?: number;
   }
 ): Promise<unknown[]> {
-  // Check permission
   const canRead = await hasPermission(userId, 'payments', 'read');
   if (!canRead) {
     throw new Error('Insufficient permissions to view unpaid payments');
   }
 
-  let sql = `
-    SELECT upp.*
-    FROM unpaid_payments_30_days upp
-    JOIN customer_contracts cc ON upp.contract_id = cc.id
-    WHERE cc.user_id = $1
-  `;
+  const supabase = await createClient();
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
 
-  const params: unknown[] = [userId];
-  let paramIndex = 2;
+  let query = supabase
+    .from('payment_schedules')
+    .select(`
+      *,
+      customers!inner(
+        id,
+        name
+      ),
+      customer_contracts!inner(
+        id,
+        contract_number,
+        title,
+        user_id
+      )
+    `)
+    .eq('customer_contracts.user_id', userId)
+    .eq('status', 'overdue')
+    .lt('due_date', thirtyDaysAgo.toISOString().split('T')[0]);
 
   if (filters?.customer_id) {
-    sql += ` AND upp.customer_id = $${paramIndex}`;
-    params.push(filters.customer_id);
-    paramIndex++;
+    query = query.eq('customer_id', filters.customer_id);
   }
 
-  if (filters?.min_days_overdue) {
-    sql += ` AND upp.days_overdue >= $${paramIndex}`;
-    params.push(filters.min_days_overdue);
-    paramIndex++;
-  }
+  query = query.order('due_date', { ascending: true });
 
-  sql += ` ORDER BY upp.days_overdue DESC, upp.due_date ASC`;
+  const { data, error } = await query;
+  if (error) throw error;
 
-  const result = await query(sql, params);
-  return result.rows;
+  return (data || []).map(row => {
+    const dueDate = new Date(row.due_date);
+    const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (!filters?.min_days_overdue || daysOverdue >= filters.min_days_overdue) {
+      const customer = row.customers;
+      const customerName = customer?.name || { zh: '', en: '' };
+      return {
+        ...row,
+        customers: {
+          ...customer,
+          company_name_zh: typeof customerName === 'string' ? customerName : (customerName.zh || ''),
+          company_name_en: typeof customerName === 'string' ? customerName : (customerName.en || ''),
+        },
+        days_overdue: daysOverdue,
+      };
+    }
+    return null;
+  }).filter(Boolean);
 }
 
-/**
- * Get next collection reminders (using view)
- * 取得下次收款提醒列表
- */
 export async function getNextCollectionReminders(
   userId: string,
   filters?: {
-    days_ahead?: number; // Default 30 days
+    days_ahead?: number;
     status?: 'overdue' | 'due_today' | 'due_soon' | 'upcoming';
   }
 ): Promise<unknown[]> {
-  // Check permission
   const canRead = await hasPermission(userId, 'payments', 'read');
+
   if (!canRead) {
     throw new Error('Insufficient permissions to view collection reminders');
   }
 
-  let sql = `
-    SELECT ncr.*
-    FROM next_collection_reminders ncr
-    JOIN customer_contracts cc ON ncr.contract_id = cc.id
-    WHERE cc.user_id = $1
-  `;
-
-  const params: unknown[] = [userId];
-  let paramIndex = 2;
-
-  // Filter by days ahead (default 30 days)
+  const supabase = await createClient();
+  const today = new Date();
   const daysAhead = filters?.days_ahead || 30;
-  sql += ` AND ncr.days_until_collection <= $${paramIndex}`;
-  params.push(daysAhead);
-  paramIndex++;
+  const futureDate = new Date();
+  futureDate.setDate(today.getDate() + daysAhead);
 
-  if (filters?.status) {
-    sql += ` AND ncr.collection_status = $${paramIndex}`;
-    params.push(filters.status);
-    paramIndex++;
+  let query = supabase
+    .from('customer_contracts')
+    .select(`
+      id,
+      contract_number,
+      title,
+      customer_id,
+      next_collection_date,
+      next_collection_amount,
+      currency,
+      customers!inner(
+        id,
+        name,
+        contact_person
+      )
+    `)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .not('next_collection_date', 'is', null)
+    .lte('next_collection_date', futureDate.toISOString().split('T')[0]);
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
   }
 
-  sql += ` ORDER BY ncr.next_collection_date ASC`;
+  return (data || []).map(row => {
+    const collectionDate = new Date(row.next_collection_date as string);
+    const daysUntilCollection = Math.floor((collectionDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-  const result = await query(sql, params);
-  return result.rows;
+    let collectionStatus: 'overdue' | 'due_today' | 'due_soon' | 'upcoming';
+    if (daysUntilCollection < 0) {
+      collectionStatus = 'overdue';
+    } else if (daysUntilCollection === 0) {
+      collectionStatus = 'due_today';
+    } else if (daysUntilCollection <= 7) {
+      collectionStatus = 'due_soon';
+    } else {
+      collectionStatus = 'upcoming';
+    }
+
+    if (filters?.status && collectionStatus !== filters.status) {
+      return null;
+    }
+
+    const customer = Array.isArray(row.customers) ? row.customers[0] : row.customers;
+    const customerName = customer?.name || { zh: '', en: '' };
+
+    return {
+      contract_id: row.id,
+      contract_number: row.contract_number,
+      contract_title: row.title,
+      customer_id: row.customer_id,
+      customer_name_zh: typeof customerName === 'string' ? customerName : (customerName.zh || ''),
+      customer_name_en: typeof customerName === 'string' ? customerName : (customerName.en || ''),
+      contact_person: customer?.contact_person || null,
+      next_collection_date: row.next_collection_date,
+      next_collection_amount: row.next_collection_amount,
+      currency: row.currency,
+      days_until_collection: daysUntilCollection,
+      collection_status: collectionStatus,
+    };
+  }).filter(Boolean);
 }
 
-/**
- * Mark payment as overdue (manual)
- * 手動標記款項為逾期
- */
 export async function markPaymentAsOverdue(
   userId: string,
   scheduleId: string
 ): Promise<PaymentSchedule> {
-  // Check permission
   const canWrite = await hasPermission(userId, 'payments', 'write');
   if (!canWrite) {
     throw new Error('Insufficient permissions to update payment schedule');
   }
 
-  const result = await query(
-    `UPDATE payment_schedules
-     SET status = 'overdue',
-         days_overdue = CURRENT_DATE - due_date,
-         updated_at = NOW()
-     WHERE id = $1 AND user_id = $2 AND status = 'pending'
-     RETURNING *`,
-    [scheduleId, userId]
-  );
+  const supabase = await createClient();
+  const today = new Date();
 
-  if (result.rows.length === 0) {
-    throw new Error('Payment schedule not found or already processed');
-  }
+  const { data: schedule, error: fetchError } = await supabase
+    .from('payment_schedules')
+    .select('due_date')
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .single();
 
-  return result.rows[0];
+  if (fetchError) throw fetchError;
+  if (!schedule) throw new Error('Payment schedule not found');
+
+  const dueDate = new Date(schedule.due_date);
+  const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  const { data: updated, error } = await supabase
+    .from('payment_schedules')
+    .update({
+      status: 'overdue',
+      days_overdue: daysOverdue,
+    })
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .select()
+    .single();
+
+  if (error) throw error;
+  if (!updated) throw new Error('Payment schedule not found or already processed');
+
+  return updated as PaymentSchedule;
 }
 
-/**
- * Batch mark overdue payments (call database function)
- * 批次標記逾期款項
- */
 export async function batchMarkOverduePayments(userId: string): Promise<{
   updated_count: number;
   schedule_ids: string[];
 }> {
-  // Check permission
   const canWrite = await hasPermission(userId, 'payments', 'write');
   if (!canWrite) {
     throw new Error('Insufficient permissions to batch update payments');
   }
 
-  const result = await query(
-    `SELECT * FROM mark_overdue_payments() WHERE EXISTS (
-       SELECT 1 FROM payment_schedules ps
-       WHERE ps.id = ANY(schedule_ids)
-         AND ps.user_id = $1
-     )`,
-    [userId]
-  );
+  const supabase = await createClient();
 
-  if (result.rows.length === 0) {
+  const { data, error } = await supabase.rpc('mark_overdue_payments', {
+    p_user_id: userId,
+  });
+
+  if (error) throw error;
+
+  if (!data || data.length === 0) {
     return { updated_count: 0, schedule_ids: [] };
   }
 
   return {
-    updated_count: result.rows[0].updated_count || 0,
-    schedule_ids: result.rows[0].schedule_ids || [],
+    updated_count: data[0]?.updated_count || 0,
+    schedule_ids: data[0]?.schedule_ids || [],
   };
 }
 
-/**
- * Send payment reminder (update reminder tracking)
- * 發送收款提醒（更新提醒記錄）
- */
 export async function recordPaymentReminder(
   userId: string,
   scheduleId: string
 ): Promise<PaymentSchedule> {
-  // Check permission
   const canWrite = await hasPermission(userId, 'payments', 'write');
   if (!canWrite) {
     throw new Error('Insufficient permissions to record reminder');
   }
 
-  const result = await query(
-    `UPDATE payment_schedules
-     SET last_reminder_sent_at = NOW(),
-         reminder_count = reminder_count + 1,
-         updated_at = NOW()
-     WHERE id = $1 AND user_id = $2
-     RETURNING *`,
-    [scheduleId, userId]
-  );
+  const supabase = await createClient();
 
-  if (result.rows.length === 0) {
-    throw new Error('Payment schedule not found');
-  }
+  const { data: schedule, error: fetchError } = await supabase
+    .from('payment_schedules')
+    .select('reminder_count')
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .single();
 
-  return result.rows[0];
+  if (fetchError) throw fetchError;
+  if (!schedule) throw new Error('Payment schedule not found');
+
+  const { data: updated, error } = await supabase
+    .from('payment_schedules')
+    .update({
+      last_reminder_sent_at: new Date().toISOString(),
+      reminder_count: (schedule.reminder_count || 0) + 1,
+    })
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  if (!updated) throw new Error('Payment schedule not found');
+
+  return updated as PaymentSchedule;
 }

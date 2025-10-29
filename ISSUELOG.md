@@ -4,6 +4,289 @@
 
 ---
 
+## [ISSUE-018] - 2025-10-29: user_permissions 視圖權限不足導致 API 500 錯誤
+
+**狀態**: ✅ Resolved
+
+**嚴重程度**: 🔴 Critical (阻止核心功能運作)
+
+### 錯誤描述
+
+Dashboard 頁面的兩個核心 API 端點持續返回 500 Internal Server Error：
+- `/api/contracts/overdue` - 取得逾期合約
+- `/api/payments/reminders` - 取得付款提醒
+
+錯誤訊息：`{ message: '' }` - 空的錯誤物件，無法直接看出問題所在。
+
+### 根本原因分析
+
+經過詳細調查和測試，發現問題在於：
+
+1. **`user_permissions` 視圖缺少存取權限**：
+   - 視圖在 Migration 013 中建立
+   - 但只有 `postgres` 角色有存取權限
+   - `authenticated` 和 `anon` 角色無法查詢此視圖
+
+2. **Supabase 返回空錯誤物件**：
+   - 當權限不足時，Supabase 返回 `{ message: '' }`
+   - 這導致錯誤訊息不明確，難以診斷
+
+3. **權限檢查失敗導致整個 API 失敗**：
+   - `hasPermission()` 函數嘗試查詢 `user_permissions` 視圖
+   - 查詢失敗導致拋出錯誤
+   - API 路由捕獲錯誤並返回 500
+
+### 解決方案
+
+#### Migration 015: 授予 user_permissions 視圖存取權限
+```sql
+-- 授予 authenticated 使用者 SELECT 權限
+GRANT SELECT ON user_permissions TO authenticated;
+
+-- 授予 anon 使用者 SELECT 權限（如需公開存取）
+GRANT SELECT ON user_permissions TO anon;
+```
+
+### 驗證步驟
+
+1. **檢查權限是否正確授予**：
+```sql
+SELECT grantee, privilege_type
+FROM information_schema.role_table_grants
+WHERE table_schema = 'public'
+  AND table_name = 'user_permissions'
+ORDER BY grantee;
+
+-- 結果應包含：
+-- anon        | SELECT
+-- authenticated | SELECT
+```
+
+2. **測試查詢是否正常**：
+```sql
+SELECT COUNT(*) as count
+FROM user_permissions
+WHERE user_id = '<user_id>'
+  AND permission_name = 'view_contracts';
+
+-- 應返回 count: 1（若使用者有權限）
+```
+
+3. **刷新瀏覽器頁面**：
+   - `/api/contracts/overdue` 應返回 200 OK
+   - `/api/payments/reminders` 應返回 200 OK
+
+### 相關檔案
+
+- `migrations/015_grant_user_permissions_view_access.sql` - 授權 migration
+- `lib/services/rbac.ts` - `hasPermission()` 函數
+- `app/api/contracts/overdue/route.ts` - 受影響的 API 路由
+- `app/api/payments/reminders/route.ts` - 受影響的 API 路由
+
+### 學到的教訓
+
+1. **視圖權限管理**：
+   - 建立視圖時必須同時授予必要的存取權限
+   - 不要假設視圖會自動繼承基礎表的權限
+
+2. **錯誤處理改進**：
+   - Supabase 的空錯誤訊息難以診斷
+   - 應該在應用層添加更詳細的錯誤日誌
+
+3. **測試策略**：
+   - 使用 Supabase MCP 工具直接測試資料庫查詢
+   - 可以快速定位權限問題
+
+4. **Migration 完整性**：
+   - 建立物件（表、視圖、函數）後，立即設定權限
+   - 避免權限設定分散在多個 migration 中
+
+---
+
+## [ISSUE-017] - 2025-10-29: Supabase 遷移後的權限系統錯誤
+
+**狀態**: ✅ Resolved
+
+**嚴重程度**: 🔴 Critical (阻止 API 存取)
+
+### 錯誤描述
+
+遷移到 Supabase 後，Dashboard 頁面無法載入，出現多個 API 錯誤：
+- `/api/companies` 返回 500 Internal Server Error
+- `/api/contracts/overdue` 返回 403 Forbidden ("Insufficient permissions to view contracts")
+- `/api/payments/reminders` 返回 403 Forbidden ("Insufficient permissions to view collection reminders")
+
+### 根本原因分析
+
+經過系統性調查，發現以下連鎖問題：
+
+1. **缺少 `is_owner` 欄位** (Migration 010):
+   - `company_members` 表缺少 `is_owner` 欄位
+   - 導致 `get_user_companies` RPC 函式執行失敗
+
+2. **RPC 函式類型不匹配** (Migration 011):
+   - `get_user_companies` 函式宣告 `company_name JSONB`
+   - 但實際 `companies.name` 欄位是 `VARCHAR(255)`
+
+3. **`user_permissions` view 結構錯誤** (Migration 013):
+   - View 引用了不存在的 `p.resource` 和 `p.action` 欄位
+   - 實際 `permissions` 表只有 `name`, `category`, `description` 欄位
+
+4. **權限命名格式不一致**:
+   - 資料庫權限: `view_contracts`, `edit_contracts`, `delete_contracts`
+   - 代碼期望: `contracts:read`, `contracts:write`, `contracts:delete`
+
+### 解決方案
+
+#### Migration 010: 修正 company_members 表
+```sql
+ALTER TABLE company_members
+ADD COLUMN IF NOT EXISTS is_owner BOOLEAN NOT NULL DEFAULT false;
+
+-- 設定每個公司的第一個成員為 owner
+WITH first_members AS (
+  SELECT DISTINCT ON (company_id) id, company_id
+  FROM company_members
+  ORDER BY company_id, joined_at ASC
+)
+UPDATE company_members cm
+SET is_owner = true
+FROM first_members fm
+WHERE cm.id = fm.id;
+```
+
+#### Migration 011: 修正 get_user_companies 函式
+```sql
+CREATE OR REPLACE FUNCTION get_user_companies(p_user_id UUID)
+RETURNS TABLE (
+  company_id UUID,
+  company_name VARCHAR(255),  -- 從 JSONB 改為 VARCHAR
+  role_name VARCHAR(50),
+  is_owner BOOLEAN,
+  logo_url TEXT
+) ...
+```
+
+同時更新 TypeScript `UserCompany` interface：
+```typescript
+export interface UserCompany {
+  company_id: string;
+  company_name: string;  // 從 {zh: string, en: string} 改為 string
+  ...
+}
+```
+
+#### Migration 012: 建立缺少的權限
+```sql
+-- 新增合約相關權限
+INSERT INTO permissions (name, name_zh, name_en, category, description)
+VALUES
+  ('view_contracts', '查看合約', 'View Contracts', 'contract_management', ...),
+  ('create_contracts', '建立合約', 'Create Contracts', 'contract_management', ...),
+  ('edit_contracts', '編輯合約', 'Edit Contracts', 'contract_management', ...),
+  ('delete_contracts', '刪除合約', 'Delete Contracts', 'contract_management', ...);
+
+-- 分配所有權限給 company_owner 角色
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r CROSS JOIN permissions p
+WHERE r.name = 'company_owner';
+
+-- 分配 company_owner 角色給所有現有使用者
+INSERT INTO user_roles (user_id, role_id, is_active)
+SELECT u.id, r.id, true
+FROM auth.users u CROSS JOIN roles r
+WHERE r.name = 'company_owner'
+  AND NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id);
+```
+
+#### Migration 013: 修正 user_permissions view
+```sql
+DROP VIEW IF EXISTS user_permissions;
+
+CREATE OR REPLACE VIEW user_permissions AS
+SELECT
+  ur.user_id,
+  r.name as role_name,
+  r.level as role_level,
+  p.name as permission_name,  -- 使用 p.name 而非 p.resource:p.action
+  p.category,
+  p.description
+FROM user_roles ur
+JOIN roles r ON ur.role_id = r.id
+JOIN role_permissions rp ON r.id = rp.role_id
+JOIN permissions p ON rp.permission_id = p.id
+WHERE ur.is_active = true;
+```
+
+#### 修正 hasPermission 函式 (`lib/services/rbac.ts`)
+新增權限格式轉換邏輯：
+```typescript
+export async function hasPermission(
+  userId: string,
+  resource: PermissionResource,
+  action: PermissionAction
+): Promise<boolean> {
+  const actionMapping: Record<PermissionAction, string> = {
+    read: 'view',
+    write: 'edit',
+    delete: 'delete',
+    read_cost: 'view_cost',
+    write_cost: 'edit_cost',
+    assign_roles: 'assign_roles',
+  };
+
+  const actionVerb = actionMapping[action] || action;
+  const permissionName = `${actionVerb}_${resource}`;  // e.g., 'view_contracts'
+
+  // ... 查詢邏輯
+}
+```
+
+### 驗證步驟
+
+1. 確認使用者有正確的權限：
+```sql
+SELECT up.permission_name, COUNT(*) as count
+FROM user_permissions up
+WHERE up.user_id IN (SELECT id FROM auth.users WHERE email = 'acejou27@gmail.com')
+GROUP BY up.permission_name;
+-- 預期：25 個權限
+```
+
+2. 測試權限轉換：
+```bash
+npx ts-node scripts/test-permissions.ts
+# 預期：所有測試通過 ✅
+```
+
+3. 重新部署並測試 API：
+```bash
+pnpm run build && pnpm run deploy:cf
+```
+
+### 相關 Migrations
+
+- Migration 010: `010_fix_company_members_is_owner.sql`
+- Migration 011: `011_fix_get_user_companies_function.sql`
+- Migration 012: `012_setup_user_permissions.sql`
+- Migration 013: `013_fix_user_permissions_view.sql`
+
+### 學到的經驗
+
+1. **資料庫 schema 一致性**: 確保 RPC 函式的返回類型與實際表結構完全匹配
+2. **權限系統設計**: 統一權限命名格式，避免代碼和資料庫的不一致
+3. **View 定義**: 建立 view 前先確認所有引用的欄位都存在
+4. **測試驅動**: 在本地環境充分測試後再部署到 production
+
+### 後續追蹤
+
+- [ ] 確認所有使用者登入後權限正常
+- [ ] 監控 `/api/contracts/overdue` 和 `/api/payments/reminders` 的成功率
+- [ ] 建立自動化測試確保權限檢查邏輯正確
+
+---
+
 ## [ISSUE-014] - 2025-10-28: Cloudflare Workers 部署 - standalone 目錄結構錯誤
 
 **狀態**: ✅ Resolved
