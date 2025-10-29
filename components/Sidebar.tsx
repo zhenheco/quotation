@@ -57,12 +57,37 @@ export default function Sidebar({ locale }: { locale: string }) {
     <aside
       className={`${
         isCollapsed ? 'w-20' : 'w-64'
-      } bg-white border-r border-gray-200 min-h-screen p-4 transition-all duration-300 relative`}
+      } bg-white border-r border-gray-200 min-h-screen p-4 transition-all duration-300 relative flex flex-col`}
     >
+      {/* Header */}
+      <div className="mb-8 pb-4 border-b border-gray-200">
+        {isCollapsed ? (
+          <div className="flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white font-bold text-xl shadow-md">
+              Q
+            </div>
+          </div>
+        ) : (
+          <Link href={`/${locale}/dashboard`} className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:shadow-lg transition-shadow">
+              Q
+            </div>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">
+                {locale === 'zh' ? '報價系統' : 'Quotation'}
+              </span>
+              <span className="text-xs text-gray-500">
+                {locale === 'zh' ? '管理平台' : 'Management'}
+              </span>
+            </div>
+          </Link>
+        )}
+      </div>
+
       {/* 收合按鈕 */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-6 bg-white border border-gray-200 rounded-full p-1 hover:bg-gray-50 shadow-sm z-10 cursor-pointer"
+        className="absolute -right-3 top-8 bg-white border border-gray-200 rounded-full p-1 hover:bg-gray-50 shadow-sm z-10 cursor-pointer"
         title={isCollapsed ? (locale === 'zh' ? '展開' : 'Expand') : (locale === 'zh' ? '收合' : 'Collapse')}
       >
         <svg
@@ -82,7 +107,7 @@ export default function Sidebar({ locale }: { locale: string }) {
         </svg>
       </button>
 
-      <nav className="space-y-2">
+      <nav className="space-y-2 flex-1">
         {menuItems.map((item) => {
           const href = `/${locale}${item.href}`
           const isActive = pathname.startsWith(href)

@@ -4,6 +4,112 @@
 
 ---
 
+## [ISSUE-019] - 2025-10-29: /api/contracts 端點未使用 RBAC 和正確的視圖
+
+**狀態**: ✅ Resolved
+
+**嚴重程度**: 🔴 Critical (API 返回 500 錯誤)
+
+### 錯誤描述
+
+`/api/contracts` 和 `/api/contracts?status=active` 端點返回 500 Internal Server Error。
+
+### 根本原因分析
+
+1. **未使用 RBAC 權限檢查**：
+   - API 路由沒有檢查使用者是否有查看合約的權限
+   - 直接查詢資料庫表，沒有經過 `hasPermission()` 驗證
+
+2. **使用錯誤的表名**：
+   - 直接查詢 `contracts` 表
+   - 應該使用 `customer_contracts` 視圖（包含客戶資訊的聯結視圖）
+
+3. **POST 方法未使用 RPC 函數**：
+   - 直接插入 `contracts` 表
+   - 應該使用 `create_contract` RPC 函數
+
+### 解決方案
+
+#### 修改 `/app/api/contracts/route.ts`
+
+**GET 方法**：
+```typescript
+// 1. 添加 RBAC 導入
+import { hasPermission } from '@/lib/services/rbac'
+
+// 2. 在查詢前檢查權限
+const canRead = await hasPermission(user.id, 'contracts', 'read')
+if (!canRead) {
+  return NextResponse.json({ error: 'Insufficient permissions to view contracts' }, { status: 403 })
+}
+
+// 3. 使用正確的視圖
+let query = supabase
+  .from('customer_contracts')  // 改為使用視圖而不是 contracts 表
+  .select('*')
+  .eq('user_id', user.id)
+```
+
+**POST 方法**：
+```typescript
+// 1. 檢查寫入權限
+const canWrite = await hasPermission(user.id, 'contracts', 'write')
+if (!canWrite) {
+  return NextResponse.json({ error: 'Insufficient permissions to create contracts' }, { status: 403 })
+}
+
+// 2. 使用 RPC 函數創建合約
+const { data: contract, error } = await supabase.rpc('create_contract', {
+  p_user_id: user.id,
+  p_customer_id: body.customer_id,
+  p_quotation_id: body.quotation_id || null,
+  p_contract_number: body.contract_number,
+  p_title: body.title,
+  p_description: body.description || null,
+  p_start_date: body.start_date,
+  p_end_date: body.end_date || null,
+  p_total_amount: body.total_amount,
+  p_currency: body.currency || 'TWD',
+  p_payment_terms: body.payment_terms || null,
+  p_billing_frequency: body.billing_frequency || 'one_time',
+  p_next_billing_date: body.next_billing_date || null,
+  p_auto_renew: body.auto_renew || false,
+  p_status: body.status || 'draft'
+})
+```
+
+### 驗證結果
+
+- ✅ `/api/contracts` 端點現在正確檢查 RBAC 權限
+- ✅ 使用 `customer_contracts` 視圖返回完整的合約資料
+- ✅ POST 方法使用 `create_contract` RPC 函數確保資料一致性
+- ✅ 返回 403 而不是 500 當權限不足時
+
+### 經驗教訓
+
+1. **所有 API 端點都必須使用 RBAC**：
+   - 每個需要資料存取的端點都應該先檢查權限
+   - 使用 `hasPermission()` 函數進行統一的權限驗證
+
+2. **優先使用視圖而不是直接查詢表**：
+   - 視圖提供了預定義的聯結和資料結構
+   - 減少重複的 SQL 邏輯
+   - 更容易維護
+
+3. **寫入操作應使用 RPC 函數**：
+   - RPC 函數封裝了業務邏輯
+   - 確保資料一致性和驗證
+   - 更容易測試和維護
+
+### 相關檔案
+
+- `/app/api/contracts/route.ts` - 修改的 API 路由
+- `/lib/services/rbac.ts` - RBAC 權限檢查函數
+- Migration 008 - `create_contract` RPC 函數定義
+- Migration 013 - `customer_contracts` 視圖定義
+
+---
+
 ## [ISSUE-018] - 2025-10-29: user_permissions 視圖權限不足導致 API 500 錯誤
 
 **狀態**: ✅ Resolved
