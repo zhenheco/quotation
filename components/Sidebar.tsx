@@ -57,7 +57,7 @@ export default function Sidebar({ locale }: { locale: string }) {
     <aside
       className={`${
         isCollapsed ? 'w-20' : 'w-64'
-      } bg-white border-r border-gray-200 min-h-screen p-4 transition-all duration-300 relative flex flex-col`}
+      } bg-white border-r border-gray-200 h-full min-h-screen p-4 transition-all duration-300 relative flex flex-col overflow-y-auto`}
     >
       {/* Header */}
       <div className="mb-8 pb-4 border-b border-gray-200">
