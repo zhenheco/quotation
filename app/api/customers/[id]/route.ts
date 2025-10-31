@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getCustomerById, updateCustomer, deleteCustomer } from '@/lib/services/database'
 
 /**
  * GET /api/customers/[id] - 取得單一客戶
@@ -22,9 +21,14 @@ export async function GET(
       )
     }
 
-    const customer = await getCustomerById(id, user.id)
+    const { data: customer, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
 
-    if (!customer) {
+    if (error || !customer) {
       return NextResponse.json(
         { error: 'Customer not found' },
         { status: 404 }
@@ -63,19 +67,27 @@ export async function PUT(
 
     // 取得請求資料
     const body = await request.json()
-    const { name, email, phone, address, tax_id, contact_person } = body
+
+    // 構建更新資料
+    const updateData: Record<string, unknown> = {}
+    if (body.name) updateData.name = body.name
+    if (body.email) updateData.email = body.email
+    if (body.phone !== undefined) updateData.phone = body.phone
+    if (body.address !== undefined) updateData.address = body.address
+    if (body.tax_id !== undefined) updateData.tax_id = body.tax_id
+    if (body.contact_person !== undefined) updateData.contact_person = body.contact_person
+    updateData.updated_at = new Date().toISOString()
 
     // 更新客戶
-    const customer = await updateCustomer(id, user.id, {
-      name,
-      email,
-      phone: phone || undefined,
-      address: address || undefined,
-      tax_id: tax_id || undefined,
-      contact_person: contact_person || undefined,
-    })
+    const { data: customer, error } = await supabase
+      .from('customers')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
 
-    if (!customer) {
+    if (error || !customer) {
       return NextResponse.json(
         { error: 'Customer not found or unauthorized' },
         { status: 404 }
@@ -113,9 +125,13 @@ export async function DELETE(
     }
 
     // 刪除客戶
-    const success = await deleteCustomer(id, user.id)
+    const { error } = await supabase
+      .from('customers')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
 
-    if (!success) {
+    if (error) {
       return NextResponse.json(
         { error: 'Customer not found or unauthorized' },
         { status: 404 }

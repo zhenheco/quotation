@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getProductById, updateProduct, deleteProduct } from '@/lib/services/database'
 
 /**
  * GET /api/products/[id] - 取得單一產品
@@ -22,9 +21,14 @@ export async function GET(
       )
     }
 
-    const product = await getProductById(id, user.id)
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
 
-    if (!product) {
+    if (error || !product) {
       return NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
@@ -63,58 +67,32 @@ export async function PUT(
 
     // 取得請求資料
     const body = await request.json()
-    const {
-      name,
-      description,
-      unit_price,
-      currency,
-      category,
-      cost_price,
-      cost_currency,
-      profit_margin,
-      supplier,
-      supplier_code,
-      sku
-    } = body
 
-    // 驗證價格（如果提供）
-    if (unit_price !== undefined) {
-      const price = parseFloat(unit_price)
-      if (isNaN(price) || price < 0) {
-        return NextResponse.json(
-          { error: 'Invalid price' },
-          { status: 400 }
-        )
-      }
-    }
-
-    // 驗證成本價格（如果提供）
-    if (cost_price !== undefined && cost_price !== null) {
-      const cost = parseFloat(cost_price)
-      if (isNaN(cost) || cost < 0) {
-        return NextResponse.json(
-          { error: 'Invalid cost price' },
-          { status: 400 }
-        )
-      }
-    }
+    // 構建更新資料
+    const updateData: Record<string, unknown> = {}
+    if (body.name) updateData.name = body.name
+    if (body.description !== undefined) updateData.description = body.description
+    if (body.unit_price !== undefined) updateData.unit_price = parseFloat(body.unit_price)
+    if (body.currency) updateData.currency = body.currency
+    if (body.category !== undefined) updateData.category = body.category
+    if (body.cost_price !== undefined) updateData.cost_price = body.cost_price ? parseFloat(body.cost_price) : null
+    if (body.cost_currency !== undefined) updateData.cost_currency = body.cost_currency
+    if (body.profit_margin !== undefined) updateData.profit_margin = body.profit_margin ? parseFloat(body.profit_margin) : null
+    if (body.supplier !== undefined) updateData.supplier = body.supplier
+    if (body.supplier_code !== undefined) updateData.supplier_code = body.supplier_code
+    if (body.sku !== undefined) updateData.sku = body.sku
+    updateData.updated_at = new Date().toISOString()
 
     // 更新產品
-    const product = await updateProduct(id, user.id, {
-      name,
-      description: description || undefined,
-      unit_price: unit_price !== undefined ? parseFloat(unit_price) : undefined,
-      currency: currency,
-      category: category || undefined,
-      cost_price: cost_price !== undefined && cost_price !== null ? parseFloat(cost_price) : undefined,
-      cost_currency: cost_currency || undefined,
-      profit_margin: profit_margin !== undefined && profit_margin !== null ? parseFloat(profit_margin) : undefined,
-      supplier: supplier || undefined,
-      supplier_code: supplier_code || undefined,
-      sku: sku || undefined,
-    })
+    const { data: product, error } = await supabase
+      .from('products')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
 
-    if (!product) {
+    if (error || !product) {
       return NextResponse.json(
         { error: 'Product not found or unauthorized' },
         { status: 404 }
@@ -152,9 +130,13 @@ export async function DELETE(
     }
 
     // 刪除產品
-    const success = await deleteProduct(id, user.id)
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
 
-    if (!success) {
+    if (error) {
       return NextResponse.json(
         { error: 'Product not found or unauthorized' },
         { status: 404 }
