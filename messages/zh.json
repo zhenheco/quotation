@@ -441,6 +441,8 @@
     "filter_by_customer": "依客戶篩選",
     "filter_by_type": "依類型篩選",
     "search_customer": "搜尋客戶",
+    "upcomingReminders": "即將到期提醒",
+    "daysUntilDue": "距到期剩餘天數",
     "payment_type": {
       "deposit": "頭款",
       "installment": "期款",
@@ -500,6 +502,9 @@
     "supplier_code": "供應商編號",
     "currency": "幣別",
     "category": "類別",
+    "allCategories": "所有類別",
+    "listView": "清單檢視",
+    "cardView": "卡片檢視",
     "namePlaceholder": {
       "zh": "服務/品項名稱（中文）",
       "en": "服務/品項名稱（英文）"

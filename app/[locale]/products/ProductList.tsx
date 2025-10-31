@@ -205,7 +205,7 @@ export default function ProductList({ locale }: ProductListProps) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {product.base_currency} {product.base_price.toLocaleString()}
+                          {product.currency} {product.unit_price?.toLocaleString() || 0}
                         </div>
                       </td>
                       {canSeeCost && (
@@ -213,14 +213,15 @@ export default function ProductList({ locale }: ProductListProps) {
                           <div className="text-sm text-gray-900">
                             {product.cost_price ? (
                               <>
-                                {product.cost_currency || product.base_currency}{' '}
+                                {product.cost_currency || product.currency}{' '}
                                 {product.cost_price.toLocaleString()}
                                 {product.cost_price &&
-                                  product.cost_currency === product.base_currency && (
+                                  product.unit_price &&
+                                  product.cost_currency === product.currency && (
                                     <div className="text-xs text-green-600 mt-1">
                                       {t('product.profit_margin')}:{' '}
                                       {(
-                                        ((product.base_price - product.cost_price) /
+                                        ((product.unit_price - product.cost_price) /
                                           product.cost_price) *
                                         100
                                       ).toFixed(1)}
@@ -307,16 +308,16 @@ export default function ProductList({ locale }: ProductListProps) {
                           />
                         </svg>
                         <span className="text-base font-semibold text-gray-900">
-                          {product.base_currency} {product.base_price.toLocaleString()}
+                          {product.currency} {product.unit_price?.toLocaleString() || 0}
                         </span>
                       </div>
-                      {canSeeCost && product.cost_price && (
+                      {canSeeCost && product.cost_price && product.unit_price && (
                         <div className="pt-2 mt-2 border-t border-gray-100">
                           <ProductCostDisplay
                             costPrice={product.cost_price}
                             costCurrency={product.cost_currency}
-                            basePrice={product.base_price}
-                            currency={product.base_currency}
+                            basePrice={product.unit_price}
+                            currency={product.currency}
                             showCalculations={true}
                           />
                         </div>
