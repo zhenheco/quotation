@@ -38,7 +38,12 @@ export const PRODUCT_ALLOWED_FIELDS = [
   'description',
   'unit_price',
   'currency',
-  'category'
+  'category',
+  'cost_price',
+  'cost_currency',
+  'profit_margin',
+  'supplier',
+  'supplier_code'
 ] as const
 
 /**

@@ -63,7 +63,19 @@ export async function PUT(
 
     // 取得請求資料
     const body = await request.json()
-    const { name, description, unit_price, currency, category } = body
+    const {
+      name,
+      description,
+      unit_price,
+      currency,
+      category,
+      cost_price,
+      cost_currency,
+      profit_margin,
+      supplier,
+      supplier_code,
+      sku
+    } = body
 
     // 驗證價格（如果提供）
     if (unit_price !== undefined) {
@@ -76,6 +88,17 @@ export async function PUT(
       }
     }
 
+    // 驗證成本價格（如果提供）
+    if (cost_price !== undefined && cost_price !== null) {
+      const cost = parseFloat(cost_price)
+      if (isNaN(cost) || cost < 0) {
+        return NextResponse.json(
+          { error: 'Invalid cost price' },
+          { status: 400 }
+        )
+      }
+    }
+
     // 更新產品
     const product = await updateProduct(id, user.id, {
       name,
@@ -83,6 +106,12 @@ export async function PUT(
       unit_price: unit_price !== undefined ? parseFloat(unit_price) : undefined,
       currency: currency,
       category: category || undefined,
+      cost_price: cost_price !== undefined && cost_price !== null ? parseFloat(cost_price) : undefined,
+      cost_currency: cost_currency || undefined,
+      profit_margin: profit_margin !== undefined && profit_margin !== null ? parseFloat(profit_margin) : undefined,
+      supplier: supplier || undefined,
+      supplier_code: supplier_code || undefined,
+      sku: sku || undefined,
     })
 
     if (!product) {

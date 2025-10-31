@@ -46,6 +46,11 @@ export interface Product {
   unit_price: number
   currency: string
   category?: string
+  cost_price?: number
+  cost_currency?: string
+  profit_margin?: number
+  supplier?: string
+  supplier_code?: string
   created_at: string
   updated_at: string
 }
@@ -187,10 +192,26 @@ export async function getProductById(id: string, userId: string): Promise<Produc
 
 export async function createProduct(data: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product> {
   const result = await query(
-    `INSERT INTO products (user_id, sku, name, description, unit_price, currency, category)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO products (
+      user_id, sku, name, description, unit_price, currency, category,
+      cost_price, cost_currency, profit_margin, supplier, supplier_code
+    )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING *`,
-    [data.user_id, data.sku, data.name, data.description, data.unit_price, data.currency, data.category]
+    [
+      data.user_id,
+      data.sku,
+      data.name,
+      data.description,
+      data.unit_price,
+      data.currency,
+      data.category,
+      data.cost_price,
+      data.cost_currency,
+      data.profit_margin,
+      data.supplier,
+      data.supplier_code
+    ]
   )
   return result.rows[0]
 }
