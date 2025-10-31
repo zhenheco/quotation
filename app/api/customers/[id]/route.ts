@@ -1,7 +1,45 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { updateCustomer, deleteCustomer } from '@/lib/services/database'
+import { getCustomerById, updateCustomer, deleteCustomer } from '@/lib/services/database'
+
+/**
+ * GET /api/customers/[id] - 取得單一客戶
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const customer = await getCustomerById(id, user.id)
+
+    if (!customer) {
+      return NextResponse.json(
+        { error: 'Customer not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(customer)
+  } catch (error) {
+    console.error('Error fetching customer:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch customer' },
+      { status: 500 }
+    )
+  }
+}
 
 /**
  * PUT /api/customers/[id] - 更新客戶
