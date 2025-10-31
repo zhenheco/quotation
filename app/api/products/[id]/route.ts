@@ -1,7 +1,45 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { updateProduct, deleteProduct } from '@/lib/services/database'
+import { getProductById, updateProduct, deleteProduct } from '@/lib/services/database'
+
+/**
+ * GET /api/products/[id] - 取得單一產品
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const product = await getProductById(id, user.id)
+
+    if (!product) {
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(product)
+  } catch (error) {
+    console.error('Error fetching product:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch product' },
+      { status: 500 }
+    )
+  }
+}
 
 /**
  * PUT /api/products/[id] - 更新產品
