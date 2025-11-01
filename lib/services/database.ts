@@ -59,6 +59,7 @@ export interface Quotation {
   id: string
   user_id: string
   customer_id: string
+  customer_name?: { zh: string; en: string }
   quotation_number: string
   status: 'draft' | 'sent' | 'accepted' | 'rejected'
   issue_date: string
@@ -277,7 +278,11 @@ export async function deleteProduct(id: string, userId: string): Promise<boolean
 
 export async function getQuotations(userId: string): Promise<Quotation[]> {
   const result = await query(
-    'SELECT * FROM quotations WHERE user_id = $1 ORDER BY created_at DESC',
+    `SELECT q.*, c.name as customer_name
+     FROM quotations q
+     LEFT JOIN customers c ON q.customer_id = c.id
+     WHERE q.user_id = $1
+     ORDER BY q.created_at DESC`,
     [userId]
   )
   return result.rows
@@ -285,7 +290,10 @@ export async function getQuotations(userId: string): Promise<Quotation[]> {
 
 export async function getQuotationById(id: string, userId: string): Promise<Quotation | null> {
   const result = await query(
-    'SELECT * FROM quotations WHERE id = $1 AND user_id = $2',
+    `SELECT q.*, c.name as customer_name
+     FROM quotations q
+     LEFT JOIN customers c ON q.customer_id = c.id
+     WHERE q.id = $1 AND q.user_id = $2`,
     [id, userId]
   )
   return result.rows[0] || null

@@ -35,8 +35,8 @@ body {
   }
 }
 
-/* 防止任何子元素造成水平滾動 */
-* {
+/* 防止特定元素造成水平滾動 */
+img, video, iframe, canvas, svg {
   max-width: 100vw !important;
 }
 

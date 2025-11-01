@@ -300,7 +300,9 @@ export default function QuotationList({ locale }: QuotationListProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {quotation.customer_id}
+                      {quotation.customer_name
+                        ? (locale === 'zh' ? quotation.customer_name.zh : quotation.customer_name.en)
+                        : quotation.customer_id}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

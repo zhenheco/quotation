@@ -11,6 +11,44 @@ import {
 import { getZeaburPool } from '@/lib/db/zeabur'
 
 /**
+ * GET /api/quotations/[id] - 取得單一報價單
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const quotation = await getQuotationById(id, user.id)
+
+    if (!quotation) {
+      return NextResponse.json(
+        { error: 'Quotation not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(quotation)
+  } catch (error) {
+    console.error('Error fetching quotation:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch quotation' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * PUT /api/quotations/[id] - 更新報價單
  */
 export async function PUT(
