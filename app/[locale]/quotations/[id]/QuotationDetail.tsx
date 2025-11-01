@@ -177,7 +177,9 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
               {t('quotation.customer')}
             </h3>
             <p className="text-gray-900 font-medium">
-              客戶 ID: {quotation.customer_id}
+              {quotation.customer_name
+                ? (locale === 'zh' ? quotation.customer_name.zh : quotation.customer_name.en)
+                : quotation.customer_id}
             </p>
           </div>
 

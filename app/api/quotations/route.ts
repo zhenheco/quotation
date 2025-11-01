@@ -26,14 +26,22 @@ export async function GET() {
       .from('quotations')
       .select(`
         *,
-        customer:customers(*)
+        customer:customers(name)
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (error) throw error
 
-    return NextResponse.json(quotations)
+    const formattedQuotations = quotations?.map(q => {
+      const { customer, ...rest } = q
+      return {
+        ...rest,
+        customer_name: customer?.name || null
+      }
+    })
+
+    return NextResponse.json(formattedQuotations)
   } catch (error: unknown) {
     console.error('Error fetching quotations:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })

@@ -43,7 +43,7 @@ img, video, iframe, canvas, svg {
 /* 確保 modal 對話框顯示在最上層 */
 .fixed[role="dialog"],
 [data-modal="true"],
-.z-\\[9999\\],
+[class*="z-["],
 .z-50 {
   z-index: 9999 !important;
 }
