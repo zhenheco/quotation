@@ -531,7 +531,9 @@
     "supplierCodePlaceholder": "供應商提供的產品編號",
     "createSuccess": "服務/品項建立成功",
     "updateSuccess": "服務/品項更新成功",
+    "deleteSuccess": "服務/品項刪除成功",
     "saveFailed": "儲存服務/品項失敗",
+    "deleteFailed": "刪除服務/品項失敗",
     "invalidPrice": "請輸入有效的價格",
     "emptyState": {
       "title": "尚無服務/品項",

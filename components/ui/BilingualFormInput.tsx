@@ -10,7 +10,8 @@ interface BilingualFormInputProps {
   onChangeEn: (value: string) => void
   placeholderZh?: string
   placeholderEn?: string
-  required?: boolean
+  required?: boolean  // 如果設定，只有中文欄位必填
+  requiredBoth?: boolean  // 如果設定，中英文都必填
   error?: string
   disabled?: boolean
   rows?: number
@@ -27,6 +28,7 @@ export default function BilingualFormInput({
   placeholderZh,
   placeholderEn,
   required = false,
+  requiredBoth = false,
   error,
   disabled = false,
   rows,
@@ -40,12 +42,12 @@ export default function BilingualFormInput({
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {(required || requiredBoth) && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor={`${name}_zh`} className="block text-xs text-gray-500 mb-1">
-            中文
+            中文名稱
           </label>
           {isTextarea ? (
             <textarea
@@ -54,7 +56,7 @@ export default function BilingualFormInput({
               value={valueZh}
               onChange={(e) => onChangeZh(e.target.value)}
               placeholder={placeholderZh}
-              required={required}
+              required={required || requiredBoth}
               disabled={disabled}
               rows={rows || 3}
               className={baseClasses}
@@ -67,7 +69,7 @@ export default function BilingualFormInput({
               value={valueZh}
               onChange={(e) => onChangeZh(e.target.value)}
               placeholder={placeholderZh}
-              required={required}
+              required={required || requiredBoth}
               disabled={disabled}
               className={baseClasses}
             />
@@ -75,7 +77,7 @@ export default function BilingualFormInput({
         </div>
         <div>
           <label htmlFor={`${name}_en`} className="block text-xs text-gray-500 mb-1">
-            English
+            英文名稱
           </label>
           {isTextarea ? (
             <textarea
@@ -84,7 +86,7 @@ export default function BilingualFormInput({
               value={valueEn}
               onChange={(e) => onChangeEn(e.target.value)}
               placeholder={placeholderEn}
-              required={required}
+              required={requiredBoth}
               disabled={disabled}
               rows={rows || 3}
               className={baseClasses}
@@ -97,7 +99,7 @@ export default function BilingualFormInput({
               value={valueEn}
               onChange={(e) => onChangeEn(e.target.value)}
               placeholder={placeholderEn}
-              required={required}
+              required={requiredBoth}
               disabled={disabled}
               className={baseClasses}
             />
