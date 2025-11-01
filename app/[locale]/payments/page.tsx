@@ -85,8 +85,8 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
       <Sidebar locale={locale} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar locale={locale} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4 py-8">
+        <main className="flex-1 overflow-y-auto p-8">
+          <div className="space-y-6">
             <PageHeader
               title={t('payments.title')}
               description={t('payments.description')}
