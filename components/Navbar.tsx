@@ -45,17 +45,16 @@ export default function Navbar({ locale }: { locale: string }) {
 
   const handleSignOut = async () => {
     try {
-      // Clear all localStorage data
       localStorage.clear()
 
-      // Sign out from Supabase
-      await supabase.auth.signOut()
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
 
-      // Force a hard redirect to login page with locale
       window.location.href = `/${locale}/login`
     } catch (error) {
       console.error('Logout error:', error)
-      // Even if there's an error, try to redirect
       window.location.href = `/${locale}/login`
     }
   }

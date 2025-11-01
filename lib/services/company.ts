@@ -175,15 +175,15 @@ export async function createCompany(
 
   if (companyError) throw companyError;
 
-  const { data: adminRole, error: roleError } = await supabase
+  const { data: ownerRole, error: roleError } = await supabase
     .from('roles')
     .select('id')
-    .eq('name', 'admin')
+    .eq('name', 'company_owner')
     .single();
 
-  if (roleError || !adminRole) {
+  if (roleError || !ownerRole) {
     await supabase.from('companies').delete().eq('id', company.id);
-    throw new Error('Admin role not found');
+    throw new Error('Company owner role not found');
   }
 
   const memberInsert: CompanyMemberInsert = {
