@@ -126,11 +126,11 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     // 如果選擇產品，自動填入單價
     if (field === 'product_id') {
       const product = products.find(p => p.id === value)
-      if (product && product.unit_price) {
-        newItems[index].unit_price = product.unit_price
+      if (product && product.base_price) {
+        newItems[index].unit_price = product.base_price
         const quantity = parseFloat(newItems[index].quantity.toString()) || 0
         const discount = parseFloat(newItems[index].discount.toString()) || 0
-        newItems[index].subtotal = quantity * product.unit_price - discount
+        newItems[index].subtotal = quantity * product.base_price - discount
       }
     }
 
@@ -407,7 +407,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                         : (product.name as unknown as BilingualText)?.[locale as 'zh' | 'en'] || ''
                       return (
                         <option key={product.id} value={product.id}>
-                          {name} ({product.currency} {product.unit_price})
+                          {name} ({product.base_currency} {product.base_price})
                         </option>
                       )
                     })}

@@ -115,7 +115,7 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
         ) : (
           <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
             <span className="text-xs font-semibold text-blue-600">
-              {selectedCompany?.company_name.zh.charAt(0) || 'C'}
+              {selectedCompany?.company_name?.zh?.charAt(0) || 'C'}
             </span>
           </div>
         )}

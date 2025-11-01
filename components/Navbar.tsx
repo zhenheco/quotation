@@ -67,7 +67,7 @@ export default function Navbar({ locale }: { locale: string }) {
   }
 
   const displayName = userProfile?.display_name || userProfile?.full_name || userEmail.split('@')[0] || '使用者'
-  const initials = displayName.charAt(0).toUpperCase()
+  const initials = (displayName || '使用者').charAt(0).toUpperCase()
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
