@@ -79,12 +79,13 @@ export default function DeleteConfirmModal({
 
       {/* 對話框內容 */}
       <div
-        className="relative bg-white rounded-lg shadow-xl w-full"
+        className="relative bg-white rounded-lg shadow-xl"
         style={{
           position: 'relative',
           zIndex: 10000,
           backgroundColor: 'white',
-          maxWidth: '320px'
+          width: '320px',
+          maxWidth: '90vw'
         }}
       >
         <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
