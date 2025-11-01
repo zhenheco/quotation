@@ -28,6 +28,18 @@ const menuItems = [
     zh: '報價單',
     href: '/quotations',
     icon: '📄',
+    submenu: [
+      {
+        en: 'All Quotations',
+        zh: '所有報價單',
+        href: '/quotations',
+      },
+      {
+        en: 'Payments',
+        zh: '收款管理',
+        href: '/payments',
+      },
+    ],
   },
   {
     en: 'Settings',
@@ -40,6 +52,7 @@ const menuItems = [
 export default function Sidebar({ locale }: { locale: string }) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['/quotations'])
 
   return (
     <aside
@@ -99,32 +112,100 @@ export default function Sidebar({ locale }: { locale: string }) {
         {menuItems.map((item) => {
           const href = `/${locale}${item.href}`
           const isActive = pathname.startsWith(href)
+          const hasSubmenu = item.submenu && item.submenu.length > 0
+          const isExpanded = expandedMenus.includes(item.href)
 
           return (
-            <Link
-              key={item.href}
-              href={href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors group relative ${
-                isActive
-                  ? 'bg-indigo-50 text-indigo-700 font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-              title={isCollapsed ? (locale === 'en' ? item.en : item.zh) : ''}
-            >
-              <span className="text-xl flex-shrink-0">{item.icon}</span>
-              {!isCollapsed && (
-                <span className="whitespace-nowrap">
-                  {locale === 'en' ? item.en : item.zh}
-                </span>
+            <div key={item.href}>
+              {hasSubmenu ? (
+                <button
+                  onClick={() => {
+                    if (!isCollapsed) {
+                      setExpandedMenus(prev =>
+                        prev.includes(item.href)
+                          ? prev.filter(h => h !== item.href)
+                          : [...prev, item.href]
+                      )
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors group relative ${
+                    isActive
+                      ? 'bg-indigo-50 text-indigo-700 font-medium'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                  title={isCollapsed ? (locale === 'en' ? item.en : item.zh) : ''}
+                >
+                  <span className="text-xl flex-shrink-0">{item.icon}</span>
+                  {!isCollapsed && (
+                    <>
+                      <span className="whitespace-nowrap flex-1 text-left">
+                        {locale === 'en' ? item.en : item.zh}
+                      </span>
+                      <svg
+                        className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </>
+                  )}
+
+                  {isCollapsed && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
+                      {locale === 'en' ? item.en : item.zh}
+                    </div>
+                  )}
+                </button>
+              ) : (
+                <Link
+                  href={href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors group relative ${
+                    isActive
+                      ? 'bg-indigo-50 text-indigo-700 font-medium'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                  title={isCollapsed ? (locale === 'en' ? item.en : item.zh) : ''}
+                >
+                  <span className="text-xl flex-shrink-0">{item.icon}</span>
+                  {!isCollapsed && (
+                    <span className="whitespace-nowrap">
+                      {locale === 'en' ? item.en : item.zh}
+                    </span>
+                  )}
+
+                  {isCollapsed && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
+                      {locale === 'en' ? item.en : item.zh}
+                    </div>
+                  )}
+                </Link>
               )}
 
-              {/* 收合時的提示 */}
-              {isCollapsed && (
-                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
-                  {locale === 'en' ? item.en : item.zh}
+              {hasSubmenu && isExpanded && !isCollapsed && (
+                <div className="ml-8 mt-1 space-y-1">
+                  {item.submenu?.map((subItem) => {
+                    const subHref = `/${locale}${subItem.href}`
+                    const isSubActive = pathname === subHref
+
+                    return (
+                      <Link
+                        key={subItem.href}
+                        href={subHref}
+                        className={`block px-4 py-2 text-sm rounded-lg transition-colors ${
+                          isSubActive
+                            ? 'bg-indigo-100 text-indigo-700 font-medium'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {locale === 'en' ? subItem.en : subItem.zh}
+                      </Link>
+                    )
+                  })}
                 </div>
               )}
-            </Link>
+            </div>
           )
         })}
       </nav>
