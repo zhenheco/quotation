@@ -1,52 +1,68 @@
 /**
  * Supabase PostgreSQL 資料庫客戶端
- * 用於直接連接到 Supabase 上的業務資料庫
+ * 支援 Cloudflare Workers 和 Node.js 環境
  */
 
-import { Pool, PoolClient } from 'pg'
+import { Pool as PgPool, PoolClient as PgPoolClient } from 'pg'
+import { Pool as NeonPool, neon, neonConfig } from '@neondatabase/serverless'
 
-// Supabase PostgreSQL 連接池
-let pool: Pool | null = null
+const isCloudflareWorkers = typeof globalThis.caches !== 'undefined'
+
+let pgPool: PgPool | null = null
+let neonPool: NeonPool | null = null
 
 /**
  * 獲取或建立 PostgreSQL 連接池
  */
-export function getZeaburPool(): Pool {
-  if (!pool) {
-    const connectionString = process.env.SUPABASE_DB_URL
+export function getZeaburPool(): PgPool | NeonPool {
+  if (isCloudflareWorkers) {
+    if (!neonPool) {
+      const poolerUrl = process.env.SUPABASE_POOLER_URL
 
-    // 確保環境變數已設置
-    if (!connectionString) {
-      throw new Error(
-        '❌ SUPABASE_DB_URL environment variable is required.\n' +
-        '請在 .env.local 檔案中設置資料庫連線字串:\n' +
-        'SUPABASE_DB_URL=postgresql://user:password@host:port/database'
-      )
+      if (!poolerUrl) {
+        throw new Error('❌ SUPABASE_POOLER_URL environment variable is required for Cloudflare Workers.')
+      }
+
+      neonConfig.fetchConnectionCache = true
+      neonConfig.useSecureWebSocket = true
+      neonConfig.pipelineConnect = "password"
+
+      neonPool = new NeonPool({ connectionString: poolerUrl })
+
+      console.log('📦 Connected to Supabase PostgreSQL (serverless pooler)')
     }
 
-    // 防止意外洩漏連線資訊
-    const maskedUrl = connectionString.replace(
-      /:([^@]+)@/,
-      ':****@'
-    )
-    console.log('📦 Connecting to Supabase PostgreSQL:', maskedUrl)
+    return neonPool as unknown as PgPool
+  } else {
+    if (!pgPool) {
+      const directUrl = process.env.SUPABASE_DB_URL
 
-    pool = new Pool({
-      connectionString,
-      ssl: { rejectUnauthorized: false },
-      max: 20, // 最大連接數
-      idleTimeoutMillis: 30000, // 閒置連接超時
-      connectionTimeoutMillis: 2000 // 連接超時
-    })
+      if (!directUrl) {
+        throw new Error(
+          '❌ SUPABASE_DB_URL environment variable is required.\n' +
+          '請在 .env.local 檔案中設置資料庫連線字串:\n' +
+          'SUPABASE_DB_URL=postgresql://user:password@host:port/database'
+        )
+      }
 
-    // 錯誤處理
-    pool.on('error', (err) => {
-      console.error('❌ Zeabur PostgreSQL pool error:', err.message)
-      // 不要記錄完整錯誤物件，避免洩漏敏感資訊
-    })
+      const maskedUrl = directUrl.replace(/:([^@]+)@/, ':****@')
+      console.log('📦 Connecting to Supabase PostgreSQL (direct):', maskedUrl)
+
+      pgPool = new PgPool({
+        connectionString: directUrl,
+        ssl: { rejectUnauthorized: false },
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000
+      })
+
+      pgPool.on('error', (err) => {
+        console.error('❌ PostgreSQL pool error:', err.message)
+      })
+    }
+
+    return pgPool
   }
-
-  return pool
 }
 
 /**
@@ -60,8 +76,8 @@ export async function query(text: string, params?: unknown[]) {
 /**
  * 獲取一個客戶端連接(用於事務)
  */
-export async function getClient(): Promise<PoolClient> {
-  const pool = getZeaburPool()
+export async function getClient(): Promise<PgPoolClient> {
+  const pool = getZeaburPool() as PgPool
   return pool.connect()
 }
 
@@ -69,8 +85,12 @@ export async function getClient(): Promise<PoolClient> {
  * 關閉連接池(通常在應用關閉時調用)
  */
 export async function closePool() {
-  if (pool) {
-    await pool.end()
-    pool = null
+  if (pgPool) {
+    await pgPool.end()
+    pgPool = null
+  }
+  if (neonPool) {
+    await neonPool.end()
+    neonPool = null
   }
 }

@@ -221,7 +221,9 @@
     "showHistory": "顯示歷史",
     "hideHistory": "隱藏歷史",
     "version": "版本",
-    "noVersionHistory": "無版本歷史記錄"
+    "noVersionHistory": "無版本歷史記錄",
+    "summary": "摘要",
+    "actions": "操作"
   },
   "customer": {
     "title": "客戶",

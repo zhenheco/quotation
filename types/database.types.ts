@@ -259,7 +259,7 @@ export interface Database {
           customer_id: string
           issue_date: string
           valid_until: string
-          status: 'draft' | 'sent' | 'accepted' | 'rejected'
+          status: 'draft' | 'signed' | 'pending' | 'expired'
           currency: string
           exchange_rate: number
           subtotal: number
@@ -279,6 +279,7 @@ export interface Database {
           // Contract fields (when quotation is accepted)
           contract_signed_date: string | null
           contract_expiry_date: string | null
+          contract_file_url: string | null
           payment_frequency: 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | null
           next_collection_date: string | null
           next_collection_amount: number | null
@@ -291,7 +292,7 @@ export interface Database {
           customer_id: string
           issue_date: string
           valid_until: string
-          status?: 'draft' | 'sent' | 'accepted' | 'rejected'
+          status?: 'draft' | 'signed' | 'pending' | 'expired'
           currency: string
           exchange_rate?: number
           subtotal: number
@@ -309,6 +310,7 @@ export interface Database {
           final_payment_due_date?: string | null
           contract_signed_date?: string | null
           contract_expiry_date?: string | null
+          contract_file_url?: string | null
           payment_frequency?: 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | null
           next_collection_date?: string | null
           next_collection_amount?: number | null
@@ -321,7 +323,7 @@ export interface Database {
           customer_id?: string
           issue_date?: string
           valid_until?: string
-          status?: 'draft' | 'sent' | 'accepted' | 'rejected'
+          status?: 'draft' | 'signed' | 'pending' | 'expired'
           currency?: string
           exchange_rate?: number
           subtotal?: number
@@ -339,6 +341,7 @@ export interface Database {
           final_payment_due_date?: string | null
           contract_signed_date?: string | null
           contract_expiry_date?: string | null
+          contract_file_url?: string | null
           payment_frequency?: 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | null
           next_collection_date?: string | null
           next_collection_amount?: number | null

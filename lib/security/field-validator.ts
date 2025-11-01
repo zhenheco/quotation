@@ -56,11 +56,24 @@ export const QUOTATION_ALLOWED_FIELDS = [
   'issue_date',
   'valid_until',
   'currency',
+  'exchange_rate',
   'subtotal',
   'tax_rate',
   'tax_amount',
-  'total_amount',
-  'notes'
+  'total',
+  'notes',
+  'payment_status',
+  'payment_due_date',
+  'total_paid',
+  'deposit_amount',
+  'deposit_paid_date',
+  'final_payment_amount',
+  'final_payment_due_date',
+  'contract_signed_date',
+  'contract_expiry_date',
+  'payment_frequency',
+  'next_collection_date',
+  'next_collection_amount'
 ] as const
 
 /**

@@ -123,26 +123,41 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
       {/* Quotation Header */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
-          <div>
+          <div className="flex-1">
             <h2 className="text-2xl font-bold text-gray-900">
               {quotation.quotation_number}
             </h2>
-            <p className="text-gray-600 mt-1">
-              {t('quotation.issueDate')}: {locale === 'zh'
-                ? new Date(quotation.issue_date).toLocaleDateString('zh-TW', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })
-                : new Date(quotation.issue_date).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-            </p>
+            <div className="flex items-center gap-4 mt-2">
+              <p className="text-gray-600">
+                {t('quotation.issueDate')}: {locale === 'zh'
+                  ? new Date(quotation.issue_date).toLocaleDateString('zh-TW', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })
+                  : new Date(quotation.issue_date).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">{t('quotation.status')}:</span>
+                <select
+                  value={quotation.status}
+                  onChange={(e) => handleStatusChange(e.target.value as QuotationStatus)}
+                  disabled={isUpdating}
+                  className="px-3 py-1 text-sm font-medium rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <option value="draft">{t('status.draft')}</option>
+                  <option value="sent">{t('status.sent')}</option>
+                  <option value="accepted">{t('status.accepted')}</option>
+                  <option value="expired">{t('status.expired')}</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            {getStatusBadge(quotation.status, quotation.valid_until)}
             <button
               onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 cursor-pointer"
@@ -254,57 +269,81 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
         </div>
       )}
 
-      {/* Status Actions */}
+      {/* Contract Upload */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.actions')}</h3>
-        <div className="flex gap-3 flex-wrap">
-          {quotation.status === 'draft' && (
-            <button
-              onClick={handleSend}
-              disabled={isUpdating}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            >
-              {t('quotation.markAsSent')}
-            </button>
-          )}
-          {quotation.status === 'sent' && (
-            <>
-              <button
-                onClick={() => handleStatusChange('accepted')}
-                disabled={isUpdating}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                {t('quotation.markAsAccepted')}
-              </button>
-              <button
-                onClick={() => handleStatusChange('rejected')}
-                disabled={isUpdating}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                {t('quotation.markAsRejected')}
-              </button>
-            </>
-          )}
-          {quotation.status === 'accepted' && (
-            <button
-              onClick={handleConvertToContract}
-              disabled={isUpdating}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            >
-              {t('quotation.convertToContract')}
-            </button>
-          )}
-          {(quotation.status === 'accepted' || quotation.status === 'rejected') && (
-            <button
-              onClick={() => handleStatusChange('draft')}
-              disabled={isUpdating}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            >
-              {t('quotation.markAsDraft')}
-            </button>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          {locale === 'zh' ? '合約檔案' : 'Contract File'}
+        </h3>
+        <div className="space-y-4">
+          {quotation.contract_file_url ? (
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {locale === 'zh' ? '已上傳合約' : 'Contract Uploaded'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date().toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <a
+                  href={quotation.contract_file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  {locale === 'zh' ? '檢視' : 'View'}
+                </a>
+                <button
+                  onClick={() => {
+                    if (confirm(locale === 'zh' ? '確定要刪除合約檔案？' : 'Delete contract file?')) {
+                      // TODO: Implement delete
+                    }
+                  }}
+                  className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  {locale === 'zh' ? '刪除' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <div className="mt-4">
+                <label htmlFor="contract-upload" className="cursor-pointer">
+                  <span className="text-blue-600 hover:text-blue-700 font-medium">
+                    {locale === 'zh' ? '上傳合約檔案' : 'Upload Contract'}
+                  </span>
+                  <input
+                    id="contract-upload"
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        // TODO: Implement upload
+                        console.log('Selected file:', file.name)
+                      }
+                    }}
+                  />
+                </label>
+                <p className="text-xs text-gray-500 mt-2">
+                  {locale === 'zh' ? 'PDF, DOC, DOCX (最大 10MB)' : 'PDF, DOC, DOCX (Max 10MB)'}
+                </p>
+              </div>
+            </div>
           )}
         </div>
       </div>
+
     </div>
   )
 }

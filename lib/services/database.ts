@@ -61,15 +61,28 @@ export interface Quotation {
   customer_id: string
   customer_name?: { zh: string; en: string }
   quotation_number: string
-  status: 'draft' | 'sent' | 'accepted' | 'rejected'
+  status: 'draft' | 'signed' | 'pending' | 'expired'
   issue_date: string
   valid_until: string
   currency: string
+  exchange_rate: number
   subtotal: number
   tax_rate: number
   tax_amount: number
-  total_amount: number
+  total: number
   notes?: string
+  payment_status: 'unpaid' | 'partial' | 'paid' | 'overdue'
+  payment_due_date: string | null
+  total_paid: number
+  deposit_amount: number | null
+  deposit_paid_date: string | null
+  final_payment_amount: number | null
+  final_payment_due_date: string | null
+  contract_signed_date: string | null
+  contract_expiry_date: string | null
+  payment_frequency: 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | null
+  next_collection_date: string | null
+  next_collection_amount: number | null
   created_at: string
   updated_at: string
 }
@@ -299,17 +312,24 @@ export async function getQuotationById(id: string, userId: string): Promise<Quot
   return result.rows[0] || null
 }
 
-export async function createQuotation(data: Omit<Quotation, 'id' | 'created_at' | 'updated_at'>): Promise<Quotation> {
+export async function createQuotation(data: Omit<Quotation, 'id' | 'created_at' | 'updated_at' | 'customer_name'>): Promise<Quotation> {
   const result = await query(
     `INSERT INTO quotations (
       user_id, customer_id, quotation_number, status, issue_date, valid_until,
-      currency, subtotal, tax_rate, tax_amount, total_amount, notes
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      currency, exchange_rate, subtotal, tax_rate, tax_amount, total, notes,
+      payment_status, payment_due_date, total_paid, deposit_amount, deposit_paid_date,
+      final_payment_amount, final_payment_due_date, contract_signed_date, contract_expiry_date,
+      payment_frequency, next_collection_date, next_collection_amount
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
     RETURNING *`,
     [
       data.user_id, data.customer_id, data.quotation_number, data.status,
-      data.issue_date, data.valid_until, data.currency, data.subtotal,
-      data.tax_rate, data.tax_amount, data.total_amount, data.notes
+      data.issue_date, data.valid_until, data.currency, data.exchange_rate || 1,
+      data.subtotal, data.tax_rate, data.tax_amount, data.total, data.notes,
+      data.payment_status || 'unpaid', data.payment_due_date, data.total_paid || 0,
+      data.deposit_amount, data.deposit_paid_date, data.final_payment_amount,
+      data.final_payment_due_date, data.contract_signed_date, data.contract_expiry_date,
+      data.payment_frequency, data.next_collection_date, data.next_collection_amount
     ]
   )
   return result.rows[0]

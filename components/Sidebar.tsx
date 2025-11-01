@@ -30,18 +30,6 @@ const menuItems = [
     icon: '📄',
   },
   {
-    en: 'Contracts',
-    zh: '合約管理',
-    href: '/contracts',
-    icon: '📝',
-  },
-  {
-    en: 'Payments',
-    zh: '收款管理',
-    href: '/payments',
-    icon: '💰',
-  },
-  {
     en: 'Settings',
     zh: '系統設定',
     href: '/settings',
