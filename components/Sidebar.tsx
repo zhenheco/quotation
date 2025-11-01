@@ -88,7 +88,7 @@ export default function Sidebar({ locale }: { locale: string }) {
       {/* 收合按鈕 */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-8 bg-white border border-gray-200 rounded-full p-1 hover:bg-gray-50 shadow-sm z-10 cursor-pointer"
+        className="absolute -right-4 top-8 bg-white border border-gray-200 rounded-full p-1 hover:bg-gray-50 shadow-sm z-50 cursor-pointer"
         title={isCollapsed ? (locale === 'zh' ? '展開' : 'Expand') : (locale === 'zh' ? '收合' : 'Collapse')}
       >
         <svg
