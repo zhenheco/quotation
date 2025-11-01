@@ -56,10 +56,16 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
 
         // Select the first company or the one from localStorage
         const storedCompanyId = localStorage.getItem('selectedCompanyId');
-        if (storedCompanyId) {
+        // Verify that storedCompanyId exists in current user's companies
+        const isValidCompanyId = storedCompanyId && data.some((c: { company_id: string }) => c.company_id === storedCompanyId);
+
+        if (isValidCompanyId) {
           loadCompany(storedCompanyId);
         } else if (data.length > 0) {
+          // Clear invalid stored company ID
+          localStorage.removeItem('selectedCompanyId');
           loadCompany(data[0].company_id);
+          localStorage.setItem('selectedCompanyId', data[0].company_id);
         }
       }
     } catch (error) {

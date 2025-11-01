@@ -37,9 +37,15 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
 
         // Get selected company from localStorage or use first company
         const storedCompanyId = localStorage.getItem('selectedCompanyId');
-        if (storedCompanyId && data.find((c: UserCompany) => c.company_id === storedCompanyId)) {
+        const isValidCompanyId = storedCompanyId && data.find((c: UserCompany) => c.company_id === storedCompanyId);
+
+        if (isValidCompanyId) {
           setSelectedCompanyId(storedCompanyId);
         } else if (data.length > 0) {
+          // Clear invalid stored company ID
+          if (storedCompanyId) {
+            localStorage.removeItem('selectedCompanyId');
+          }
           setSelectedCompanyId(data[0].company_id);
           localStorage.setItem('selectedCompanyId', data[0].company_id);
         }
