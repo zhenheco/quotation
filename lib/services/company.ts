@@ -45,7 +45,10 @@ export interface CompanyMember {
 
 export interface UserCompany {
   company_id: string;
-  company_name: string;
+  company_name: {
+    zh: string;
+    en: string;
+  };
   role_name: string;
   is_owner: boolean;
   logo_url?: string;
@@ -113,7 +116,7 @@ export async function getUserCompanies(userId: string): Promise<UserCompany[]> {
 
   return (data || []).map((row: UserCompanyRow) => ({
     company_id: row.company_id,
-    company_name: row.company_name as string,
+    company_name: row.company_name as { zh: string; en: string },
     role_name: row.role_name,
     is_owner: row.is_owner,
     logo_url: row.logo_url || undefined,
