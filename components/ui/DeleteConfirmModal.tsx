@@ -79,11 +79,12 @@ export default function DeleteConfirmModal({
 
       {/* 對話框內容 */}
       <div
-        className="relative bg-white rounded-lg shadow-xl max-w-lg w-full"
+        className="relative bg-white rounded-lg shadow-xl w-full"
         style={{
           position: 'relative',
           zIndex: 10000,
-          backgroundColor: 'white'
+          backgroundColor: 'white',
+          maxWidth: '320px'
         }}
       >
         <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -103,12 +104,12 @@ export default function DeleteConfirmModal({
             </div>
           </div>
         </div>
-        <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+        <div className="bg-gray-50 px-4 py-3 flex flex-col gap-2">
           <button
             type="button"
             disabled={isLoading}
             onClick={onConfirm}
-            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? '刪除中...' : confirmText}
           </button>
@@ -116,7 +117,7 @@ export default function DeleteConfirmModal({
             type="button"
             disabled={isLoading}
             onClick={onClose}
-            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {cancelText}
           </button>
