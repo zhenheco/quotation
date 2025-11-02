@@ -14,6 +14,7 @@ import {
 import { useCustomers, type Customer } from '@/hooks/useCustomers'
 import { useProducts, type Product } from '@/hooks/useProducts'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 
 interface QuotationFormProps {
   locale: string
@@ -33,6 +34,7 @@ interface QuotationItem {
 export default function QuotationForm({ locale, quotationId }: QuotationFormProps) {
   const t = useTranslations()
   const router = useRouter()
+  const supabase = createClient()
 
   // Hooks
   const { data: customers = [], isLoading: loadingCustomers } = useCustomers()
@@ -55,6 +57,9 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   const [items, setItems] = useState<QuotationItem[]>([])
   const [error, setError] = useState('')
   const [showNotesTemplates, setShowNotesTemplates] = useState(false)
+  const [contractFile, setContractFile] = useState<File | null>(null)
+  const [contractFileUrl, setContractFileUrl] = useState<string>('')
+  const [uploadingContract, setUploadingContract] = useState(false)
 
   // 備註模版
   const notesTemplates = [
@@ -90,13 +95,19 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     }
   ]
 
+  // 日期格式轉換函數
+  const formatDateForInput = (dateString: string): string => {
+    if (!dateString) return ''
+    return dateString.split('T')[0]
+  }
+
   // 初始化編輯模式
   useEffect(() => {
     if (existingQuotation) {
       setFormData({
         customerId: existingQuotation.customer_id,
-        issueDate: existingQuotation.issue_date,
-        validUntil: existingQuotation.valid_until,
+        issueDate: formatDateForInput(existingQuotation.issue_date),
+        validUntil: formatDateForInput(existingQuotation.valid_until),
         currency: existingQuotation.currency,
         taxRate: existingQuotation.tax_rate?.toString() || '5',
         notes: typeof existingQuotation.notes === 'string'
@@ -109,8 +120,66 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       if (customer) {
         setSelectedCustomer(customer)
       }
+
+      // 載入現有合約
+      if ((existingQuotation as { contract_file_url?: string }).contract_file_url) {
+        setContractFileUrl((existingQuotation as { contract_file_url?: string }).contract_file_url || '')
+      }
     }
   }, [existingQuotation, customers, locale])
+
+  // 合約檔案處理
+  const handleContractFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // 驗證檔案大小 (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('檔案大小不能超過 10MB')
+      return
+    }
+
+    setContractFile(file)
+  }
+
+  const uploadContractFile = async (quotationId: string): Promise<string | null> => {
+    if (!contractFile) return null
+
+    try {
+      setUploadingContract(true)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('未登入')
+
+      const timestamp = Date.now()
+      const fileExt = contractFile.name.split('.').pop()
+      const safeFileName = contractFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const fileName = `${timestamp}_${safeFileName}`
+      const filePath = `${user.id}/${quotationId}/${fileName}`
+
+      // 上傳至 Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('quotation-contracts')
+        .upload(filePath, contractFile, {
+          contentType: contractFile.type,
+        })
+
+      if (uploadError) throw uploadError
+
+      // 取得公開 URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('quotation-contracts')
+        .getPublicUrl(filePath)
+
+      return publicUrl
+    } catch (error) {
+      console.error('上傳合約失敗:', error)
+      toast.error('上傳合約失敗')
+      return null
+    } finally {
+      setUploadingContract(false)
+    }
+  }
 
   // 過濾客戶
   const filteredCustomers = customerQuery === ''
@@ -190,12 +259,16 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
     try {
       if (!formData.customerId) {
-        throw new Error('請選擇客戶')
+        toast.error('請選擇客戶')
+        return
       }
 
-      if (items.length === 0) {
-        throw new Error('請至少新增一個項目')
+      if (items.length === 0 || items.some(item => !item.product_id)) {
+        toast.error('請至少新增一個產品')
+        return
       }
+
+      let newQuotationId = quotationId
 
       const quotationData = {
         customer_id: formData.customerId,
@@ -231,8 +304,23 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         await updateQuotation.mutateAsync(quotationData)
         toast.success('報價單已更新')
       } else {
-        await createQuotation.mutateAsync(quotationData)
+        const result = await createQuotation.mutateAsync(quotationData)
+        newQuotationId = (result as { id?: string }).id
         toast.success('報價單已建立')
+      }
+
+      // 上傳合約檔案
+      if (contractFile && newQuotationId) {
+        const contractUrl = await uploadContractFile(newQuotationId)
+        if (contractUrl) {
+          // 更新報價單的合約 URL
+          await fetch(`/api/quotations/${newQuotationId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contract_file_url: contractUrl }),
+          })
+          toast.success('合約已上傳')
+        }
       }
 
       router.push(`/${locale}/quotations`)
@@ -600,6 +688,63 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
           placeholder={t('quotation.notesPlaceholder')}
         />
+      </div>
+
+      {/* 合約上傳 */}
+      <div>
+        <label htmlFor="contract" className="block text-sm font-medium text-gray-700 mb-1">
+          合約檔案
+        </label>
+        <div className="mt-1">
+          {contractFileUrl && !contractFile && (
+            <div className="mb-2 p-3 bg-gray-50 border border-gray-300 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-sm text-gray-700">已上傳合約</span>
+              </div>
+              <a
+                href={contractFileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-indigo-600 hover:text-indigo-700"
+              >
+                查看
+              </a>
+            </div>
+          )}
+          {contractFile && (
+            <div className="mb-2 p-3 bg-blue-50 border border-blue-300 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{contractFile.name}</p>
+                  <p className="text-xs text-gray-500">{(contractFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setContractFile(null)}
+                className="text-sm text-red-600 hover:text-red-700"
+              >
+                移除
+              </button>
+            </div>
+          )}
+          <input
+            type="file"
+            id="contract"
+            onChange={handleContractFileChange}
+            accept="*/*"
+            className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            支援所有檔案格式，檔案大小上限 10MB
+          </p>
+        </div>
       </div>
 
       {/* 提交按鈕 */}

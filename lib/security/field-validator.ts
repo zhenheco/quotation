@@ -71,6 +71,7 @@ export const QUOTATION_ALLOWED_FIELDS = [
   'final_payment_due_date',
   'contract_signed_date',
   'contract_expiry_date',
+  'contract_file_url',
   'payment_frequency',
   'next_collection_date',
   'next_collection_amount'

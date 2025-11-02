@@ -263,11 +263,11 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { status } = body
+    const { status: quotationStatus, contract_file_url } = body
 
-    if (!status) {
+    if (!quotationStatus && !contract_file_url) {
       return NextResponse.json(
-        { error: 'Status is required' },
+        { error: 'At least one field is required' },
         { status: 400 }
       )
     }
@@ -281,8 +281,12 @@ export async function PATCH(
       )
     }
 
-    // 更新狀態
-    const quotation = await updateQuotation(id, user.id, { status })
+    // 更新報價單
+    const updateData: { status?: string; contract_file_url?: string } = {}
+    if (quotationStatus) updateData.status = quotationStatus
+    if (contract_file_url) updateData.contract_file_url = contract_file_url
+
+    const quotation = await updateQuotation(id, user.id, updateData)
 
     return NextResponse.json(quotation)
   } catch (error) {
