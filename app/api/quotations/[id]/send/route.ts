@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { getQuotationById } from '@/lib/services/database'
+import { getQuotationById, updateQuotation } from '@/lib/services/database'
 
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -34,18 +34,11 @@ export async function POST(
       )
     }
 
-    const { data, error } = await supabase
-      .from('quotations')
-      .update({
-        status: 'sent',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single()
+    const updatedQuotation = await updateQuotation(id, user.id, {
+      status: 'sent'
+    })
 
-    if (error || !data) {
+    if (!updatedQuotation) {
       return NextResponse.json(
         { error: 'Failed to update quotation status' },
         { status: 500 }
@@ -55,7 +48,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: 'Quotation sent successfully',
-      data
+      data: updatedQuotation
     })
   } catch (error) {
     console.error('Error sending quotation:', error)
