@@ -301,8 +301,7 @@
   "status": {
     "draft": "草稿",
     "sent": "已發送",
-    "accepted": "已接受",
-    "rejected": "已拒絕",
+    "signed": "已簽約",
     "expired": "已過期"
   },
   "email": {

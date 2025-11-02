@@ -279,7 +279,7 @@ export default function DashboardClient({ locale }: { locale: string }) {
             value={`${summary.conversionRate}%`}
             icon="📊"
             color="purple"
-            subtitle={`${summary.acceptedCount} 已接受 / ${summary.acceptedCount + summary.pendingCount} 已發送`}
+            subtitle={`${summary.acceptedCount} 已簽約 / ${summary.acceptedCount + summary.pendingCount} 已發送`}
           />
 
           {/* 待處理 */}

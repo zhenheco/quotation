@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
 
-type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
+type QuotationStatus = 'draft' | 'sent' | 'signed' | 'expired'
 
 export async function POST(request: NextRequest) {
   return batchRateLimiter(request, async () => {
@@ -29,10 +29,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const validStatuses: QuotationStatus[] = ['draft', 'sent', 'accepted', 'rejected']
+    const validStatuses: QuotationStatus[] = ['draft', 'sent', 'signed', 'expired']
     if (!status || !validStatuses.includes(status)) {
       return NextResponse.json(
-        { error: 'Invalid status. Must be one of: draft, sent, accepted, rejected' },
+        { error: 'Invalid status. Must be one of: draft, sent, signed, expired' },
         { status: 400 }
       )
     }

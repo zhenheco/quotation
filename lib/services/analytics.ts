@@ -36,8 +36,8 @@ export async function getRevenueTrend(months: number = 6) {
     }
 
     const data = monthlyData.get(monthKey)
-    // 只統計已接受的報價單
-    if (quotation.status === 'accepted') {
+    // 只統計已簽約的報價單
+    if (quotation.status === 'signed') {
       data.revenue += quotation.total_amount
     }
     data.count += 1
@@ -74,7 +74,7 @@ export async function getCurrencyDistribution() {
     .from('quotations')
     .select('currency, total_amount, status')
     .eq('user_id', user.id)
-    .eq('status', 'accepted') // 只統計已接受的報價單
+    .eq('status', 'signed') // 只統計已簽約的報價單
 
   if (!quotations) return []
 
@@ -114,7 +114,7 @@ export async function getStatusStatistics() {
 
   // 按狀態分組統計
   const statusData = new Map()
-  const statuses = ['draft', 'sent', 'accepted', 'rejected']
+  const statuses = ['draft', 'sent', 'signed', 'expired']
 
   // 初始化所有狀態
   statuses.forEach(status => {
@@ -167,11 +167,11 @@ export async function getDashboardSummary() {
 
   // 計算統計數據
   const currentRevenue = currentMonthQuotations
-    ?.filter(q => q.status === 'accepted')
+    ?.filter(q => q.status === 'signed')
     .reduce((sum, q) => sum + q.total_amount, 0) || 0
 
   const lastRevenue = lastMonthQuotations
-    ?.filter(q => q.status === 'accepted')
+    ?.filter(q => q.status === 'signed')
     .reduce((sum, q) => sum + q.total_amount, 0) || 0
 
   const revenueGrowth = lastRevenue > 0
@@ -186,8 +186,8 @@ export async function getDashboardSummary() {
     : '0'
 
   // 計算轉換率
-  const acceptedCount = currentMonthQuotations?.filter(q => q.status === 'accepted').length || 0
-  const sentCount = currentMonthQuotations?.filter(q => q.status === 'sent' || q.status === 'accepted' || q.status === 'rejected').length || 0
+  const acceptedCount = currentMonthQuotations?.filter(q => q.status === 'signed').length || 0
+  const sentCount = currentMonthQuotations?.filter(q => q.status === 'sent' || q.status === 'signed').length || 0
   const conversionRate = sentCount > 0
     ? (acceptedCount / sentCount * 100).toFixed(1)
     : '0'

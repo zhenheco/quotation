@@ -371,7 +371,7 @@ export interface QuotationWithPayment {
   customer_id: string;
   issue_date: string;
   expiry_date: string | null;
-  status: 'draft' | 'sent' | 'accepted' | 'rejected';
+  status: 'draft' | 'sent' | 'signed' | 'expired';
   subtotal: number;
   tax_rate: number;
   tax_amount: number;

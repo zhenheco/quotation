@@ -189,7 +189,7 @@ export async function createCompany(
   const memberInsert: CompanyMemberInsert = {
     company_id: company.id,
     user_id: userId,
-    role_id: adminRole.id,
+    role_id: ownerRole.id,
     is_owner: true,
     is_active: true,
   };

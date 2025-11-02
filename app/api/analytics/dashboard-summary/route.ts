@@ -47,12 +47,12 @@ export async function GET() {
     // 計算統計數據
     const currentRevenue =
       currentMonthQuotations
-        ?.filter((q) => q.status === 'accepted')
+        ?.filter((q) => q.status === 'signed')
         .reduce((sum, q) => sum + q.total_amount, 0) || 0
 
     const lastRevenue =
       lastMonthQuotations
-        ?.filter((q) => q.status === 'accepted')
+        ?.filter((q) => q.status === 'signed')
         .reduce((sum, q) => sum + q.total_amount, 0) || 0
 
     const revenueGrowth =
@@ -65,10 +65,10 @@ export async function GET() {
 
     // 計算轉換率
     const acceptedCount =
-      currentMonthQuotations?.filter((q) => q.status === 'accepted').length || 0
+      currentMonthQuotations?.filter((q) => q.status === 'signed').length || 0
     const sentCount =
       currentMonthQuotations?.filter(
-        (q) => q.status === 'sent' || q.status === 'accepted' || q.status === 'rejected'
+        (q) => q.status === 'sent' || q.status === 'signed'
       ).length || 0
     const conversionRate = sentCount > 0 ? (acceptedCount / sentCount) * 100 : 0
 

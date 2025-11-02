@@ -28,11 +28,11 @@ export default async function QuotationsLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <Navbar locale={locale} />
-      <div className="flex">
+      <div className="flex overflow-x-hidden">
         <Sidebar locale={locale} />
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-8 overflow-x-hidden">
           {children}
         </main>
       </div>

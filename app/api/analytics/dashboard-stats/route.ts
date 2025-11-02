@@ -72,8 +72,8 @@ export async function GET() {
     const quotationStats = {
       draft: quotations.filter((q) => q.status === 'draft').length,
       sent: quotations.filter((q) => q.status === 'sent').length,
-      accepted: quotations.filter((q) => q.status === 'accepted').length,
-      rejected: quotations.filter((q) => q.status === 'rejected').length,
+      signed: quotations.filter((q) => q.status === 'signed').length,
+      expired: quotations.filter((q) => q.status === 'expired').length,
       total: quotations.length,
     }
 

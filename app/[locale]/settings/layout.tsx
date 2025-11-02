@@ -6,7 +6,7 @@ import Sidebar from '@/components/Sidebar'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ProductsLayout({
+export default async function SettingsLayout({
   children,
   params,
 }: {
@@ -15,7 +15,6 @@ export default async function ProductsLayout({
 }) {
   const { locale } = await params
 
-  // Enable static rendering
   setRequestLocale(locale)
 
   const supabase = await createClient()

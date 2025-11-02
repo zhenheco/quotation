@@ -73,7 +73,7 @@ interface QuotationEditFormProps {
 }
 
 const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'CNY']
-const STATUSES = ['draft', 'sent', 'accepted', 'rejected', 'expired']
+const STATUSES = ['draft', 'sent', 'signed', 'expired']
 
 export default function QuotationEditForm({
   locale,

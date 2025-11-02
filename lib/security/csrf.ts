@@ -36,7 +36,12 @@ import { randomBytes, createHmac } from 'crypto'
 
 const CSRF_COOKIE_NAME = '_csrf'
 const CSRF_HEADER_NAME = 'x-csrf-token'
-const CSRF_SECRET = process.env.CSRF_SECRET || 'default-csrf-secret-change-me'
+
+// CSRF Secret - 生產環境必須設定
+if (!process.env.CSRF_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('CSRF_SECRET environment variable is required in production')
+}
+const CSRF_SECRET = process.env.CSRF_SECRET || 'dev-csrf-secret-only-for-development'
 const TOKEN_LENGTH = 32
 
 // HTTP 方法白名單（不需要 CSRF 檢查）

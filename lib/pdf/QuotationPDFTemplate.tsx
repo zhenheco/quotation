@@ -273,9 +273,9 @@ export const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({
         return styles.statusDraft
       case 'sent':
         return styles.statusSent
-      case 'accepted':
+      case 'signed':
         return styles.statusAccepted
-      case 'rejected':
+      case 'expired':
         return styles.statusRejected
       default:
         return styles.statusDraft

@@ -197,8 +197,8 @@ export default function QuotationList({ locale }: QuotationListProps) {
               <option value="all">{t('quotation.allStatus')}</option>
               <option value="draft">{t('status.draft')}</option>
               <option value="sent">{t('status.sent')}</option>
-              <option value="accepted">{t('status.accepted')}</option>
-              <option value="rejected">{t('status.rejected')}</option>
+              <option value="signed">{t('status.signed')}</option>
+              <option value="expired">{t('status.expired')}</option>
             </select>
 
             {quotations.length > 0 && (
@@ -416,8 +416,8 @@ export default function QuotationList({ locale }: QuotationListProps) {
             >
               <option value="draft">{t('status.draft')}</option>
               <option value="sent">{t('status.sent')}</option>
-              <option value="accepted">{t('status.accepted')}</option>
-              <option value="rejected">{t('status.rejected')}</option>
+              <option value="signed">{t('status.signed')}</option>
+              <option value="expired">{t('status.expired')}</option>
             </select>
             <div className="flex justify-end space-x-2">
               <button

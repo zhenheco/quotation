@@ -296,8 +296,7 @@
   "status": {
     "draft": "Draft",
     "sent": "Sent",
-    "accepted": "Accepted",
-    "rejected": "Rejected",
+    "signed": "Signed",
     "expired": "Expired"
   },
   "email": {

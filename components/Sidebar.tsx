@@ -51,62 +51,28 @@ const menuItems = [
 
 export default function Sidebar({ locale }: { locale: string }) {
   const pathname = usePathname()
-  const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['/quotations'])
 
   return (
-    <aside
-      className={`${
-        isCollapsed ? 'w-20' : 'w-64'
-      } bg-white border-r border-gray-200 h-full min-h-screen p-4 transition-all duration-300 relative flex flex-col overflow-y-auto`}
-    >
+    <aside className="w-64 bg-white border-r border-gray-200 h-full min-h-screen p-4 flex flex-col overflow-y-auto overflow-x-hidden">
       {/* Header */}
-      <div className="mb-8 pb-4 border-b border-gray-200">
-        {isCollapsed ? (
-          <div className="flex items-center justify-center">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white font-bold text-xl shadow-md">
-              Q
-            </div>
-          </div>
-        ) : (
-          <Link href={`/${locale}/dashboard`} className="flex items-center gap-3 group cursor-pointer">
+      <div className="mb-8">
+        <div>
+          <Link href={`/${locale}/dashboard`} className="flex items-center justify-center pb-4 border-b border-gray-200 group cursor-pointer">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:shadow-lg transition-shadow">
               Q
             </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">
-                {locale === 'zh' ? '報價系統' : 'Quotation'}
-              </span>
-              <span className="text-xs text-gray-500">
-                {locale === 'zh' ? '管理平台' : 'Management'}
-              </span>
-            </div>
           </Link>
-        )}
+          <div className="mt-3 text-center">
+            <div className="text-lg font-bold text-gray-900">
+              {locale === 'zh' ? '報價系統' : 'Quotation'}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {locale === 'zh' ? '管理平台' : 'Management'}
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* 收合按鈕 */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-4 top-8 bg-white border border-gray-200 rounded-full p-1 hover:bg-gray-50 shadow-sm z-50 cursor-pointer"
-        title={isCollapsed ? (locale === 'zh' ? '展開' : 'Expand') : (locale === 'zh' ? '收合' : 'Collapse')}
-      >
-        <svg
-          className={`w-4 h-4 text-gray-600 transition-transform ${
-            isCollapsed ? 'rotate-180' : ''
-          }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-      </button>
 
       <nav className="space-y-2 flex-1">
         {menuItems.map((item) => {
@@ -120,70 +86,48 @@ export default function Sidebar({ locale }: { locale: string }) {
               {hasSubmenu ? (
                 <button
                   onClick={() => {
-                    if (!isCollapsed) {
-                      setExpandedMenus(prev =>
-                        prev.includes(item.href)
-                          ? prev.filter(h => h !== item.href)
-                          : [...prev, item.href]
-                      )
-                    }
+                    setExpandedMenus(prev =>
+                      prev.includes(item.href)
+                        ? prev.filter(h => h !== item.href)
+                        : [...prev, item.href]
+                    )
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors group relative ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive
                       ? 'bg-indigo-50 text-indigo-700 font-medium'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
-                  title={isCollapsed ? (locale === 'en' ? item.en : item.zh) : ''}
                 >
                   <span className="text-xl flex-shrink-0">{item.icon}</span>
-                  {!isCollapsed && (
-                    <>
-                      <span className="whitespace-nowrap flex-1 text-left">
-                        {locale === 'en' ? item.en : item.zh}
-                      </span>
-                      <svg
-                        className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </>
-                  )}
-
-                  {isCollapsed && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
-                      {locale === 'en' ? item.en : item.zh}
-                    </div>
-                  )}
+                  <span className="whitespace-nowrap flex-1 text-left">
+                    {locale === 'en' ? item.en : item.zh}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
               ) : (
                 <Link
                   href={href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors group relative ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive
                       ? 'bg-indigo-50 text-indigo-700 font-medium'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
-                  title={isCollapsed ? (locale === 'en' ? item.en : item.zh) : ''}
                 >
                   <span className="text-xl flex-shrink-0">{item.icon}</span>
-                  {!isCollapsed && (
-                    <span className="whitespace-nowrap">
-                      {locale === 'en' ? item.en : item.zh}
-                    </span>
-                  )}
-
-                  {isCollapsed && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
-                      {locale === 'en' ? item.en : item.zh}
-                    </div>
-                  )}
+                  <span className="whitespace-nowrap">
+                    {locale === 'en' ? item.en : item.zh}
+                  </span>
                 </Link>
               )}
 
-              {hasSubmenu && isExpanded && !isCollapsed && (
+              {hasSubmenu && isExpanded && (
                 <div className="ml-8 mt-1 space-y-1">
                   {item.submenu?.map((subItem) => {
                     const subHref = `/${locale}${subItem.href}`

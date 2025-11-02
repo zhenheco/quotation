@@ -24,8 +24,8 @@ export const pdfTranslations: Record<'zh' | 'en', PDFLanguage['translations']> =
     status: {
       draft: '草稿',
       sent: '已發送',
-      accepted: '已接受',
-      rejected: '已拒絕',
+      signed: '已簽約',
+      expired: '已過期',
     },
     footer: '感謝您的業務',
     page: '第',
@@ -50,8 +50,8 @@ export const pdfTranslations: Record<'zh' | 'en', PDFLanguage['translations']> =
     status: {
       draft: 'Draft',
       sent: 'Sent',
-      accepted: 'Accepted',
-      rejected: 'Rejected',
+      signed: 'Signed',
+      expired: 'Expired',
     },
     footer: 'Thank you for your business',
     page: 'Page',

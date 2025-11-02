@@ -18,8 +18,14 @@ export const GET = withAuth(async (_request, { userId, params }) => {
 
     return NextResponse.json(company);
   } catch (error: unknown) {
-    console.error('Error fetching company:', error);
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 403 });
+    const errorMessage = getErrorMessage(error);
+    console.error('Error fetching company:', errorMessage);
+
+    if (errorMessage.includes('do not have access')) {
+      return NextResponse.json({ error: errorMessage }, { status: 403 });
+    }
+
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 });
 

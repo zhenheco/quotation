@@ -533,7 +533,7 @@ export async function convertQuotationToContract(
   const { error: quotUpdateError } = await supabase
     .from('quotations')
     .update({
-      status: 'accepted',
+      status: 'signed',
       contract_signed_date: contractData.signed_date,
       contract_expiry_date: contractData.expiry_date,
       payment_frequency: contractData.payment_frequency,

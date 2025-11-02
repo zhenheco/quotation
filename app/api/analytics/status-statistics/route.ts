@@ -32,7 +32,7 @@ export async function GET() {
 
     // 按狀態分組統計
     const statusData = new Map()
-    const statuses = ['draft', 'sent', 'accepted', 'rejected']
+    const statuses = ['draft', 'sent', 'signed', 'expired']
 
     // 初始化所有狀態
     statuses.forEach((status) => {

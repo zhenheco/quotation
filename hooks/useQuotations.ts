@@ -12,7 +12,7 @@ export type QuotationItem = Database['public']['Tables']['quotation_items']['Row
 export type CreateQuotationData = Database['public']['Tables']['quotations']['Insert']
 export type UpdateQuotationData = Database['public']['Tables']['quotations']['Update']
 
-export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
+export type QuotationStatus = 'draft' | 'sent' | 'signed' | 'expired'
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overdue'
 
 export interface BilingualText {

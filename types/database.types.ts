@@ -259,7 +259,7 @@ export interface Database {
           customer_id: string
           issue_date: string
           valid_until: string
-          status: 'draft' | 'signed' | 'pending' | 'expired'
+          status: 'draft' | 'sent' | 'signed' | 'expired'
           currency: string
           exchange_rate: number
           subtotal: number
@@ -292,7 +292,7 @@ export interface Database {
           customer_id: string
           issue_date: string
           valid_until: string
-          status?: 'draft' | 'signed' | 'pending' | 'expired'
+          status?: 'draft' | 'sent' | 'signed' | 'expired'
           currency: string
           exchange_rate?: number
           subtotal: number
@@ -323,7 +323,7 @@ export interface Database {
           customer_id?: string
           issue_date?: string
           valid_until?: string
-          status?: 'draft' | 'signed' | 'pending' | 'expired'
+          status?: 'draft' | 'sent' | 'signed' | 'expired'
           currency?: string
           exchange_rate?: number
           subtotal?: number

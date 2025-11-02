@@ -8,7 +8,7 @@ export interface QuotationPDFData {
     quotation_number: string
     issue_date: string
     valid_until: string
-    status: 'draft' | 'sent' | 'accepted' | 'rejected'
+    status: 'draft' | 'sent' | 'signed' | 'expired'
     currency: string
     exchange_rate: number
     subtotal: number

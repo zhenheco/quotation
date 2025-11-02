@@ -58,8 +58,8 @@ export async function GET(request: NextRequest) {
       }
 
       const data = monthlyData.get(monthKey)
-      // 只統計已接受的報價單
-      if (quotation.status === 'accepted') {
+      // 只統計已簽約的報價單
+      if (quotation.status === 'signed') {
         data.revenue += quotation.total_amount
       }
       data.count += 1

@@ -87,8 +87,8 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
     const statusColors = {
       draft: 'bg-gray-100 text-gray-800',
       sent: 'bg-blue-100 text-blue-800',
-      accepted: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
+      signed: 'bg-green-100 text-green-800',
+      expired: 'bg-red-100 text-red-800',
     }
 
     return (
@@ -151,7 +151,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                 >
                   <option value="draft">{t('status.draft')}</option>
                   <option value="sent">{t('status.sent')}</option>
-                  <option value="accepted">{t('status.accepted')}</option>
+                  <option value="signed">{t('status.signed')}</option>
                   <option value="expired">{t('status.expired')}</option>
                 </select>
               </div>
