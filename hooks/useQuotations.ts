@@ -167,7 +167,20 @@ async function deleteQuotation(id: string): Promise<void> {
 }
 
 async function sendQuotation(id: string): Promise<Quotation> {
-  return updateQuotation(id, { status: 'sent' })
+  const response = await fetch(`/api/quotations/${id}/send`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to send quotation')
+  }
+
+  const result = await response.json()
+  return result.data
 }
 
 async function convertToContract(id: string): Promise<void> {

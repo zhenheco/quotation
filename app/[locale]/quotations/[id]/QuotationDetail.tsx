@@ -50,9 +50,9 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
 
     try {
       await sendQuotation.mutateAsync()
-      toast.success('報價單已發送')
+      toast.success('報價單已成功發送！')
     } catch (error) {
-      toast.error('發送失敗')
+      toast.error('發送失敗，請稍後再試')
       console.error('Error sending quotation:', error)
     }
   }

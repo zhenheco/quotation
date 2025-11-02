@@ -128,22 +128,22 @@ export default function QuotationList({ locale }: QuotationListProps) {
     }
 
     try {
-      const response = await fetch(`/api/quotations/${quotation.id}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/quotations/${quotation.id}/send`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: 'sent' }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to send quotation')
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to send quotation')
       }
 
-      toast.success('報價單已發送')
+      toast.success('報價單已成功發送！')
       window.location.reload()
     } catch (error) {
-      toast.error('發送失敗')
+      toast.error('發送失敗，請稍後再試')
       console.error('Error sending quotation:', error)
     }
   }
@@ -411,7 +411,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
                     <button
                       onClick={() => handleSend(quotation)}
                       disabled={!quotation.customer_email}
-                      className="text-green-600 hover:text-green-900 mr-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-green-700 hover:text-green-900 font-medium mr-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       title={!quotation.customer_email ? '客戶郵件地址不存在' : ''}
                     >
                       {t('email.send')}
