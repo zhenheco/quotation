@@ -176,6 +176,8 @@
     "total": "Total",
     "notes": "Notes",
     "notesPlaceholder": "Add any additional notes or terms here...",
+    "notesTemplates": "Notes Templates",
+    "customNotes": "Custom Notes (Clear)",
     "items": "Items",
     "addItem": "Add Item",
     "exportPDF": "Export PDF",

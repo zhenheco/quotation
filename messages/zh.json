@@ -178,6 +178,8 @@
     "total": "總計",
     "notes": "備註",
     "notesPlaceholder": "在此添加任何額外的備註或條款...",
+    "notesTemplates": "備註模版",
+    "customNotes": "自訂備註（清空）",
     "items": "項目",
     "addItem": "新增項目",
     "exportPDF": "匯出報價單",

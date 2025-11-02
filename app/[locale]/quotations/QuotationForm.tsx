@@ -54,6 +54,41 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   })
   const [items, setItems] = useState<QuotationItem[]>([])
   const [error, setError] = useState('')
+  const [showNotesTemplates, setShowNotesTemplates] = useState(false)
+
+  // 備註模版
+  const notesTemplates = [
+    {
+      id: 'preliminary',
+      zh: '此為初步報價，實際價格將依專案規模調整。',
+      en: 'This is a preliminary quotation. Actual price will be adjusted based on project scope.'
+    },
+    {
+      id: 'payment_terms',
+      zh: '付款條件：簽約後付款30%，專案完成付款70%。',
+      en: 'Payment terms: 30% upon contract signing, 70% upon project completion.'
+    },
+    {
+      id: 'validity',
+      zh: '本報價單有效期限為30天，逾期價格可能調整。',
+      en: 'This quotation is valid for 30 days. Prices may be adjusted after expiration.'
+    },
+    {
+      id: 'warranty',
+      zh: '本專案提供3個月保固服務，保固期內免費修復bug。',
+      en: 'This project includes 3 months warranty. Bug fixes are free during warranty period.'
+    },
+    {
+      id: 'delivery',
+      zh: '預計交付時間為簽約後2-4週，實際時間視專案複雜度而定。',
+      en: 'Estimated delivery: 2-4 weeks after contract signing, actual time depends on project complexity.'
+    },
+    {
+      id: 'custom',
+      zh: '',
+      en: ''
+    }
+  ]
 
   // 初始化編輯模式
   useEffect(() => {
@@ -513,9 +548,50 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
       {/* 備註 */}
       <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-          {t('quotation.notes')}
-        </label>
+        <div className="flex justify-between items-center mb-1">
+          <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+            {t('quotation.notes')}
+          </label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowNotesTemplates(!showNotesTemplates)}
+              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {t('quotation.notesTemplates')}
+            </button>
+            {showNotesTemplates && (
+              <div className="absolute right-0 top-full mt-1 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-10 max-h-96 overflow-y-auto">
+                <div className="p-2">
+                  <div className="text-xs font-medium text-gray-500 px-3 py-2">
+                    {t('quotation.selectTemplate')}
+                  </div>
+                  {notesTemplates.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => {
+                        const text = template[locale as 'zh' | 'en']
+                        setFormData({ ...formData, notes: text })
+                        setShowNotesTemplates(false)
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-lg"
+                    >
+                      {template.id === 'custom' ? (
+                        <span className="text-gray-500">{t('quotation.customNotes')}</span>
+                      ) : (
+                        <span className="text-gray-700">{template[locale as 'zh' | 'en']}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
         <textarea
           id="notes"
           value={formData.notes}
