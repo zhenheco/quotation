@@ -302,6 +302,7 @@
     "expired": "Expired"
   },
   "email": {
+    "send": "Send",
     "sendQuotation": "Send Quotation",
     "recipient": "Recipient",
     "cc": "CC",

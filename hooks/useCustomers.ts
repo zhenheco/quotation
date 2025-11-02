@@ -234,6 +234,9 @@ export function useUpdateCustomer(id: string) {
 
       // 更新單一客戶快取
       queryClient.setQueryData(['customers', id], updatedCustomer)
+
+      // 讓報價單快取失效，因為報價單包含客戶資料（email等）
+      queryClient.invalidateQueries({ queryKey: ['quotations'] })
     },
   })
 }

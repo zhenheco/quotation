@@ -14,6 +14,7 @@ import {
   useBatchExportPDFs,
   type Quotation,
   type QuotationStatus,
+  type QuotationWithCustomer,
 } from '@/hooks/useQuotations'
 import { toast } from 'sonner'
 
@@ -109,11 +110,41 @@ export default function QuotationList({ locale }: QuotationListProps) {
       }
 
       toast.success(`狀態已更新為 ${t(`status.${newStatus}`)}`)
-      // 重新載入報價單列表
       window.location.reload()
     } catch (error) {
       toast.error('更新狀態失敗')
       console.error('Error updating status:', error)
+    }
+  }
+
+  const handleSend = async (quotation: QuotationWithCustomer) => {
+    if (!quotation.customer_email) {
+      toast.error('客戶郵件地址不存在，無法發送')
+      return
+    }
+
+    if (!confirm(`確定要將報價單發送至 ${quotation.customer_email} 嗎？`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/quotations/${quotation.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'sent' }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send quotation')
+      }
+
+      toast.success('報價單已發送')
+      window.location.reload()
+    } catch (error) {
+      toast.error('發送失敗')
+      console.error('Error sending quotation:', error)
     }
   }
 
@@ -377,6 +408,14 @@ export default function QuotationList({ locale }: QuotationListProps) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => handleSend(quotation)}
+                      disabled={!quotation.customer_email}
+                      className="text-green-600 hover:text-green-900 mr-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={!quotation.customer_email ? '客戶郵件地址不存在' : ''}
+                    >
+                      {t('email.send')}
+                    </button>
                     <button
                       onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
                       className="text-blue-600 hover:text-blue-900 mr-4 cursor-pointer"
