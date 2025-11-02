@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Database } from '@/types/database.types'
+import type { QuotationWithCustomer } from '@/types/extended.types'
 
 // ============================================================================
 // Types
@@ -85,7 +86,7 @@ export interface BatchExportParams {
 // API Functions
 // ============================================================================
 
-async function fetchQuotations(filters?: QuotationFilters): Promise<Quotation[]> {
+async function fetchQuotations(filters?: QuotationFilters): Promise<QuotationWithCustomer[]> {
   const params = new URLSearchParams()
 
   if (filters?.status) params.append('status', filters.status)
@@ -107,7 +108,7 @@ async function fetchQuotations(filters?: QuotationFilters): Promise<Quotation[]>
   return data.data || data
 }
 
-async function fetchQuotation(id: string): Promise<Quotation> {
+async function fetchQuotation(id: string): Promise<QuotationWithCustomer> {
   const response = await fetch(`/api/quotations/${id}`)
   if (!response.ok) {
     const error = await response.json()

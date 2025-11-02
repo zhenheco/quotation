@@ -364,6 +364,13 @@ export interface CustomerWithContract {
 // EXTENDED QUOTATION TYPES (with payment info)
 // ============================================================================
 
+import type { Database } from './database.types'
+
+export type QuotationWithCustomer = Database['public']['Tables']['quotations']['Row'] & {
+  customer_name?: { zh: string; en: string } | null
+  customer_email?: string | null
+}
+
 export interface QuotationWithPayment {
   id: string;
   user_id: string;

@@ -291,7 +291,7 @@ export async function deleteProduct(id: string, userId: string): Promise<boolean
 
 export async function getQuotations(userId: string): Promise<Quotation[]> {
   const result = await query(
-    `SELECT q.*, c.name as customer_name
+    `SELECT q.*, c.name as customer_name, c.email as customer_email
      FROM quotations q
      LEFT JOIN customers c ON q.customer_id = c.id
      WHERE q.user_id = $1
@@ -303,7 +303,7 @@ export async function getQuotations(userId: string): Promise<Quotation[]> {
 
 export async function getQuotationById(id: string, userId: string): Promise<Quotation | null> {
   const result = await query(
-    `SELECT q.*, c.name as customer_name
+    `SELECT q.*, c.name as customer_name, c.email as customer_email
      FROM quotations q
      LEFT JOIN customers c ON q.customer_id = c.id
      WHERE q.id = $1 AND q.user_id = $2`,
