@@ -166,22 +166,6 @@ async function deleteQuotation(id: string): Promise<void> {
   }
 }
 
-async function sendQuotation(id: string): Promise<Quotation> {
-  const response = await fetch(`/api/quotations/${id}/send`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to send quotation')
-  }
-
-  const result = await response.json()
-  return result.data
-}
 
 async function convertToContract(id: string): Promise<void> {
   const response = await fetch('/api/contracts/from-quotation', {
@@ -380,39 +364,6 @@ export function useDeleteQuotation() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] })
-    },
-  })
-}
-
-/**
- * 發送報價單（更新狀態為 sent）
- *
- * @example
- * ```tsx
- * function QuotationActions({ quotation }: { quotation: Quotation }) {
- *   const sendQuotation = useSendQuotation(quotation.id)
- *
- *   const handleSend = async () => {
- *     try {
- *       await sendQuotation.mutateAsync()
- *       toast.success('報價單已發送')
- *     } catch (error) {
- *       toast.error('發送失敗')
- *     }
- *   }
- *
- *   return <Button onClick={handleSend}>發送報價單</Button>
- * }
- * ```
- */
-export function useSendQuotation(id: string) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: () => sendQuotation(id),
-    onSuccess: (updatedQuotation) => {
-      queryClient.invalidateQueries({ queryKey: ['quotations'] })
-      queryClient.setQueryData(['quotations', id], updatedQuotation)
     },
   })
 }

@@ -244,6 +244,57 @@ export async function PUT(
 }
 
 /**
+ * PATCH /api/quotations/[id] - 部分更新報價單（用於狀態更新）
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = createApiClient(request)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { status } = body
+
+    if (!status) {
+      return NextResponse.json(
+        { error: 'Status is required' },
+        { status: 400 }
+      )
+    }
+
+    // 驗證報價單是否存在
+    const existingQuotation = await getQuotationById(id, user.id)
+    if (!existingQuotation) {
+      return NextResponse.json(
+        { error: 'Quotation not found or unauthorized' },
+        { status: 404 }
+      )
+    }
+
+    // 更新狀態
+    const quotation = await updateQuotation(id, user.id, { status })
+
+    return NextResponse.json(quotation)
+  } catch (error) {
+    console.error('Error updating quotation status:', error)
+    return NextResponse.json(
+      { error: 'Failed to update quotation status' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * DELETE /api/quotations/[id] - 刪除報價單
  */
 export async function DELETE(

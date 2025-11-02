@@ -117,37 +117,6 @@ export default function QuotationList({ locale }: QuotationListProps) {
     }
   }
 
-  const handleSend = async (quotation: QuotationWithCustomer) => {
-    if (!quotation.customer_email) {
-      toast.error('客戶郵件地址不存在，無法發送')
-      return
-    }
-
-    if (!confirm(`確定要將報價單發送至 ${quotation.customer_email} 嗎？`)) {
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/quotations/${quotation.id}/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to send quotation')
-      }
-
-      toast.success('報價單已成功發送！')
-      window.location.reload()
-    } catch (error) {
-      toast.error('發送失敗，請稍後再試')
-      console.error('Error sending quotation:', error)
-    }
-  }
-
   const handleBatchExport = async () => {
     try {
       await batchExport.mutateAsync({
@@ -408,14 +377,6 @@ export default function QuotationList({ locale }: QuotationListProps) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleSend(quotation)}
-                      disabled={!quotation.customer_email}
-                      className="text-green-700 hover:text-green-900 font-medium mr-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={!quotation.customer_email ? '客戶郵件地址不存在' : ''}
-                    >
-                      {t('email.send')}
-                    </button>
                     <button
                       onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
                       className="text-blue-600 hover:text-blue-900 mr-4 cursor-pointer"
