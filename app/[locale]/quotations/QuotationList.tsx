@@ -8,6 +8,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import {
   useQuotations,
   useDeleteQuotation,
+  useUpdateQuotation,
   useBatchDeleteQuotations,
   useBatchUpdateStatus,
   useBatchExportPDFs,
@@ -90,6 +91,29 @@ export default function QuotationList({ locale }: QuotationListProps) {
     } catch (error) {
       toast.error('批次更新狀態失敗')
       console.error('Batch status update error:', error)
+    }
+  }
+
+  const handleStatusChange = async (quotationId: string, newStatus: QuotationStatus) => {
+    try {
+      const response = await fetch(`/api/quotations/${quotationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update status')
+      }
+
+      toast.success(`狀態已更新為 ${t(`status.${newStatus}`)}`)
+      // 重新載入報價單列表
+      window.location.reload()
+    } catch (error) {
+      toast.error('更新狀態失敗')
+      console.error('Error updating status:', error)
     }
   }
 
@@ -336,7 +360,16 @@ export default function QuotationList({ locale }: QuotationListProps) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(quotation)}
+                    <select
+                      value={quotation.status}
+                      onChange={(e) => handleStatusChange(quotation.id, e.target.value as QuotationStatus)}
+                      className="px-3 py-1 text-sm font-medium rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer bg-white"
+                    >
+                      <option value="draft">{t('status.draft')}</option>
+                      <option value="sent">{t('status.sent')}</option>
+                      <option value="signed">{t('status.signed')}</option>
+                      <option value="expired">{t('status.expired')}</option>
+                    </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
