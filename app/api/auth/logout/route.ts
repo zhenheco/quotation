@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { createApiClient } from '@/lib/supabase/api'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST() {
-  const supabase = await createClient()
+export async function POST(request: NextRequest) {
+  const supabase = createApiClient(request)
 
   const { error } = await supabase.auth.signOut()
 

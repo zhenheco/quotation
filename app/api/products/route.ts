@@ -1,16 +1,17 @@
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createProduct } from '@/lib/services/database'
+import { toJsonbField } from '@/lib/utils/jsonb-converter'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/products - 取得所有產品
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -37,7 +38,7 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()
@@ -69,11 +70,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 建立產品
+    // 建立產品（轉換 JSONB 格式）
     const product = await createProduct({
       user_id: user.id,
-      name,
-      description: description || undefined,
+      name: toJsonbField(name),
+      description: toJsonbField(description),
       unit_price: price,
       currency: currency,
       category: category || undefined,

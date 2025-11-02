@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getUserPermissions, isSuperAdmin } from '@/lib/services/rbac';
@@ -9,9 +9,9 @@ import { getUserCompanies } from '@/lib/services/company';
  * 取得當前使用者的權限資訊
  * 包含：全域角色、公司角色、權限列表
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createApiClient(request);
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser();

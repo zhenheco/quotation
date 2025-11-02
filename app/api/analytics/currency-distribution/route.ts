@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { createApiClient } from '@/lib/supabase/api'
+import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 
 export const dynamic = 'force-dynamic'
@@ -9,9 +9,9 @@ export const dynamic = 'force-dynamic'
  *
  * 取得幣別分布數據
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     const {
       data: { user },

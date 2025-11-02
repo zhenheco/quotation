@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getUserCompanies } from '@/lib/services/company';
@@ -7,9 +7,9 @@ import { getUserCompanies } from '@/lib/services/company';
  * GET /api/user/companies
  * 取得使用者所屬的公司列表
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createApiClient(request);
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser();

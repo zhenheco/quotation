@@ -1,6 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { toJsonbField } from '@/lib/utils/jsonb-converter'
 
 /**
  * GET /api/customers/[id] - 取得單一客戶
@@ -11,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -54,7 +55,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()
@@ -68,14 +69,14 @@ export async function PUT(
     // 取得請求資料
     const body = await request.json()
 
-    // 構建更新資料
+    // 構建更新資料（轉換 JSONB 格式）
     const updateData: Record<string, unknown> = {}
-    if (body.name) updateData.name = body.name
+    if (body.name) updateData.name = toJsonbField(body.name)
     if (body.email) updateData.email = body.email
     if (body.phone !== undefined) updateData.phone = body.phone
-    if (body.address !== undefined) updateData.address = body.address
+    if (body.address !== undefined) updateData.address = toJsonbField(body.address)
     if (body.tax_id !== undefined) updateData.tax_id = body.tax_id
-    if (body.contact_person !== undefined) updateData.contact_person = body.contact_person
+    if (body.contact_person !== undefined) updateData.contact_person = toJsonbField(body.contact_person)
     updateData.updated_at = new Date().toISOString()
 
     // 更新客戶
@@ -113,7 +114,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()

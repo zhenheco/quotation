@@ -37,8 +37,8 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // 驗證
-    if (!formData.nameZh.trim() || !formData.nameEn.trim()) {
+    // 驗證（只有中文名稱和信箱必填）
+    if (!formData.nameZh.trim()) {
       toast.error(t('customer.validation.nameRequired'))
       return
     }
@@ -52,14 +52,14 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
       const customerData = {
         name: {
           zh: formData.nameZh.trim(),
-          en: formData.nameEn.trim(),
+          en: formData.nameEn.trim() || '', // 英文名稱選填
         },
         email: formData.email.trim(),
         phone: formData.phone.trim() || undefined,
-        address: {
-          zh: formData.addressZh.trim(),
-          en: formData.addressEn.trim(),
-        },
+        address: formData.addressZh.trim() || formData.addressEn.trim() ? {
+          zh: formData.addressZh.trim() || '',
+          en: formData.addressEn.trim() || '',
+        } : undefined,
       }
 
       if (customer) {

@@ -1,14 +1,14 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
 
 /**
  * 獲取當前登入用戶的資訊
  * 主要用於獲取 User ID 以建立測試數據
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     // 獲取當前用戶
     const { data: { user }, error } = await supabase.auth.getUser()

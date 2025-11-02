@@ -1,18 +1,39 @@
 import { NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { withAuth } from '@/lib/middleware/withAuth';
-import { getCompanyById, updateCompany, deleteCompany } from '@/lib/services/company';
+import { updateCompany, deleteCompany } from '@/lib/services/company';
+import { createApiClient } from '@/lib/supabase/api';
 
 /**
  * GET /api/companies/[id]
  * Get a specific company by ID
  */
-export const GET = withAuth(async (_request, { userId, params }) => {
+export const GET = withAuth(async (request, { userId, params }) => {
   try {
     const { id } = await params;
-    const company = await getCompanyById(id, userId);
+    const supabase = createApiClient(request);
 
-    if (!company) {
+    // Check if user is member of this company
+    const { data: membership, error: memberError } = await supabase
+      .from('company_members')
+      .select('id')
+      .eq('company_id', id)
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single();
+
+    if (memberError || !membership) {
+      return NextResponse.json({ error: 'You do not have access to this company' }, { status: 403 });
+    }
+
+    // Fetch company data
+    const { data: company, error } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !company) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
@@ -20,11 +41,6 @@ export const GET = withAuth(async (_request, { userId, params }) => {
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
     console.error('Error fetching company:', errorMessage);
-
-    if (errorMessage.includes('do not have access')) {
-      return NextResponse.json({ error: errorMessage }, { status: 403 });
-    }
-
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 });

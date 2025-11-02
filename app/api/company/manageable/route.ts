@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getManageableCompanies } from '@/lib/services/rbac';
@@ -9,9 +9,9 @@ import { getManageableCompanies } from '@/lib/services/rbac';
  * 超級管理員：所有公司
  * 一般使用者：所屬公司（且為 owner 才能管理成員）
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createApiClient(request);
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser();

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
 
 /**
  * 建立測試數據的 API 端點
  * 只能由已登入的用戶執行
  */
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     // 驗證用戶
     const { data: { user }, error: authError } = await supabase.auth.getUser()

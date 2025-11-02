@@ -60,8 +60,9 @@ export interface Quotation {
   user_id: string
   customer_id: string
   customer_name?: { zh: string; en: string }
+  customer_email?: string
   quotation_number: string
-  status: 'draft' | 'signed' | 'pending' | 'expired'
+  status: 'draft' | 'sent' | 'signed' | 'expired'
   issue_date: string
   valid_until: string
   currency: string
@@ -316,7 +317,7 @@ export async function createQuotation(data: Omit<Quotation, 'id' | 'created_at' 
   const result = await query(
     `INSERT INTO quotations (
       user_id, customer_id, quotation_number, status, issue_date, valid_until,
-      currency, exchange_rate, subtotal, tax_rate, tax_amount, total, notes,
+      currency, exchange_rate, subtotal, tax_rate, tax_amount, total_amount, notes,
       payment_status, payment_due_date, total_paid, deposit_amount, deposit_paid_date,
       final_payment_amount, final_payment_due_date, contract_signed_date, contract_expiry_date,
       payment_frequency, next_collection_date, next_collection_amount
@@ -325,7 +326,7 @@ export async function createQuotation(data: Omit<Quotation, 'id' | 'created_at' 
     [
       data.user_id, data.customer_id, data.quotation_number, data.status,
       data.issue_date, data.valid_until, data.currency, data.exchange_rate || 1,
-      data.subtotal, data.tax_rate, data.tax_amount, data.total, data.notes,
+      data.subtotal, data.tax_rate, data.tax_amount, data.total_amount, data.notes,
       data.payment_status || 'unpaid', data.payment_due_date, data.total_paid || 0,
       data.deposit_amount, data.deposit_paid_date, data.final_payment_amount,
       data.final_payment_due_date, data.contract_signed_date, data.contract_expiry_date,
@@ -350,21 +351,17 @@ export async function updateQuotation(
   data: Partial<Omit<Quotation, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<Quotation | null> {
   try {
-    // 使用欄位白名單驗證，防止 SQL Injection
     const { fields, values, paramCount } = buildUpdateFields(
       data,
       QUOTATION_ALLOWED_FIELDS
     )
 
-    // 如果沒有要更新的欄位，直接返回現有資料
     if (fields.length === 0) {
       return getQuotationById(id, userId)
     }
 
-    // 添加 WHERE 條件參數
     values.push(id, userId)
 
-    // 執行更新
     const result = await query(
       `UPDATE quotations
        SET ${fields.join(', ')}
@@ -373,9 +370,12 @@ export async function updateQuotation(
       values
     )
 
-    return result.rows[0] || null
+    if (!result.rows[0]) {
+      return null
+    }
+
+    return getQuotationById(id, userId)
   } catch (error) {
-    // 記錄錯誤但不洩漏敏感資訊
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('❌ Update quotation failed:', { id, error: errorMessage })
     throw error
@@ -456,25 +456,15 @@ export async function deleteQuotationItem(id: string, quotationId: string, userI
  * 生成下一個報價單號碼
  */
 export async function generateQuotationNumber(userId: string): Promise<string> {
-  const pool = getZeaburPool()
   const year = new Date().getFullYear()
-  const prefix = `Q${year}-`
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const day = String(new Date().getDate()).padStart(2, '0')
+  const timestamp = Date.now().toString().slice(-6)
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
 
-  const result = await query(
-    `SELECT quotation_number FROM quotations
-     WHERE user_id = $1 AND quotation_number LIKE $2
-     ORDER BY quotation_number DESC
-     LIMIT 1`,
-    [userId, `${prefix}%`]
-  )
-
-  if (result.rows.length === 0) {
-    return `${prefix}001`
-  }
-
-  const lastNumber = result.rows[0].quotation_number
-  const num = parseInt(lastNumber.split('-')[1]) + 1
-  return `${prefix}${num.toString().padStart(3, '0')}`
+  const quotationNumber = `Q${year}${month}${day}-${timestamp}${random}`
+  console.log('✅ Generated quotation number:', quotationNumber)
+  return quotationNumber
 }
 
 /**

@@ -1,6 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { toJsonbField } from '@/lib/utils/jsonb-converter'
 
 /**
  * GET /api/products/[id] - 取得單一產品
@@ -11,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -54,7 +55,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()
@@ -68,10 +69,10 @@ export async function PUT(
     // 取得請求資料
     const body = await request.json()
 
-    // 構建更新資料
+    // 構建更新資料（轉換 JSONB 格式）
     const updateData: Record<string, unknown> = {}
-    if (body.name) updateData.name = body.name
-    if (body.description !== undefined) updateData.description = body.description
+    if (body.name) updateData.name = toJsonbField(body.name)
+    if (body.description !== undefined) updateData.description = toJsonbField(body.description)
     if (body.unit_price !== undefined) updateData.unit_price = parseFloat(body.unit_price)
     if (body.currency) updateData.currency = body.currency
     if (body.category !== undefined) updateData.category = body.category
@@ -118,7 +119,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()

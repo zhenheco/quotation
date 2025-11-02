@@ -1,6 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
-import { getErrorMessage } from '@/app/api/utils/error-handler'
 import {
   updateQuotation,
   deleteQuotation,
@@ -19,31 +18,102 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    console.log('[GET /api/quotations/[id]] Starting request for ID:', id)
+
+    let supabase
+    try {
+      supabase = createApiClient(request)
+      console.log('[GET /api/quotations/[id]] Supabase client created')
+    } catch (clientError) {
+      console.error('[GET /api/quotations/[id]] Failed to create Supabase client:', clientError)
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        {
+          error: 'Authentication service unavailable',
+          details: clientError instanceof Error ? clientError.message : String(clientError)
+        },
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
       )
     }
 
-    const quotation = await getQuotationById(id, user.id)
+    let user
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      user = authUser
+      console.log('[GET /api/quotations/[id]] User authenticated:', user?.id)
+    } catch (authError) {
+      console.error('[GET /api/quotations/[id]] Auth error:', authError)
+      return NextResponse.json(
+        {
+          error: 'Authentication failed',
+          details: authError instanceof Error ? authError.message : String(authError)
+        },
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    if (!user) {
+      console.log('[GET /api/quotations/[id]] No user found')
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    let quotation
+    try {
+      quotation = await getQuotationById(id, user.id)
+      console.log('[GET /api/quotations/[id]] Quotation found:', !!quotation)
+    } catch (dbError) {
+      console.error('[GET /api/quotations/[id]] Database error:', dbError)
+      return NextResponse.json(
+        {
+          error: 'Database query failed',
+          details: dbError instanceof Error ? dbError.message : String(dbError)
+        },
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
 
     if (!quotation) {
       return NextResponse.json(
         { error: 'Quotation not found' },
-        { status: 404 }
+        {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        }
       )
     }
 
-    return NextResponse.json(quotation)
+    return NextResponse.json(quotation, {
+      headers: { 'Content-Type': 'application/json' }
+    })
   } catch (error) {
-    console.error('Error fetching quotation:', error)
+    console.error('[GET /api/quotations/[id]] Unexpected error:', error)
+    console.error('[GET /api/quotations/[id]] Error stack:', error instanceof Error ? error.stack : 'No stack')
+
     return NextResponse.json(
-      { error: 'Failed to fetch quotation' },
-      { status: 500 }
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
+      },
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     )
   }
 }
@@ -57,9 +127,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
-    // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json(
@@ -183,9 +252,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
-    // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json(

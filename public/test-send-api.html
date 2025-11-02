@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>測試寄送報價單 API</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      padding: 2rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { margin-bottom: 1.5rem; color: #333; }
+    .section {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: #f9f9f9;
+      border-radius: 6px;
+    }
+    .section h2 { margin-bottom: 1rem; font-size: 1.2rem; color: #555; }
+    input, button {
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    input { width: 100%; max-width: 400px; margin-right: 0.5rem; }
+    button {
+      background: #16a34a;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: #15803d; }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .log {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .log-line { margin-bottom: 0.5rem; }
+    .log-success { color: #4ade80; }
+    .log-error { color: #ef4444; }
+    .log-info { color: #60a5fa; }
+    .log-warning { color: #fbbf24; }
+    .quotation-list {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .quotation-card {
+      padding: 1rem;
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 4px;
+    }
+    .quotation-card h3 { margin-bottom: 0.5rem; color: #333; }
+    .quotation-info { font-size: 0.9rem; color: #666; margin-bottom: 0.5rem; }
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .status-draft { background: #e5e5e5; color: #666; }
+    .status-sent { background: #dbeafe; color: #1e40af; }
+    .status-signed { background: #dcfce7; color: #166534; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 寄送報價單 API 測試工具</h1>
+
+    <div class="section">
+      <h2>1️⃣ 取得報價單列表</h2>
+      <button onclick="fetchQuotations()">載入報價單列表</button>
+      <div id="quotations" class="quotation-list"></div>
+    </div>
+
+    <div class="section">
+      <h2>2️⃣ 測試寄送 API</h2>
+      <div style="margin-bottom: 1rem;">
+        <input
+          type="text"
+          id="quotationId"
+          placeholder="輸入報價單 ID"
+          value="3d9ea7c9-11f1-436e-88c8-4f80515c69bb"
+        />
+        <button onclick="sendQuotation()">寄送報價單</button>
+      </div>
+      <p style="color: #666; font-size: 0.9rem;">
+        預設 ID 是測試資料中的 Q2025-003 (draft 狀態)
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>📊 API 日誌</h2>
+      <div id="log" class="log">
+        <div class="log-info">等待操作...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const log = document.getElementById('log');
+
+    function addLog(message, type = 'info') {
+      const line = document.createElement('div');
+      line.className = `log-line log-${type}`;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function clearLog() {
+      log.innerHTML = '';
+    }
+
+    async function fetchQuotations() {
+      clearLog();
+      addLog('🔄 正在載入報價單列表...', 'info');
+
+      try {
+        const response = await fetch('/api/quotations');
+
+        addLog(`📡 HTTP ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+
+        if (!response.ok) {
+          const error = await response.json();
+          addLog(`❌ 錯誤: ${error.error || '未知錯誤'}`, 'error');
+          return;
+        }
+
+        const data = await response.json();
+        const quotations = data.data || data;
+
+        addLog(`✅ 成功載入 ${quotations.length} 筆報價單`, 'success');
+
+        const quotationsDiv = document.getElementById('quotations');
+        quotationsDiv.innerHTML = quotations.map(q => `
+          <div class="quotation-card">
+            <h3>${q.quotation_number}</h3>
+            <div class="quotation-info">客戶: ${q.customer_name?.zh || q.customer_id}</div>
+            <div class="quotation-info">金額: ${q.currency} ${q.total_amount?.toLocaleString() || 'N/A'}</div>
+            <div class="quotation-info">
+              狀態: <span class="status-badge status-${q.status}">${q.status}</span>
+            </div>
+            <div class="quotation-info" style="font-size: 0.8rem; color: #999;">
+              ID: ${q.id}
+            </div>
+            ${q.status === 'draft' ? `
+              <button onclick="sendQuotation('${q.id}')" style="margin-top: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem;">
+                寄送此報價單
+              </button>
+            ` : ''}
+          </div>
+        `).join('');
+
+        quotations.forEach(q => {
+          addLog(`  📄 ${q.quotation_number} - ${q.status} - ${q.customer_name?.zh || q.customer_id}`, 'info');
+        });
+
+      } catch (error) {
+        addLog(`❌ 請求失敗: ${error.message}`, 'error');
+        console.error('Error fetching quotations:', error);
+      }
+    }
+
+    async function sendQuotation(id) {
+      const quotationId = id || document.getElementById('quotationId').value;
+
+      if (!quotationId) {
+        addLog('❌ 請輸入報價單 ID', 'error');
+        return;
+      }
+
+      clearLog();
+      addLog(`🚀 開始測試寄送報價單 API...`, 'info');
+      addLog(`📋 報價單 ID: ${quotationId}`, 'info');
+
+      try {
+        const url = `/api/quotations/${quotationId}/send`;
+        addLog(`📡 POST ${url}`, 'info');
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const statusColor = response.ok ? 'success' : 'error';
+        addLog(`📊 HTTP ${response.status} ${response.statusText}`, statusColor);
+
+        addLog(`📦 Response Headers:`, 'info');
+        response.headers.forEach((value, key) => {
+          addLog(`  ${key}: ${value}`, 'info');
+        });
+
+        const data = await response.json();
+
+        addLog(`📄 Response Body:`, 'info');
+        addLog(JSON.stringify(data, null, 2), 'info');
+
+        if (response.ok) {
+          addLog('✅ API 測試成功！', 'success');
+          addLog(`  success: ${data.success}`, 'success');
+          addLog(`  message: ${data.message}`, 'success');
+          if (data.data) {
+            addLog(`  更新後狀態: ${data.data.status}`, 'success');
+          }
+
+          setTimeout(() => {
+            addLog('🔄 重新載入報價單列表...', 'info');
+            fetchQuotations();
+          }, 1000);
+
+        } else {
+          addLog(`❌ API 錯誤: ${data.error || '未知錯誤'}`, 'error');
+
+          if (response.status === 401) {
+            addLog('⚠️  需要登入才能執行此操作', 'warning');
+            addLog('請先登入系統：http://localhost:3000/zh/login', 'warning');
+          } else if (response.status === 404) {
+            addLog('⚠️  找不到此報價單', 'warning');
+          } else if (response.status === 400) {
+            addLog('⚠️  客戶郵件地址不存在', 'warning');
+          }
+        }
+
+      } catch (error) {
+        addLog(`❌ 請求失敗: ${error.message}`, 'error');
+        console.error('Error sending quotation:', error);
+      }
+    }
+
+    window.onload = () => {
+      addLog('✅ 測試工具已準備就緒', 'success');
+      addLog('提示：請先登入系統才能測試寄送功能', 'warning');
+      addLog('登入頁面：http://localhost:3000/zh/login', 'info');
+    };
+  </script>
+</body>
+</html>

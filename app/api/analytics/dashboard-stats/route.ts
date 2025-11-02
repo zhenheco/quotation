@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { createApiClient } from '@/lib/supabase/api'
+import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 
 export const dynamic = 'force-dynamic'
@@ -10,9 +10,9 @@ export const dynamic = 'force-dynamic'
  * 取得完整的儀表板統計數據
  * 包含報價單、合約、付款、客戶、產品等統計
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     const {
       data: { user },

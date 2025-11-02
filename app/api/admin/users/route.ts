@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { isSuperAdmin } from '@/lib/services/rbac';
@@ -8,9 +8,9 @@ import { query } from '@/lib/db/zeabur';
  * GET /api/admin/users
  * 取得所有使用者列表（僅超級管理員）
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createApiClient(request);
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser();

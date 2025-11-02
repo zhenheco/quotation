@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToStream } from '@react-pdf/renderer'
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
 import { QuotationPDFTemplate } from '@/lib/pdf/QuotationPDFTemplate'
 import { QuotationPDFData } from '@/lib/pdf/types'
 import {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const showBothLanguages = searchParams.get('both') === 'true'
 
     // 建立 Supabase 客戶端
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     // 檢查用戶是否已登入
     const {

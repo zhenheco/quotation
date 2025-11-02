@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { createApiClient } from '@/lib/supabase/api'
+import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 
-export async function GET() {
-  const supabase = await createClient()
+export async function GET(request: NextRequest) {
+  const supabase = createApiClient(request)
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {

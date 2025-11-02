@@ -13,6 +13,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/auth') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/admin') ||  // Admin console doesn't use i18n
+    pathname.startsWith('/test-send-api') ||  // Testing tool
     pathname === '/' ||
     pathname === '/login'  // Keep for redirect
 
@@ -55,7 +56,15 @@ export async function middleware(request: NextRequest) {
   )
 
   // Step 4: Trigger session refresh
-  await supabase.auth.getUser()
+  // Skip for API routes as they handle auth themselves
+  if (!pathname.startsWith('/api')) {
+    try {
+      await supabase.auth.getUser()
+    } catch (error) {
+      // Log error but don't block the request
+      console.error('[Middleware] Auth error:', error)
+    }
+  }
 
   return response
 }

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import {
@@ -13,9 +13,9 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/quotations - 取得所有報價單
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -53,7 +53,7 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()

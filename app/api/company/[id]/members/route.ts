@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getCompanyMembersDetailed, addCompanyMember, getCompanyMember } from '@/lib/services/company';
@@ -14,7 +14,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
+    const supabase = createApiClient(request);
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser();
@@ -60,7 +60,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
+    const supabase = createApiClient(request);
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser();

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
@@ -8,7 +8,7 @@ type QuotationStatus = 'draft' | 'sent' | 'signed' | 'expired'
 export async function POST(request: NextRequest) {
   return batchRateLimiter(request, async () => {
     try {
-    const supabase = await createClient()
+    const supabase = createApiClient(request)
 
     // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()
