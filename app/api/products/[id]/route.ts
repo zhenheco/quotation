@@ -73,8 +73,8 @@ export async function PUT(
     const updateData: Record<string, unknown> = {}
     if (body.name) updateData.name = toJsonbField(body.name)
     if (body.description !== undefined) updateData.description = toJsonbField(body.description)
-    if (body.unit_price !== undefined) updateData.unit_price = parseFloat(body.unit_price)
-    if (body.currency) updateData.currency = body.currency
+    if (body.base_price !== undefined) updateData.base_price = parseFloat(body.base_price)
+    if (body.base_currency) updateData.base_currency = body.base_currency
     if (body.category !== undefined) updateData.category = body.category
     if (body.cost_price !== undefined) updateData.cost_price = body.cost_price ? parseFloat(body.cost_price) : null
     if (body.cost_currency !== undefined) updateData.cost_currency = body.cost_currency

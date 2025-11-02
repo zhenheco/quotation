@@ -208,7 +208,7 @@ export async function getProductById(id: string, userId: string): Promise<Produc
 export async function createProduct(data: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product> {
   const result = await query(
     `INSERT INTO products (
-      user_id, sku, name, description, unit_price, currency, category,
+      user_id, sku, name, description, base_price, base_currency, category,
       cost_price, cost_currency, profit_margin, supplier, supplier_code
     )
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -218,8 +218,8 @@ export async function createProduct(data: Omit<Product, 'id' | 'created_at' | 'u
       data.sku,
       data.name,
       data.description,
-      data.unit_price,
-      data.currency,
+      data.base_price,
+      data.base_currency,
       data.category,
       data.cost_price,
       data.cost_currency,

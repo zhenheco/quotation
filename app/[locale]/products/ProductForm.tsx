@@ -156,8 +156,8 @@ export default function ProductForm({ locale, product: initialProduct }: Product
               en: formData.descriptionEn,
             }
           : undefined,
-        unit_price: basePrice,
-        currency: formData.baseCurrency,
+        base_price: basePrice,
+        base_currency: formData.baseCurrency,
         category: formData.category || undefined,
         sku: formData.sku || undefined,
       }

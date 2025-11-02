@@ -51,18 +51,17 @@ export async function POST(request: NextRequest) {
 
     // 取得請求資料
     const body = await request.json()
-    const { name, description, unit_price, currency, category } = body
 
     // 驗證必填欄位
-    if (!name || unit_price === undefined || !currency) {
+    if (!body.name || body.base_price === undefined || !body.base_currency) {
       return NextResponse.json(
-        { error: 'Name, unit_price and currency are required' },
+        { error: 'Name, base_price and base_currency are required' },
         { status: 400 }
       )
     }
 
     // 驗證價格
-    const price = parseFloat(unit_price)
+    const price = parseFloat(body.base_price)
     if (isNaN(price) || price < 0) {
       return NextResponse.json(
         { error: 'Invalid price' },
@@ -70,15 +69,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 建立產品（轉換 JSONB 格式）
-    const product = await createProduct({
+    // 建立產品資料物件
+    const productData: Record<string, unknown> = {
       user_id: user.id,
-      name: toJsonbField(name),
-      description: toJsonbField(description),
-      unit_price: price,
-      currency: currency,
-      category: category || undefined,
-    })
+      name: toJsonbField(body.name),
+      description: toJsonbField(body.description),
+      base_price: price,
+      base_currency: body.base_currency,
+      category: body.category || undefined,
+      sku: body.sku || undefined,
+    }
+
+    // 成本相關欄位（可選）
+    if (body.cost_price !== undefined) {
+      const costPrice = parseFloat(body.cost_price)
+      if (!isNaN(costPrice) && costPrice >= 0) {
+        productData.cost_price = costPrice
+      }
+    }
+    if (body.cost_currency) productData.cost_currency = body.cost_currency
+    if (body.profit_margin !== undefined) {
+      const profitMargin = parseFloat(body.profit_margin)
+      if (!isNaN(profitMargin)) {
+        productData.profit_margin = profitMargin
+      }
+    }
+    if (body.supplier) productData.supplier = body.supplier
+    if (body.supplier_code) productData.supplier_code = body.supplier_code
+
+    // 建立產品
+    const product = await createProduct(productData)
 
     return NextResponse.json(product, { status: 201 })
   } catch (error) {

@@ -23,7 +23,6 @@ export interface CreateProductInput {
   unit_price: number
   currency: string
   category?: string
-  // 成本相關欄位（需要權限）
   cost_price?: number
   cost_currency?: string
   profit_margin?: number
@@ -378,10 +377,10 @@ export function useFilteredProducts(filters: ProductFilters) {
     }
 
     // 價格範圍過濾
-    if (filters.minPrice && product.base_price < filters.minPrice) {
+    if (filters.minPrice && product.unit_price < filters.minPrice) {
       return false
     }
-    if (filters.maxPrice && product.base_price > filters.maxPrice) {
+    if (filters.maxPrice && product.unit_price > filters.maxPrice) {
       return false
     }
 
