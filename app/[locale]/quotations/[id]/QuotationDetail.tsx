@@ -39,6 +39,15 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
   }
 
   const handleSend = async () => {
+    if (!quotation?.customer_email) {
+      toast.error('客戶郵件地址不存在，無法發送')
+      return
+    }
+
+    if (!confirm(`確定要將報價單發送至 ${quotation.customer_email} 嗎？`)) {
+      return
+    }
+
     try {
       await sendQuotation.mutateAsync()
       toast.success('報價單已發送')
@@ -158,6 +167,17 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleSend}
+              disabled={isUpdating || !quotation.customer_email}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!quotation.customer_email ? '客戶郵件地址不存在' : ''}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              {t('email.sendQuotation')}
+            </button>
             <button
               onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 cursor-pointer"
