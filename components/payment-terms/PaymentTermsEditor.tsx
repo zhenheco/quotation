@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, AlertCircle } from 'lucide-react';
 import { PaymentTermRow } from './PaymentTermRow';
-import { validatePercentages } from '@/lib/services/payment-terms';
+import { validatePercentages } from '@/lib/services/payment-terms.client';
 import type { Database } from '@/types/database.types';
 
 type PaymentTerm = Database['public']['Tables']['payment_terms']['Row'];
