@@ -450,6 +450,57 @@ export const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({
           </View>
         </View>
 
+        {/* 付款條款 */}
+        {data.payment_terms && data.payment_terms.length > 0 && (
+          <View style={styles.table}>
+            <Text style={styles.sectionTitle}>
+              {locale === 'zh' ? '付款條款' : 'Payment Terms'}
+            </Text>
+            <View style={styles.tableHeader}>
+              <Text style={{ width: '15%', textAlign: 'center' }}>
+                {locale === 'zh' ? '期數' : 'Term'}
+              </Text>
+              <Text style={{ width: '20%', textAlign: 'right' }}>
+                {locale === 'zh' ? '百分比' : 'Percentage'}
+              </Text>
+              <Text style={{ width: '25%', textAlign: 'right' }}>
+                {locale === 'zh' ? '金額' : 'Amount'}
+              </Text>
+              <Text style={{ width: '20%', textAlign: 'left' }}>
+                {locale === 'zh' ? '到期日' : 'Due Date'}
+              </Text>
+              <Text style={{ width: '20%', textAlign: 'center' }}>
+                {locale === 'zh' ? '狀態' : 'Status'}
+              </Text>
+            </View>
+            {data.payment_terms.map((term, index) => (
+              <View key={index} style={styles.tableRow}>
+                <Text style={{ width: '15%', textAlign: 'center' }}>
+                  {term.term_number}
+                </Text>
+                <Text style={{ width: '20%', textAlign: 'right' }}>
+                  {term.percentage}%
+                </Text>
+                <Text style={{ width: '25%', textAlign: 'right' }}>
+                  {formatCurrency(term.amount)}
+                </Text>
+                <Text style={{ width: '20%', textAlign: 'left' }}>
+                  {term.due_date ? formatDate(term.due_date) : '-'}
+                </Text>
+                <Text style={{ width: '20%', textAlign: 'center', fontSize: 8 }}>
+                  {term.payment_status === 'paid'
+                    ? (locale === 'zh' ? '已付款' : 'Paid')
+                    : term.payment_status === 'partial'
+                    ? (locale === 'zh' ? '部分付款' : 'Partial')
+                    : term.payment_status === 'overdue'
+                    ? (locale === 'zh' ? '逾期' : 'Overdue')
+                    : (locale === 'zh' ? '未付款' : 'Unpaid')}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* 備註 */}
         {data.quotation.notes && (
           <View style={styles.notesSection}>

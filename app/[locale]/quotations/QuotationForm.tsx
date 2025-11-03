@@ -15,6 +15,10 @@ import { useCustomers, type Customer } from '@/hooks/useCustomers'
 import { useProducts, type Product } from '@/hooks/useProducts'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { PaymentTermsEditor } from '@/components/payment-terms'
+import type { Database } from '@/types/database.types'
+
+type PaymentTerm = Database['public']['Tables']['payment_terms']['Row']
 
 interface QuotationFormProps {
   locale: string
@@ -61,6 +65,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   const [contractFile, setContractFile] = useState<File | null>(null)
   const [contractFileUrl, setContractFileUrl] = useState<string>('')
   const [uploadingContract, setUploadingContract] = useState(false)
+  const [paymentTerms, setPaymentTerms] = useState<Partial<PaymentTerm>[]>([])
 
   // 備註模版
   const notesTemplates = [
@@ -308,6 +313,23 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         const result = await createQuotation.mutateAsync(quotationData)
         newQuotationId = (result as { id?: string }).id
         toast.success('報價單已建立')
+      }
+
+      // 儲存付款條款
+      if (paymentTerms.length > 0 && newQuotationId) {
+        try {
+          await fetch(`/api/quotations/${newQuotationId}/payment-terms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              terms: paymentTerms,
+              total,
+            }),
+          })
+        } catch (paymentTermsError) {
+          console.error('Failed to save payment terms:', paymentTermsError)
+          toast.error('付款條款儲存失敗')
+        }
       }
 
       // 上傳合約檔案
@@ -636,6 +658,17 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
             <span>{formData.currency} {total.toLocaleString()}</span>
           </div>
         </div>
+      </div>
+
+      {/* 付款條款 */}
+      <div>
+        <PaymentTermsEditor
+          terms={paymentTerms}
+          totalAmount={total}
+          currency={formData.currency}
+          locale={currentLocale}
+          onChange={setPaymentTerms}
+        />
       </div>
 
       {/* 備註 */}

@@ -34,6 +34,13 @@ export interface QuotationPDFData {
     discount: number
     subtotal: number
   }>
+  payment_terms?: Array<{
+    term_number: number
+    percentage: number
+    amount: number
+    due_date: string | null
+    payment_status: 'unpaid' | 'partial' | 'paid' | 'overdue'
+  }>
   company?: {
     name: { zh: string; en: string }
     address?: { zh: string; en: string }
