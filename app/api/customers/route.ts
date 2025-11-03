@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createCustomer } from '@/lib/services/database'
 import { toJsonbField } from '@/lib/utils/jsonb-converter'
+import { parseJsonbArray } from '@/lib/utils/jsonb-parser'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,9 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json(customers)
+    const parsedCustomers = parseJsonbArray(customers || [], ['name', 'address', 'contact_person'])
+
+    return NextResponse.json(parsedCustomers)
   } catch (error: unknown) {
     console.error('Error fetching customers:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })

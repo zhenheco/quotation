@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createProduct } from '@/lib/services/database'
 import { toJsonbField } from '@/lib/utils/jsonb-converter'
+import { parseJsonbArray } from '@/lib/utils/jsonb-parser'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,15 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json(products)
+    const parsedProducts = parseJsonbArray(products || [], ['name', 'description'])
+
+    const mappedProducts = parsedProducts.map(product => ({
+      ...product,
+      unit_price: product.base_price,
+      currency: product.base_currency
+    }))
+
+    return NextResponse.json(mappedProducts)
   } catch (error: unknown) {
     console.error('Error fetching products:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })

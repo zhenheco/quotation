@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { toast } from 'sonner'
 import FormInput from '@/components/ui/FormInput'
 import BilingualFormInput from '@/components/ui/BilingualFormInput'
@@ -27,6 +27,7 @@ const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'CNY']
 
 export default function ProductForm({ locale, product: initialProduct }: ProductFormProps) {
   const t = useTranslations()
+  const currentLocale = useLocale() as 'zh' | 'en'
   const router = useRouter()
 
   // 如果是編輯模式且有 product.id，使用 hook 取得最新資料
@@ -107,9 +108,10 @@ export default function ProductForm({ locale, product: initialProduct }: Product
       if (cost > 0 && price > 0) {
         const calculatedMargin = calculateProfitMargin(cost, price)
         if (Math.abs(calculatedMargin - margin) > 0.01) {
+          const fractionDigits = currentLocale === 'zh' ? 0 : 2
           setFormData((prev) => ({
             ...prev,
-            profitMargin: calculatedMargin.toFixed(2),
+            profitMargin: calculatedMargin.toFixed(fractionDigits),
           }))
         }
       }
@@ -118,9 +120,10 @@ export default function ProductForm({ locale, product: initialProduct }: Product
       if (cost > 0 && margin >= 0) {
         const calculatedPrice = calculateSellingPrice(cost, margin)
         if (Math.abs(calculatedPrice - price) > 0.01) {
+          const fractionDigits = currentLocale === 'zh' ? 0 : 2
           setFormData((prev) => ({
             ...prev,
-            basePrice: calculatedPrice.toFixed(2),
+            basePrice: calculatedPrice.toFixed(fractionDigits),
           }))
         }
       }
@@ -128,6 +131,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
   }, [
     formData.costPrice,
     formData.basePrice,
+    currentLocale,
     formData.profitMargin,
     formData.costCurrency,
     formData.baseCurrency,
@@ -233,13 +237,13 @@ export default function ProductForm({ locale, product: initialProduct }: Product
             label={t('product.price')}
             name="basePrice"
             type="number"
-            step="0.01"
+            step={currentLocale === 'zh' ? '1' : '0.01'}
             value={formData.basePrice}
             onChange={(value) => {
               setFormData({ ...formData, basePrice: value })
               setAutoCalculateMode('profitMargin')
             }}
-            placeholder="0.00"
+            placeholder={currentLocale === 'zh' ? '0' : '0.00'}
             required
           />
 
@@ -301,13 +305,13 @@ export default function ProductForm({ locale, product: initialProduct }: Product
                   label={t('product.costPrice')}
                   name="costPrice"
                   type="number"
-                  step="0.01"
+                  step={currentLocale === 'zh' ? '1' : '0.01'}
                   value={formData.costPrice}
                   onChange={(value) => {
                     setFormData({ ...formData, costPrice: value })
                     setAutoCalculateMode('profitMargin')
                   }}
-                  placeholder="0.00"
+                  placeholder={currentLocale === 'zh' ? '0' : '0.00'}
                 />
 
                 <div>
@@ -340,13 +344,13 @@ export default function ProductForm({ locale, product: initialProduct }: Product
                     label={t('product.profitMargin')}
                     name="profitMargin"
                     type="number"
-                    step="0.01"
+                    step={currentLocale === 'zh' ? '1' : '0.01'}
                     value={formData.profitMargin}
                     onChange={(value) => {
                       setFormData({ ...formData, profitMargin: value })
                       setAutoCalculateMode('sellingPrice')
                     }}
-                    placeholder="0.00"
+                    placeholder={currentLocale === 'zh' ? '0' : '0.00'}
                     suffix="%"
                   />
                   <p className="text-xs text-gray-600 mt-2">
@@ -388,7 +392,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">{t('product.profitMargin')}</span>
                     <span className="font-medium text-green-600">
-                      {product.profit_margin.toFixed(2)}%
+                      {currentLocale === 'zh' ? product.profit_margin.toFixed(0) : product.profit_margin.toFixed(2)}%
                     </span>
                   </div>
                 )}

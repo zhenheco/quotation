@@ -259,9 +259,10 @@ export const QuotationPDFTemplate: React.FC<QuotationPDFTemplateProps> = ({
 
   // 格式化金額
   const formatCurrency = (amount: number) => {
-    return `${data.quotation.currency} ${amount.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+    const fractionDigits = locale === 'zh' ? 0 : 2
+    return `${data.quotation.currency} ${amount.toLocaleString(locale === 'zh' ? 'zh-TW' : 'en-US', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
     })}`
   }
 

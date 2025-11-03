@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import FormInput from '@/components/ui/FormInput'
+import { formatPrice } from '@/lib/utils/format'
 
 interface Customer {
   id: string
@@ -54,6 +55,7 @@ interface Quotation {
   tax_rate?: number
   notes?: string
   contract_file_url?: string
+  contract_file_name?: string
   items?: Array<{
     product_id?: string
     quantity: number
@@ -86,6 +88,7 @@ export default function QuotationEditForm({
   versions,
 }: QuotationEditFormProps) {
   const t = useTranslations()
+  const currentLocale = useLocale() as 'zh' | 'en'
   const router = useRouter()
   const supabase = createClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -176,14 +179,29 @@ export default function QuotationEditForm({
 
   const updateItem = (index: number, field: keyof QuotationItem, value: string | number) => {
     const newItems = [...items]
-    newItems[index] = { ...newItems[index], [field]: value }
 
-    // Recalculate subtotal
-    const quantity = parseFloat(newItems[index].quantity.toString()) || 0
-    const unitPrice = parseFloat(newItems[index].unit_price.toString()) || 0
-    const discount = parseFloat(newItems[index].discount.toString()) || 0
-    // 折扣為負數，所以直接相加
-    newItems[index].subtotal = (quantity * unitPrice) + discount
+    let finalValue: number = 0
+    if (field === 'product_id') {
+      finalValue = value as any
+    } else {
+      const numValue = typeof value === 'string' ? parseFloat(value) : value
+      const isValid = typeof numValue === 'number' && !isNaN(numValue) && numValue >= 0
+      finalValue = isValid ? numValue : (field === 'quantity' ? 1 : 0)
+    }
+
+    newItems[index] = { ...newItems[index], [field]: finalValue }
+
+    const quantity = typeof newItems[index].quantity === 'number' && !isNaN(newItems[index].quantity) && newItems[index].quantity > 0
+      ? newItems[index].quantity
+      : 1
+    const unitPrice = typeof newItems[index].unit_price === 'number' && !isNaN(newItems[index].unit_price) && newItems[index].unit_price >= 0
+      ? newItems[index].unit_price
+      : 0
+    const discount = typeof newItems[index].discount === 'number' && !isNaN(newItems[index].discount)
+      ? newItems[index].discount
+      : 0
+
+    newItems[index].subtotal = Math.max(0, (quantity * unitPrice) + discount)
 
     setItems(newItems)
   }
@@ -194,7 +212,7 @@ export default function QuotationEditForm({
       let convertedPrice = product.unit_price
 
       // 如果產品幣別與報價單幣別不同，進行匯率換算
-      if (product.currency !== formData.currency) {
+      if (product.currency && product.currency !== formData.currency) {
         // exchangeRates 是以報價單幣別(formData.currency)為基準的匯率
         // 例如：報價單是 TWD，exchangeRates = { TWD: 1, USD: 0.03265, EUR: 0.02794 }
         // 這表示：1 TWD = 0.03265 USD
@@ -212,8 +230,32 @@ export default function QuotationEditForm({
         }
       }
 
-      updateItem(index, 'product_id', productId)
-      updateItem(index, 'unit_price', convertedPrice)
+      const newItems = [...items]
+      const currentItem = newItems[index]
+
+      let quantity = 1
+      if (typeof currentItem.quantity === 'number' && !isNaN(currentItem.quantity) && currentItem.quantity > 0) {
+        quantity = currentItem.quantity
+      }
+
+      let discount = 0
+      if (typeof currentItem.discount === 'number' && !isNaN(currentItem.discount)) {
+        discount = currentItem.discount
+      }
+
+      const validPrice = typeof convertedPrice === 'number' && !isNaN(convertedPrice) && convertedPrice >= 0
+        ? convertedPrice
+        : 0
+
+      newItems[index] = {
+        product_id: productId,
+        quantity: quantity,
+        unit_price: validPrice,
+        discount: discount,
+        subtotal: Math.max(0, (quantity * validPrice) + discount)
+      }
+
+      setItems(newItems)
     }
   }
 
@@ -363,7 +405,10 @@ export default function QuotationEditForm({
           await fetch(`/api/quotations/${quotation.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contract_file_url: contractUrl }),
+            body: JSON.stringify({
+              contract_file_url: contractUrl,
+              contract_file_name: contractFile?.name || null
+            }),
           })
           toast.success('合約已上傳')
         }
@@ -399,7 +444,7 @@ export default function QuotationEditForm({
                 {t('quotation.customer')}
               </label>
               <div className="block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
-                {quotation.customers?.name[locale as 'zh' | 'en']} ({quotation.customers?.email})
+                {quotation.customer_name?.[locale as 'zh' | 'en']} ({quotation.customer_email})
               </div>
             </div>
 
@@ -485,103 +530,107 @@ export default function QuotationEditForm({
             </button>
           </div>
 
-          <div className="space-y-4">
+          {/* 欄位標題 */}
+          <div className="flex items-center gap-3 px-3 py-2 mb-2 bg-gray-50 border-b-2 border-gray-200">
+            <div className="flex-1 min-w-0 text-sm font-medium text-gray-700">
+              {t('product.name')}
+            </div>
+            <div className="w-24 text-sm font-medium text-gray-700 text-center">
+              {t('quotation.quantity')}
+            </div>
+            <div className="w-32 text-sm font-medium text-gray-700 text-right">
+              {t('quotation.unitPrice')}
+            </div>
+            <div className="w-28 text-sm font-medium text-gray-700 text-right">
+              {t('quotation.discount')}
+            </div>
+            <div className="w-32 text-sm font-medium text-gray-700 text-right">
+              {t('quotation.subtotal')}
+            </div>
+            <div className="w-10"></div>
+          </div>
+
+          <div className="space-y-2">
             {items.map((item, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
-                <div className="grid grid-cols-6 gap-4">
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('product.name')}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={t('common.search')}
-                      value={productSearches[index] || ''}
-                      onChange={(e) => setProductSearches({ ...productSearches, [index]: e.target.value })}
-                      className="block w-full px-3 py-2 mb-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
-                    />
-                    <select
-                      value={item.product_id}
-                      onChange={(e) => handleProductChange(index, e.target.value)}
-                      required
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                    >
-                      <option value="">{t('quotation.selectProduct')}</option>
-                      {getFilteredProducts(index).map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.name?.[locale as 'zh' | 'en'] || product.name?.zh || product.name?.en || 'Unknown Product'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('quotation.quantity')}
-                    </label>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value))}
-                      min="1"
-                      required
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('quotation.unitPrice')}
-                    </label>
-                    <input
-                      type="number"
-                      value={item.unit_price}
-                      onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
-                      min="0"
-                      step="0.01"
-                      required
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('quotation.discount')}
-                    </label>
-                    <input
-                      type="number"
-                      value={item.discount}
-                      onChange={(e) => {
-                        let value = parseFloat(e.target.value) || 0
-                        // 確保折扣為負數
-                        if (value > 0) value = -value
-                        updateItem(index, 'discount', value)
-                      }}
-                      max="0"
-                      step="0.01"
-                      placeholder="-100.00"
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                  </div>
-
-                  <div className="flex items-end">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('quotation.subtotal')}
-                      </label>
-                      <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm">
-                        {item.subtotal.toFixed(2)}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(index)}
-                      className="ml-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                  </div>
+              <div key={index} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:border-indigo-300 transition-colors">
+                {/* 產品選擇 */}
+                <div className="flex-1 min-w-0">
+                  <select
+                    value={item.product_id || ''}
+                    onChange={(e) => handleProductChange(index, e.target.value)}
+                    required
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  >
+                    <option value="">{t('quotation.selectProduct')}</option>
+                    {products.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.name?.[locale as 'zh' | 'en'] || product.name?.zh || product.name?.en || 'Unknown Product'}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
+                {/* 數量 */}
+                <div className="w-24">
+                  <input
+                    type="number"
+                    value={typeof item.quantity === 'number' && !isNaN(item.quantity) && item.quantity > 0 ? item.quantity : 1}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value)
+                      updateItem(index, 'quantity', isNaN(val) || val <= 0 ? 1 : val)
+                    }}
+                    min="1"
+                    required
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+
+                {/* 單價 */}
+                <div className="w-32">
+                  <input
+                    type="number"
+                    value={typeof item.unit_price === 'number' && !isNaN(item.unit_price) && item.unit_price >= 0 ? item.unit_price : 0}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value)
+                      updateItem(index, 'unit_price', isNaN(val) || val < 0 ? 0 : val)
+                    }}
+                    min="0"
+                    step={currentLocale === 'zh' ? '1' : '0.01'}
+                    required
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+
+                {/* 折扣 */}
+                <div className="w-28">
+                  <input
+                    type="number"
+                    value={typeof item.discount === 'number' && !isNaN(item.discount) ? item.discount : 0}
+                    onChange={(e) => {
+                      let value = parseFloat(e.target.value) || 0
+                      if (value > 0) value = -value
+                      updateItem(index, 'discount', value)
+                    }}
+                    max="0"
+                    step={currentLocale === 'zh' ? '1' : '0.01'}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+
+                {/* 小計 */}
+                <div className="w-32 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-right font-medium">
+                  {formatPrice(item.subtotal, currentLocale)}
+                </div>
+
+                {/* 刪除按鈕 */}
+                <button
+                  type="button"
+                  onClick={() => removeItem(index)}
+                  className="w-10 h-10 flex items-center justify-center text-red-600 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
+                  title={t('common.delete')}
+                >
+                  ✕
+                </button>
               </div>
             ))}
           </div>
@@ -596,7 +645,7 @@ export default function QuotationEditForm({
             <div className="max-w-md ml-auto space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-700">{t('quotation.subtotal')}:</span>
-                <span className="font-medium">{formData.currency} {subtotal.toFixed(2)}</span>
+                <span className="font-medium">{formData.currency} {formatPrice(subtotal, currentLocale)}</span>
               </div>
 
               <div className="flex justify-between items-center">
@@ -608,17 +657,17 @@ export default function QuotationEditForm({
                     onChange={(e) => setFormData({ ...formData, taxRate: e.target.value })}
                     min="0"
                     max="100"
-                    step="0.01"
+                    step={currentLocale === 'zh' ? '1' : '0.01'}
                     className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
                   />
                   <span className="text-gray-700">%</span>
                 </div>
-                <span className="font-medium">{formData.currency} {taxAmount.toFixed(2)}</span>
+                <span className="font-medium">{formData.currency} {formatPrice(taxAmount, currentLocale)}</span>
               </div>
 
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>{t('quotation.total')}:</span>
-                <span>{formData.currency} {total.toFixed(2)}</span>
+                <span>{formData.currency} {formatPrice(total, currentLocale)}</span>
               </div>
             </div>
           </div>
@@ -651,16 +700,45 @@ export default function QuotationEditForm({
                     <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <span className="text-sm text-gray-700">已上傳合約</span>
+                    <span className="text-sm text-gray-700">
+                      {quotation.contract_file_name || decodeURIComponent(contractFileUrl.split('/').pop() || '已上傳合約')}
+                    </span>
                   </div>
-                  <a
-                    href={contractFileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-indigo-600 hover:text-indigo-700"
-                  >
-                    查看
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={contractFileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-indigo-600 hover:text-indigo-700"
+                    >
+                      查看
+                    </a>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (confirm('確定要刪除合約檔案嗎？')) {
+                          try {
+                            const response = await fetch(`/api/quotations/${quotation.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ contract_file_url: null }),
+                            })
+                            if (response.ok) {
+                              setContractFileUrl('')
+                              toast.success('合約已刪除')
+                            } else {
+                              throw new Error('刪除失敗')
+                            }
+                          } catch (error) {
+                            toast.error('刪除合約失敗')
+                          }
+                        }
+                      }}
+                      className="text-sm text-red-600 hover:text-red-700 cursor-pointer"
+                    >
+                      刪除
+                    </button>
+                  </div>
                 </div>
               )}
               {contractFile && (

@@ -2,6 +2,7 @@ import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { toJsonbField } from '@/lib/utils/jsonb-converter'
+import { parseJsonbFields } from '@/lib/utils/jsonb-parser'
 
 /**
  * GET /api/customers/[id] - 取得單一客戶
@@ -36,7 +37,9 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(customer)
+    const parsedCustomer = parseJsonbFields(customer, ['name', 'address', 'contact_person'])
+
+    return NextResponse.json(parsedCustomer)
   } catch (error) {
     console.error('Error fetching customer:', error)
     return NextResponse.json(
@@ -95,7 +98,9 @@ export async function PUT(
       )
     }
 
-    return NextResponse.json(customer)
+    const parsedCustomer = parseJsonbFields(customer, ['name', 'address', 'contact_person'])
+
+    return NextResponse.json(parsedCustomer)
   } catch (error) {
     console.error('Error updating customer:', error)
     return NextResponse.json(

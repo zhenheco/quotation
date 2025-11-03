@@ -2,6 +2,7 @@ import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { toJsonbField } from '@/lib/utils/jsonb-converter'
+import { parseJsonbFields } from '@/lib/utils/jsonb-parser'
 
 /**
  * GET /api/products/[id] - 取得單一產品
@@ -36,7 +37,15 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(product)
+    const parsedProduct = parseJsonbFields(product, ['name', 'description'])
+
+    const result = {
+      ...parsedProduct,
+      unit_price: parsedProduct.base_price,
+      currency: parsedProduct.base_currency
+    }
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error fetching product:', error)
     return NextResponse.json(
@@ -100,7 +109,15 @@ export async function PUT(
       )
     }
 
-    return NextResponse.json(product)
+    const parsedProduct = parseJsonbFields(product, ['name', 'description'])
+
+    const result = {
+      ...parsedProduct,
+      unit_price: parsedProduct.base_price,
+      currency: parsedProduct.base_currency
+    }
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error updating product:', error)
     return NextResponse.json(

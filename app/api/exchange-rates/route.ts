@@ -8,7 +8,7 @@ import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getExchangeRates, Currency } from '@/lib/services/exchange-rate-zeabur'
 
 export async function GET(_request: NextRequest) {
-  const { searchParams } = new URL(request.url)
+  const { searchParams } = new URL(_request.url)
   const baseCurrency = (searchParams.get('base') || 'TWD') as Currency
 
   try {

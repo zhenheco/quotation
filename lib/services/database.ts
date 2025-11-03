@@ -304,7 +304,10 @@ export async function getQuotations(userId: string): Promise<Quotation[]> {
 
 export async function getQuotationById(id: string, userId: string): Promise<Quotation | null> {
   const result = await query(
-    `SELECT q.*, c.name as customer_name, c.email as customer_email
+    `SELECT
+      q.*,
+      jsonb_build_object('zh', c.name->>'zh', 'en', c.name->>'en') as customer_name,
+      c.email as customer_email
      FROM quotations q
      LEFT JOIN customers c ON q.customer_id = c.id
      WHERE q.id = $1 AND q.user_id = $2`,

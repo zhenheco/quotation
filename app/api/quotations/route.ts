@@ -7,6 +7,7 @@ import {
   generateQuotationNumber,
   validateCustomerOwnership
 } from '@/lib/services/database'
+import { parseJsonbArray } from '@/lib/utils/jsonb-parser'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,9 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    const formattedQuotations = quotations?.map(q => {
+    const parsedQuotations = parseJsonbArray(quotations || [], ['notes'])
+
+    const formattedQuotations = parsedQuotations.map(q => {
       const { customer, ...rest } = q
       return {
         ...rest,

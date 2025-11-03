@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Combobox } from '@headlessui/react'
 import {
   useCreateQuotation,
@@ -33,6 +33,7 @@ interface QuotationItem {
 
 export default function QuotationForm({ locale, quotationId }: QuotationFormProps) {
   const t = useTranslations()
+  const currentLocale = useLocale() as 'zh' | 'en'
   const router = useRouter()
   const supabase = createClient()
 
@@ -317,7 +318,10 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           await fetch(`/api/quotations/${newQuotationId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contract_file_url: contractUrl }),
+            body: JSON.stringify({
+              contract_file_url: contractUrl,
+              contract_file_name: contractFile?.name || null
+            }),
           })
           toast.success('合約已上傳')
         }
@@ -491,7 +495,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
             className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             min="0"
             max="100"
-            step="0.01"
+            step={currentLocale === 'zh' ? '1' : '0.01'}
             required
           />
         </div>
@@ -561,7 +565,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                     onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     min="0"
-                    step="0.01"
+                    step={currentLocale === 'zh' ? '1' : '0.01'}
                   />
                 </div>
 
@@ -575,7 +579,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                     onChange={(e) => handleItemChange(index, 'discount', parseFloat(e.target.value) || 0)}
                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     min="0"
-                    step="0.01"
+                    step={currentLocale === 'zh' ? '1' : '0.01'}
                   />
                 </div>
 
@@ -702,16 +706,47 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span className="text-sm text-gray-700">已上傳合約</span>
+                <span className="text-sm text-gray-700">
+                  {decodeURIComponent(contractFileUrl.split('/').pop() || '已上傳合約')}
+                </span>
               </div>
-              <a
-                href={contractFileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-indigo-600 hover:text-indigo-700"
-              >
-                查看
-              </a>
+              <div className="flex items-center gap-2">
+                <a
+                  href={contractFileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-indigo-600 hover:text-indigo-700"
+                >
+                  查看
+                </a>
+                {quotationId && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (confirm('確定要刪除合約檔案嗎？')) {
+                        try {
+                          const response = await fetch(`/api/quotations/${quotationId}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contract_file_url: null }),
+                          })
+                          if (response.ok) {
+                            setContractFileUrl('')
+                            toast.success('合約已刪除')
+                          } else {
+                            throw new Error('刪除失敗')
+                          }
+                        } catch (error) {
+                          toast.error('刪除合約失敗')
+                        }
+                      }
+                    }}
+                    className="text-sm text-red-600 hover:text-red-700 cursor-pointer"
+                  >
+                    刪除
+                  </button>
+                )}
+              </div>
             </div>
           )}
           {contractFile && (

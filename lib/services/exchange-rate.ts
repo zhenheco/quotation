@@ -219,13 +219,16 @@ export function convertCurrency(
 
 /**
  * 格式化貨幣顯示
+ * @deprecated Use formatCurrency from lib/utils/format.ts instead
  */
-export function formatCurrency(amount: number, currency: Currency): string {
-  const formatter = new Intl.NumberFormat('zh-TW', {
+export function formatCurrency(amount: number, currency: Currency, locale: 'zh' | 'en' = 'zh'): string {
+  const fractionDigits = locale === 'zh' ? 0 : 2
+
+  const formatter = new Intl.NumberFormat(locale === 'zh' ? 'zh-TW' : 'en-US', {
     style: 'currency',
     currency: currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits
   })
 
   return formatter.format(amount)

@@ -8,6 +8,7 @@ import {
   validateCustomerOwnership
 } from '@/lib/services/database'
 import { getZeaburPool } from '@/lib/db/zeabur'
+import { parseJsonbFields } from '@/lib/utils/jsonb-parser'
 
 /**
  * GET /api/quotations/[id] - 取得單一報價單
@@ -97,7 +98,9 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(quotation, {
+    const parsedQuotation = parseJsonbFields(quotation, ['notes', 'customer_name'])
+
+    return NextResponse.json(parsedQuotation, {
       headers: { 'Content-Type': 'application/json' }
     })
   } catch (error) {
@@ -263,9 +266,9 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { status: quotationStatus, contract_file_url } = body
+    const { status: quotationStatus, contract_file_url, contract_file_name } = body
 
-    if (!quotationStatus && !contract_file_url) {
+    if (!quotationStatus && contract_file_url === undefined && !contract_file_name) {
       return NextResponse.json(
         { error: 'At least one field is required' },
         { status: 400 }
@@ -282,9 +285,10 @@ export async function PATCH(
     }
 
     // 更新報價單
-    const updateData: { status?: string; contract_file_url?: string } = {}
+    const updateData: { status?: string; contract_file_url?: string | null; contract_file_name?: string | null } = {}
     if (quotationStatus) updateData.status = quotationStatus
-    if (contract_file_url) updateData.contract_file_url = contract_file_url
+    if (contract_file_url !== undefined) updateData.contract_file_url = contract_file_url
+    if (contract_file_name !== undefined) updateData.contract_file_name = contract_file_name
 
     const quotation = await updateQuotation(id, user.id, updateData)
 
