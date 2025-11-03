@@ -349,6 +349,50 @@ export interface Database {
           updated_at?: string
         }
       }
+      payment_terms: {
+        Row: {
+          id: string
+          quotation_id: string
+          term_number: number
+          percentage: number
+          amount: number
+          due_date: string | null
+          payment_status: 'unpaid' | 'partial' | 'paid' | 'overdue'
+          paid_amount: number | null
+          paid_date: string | null
+          description: Json | null // { zh: string, en: string }
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          quotation_id: string
+          term_number: number
+          percentage: number
+          amount: number
+          due_date?: string | null
+          payment_status?: 'unpaid' | 'partial' | 'paid' | 'overdue'
+          paid_amount?: number | null
+          paid_date?: string | null
+          description?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          quotation_id?: string
+          term_number?: number
+          percentage?: number
+          amount?: number
+          due_date?: string | null
+          payment_status?: 'unpaid' | 'partial' | 'paid' | 'overdue'
+          paid_amount?: number | null
+          paid_date?: string | null
+          description?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       quotation_items: {
         Row: {
           id: string

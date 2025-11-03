@@ -9,6 +9,7 @@ import {
 } from '@/lib/services/database'
 import { getZeaburPool } from '@/lib/db/zeabur'
 import { parseJsonbFields } from '@/lib/utils/jsonb-parser'
+import { getPaymentTerms, recalculateAllTerms } from '@/lib/services/payment-terms'
 
 /**
  * GET /api/quotations/[id] - 取得單一報價單
@@ -99,6 +100,15 @@ export async function GET(
     }
 
     const parsedQuotation = parseJsonbFields(quotation, ['notes', 'customer_name'])
+
+    // 取得付款條款
+    try {
+      const paymentTerms = await getPaymentTerms(id)
+      parsedQuotation.payment_terms = paymentTerms
+    } catch (paymentTermsError) {
+      console.warn('[GET /api/quotations/[id]] Failed to fetch payment terms:', paymentTermsError)
+      parsedQuotation.payment_terms = []
+    }
 
     return NextResponse.json(parsedQuotation, {
       headers: { 'Content-Type': 'application/json' }
@@ -213,6 +223,15 @@ export async function PUT(
       next_collection_date,
       next_collection_amount: next_collection_amount !== undefined ? parseFloat(next_collection_amount) : undefined,
     })
+
+    // 如果總金額變更，重新計算付款條款
+    if (total !== undefined && existingQuotation.total !== total) {
+      try {
+        await recalculateAllTerms(id, parseFloat(total))
+      } catch (recalcError) {
+        console.warn('Failed to recalculate payment terms:', recalcError)
+      }
+    }
 
     // 如果提供了項目，則刪除舊的並重新插入
     if (items && items.length > 0) {
