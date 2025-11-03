@@ -194,7 +194,11 @@ export async function getProducts(userId: string): Promise<Product[]> {
     'SELECT * FROM products WHERE user_id = $1 ORDER BY created_at DESC',
     [userId]
   )
-  return result.rows
+  return result.rows.map(row => ({
+    ...row,
+    unit_price: row.base_price,
+    currency: row.base_currency
+  }))
 }
 
 export async function getProductById(id: string, userId: string): Promise<Product | null> {
@@ -202,7 +206,13 @@ export async function getProductById(id: string, userId: string): Promise<Produc
     'SELECT * FROM products WHERE id = $1 AND user_id = $2',
     [id, userId]
   )
-  return result.rows[0] || null
+  const row = result.rows[0]
+  if (!row) return null
+  return {
+    ...row,
+    unit_price: row.base_price,
+    currency: row.base_currency
+  }
 }
 
 export async function createProduct(data: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product> {
@@ -218,8 +228,8 @@ export async function createProduct(data: Omit<Product, 'id' | 'created_at' | 'u
       data.sku,
       data.name,
       data.description,
-      data.base_price,
-      data.base_currency,
+      data.unit_price,
+      data.currency,
       data.category,
       data.cost_price,
       data.cost_currency,
@@ -228,7 +238,12 @@ export async function createProduct(data: Omit<Product, 'id' | 'created_at' | 'u
       data.supplier_code
     ]
   )
-  return result.rows[0]
+  const row = result.rows[0]
+  return {
+    ...row,
+    unit_price: row.base_price,
+    currency: row.base_currency
+  }
 }
 
 /**
@@ -269,7 +284,13 @@ export async function updateProduct(
       values
     )
 
-    return result.rows[0] || null
+    const row = result.rows[0]
+    if (!row) return null
+    return {
+      ...row,
+      unit_price: row.base_price,
+      currency: row.base_currency
+    }
   } catch (error) {
     // 記錄錯誤但不洩漏敏感資訊
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
