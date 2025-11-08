@@ -12,10 +12,13 @@ import {
   useBatchDeleteQuotations,
   useBatchUpdateStatus,
   useBatchExportPDFs,
+  useSendQuotation,
+  useBatchSendQuotations,
   type Quotation,
   type QuotationStatus,
   type QuotationWithCustomer,
 } from '@/hooks/useQuotations'
+import SendQuotationModal from '@/components/quotations/SendQuotationModal'
 import { toast } from 'sonner'
 
 interface QuotationListProps {
@@ -35,6 +38,8 @@ export default function QuotationList({ locale }: QuotationListProps) {
   const batchDelete = useBatchDeleteQuotations()
   const batchUpdateStatus = useBatchUpdateStatus()
   const batchExport = useBatchExportPDFs()
+  const sendQuotation = useSendQuotation()
+  const batchSend = useBatchSendQuotations()
 
   // 狀態
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; quotation: Quotation | null }>({
@@ -46,6 +51,11 @@ export default function QuotationList({ locale }: QuotationListProps) {
   const [batchDeleteModal, setBatchDeleteModal] = useState(false)
   const [batchStatusModal, setBatchStatusModal] = useState(false)
   const [newBatchStatus, setNewBatchStatus] = useState<QuotationStatus>('sent')
+  const [sendModal, setSendModal] = useState<{ isOpen: boolean; quotation: QuotationWithCustomer | null; isBatch: boolean }>({
+    isOpen: false,
+    quotation: null,
+    isBatch: false,
+  })
 
   // 批次操作處理函數
   const handleSelectAll = (checked: boolean) => {
@@ -142,6 +152,39 @@ export default function QuotationList({ locale }: QuotationListProps) {
     } catch (error) {
       toast.error('刪除失敗')
       console.error('Error deleting quotation:', error)
+    }
+  }
+
+  const handleSend = async (data: { subject: string; content: string }) => {
+    try {
+      if (sendModal.isBatch) {
+        const result = await batchSend.mutateAsync({
+          ids: Array.from(selectedIds),
+          subject: data.subject,
+          content: data.content,
+          locale: locale as 'zh' | 'en',
+        })
+        if (result.data.failed > 0) {
+          toast.warning(`已成功寄送 ${result.data.sent} 個報價單，${result.data.failed} 個失敗`)
+        } else {
+          toast.success(`已成功寄送 ${result.data.sent} 個報價單`)
+        }
+        setSelectedIds(new Set())
+        setIsBatchOperation(false)
+      } else if (sendModal.quotation) {
+        await sendQuotation.mutateAsync({
+          id: sendModal.quotation.id,
+          subject: data.subject,
+          content: data.content,
+          locale: locale as 'zh' | 'en',
+        })
+        toast.success(`報價單已成功寄送至 ${sendModal.quotation.customer_email}`)
+      }
+      setSendModal({ isOpen: false, quotation: null, isBatch: false })
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '寄送失敗'
+      toast.error(errorMessage)
+      console.error('Error sending quotation:', error)
     }
   }
 
@@ -249,6 +292,12 @@ export default function QuotationList({ locale }: QuotationListProps) {
                 className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 font-medium text-sm cursor-pointer"
               >
                 {t('batch.updateStatus')} ({selectedIds.size})
+              </button>
+              <button
+                onClick={() => setSendModal({ isOpen: true, quotation: null, isBatch: true })}
+                className="px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 font-medium text-sm cursor-pointer"
+              >
+                {t('batch.send')} ({selectedIds.size})
               </button>
               <button
                 onClick={handleBatchExport}
@@ -383,6 +432,23 @@ export default function QuotationList({ locale }: QuotationListProps) {
                     >
                       {t('common.edit')}
                     </button>
+                    {quotation.customer_email ? (
+                      <button
+                        onClick={() => setSendModal({ isOpen: true, quotation, isBatch: false })}
+                        className="text-green-700 hover:text-green-900 mr-4 cursor-pointer"
+                        title={t('quotation.send')}
+                      >
+                        {t('quotation.send')}
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="text-gray-400 mr-4 cursor-not-allowed"
+                        title={t('quotation.noCustomerEmail')}
+                      >
+                        {t('quotation.send')}
+                      </button>
+                    )}
                     <button
                       onClick={() => router.push(`/${locale}/quotations/${quotation.id}`)}
                       className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer"
@@ -470,6 +536,17 @@ export default function QuotationList({ locale }: QuotationListProps) {
           </div>
         </div>
       )}
+
+      <SendQuotationModal
+        isOpen={sendModal.isOpen}
+        onClose={() => setSendModal({ isOpen: false, quotation: null, isBatch: false })}
+        onConfirm={handleSend}
+        quotation={sendModal.quotation}
+        locale={locale}
+        isLoading={sendModal.isBatch ? batchSend.isPending : sendQuotation.isPending}
+        isBatch={sendModal.isBatch}
+        selectedCount={selectedIds.size}
+      />
     </>
   )
 }

@@ -195,6 +195,21 @@
     "markAsAccepted": "Mark as Accepted",
     "markAsRejected": "Mark as Rejected",
     "markAsDraft": "Mark as Draft",
+    "send": "Send",
+    "sendQuotation": "Send Quotation",
+    "sendSuccess": "Quotation sent successfully",
+    "sendFailed": "Failed to send quotation",
+    "noCustomerEmail": "Customer does not have an email address",
+    "sendConfirm": {
+      "title": "Confirm Send Quotation",
+      "customerEmail": "Customer Email",
+      "emailSubject": "Email Subject",
+      "emailContent": "Email Content",
+      "send": "Send",
+      "sending": "Sending...",
+      "defaultSubject": "Quotation",
+      "batchSubject": "Quotation Delivery"
+    },
     "emptyState": {
       "title": "No quotations yet",
       "description": "Create your first quotation to get started."
@@ -325,6 +340,13 @@
     "exportPDF": "Export PDF",
     "delete": "Batch Delete",
     "update": "Update",
+    "send": "Batch Send",
+    "sendSuccess": "Successfully sent {sent} quotations",
+    "sendPartialSuccess": "Sent {sent}, failed {failed}",
+    "sendConfirm": {
+      "title": "Confirm Batch Send",
+      "description": "Send {count} quotations to customer emails"
+    },
     "deleteConfirm": {
       "title": "Confirm Batch Delete",
       "description": "Are you sure you want to delete {count} selected quotations? This action cannot be undone."

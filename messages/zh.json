@@ -198,6 +198,21 @@
     "markAsAccepted": "標記為已接受",
     "markAsRejected": "標記為已拒絕",
     "markAsDraft": "標記為草稿",
+    "send": "寄送",
+    "sendQuotation": "寄送報價單",
+    "sendSuccess": "報價單已成功寄送",
+    "sendFailed": "寄送失敗",
+    "noCustomerEmail": "客戶沒有電子郵件地址",
+    "sendConfirm": {
+      "title": "確認寄送報價單",
+      "customerEmail": "客戶電子郵件",
+      "emailSubject": "郵件主旨",
+      "emailContent": "郵件內容",
+      "send": "寄送",
+      "sending": "寄送中...",
+      "defaultSubject": "報價單",
+      "batchSubject": "報價單寄送"
+    },
     "emptyState": {
       "title": "尚無報價單",
       "description": "建立您的第一個報價單以開始使用。"
@@ -330,6 +345,13 @@
     "exportPDF": "匯出報價單",
     "delete": "批次刪除",
     "update": "更新",
+    "send": "批次寄送",
+    "sendSuccess": "已成功寄送 {sent} 個報價單",
+    "sendPartialSuccess": "已寄送 {sent} 個，失敗 {failed} 個",
+    "sendConfirm": {
+      "title": "確認批次寄送",
+      "description": "將寄送 {count} 個報價單到客戶信箱"
+    },
     "deleteConfirm": {
       "title": "確認批次刪除",
       "description": "您確定要刪除所選的 {count} 個報價單嗎？此操作無法復原。"

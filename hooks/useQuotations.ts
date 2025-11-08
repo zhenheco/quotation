@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Database } from '@/types/database.types'
-import type { QuotationWithCustomer } from '@/types/extended.types'
+import type { QuotationWithCustomer as QuotationWithCustomerType } from '@/types/extended.types'
 
 // ============================================================================
 // Types
@@ -12,6 +12,7 @@ export type Quotation = Database['public']['Tables']['quotations']['Row']
 export type QuotationItem = Database['public']['Tables']['quotation_items']['Row']
 export type CreateQuotationData = Database['public']['Tables']['quotations']['Insert']
 export type UpdateQuotationData = Database['public']['Tables']['quotations']['Update']
+export type QuotationWithCustomer = QuotationWithCustomerType
 
 export type QuotationStatus = 'draft' | 'sent' | 'signed' | 'expired'
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overdue'
@@ -80,6 +81,20 @@ export interface BatchStatusUpdateParams {
 export interface BatchExportParams {
   ids: string[]
   locale: 'zh' | 'en'
+}
+
+export interface SendQuotationParams {
+  id: string
+  subject?: string
+  content?: string
+  locale?: 'zh' | 'en'
+}
+
+export interface BatchSendParams {
+  ids: string[]
+  subject?: string
+  content?: string
+  locale?: 'zh' | 'en'
 }
 
 // ============================================================================
@@ -242,6 +257,49 @@ async function batchExportPDFs(params: BatchExportParams): Promise<Blob> {
   }
 
   return await response.blob()
+}
+
+async function sendQuotation(params: SendQuotationParams): Promise<{ success: boolean; message: string }> {
+  const { id, ...body } = params
+  const response = await fetch(`/api/quotations/${id}/send`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to send quotation')
+  }
+
+  return await response.json()
+}
+
+async function batchSendQuotations(params: BatchSendParams): Promise<{
+  success: boolean
+  message: string
+  data: {
+    total: number
+    sent: number
+    failed: number
+  }
+}> {
+  const response = await fetch('/api/quotations/batch/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to batch send quotations')
+  }
+
+  return await response.json()
 }
 
 // ============================================================================
@@ -510,6 +568,29 @@ export function useBatchExportPDFs() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
+    },
+  })
+}
+
+export function useSendQuotation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: sendQuotation,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['quotations'] })
+      queryClient.invalidateQueries({ queryKey: ['quotations', variables.id] })
+    },
+  })
+}
+
+export function useBatchSendQuotations() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: batchSendQuotations,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quotations'] })
     },
   })
 }
