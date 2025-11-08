@@ -35,8 +35,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build project
-        run: pnpm run build
+      - name: Build project with OpenNext
+        run: |
+          # 先執行 Next.js 建置
+          pnpm run build
+          # 再執行 OpenNext 轉換為 Cloudflare Workers 格式
+          pnpm exec opennextjs-cloudflare build
         env:
           # Supabase 環境變數（建置時需要）
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
