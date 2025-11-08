@@ -37,6 +37,12 @@ jobs:
 
       - name: Build project
         run: pnpm run build
+        env:
+          # Supabase 環境變數（建置時需要）
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # 其他建置時可能需要的環境變數
+          NODE_ENV: production
 
       - name: Set deployment name
         id: deployment-name
