@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Database } from '@/types/database.types'
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 
 // ============================================================================
 // Types
@@ -39,70 +40,23 @@ export interface UpdateCustomerInput {
 // ============================================================================
 
 async function fetchCustomers(): Promise<Customer[]> {
-  const response = await fetch('/api/customers')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch customers')
-  }
-  const data = await response.json()
-  return data.data || data
+  return apiGet<Customer[]>('/api/customers')
 }
 
 async function fetchCustomer(id: string): Promise<Customer> {
-  const response = await fetch(`/api/customers/${id}`)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch customer')
-  }
-  const data = await response.json()
-  return data.data || data
+  return apiGet<Customer>(`/api/customers/${id}`)
 }
 
 async function createCustomer(input: CreateCustomerInput): Promise<Customer> {
-  const response = await fetch('/api/customers', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to create customer')
-  }
-
-  const data = await response.json()
-  return data.data || data
+  return apiPost<Customer>('/api/customers', input)
 }
 
 async function updateCustomer(id: string, input: UpdateCustomerInput): Promise<Customer> {
-  const response = await fetch(`/api/customers/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to update customer')
-  }
-
-  const data = await response.json()
-  return data.data || data
+  return apiPut<Customer>(`/api/customers/${id}`, input)
 }
 
 async function deleteCustomer(id: string): Promise<void> {
-  const response = await fetch(`/api/customers/${id}`, {
-    method: 'DELETE',
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to delete customer')
-  }
+  await apiDelete(`/api/customers/${id}`)
 }
 
 // ============================================================================

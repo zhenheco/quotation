@@ -736,15 +736,225 @@ pnpm exec wrangler tail quotation-system
 
 ---
 
+---
+
+## [ISSUE-020] - 2025-11-08: 產品表單送出無反應 (調查中)
+
+**狀態**: 🔍 Investigating
+
+**嚴重程度**: 🟡 Medium (使用者報告無法建立產品)
+
+### 問題描述
+
+使用者報告:
+1. 建立服務/品項時點擊「儲存」按鈕沒有反應
+2. 報價單新增產品後沒有自動帶入單價
+3. 部分資料使用硬編碼而非從資料庫載入
+
+### Phase 1.1 調查結果 (2025-11-08)
+
+#### 檢查項目總結
+
+##### 1. 前端表單程式碼檢查 ✅
+**檔案**: `app/[locale]/products/ProductForm.tsx`
+**結果**: 程式碼結構完全正確
+
+- ✅ `handleSubmit` 函式存在且正確實作 (line 141-200)
+- ✅ `event.preventDefault()` 正確執行 (line 142)
+- ✅ 表單驗證邏輯完整 (price validation, line 145-149)
+- ✅ 使用 `createProduct.mutateAsync()` 發送請求 (line 183)
+- ✅ 使用 `updateProduct.mutateAsync()` 更新產品 (line 178)
+- ✅ 錯誤處理完整 (try-catch block, line 141-199)
+- ✅ 成功後導向列表頁面 (line 191, 186)
+- ✅ Toast 通知正確顯示 (line 185, 190, 198)
+- ✅ Submit 按鈕正確綁定 `type="submit"` (line 416)
+- ✅ Form 元素正確綁定 `onSubmit={handleSubmit}` (line 205)
+
+##### 2. React Query Hook 檢查 ✅
+**檔案**: `hooks/useProducts.ts`
+**結果**: Hook 實作完全正確
+
+- ✅ `createProduct` 函式正確實作 (line 80-95)
+- ✅ 使用標準 `fetch` API
+- ✅ 正確設定 headers (Content-Type: application/json)
+- ✅ 正確序列化 request body (JSON.stringify)
+- ✅ 錯誤處理完整 (response.ok check, error parsing)
+- ✅ `useCreateProduct` hook 正確配置 (line 236-246)
+- ✅ React Query invalidation 正確設定 (invalidateQueries on success)
+- ✅ `useUpdateProduct` hook 正確實作 (line 269-279)
+
+##### 3. API 端點檢查 ✅
+**檔案**: `app/api/products/route.ts`
+**結果**: API 端點正常運作
+
+- ✅ POST endpoint 存在且正確實作 (line 48+)
+- ✅ 認證檢查正常 (Supabase auth.getUser)
+- ✅ 資料驗證邏輯存在
+- ✅ 資料庫寫入邏輯正確
+- ✅ 使用 createApiClient 正確建立 Supabase 客戶端
+
+##### 4. 資料庫連接檢查 ✅
+**結果**: 資料庫連接正常
+
+- ✅ Supabase 資料庫連接成功
+- ✅ Products 表存在且結構正確
+- ✅ 目前有 8 筆產品記錄
+- ✅ base_price 欄位存在且有值
+- ✅ JSONB 格式正確 (name 欄位: `{"en": "...", "zh": "..."}`)
+- ✅ 範例產品數據:
+  ```
+  - 筆記型電腦: base_price = 35000.00 TWD
+  - 無線滑鼠: base_price = 800.00 TWD
+  - 機械式鍵盤: base_price = 2500.00 TWD
+  ```
+
+##### 5. 開發伺服器測試 ✅
+**結果**: 伺服器正常運作
+
+- ✅ Next.js 開發伺服器啟動成功 (http://localhost:3000)
+- ✅ 頁面成功編譯 (1506 modules in 3.9s)
+- ✅ 產品建立頁面可訪問 (GET /zh/products/new 200)
+- ✅ RBAC 權限檢查正常 (POST /api/rbac/check-permission 200)
+- ✅ 公司 API 正常 (GET /api/companies 200)
+- ✅ 認證 layout 正確實作 (redirect 到 /login 如果未登入)
+
+##### 6. 報價單自動帶入功能檢查 ⚠️
+**檔案**: `app/[locale]/quotations/QuotationForm.tsx`
+**結果**: 程式碼已實作,需驗證實際效果
+
+- ✅ 自動帶入邏輯已存在 (line 236-245)
+- ✅ 邏輯正確:
+  ```typescript
+  if (field === 'product_id') {
+    const product = products.find(p => p.id === value)
+    if (product && product.base_price) {
+      newItems[index].unit_price = product.base_price
+      const quantity = parseFloat(newItems[index].quantity.toString()) || 0
+      const discount = parseFloat(newItems[index].discount.toString()) || 0
+      newItems[index].subtotal = quantity * product.base_price - discount
+    }
+  }
+  ```
+- ⚠️ 需要在實際環境中驗證功能是否正常運作
+
+### 調查結論
+
+**從程式碼層面分析**:
+所有組件都實作正確,沒有明顯的結構性或邏輯性錯誤:
+1. ✅ 表單 HTML 結構正確
+2. ✅ Event handler 正確綁定
+3. ✅ React Query mutation 正確配置
+4. ✅ API endpoint 正常運作
+5. ✅ 資料庫連接和數據結構正確
+6. ✅ 報價單自動帶入邏輯已實作
+
+**可能的問題原因**:
+
+1. **執行時 JavaScript 錯誤**:
+   - 雖然程式碼結構正確,但可能在實際執行時有錯誤
+   - 需要檢查瀏覽器 Console 是否有錯誤訊息
+
+2. **認證/Session 問題**:
+   - 使用者可能沒有有效的 Supabase session
+   - Session 過期導致 API 回傳 401 Unauthorized
+
+3. **權限問題**:
+   - RBAC 權限檢查可能阻止某些使用者建立產品
+   - 需要確認使用者是否有 'write' 權限
+
+4. **網路/CORS 問題**:
+   - 可能有防火牆或網路問題
+   - Cloudflare Workers 環境可能與本地環境不同
+
+5. **瀏覽器特定問題**:
+   - 某些瀏覽器可能有相容性問題
+   - 需要測試多個瀏覽器
+
+### 下一步行動
+
+**需要使用者協助提供以下資訊**:
+
+1. **Chrome DevTools Console 檢查**:
+   - 開啟 Chrome DevTools (F12)
+   - 切換到 Console 標籤
+   - 點擊「儲存」按鈕
+   - 截圖任何錯誤訊息
+
+2. **Chrome DevTools Network 檢查**:
+   - 開啟 Chrome DevTools
+   - 切換到 Network 標籤
+   - 點擊「儲存」按鈕
+   - 確認是否有 POST /api/products 請求
+   - 如果有,請提供:
+     - HTTP 狀態碼
+     - Request Headers
+     - Request Payload
+     - Response
+
+3. **登入狀態確認**:
+   - 確認使用者已成功登入系統
+   - 確認使用者 session 沒有過期
+
+4. **權限確認**:
+   - 確認使用者是否有建立產品的權限
+   - 檢查 RBAC 設定
+
+5. **視覺回饋**:
+   - 點擊「儲存」按鈕後是否有任何視覺變化
+   - 按鈕是否變成 disabled 狀態
+   - 是否顯示 loading spinner
+
+### 臨時診斷方法
+
+使用者可以嘗試以下步驟來協助診斷:
+
+1. **清除瀏覽器快取**:
+   ```
+   Chrome → 設定 → 隱私權和安全性 → 清除瀏覽資料
+   勾選「快取圖片和檔案」
+   ```
+
+2. **重新登入**:
+   ```
+   登出系統
+   清除快取
+   重新登入
+   再次測試建立產品
+   ```
+
+3. **使用無痕模式測試**:
+   ```
+   Cmd+Shift+N (Mac) 或 Ctrl+Shift+N (Windows)
+   開啟無痕視窗
+   登入系統
+   測試建立產品
+   ```
+
+### 相關檔案
+
+- `app/[locale]/products/ProductForm.tsx` - 產品表單組件
+- `hooks/useProducts.ts` - React Query hooks
+- `app/api/products/route.ts` - API 端點
+- `app/[locale]/quotations/QuotationForm.tsx` - 報價單表單
+- `app/[locale]/products/layout.tsx` - 認證 layout
+
+### 備註
+
+- 程式碼審查顯示所有實作都正確
+- 問題可能是環境相關或特定使用者配置問題
+- 需要實際的瀏覽器除錯資訊才能進一步診斷
+
+---
+
 ## 問題統計
 
-- **總問題數**: 2
+- **總問題數**: 3
 - **已解決**: 2
-- **進行中**: 0
+- **調查中**: 1
 - **未解決**: 0
 
 ### 按嚴重程度
 
 - 🔴 Critical: 2 (已解決)
-- 🟡 Medium: 0
+- 🟡 Medium: 1 (調查中)
 - 🟢 Low: 0

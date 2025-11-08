@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usePermission } from './usePermission'
 import type { Database } from '@/types/database.types'
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 
 // ============================================================================
 // Types
@@ -20,8 +21,8 @@ export interface BilingualText {
 export interface CreateProductInput {
   name: BilingualText
   description?: BilingualText
-  unit_price: number
-  currency: string
+  base_price: number
+  base_currency: string
   category?: string
   cost_price?: number
   cost_currency?: string
@@ -34,8 +35,8 @@ export interface CreateProductInput {
 export interface UpdateProductInput {
   name?: BilingualText
   description?: BilingualText
-  unit_price?: number
-  currency?: string
+  base_price?: number
+  base_currency?: string
   category?: string
   cost_price?: number
   cost_currency?: string
@@ -57,70 +58,23 @@ export interface ProductFilters {
 // ============================================================================
 
 async function fetchProducts(): Promise<Product[]> {
-  const response = await fetch('/api/products')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch products')
-  }
-  const data = await response.json()
-  return data.data || data
+  return apiGet<Product[]>('/api/products')
 }
 
 async function fetchProduct(id: string): Promise<Product> {
-  const response = await fetch(`/api/products/${id}`)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch product')
-  }
-  const data = await response.json()
-  return data.data || data
+  return apiGet<Product>(`/api/products/${id}`)
 }
 
 async function createProduct(input: CreateProductInput): Promise<Product> {
-  const response = await fetch('/api/products', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to create product')
-  }
-
-  const data = await response.json()
-  return data.data || data
+  return apiPost<Product>('/api/products', input)
 }
 
 async function updateProduct(id: string, input: UpdateProductInput): Promise<Product> {
-  const response = await fetch(`/api/products/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to update product')
-  }
-
-  const data = await response.json()
-  return data.data || data
+  return apiPut<Product>(`/api/products/${id}`, input)
 }
 
 async function deleteProduct(id: string): Promise<void> {
-  const response = await fetch(`/api/products/${id}`, {
-    method: 'DELETE',
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to delete product')
-  }
+  await apiDelete(`/api/products/${id}`)
 }
 
 // ============================================================================

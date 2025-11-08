@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import type { RoleName } from '@/types/extended.types';
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 
 export interface UserCompany {
   company_id: string;
@@ -37,16 +38,7 @@ export function useCompanies(): UseCompaniesResult {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/user/companies');
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('未登入或 session 已過期');
-        }
-        throw new Error(`取得公司列表失敗：${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await apiGet<{ companies: UserCompany[]; total: number }>('/api/user/companies');
       setCompanies(data.companies || []);
       setTotal(data.total || 0);
     } catch (err) {

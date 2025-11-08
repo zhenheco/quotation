@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { apiGet } from '@/lib/api-client'
 
 // ============================================================================
 // Types
@@ -70,58 +71,23 @@ export interface DashboardStats {
 // ============================================================================
 
 async function fetchRevenueTrend(months: number = 6): Promise<RevenueTrendData[]> {
-  const response = await fetch(`/api/analytics/revenue-trend?months=${months}`)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch revenue trend')
-  }
-
-  const data = await response.json()
-  return data.data || []
+  return apiGet<RevenueTrendData[]>(`/api/analytics/revenue-trend?months=${months}`)
 }
 
 async function fetchCurrencyDistribution(): Promise<CurrencyDistributionData[]> {
-  const response = await fetch('/api/analytics/currency-distribution')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch currency distribution')
-  }
-
-  const data = await response.json()
-  return data.data || []
+  return apiGet<CurrencyDistributionData[]>('/api/analytics/currency-distribution')
 }
 
 async function fetchStatusStatistics(): Promise<StatusStatisticsData[]> {
-  const response = await fetch('/api/analytics/status-statistics')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch status statistics')
-  }
-
-  const data = await response.json()
-  return data.data || []
+  return apiGet<StatusStatisticsData[]>('/api/analytics/status-statistics')
 }
 
 async function fetchDashboardSummary(): Promise<DashboardSummary | null> {
-  const response = await fetch('/api/analytics/dashboard-summary')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch dashboard summary')
-  }
-
-  const data = await response.json()
-  return data.data || null
+  return apiGet<DashboardSummary | null>('/api/analytics/dashboard-summary')
 }
 
 async function fetchDashboardStats(): Promise<DashboardStats> {
-  const response = await fetch('/api/analytics/dashboard-stats')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch dashboard stats')
-  }
-
-  const data = await response.json()
-  return data.data
+  return apiGet<DashboardStats>('/api/analytics/dashboard-stats')
 }
 
 // ============================================================================

@@ -10,6 +10,7 @@ import type {
   PaymentFrequency,
   PaymentTransactionStatus,
 } from '@/types/extended.types'
+import { apiGet, apiPost } from '@/lib/api-client'
 
 // ============================================================================
 // Types
@@ -85,87 +86,31 @@ async function fetchPayments(filters?: PaymentFilters): Promise<Payment[]> {
   const queryString = params.toString()
   const url = `/api/payments${queryString ? `?${queryString}` : ''}`
 
-  const response = await fetch(url)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch payments')
-  }
-
-  const data = await response.json()
-  return data.payments || data.data || []
+  return apiGet<Payment[]>(url)
 }
 
 async function fetchCollectedPayments(): Promise<CollectedPaymentRecord[]> {
-  const response = await fetch('/api/payments/collected')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch collected payments')
-  }
-
-  const data = await response.json()
-  return data.payments || data.data || []
+  return apiGet<CollectedPaymentRecord[]>('/api/payments/collected')
 }
 
 async function fetchUnpaidPayments(): Promise<UnpaidPaymentRecord[]> {
-  const response = await fetch('/api/payments/unpaid')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch unpaid payments')
-  }
-
-  const data = await response.json()
-  return data.payments || data.data || []
+  return apiGet<UnpaidPaymentRecord[]>('/api/payments/unpaid')
 }
 
 async function fetchPaymentReminders(): Promise<NextCollectionReminder[]> {
-  const response = await fetch('/api/payments/reminders')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch payment reminders')
-  }
-
-  const data = await response.json()
-  return data.reminders || data.data || []
+  return apiGet<NextCollectionReminder[]>('/api/payments/reminders')
 }
 
 async function createPayment(input: CreatePaymentInput): Promise<Payment> {
-  const response = await fetch('/api/payments', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to record payment')
-  }
-
-  const data = await response.json()
-  return data.payment || data.data
+  return apiPost<Payment>('/api/payments', input)
 }
 
 async function markPaymentAsOverdue(paymentId: string): Promise<void> {
-  const response = await fetch(`/api/payments/${paymentId}/mark-overdue`, {
-    method: 'POST',
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to mark payment as overdue')
-  }
+  await apiPost(`/api/payments/${paymentId}/mark-overdue`)
 }
 
 async function fetchPaymentStatistics(): Promise<PaymentStatistics> {
-  const response = await fetch('/api/payments/statistics')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch payment statistics')
-  }
-
-  const data = await response.json()
-  return data.statistics || data.data
+  return apiGet<PaymentStatistics>('/api/payments/statistics')
 }
 
 // ============================================================================

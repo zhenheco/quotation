@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 
 export interface AdminCompany {
   id: string;

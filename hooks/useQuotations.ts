@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Database } from '@/types/database.types'
 import type { QuotationWithCustomer as QuotationWithCustomerType } from '@/types/extended.types'
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 
 // ============================================================================
 // Types
@@ -113,140 +114,40 @@ async function fetchQuotations(filters?: QuotationFilters): Promise<QuotationWit
   const queryString = params.toString()
   const url = `/api/quotations${queryString ? `?${queryString}` : ''}`
 
-  const response = await fetch(url)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch quotations')
-  }
-
-  const data = await response.json()
-  return data.data || data
+  return apiGet<QuotationWithCustomer[]>(url)
 }
 
 async function fetchQuotation(id: string): Promise<QuotationWithCustomer> {
-  const response = await fetch(`/api/quotations/${id}`)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch quotation')
-  }
-
-  const data = await response.json()
-  return data.data || data
+  return apiGet<QuotationWithCustomer>(`/api/quotations/${id}`)
 }
 
 async function createQuotation(input: CreateQuotationInput): Promise<Quotation> {
-  const response = await fetch('/api/quotations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to create quotation')
-  }
-
-  const data = await response.json()
-  return data.data || data
+  return apiPost<Quotation>('/api/quotations', input)
 }
 
 async function updateQuotation(id: string, input: UpdateQuotationInput): Promise<Quotation> {
-  const response = await fetch(`/api/quotations/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to update quotation')
-  }
-
-  const data = await response.json()
-  return data.data || data
+  return apiPut<Quotation>(`/api/quotations/${id}`, input)
 }
 
 async function deleteQuotation(id: string): Promise<void> {
-  const response = await fetch(`/api/quotations/${id}`, {
-    method: 'DELETE',
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to delete quotation')
-  }
+  await apiDelete(`/api/quotations/${id}`)
 }
 
-
 async function convertToContract(id: string): Promise<void> {
-  const response = await fetch('/api/contracts/from-quotation', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ quotation_id: id }),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to convert to contract')
-  }
+  await apiPost('/api/contracts/from-quotation', { quotation_id: id })
 }
 
 async function batchDeleteQuotations(params: BatchDeleteParams): Promise<{ deleted: number }> {
-  const response = await fetch('/api/quotations/batch/delete', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to batch delete')
-  }
-
-  return await response.json()
+  return apiPost<{ deleted: number }>('/api/quotations/batch/delete', params)
 }
 
 async function batchUpdateStatus(params: BatchStatusUpdateParams): Promise<{ updated: number }> {
-  const response = await fetch('/api/quotations/batch/status', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to batch update status')
-  }
-
-  return await response.json()
+  return apiPost<{ updated: number }>('/api/quotations/batch/status', params)
 }
 
 async function sendQuotation(params: SendQuotationParams): Promise<{ success: boolean; message: string }> {
   const { id, ...body } = params
-  const response = await fetch(`/api/quotations/${id}/send`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to send quotation')
-  }
-
-  return await response.json()
+  return apiPost<{ success: boolean; message: string }>(`/api/quotations/${id}/send`, body)
 }
 
 async function batchSendQuotations(params: BatchSendParams): Promise<{
@@ -258,20 +159,7 @@ async function batchSendQuotations(params: BatchSendParams): Promise<{
     failed: number
   }
 }> {
-  const response = await fetch('/api/quotations/batch/send', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to batch send quotations')
-  }
-
-  return await response.json()
+  return apiPost('/api/quotations/batch/send', params)
 }
 
 // ============================================================================

@@ -8,6 +8,7 @@ import type {
   ContractStatus,
   PaymentFrequency,
 } from '@/types/extended.types'
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 
 // ============================================================================
 // Types
@@ -52,67 +53,25 @@ async function fetchContracts(filters?: ContractFilters): Promise<CustomerContra
   const queryString = params.toString()
   const url = `/api/contracts${queryString ? `?${queryString}` : ''}`
 
-  const response = await fetch(url)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch contracts')
-  }
-
-  const data = await response.json()
-  return data.contracts || data.data || []
+  return apiGet<CustomerContractWithCustomer[]>(url)
 }
 
 async function fetchContract(id: string): Promise<CustomerContractWithCustomer> {
-  const response = await fetch(`/api/contracts/${id}`)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch contract')
-  }
-
-  const data = await response.json()
-  return data.contract || data.data
+  return apiGet<CustomerContractWithCustomer>(`/api/contracts/${id}`)
 }
 
 async function fetchContractProgress(id: string): Promise<ContractPaymentProgress> {
-  const response = await fetch(`/api/contracts/${id}/payment-progress`)
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch payment progress')
-  }
-
-  const data = await response.json()
-  return data.progress || data.data
+  return apiGet<ContractPaymentProgress>(`/api/contracts/${id}/payment-progress`)
 }
 
 async function fetchOverdueContracts(): Promise<CustomerContractWithCustomer[]> {
-  const response = await fetch('/api/contracts/overdue')
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch overdue contracts')
-  }
-
-  const data = await response.json()
-  return data.contracts || data.data || []
+  return apiGet<CustomerContractWithCustomer[]>('/api/contracts/overdue')
 }
 
 async function createContractFromQuotation(
   params: CreateContractParams
 ): Promise<CustomerContract> {
-  const response = await fetch('/api/contracts/from-quotation', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to create contract')
-  }
-
-  const data = await response.json()
-  return data.contract || data.data
+  return apiPost<CustomerContract>('/api/contracts/from-quotation', params)
 }
 
 async function updateNextCollection(
@@ -120,56 +79,21 @@ async function updateNextCollection(
   next_collection_date: string,
   next_collection_amount: number
 ): Promise<CustomerContract> {
-  const response = await fetch(`/api/contracts/${contractId}/next-collection`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      next_collection_date,
-      next_collection_amount,
-    }),
+  return apiPut<CustomerContract>(`/api/contracts/${contractId}/next-collection`, {
+    next_collection_date,
+    next_collection_amount,
   })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to update next collection')
-  }
-
-  const data = await response.json()
-  return data.contract || data.data
 }
 
 async function updateContract(
   contractId: string,
   params: UpdateContractParams
 ): Promise<CustomerContract> {
-  const response = await fetch(`/api/contracts/${contractId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to update contract')
-  }
-
-  const data = await response.json()
-  return data.contract || data.data
+  return apiPut<CustomerContract>(`/api/contracts/${contractId}`, params)
 }
 
 async function deleteContract(contractId: string): Promise<void> {
-  const response = await fetch(`/api/contracts/${contractId}`, {
-    method: 'DELETE',
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to delete contract')
-  }
+  await apiDelete(`/api/contracts/${contractId}`)
 }
 
 // ============================================================================

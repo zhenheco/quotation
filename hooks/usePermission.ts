@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { PermissionResource, PermissionAction } from '@/types/rbac.types'
+import { apiPost } from '@/lib/api-client'
 
 interface UsePermissionReturn {
   hasPermission: boolean
@@ -26,19 +27,10 @@ export function usePermission(
     async function checkPermission() {
       try {
         setLoading(true)
-        const response = await fetch('/api/rbac/check-permission', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ resource, action }),
+        const data = await apiPost<{ hasPermission: boolean }>('/api/rbac/check-permission', {
+          resource,
+          action,
         })
-
-        if (!response.ok) {
-          throw new Error('Failed to check permission')
-        }
-
-        const data = await response.json()
         setHasPermission(data.hasPermission)
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Unknown error'))
