@@ -1,0 +1,71 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - '**'  # 所有分支 push 都觸發部署
+  pull_request:
+    branches:
+      - '**'  # 所有 PR 都觸發部署
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare Workers
+
+    # 設定環境名稱（用於 Cloudflare Workers 環境區分）
+    environment:
+      name: ${{ github.ref_name }}
+      url: https://quotation-system-${{ github.ref_name }}.acejou27.workers.dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm run build
+
+      - name: Set deployment name
+        id: deployment-name
+        run: |
+          # 將分支名稱轉換為合法的 worker 名稱（移除特殊字元）
+          BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9-]/-/g' | tr '[:upper:]' '[:lower:]')
+          if [ "$BRANCH_NAME" = "main" ]; then
+            echo "WORKER_NAME=quotation-system" >> $GITHUB_OUTPUT
+          else
+            echo "WORKER_NAME=quotation-system-$BRANCH_NAME" >> $GITHUB_OUTPUT
+          fi
+          echo "Deploying to: $(cat $GITHUB_OUTPUT | grep WORKER_NAME)"
+
+      - name: Deploy to Cloudflare Workers
+        run: |
+          # 使用動態 worker 名稱部署
+          pnpm exec wrangler deploy --name ${{ steps.deployment-name.outputs.WORKER_NAME }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: f9916b95d011e8ad2a3fe10883053b0f
+
+      - name: Comment PR with deployment URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 部署完成！\n\n預覽網址：https://${{ steps.deployment-name.outputs.WORKER_NAME }}.acejou27.workers.dev`
+            })

@@ -6,10 +6,10 @@ import {
   useQuotation,
   useUpdateQuotation,
   useConvertToContract,
-  useExportQuotationPDF,
   type QuotationStatus,
 } from '@/hooks/useQuotations'
 import { toast } from 'sonner'
+import './print.css'
 
 interface QuotationDetailProps {
   quotationId: string
@@ -24,7 +24,6 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
   const { data: quotation, isLoading, error } = useQuotation(quotationId)
   const updateQuotation = useUpdateQuotation(quotationId)
   const convertToContract = useConvertToContract(quotationId)
-  const exportPDF = useExportQuotationPDF(quotationId)
 
   const handleStatusChange = async (newStatus: QuotationStatus) => {
     try {
@@ -49,14 +48,8 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
     }
   }
 
-  const handleExportPDF = async (pdfLocale: 'zh' | 'en') => {
-    try {
-      await exportPDF.mutateAsync(pdfLocale)
-      toast.success(`已匯出 ${pdfLocale === 'zh' ? '中文' : '英文'} PDF`)
-    } catch (error) {
-      toast.error('匯出失敗')
-      console.error('Error exporting PDF:', error)
-    }
+  const handlePrint = () => {
+    window.print()
   }
 
   // 判斷報價單是否已過期
@@ -145,7 +138,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 no-print">
             <button
               onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 cursor-pointer"
@@ -155,22 +148,16 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
               </svg>
               {t('common.edit')}
             </button>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleExportPDF('zh')}
-                disabled={exportPDF.isPending}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {exportPDF.isPending ? '匯出中...' : '匯出中文PDF'}
-              </button>
-              <button
-                onClick={() => handleExportPDF('en')}
-                disabled={exportPDF.isPending}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {exportPDF.isPending ? '匯出中...' : '匯出英文PDF'}
-              </button>
-            </div>
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2 cursor-pointer"
+              title={locale === 'zh' ? '點擊後選擇「另存為 PDF」即可儲存檔案' : 'Click and choose "Save as PDF" to save the file'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              {t('quotation.print_or_save_pdf')}
+            </button>
           </div>
         </div>
 

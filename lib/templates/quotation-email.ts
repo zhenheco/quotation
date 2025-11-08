@@ -7,7 +7,6 @@ export interface QuotationEmailData {
   currency: string
   total: number
   viewUrl: string
-  downloadUrl: string
   companyName: string
   items?: Array<{
     description: string
@@ -27,7 +26,6 @@ export function generateQuotationEmailHTML(data: QuotationEmailData): string {
     currency,
     total,
     viewUrl,
-    downloadUrl,
     companyName,
     items,
   } = data
@@ -180,8 +178,10 @@ export function generateQuotationEmailHTML(data: QuotationEmailData): string {
   const buttons = `
     <div style="text-align: center; margin: 30px 0;">
       <a href="${viewUrl}" class="button">${isZh ? '查看完整報價單' : 'View Full Quotation'}</a>
-      <a href="${downloadUrl}" class="button">${isZh ? '下載 PDF' : 'Download PDF'}</a>
     </div>
+    <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 10px;">
+      ${isZh ? '您可以在查看頁面使用瀏覽器的「列印」功能儲存為 PDF' : 'You can use your browser\'s "Print" function to save as PDF'}
+    </p>
   `
 
   const footer = `

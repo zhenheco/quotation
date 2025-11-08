@@ -197,17 +197,6 @@ async function convertToContract(id: string): Promise<void> {
   }
 }
 
-async function exportQuotationPDF(id: string, locale: 'zh' | 'en'): Promise<Blob> {
-  const response = await fetch(`/api/quotations/${id}/pdf?locale=${locale}`)
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to export PDF')
-  }
-
-  return await response.blob()
-}
-
 async function batchDeleteQuotations(params: BatchDeleteParams): Promise<{ deleted: number }> {
   const response = await fetch('/api/quotations/batch/delete', {
     method: 'POST',
@@ -240,23 +229,6 @@ async function batchUpdateStatus(params: BatchStatusUpdateParams): Promise<{ upd
   }
 
   return await response.json()
-}
-
-async function batchExportPDFs(params: BatchExportParams): Promise<Blob> {
-  const response = await fetch('/api/quotations/batch/export', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to batch export')
-  }
-
-  return await response.blob()
 }
 
 async function sendQuotation(params: SendQuotationParams): Promise<{ success: boolean; message: string }> {
@@ -462,50 +434,6 @@ export function useConvertToContract(id: string) {
 }
 
 /**
- * 匯出 PDF
- *
- * @param id - 報價單 ID
- *
- * @example
- * ```tsx
- * function ExportButton({ quotationId }: { quotationId: string }) {
- *   const exportPDF = useExportQuotationPDF(quotationId)
- *
- *   const handleExport = async (locale: 'zh' | 'en') => {
- *     try {
- *       await exportPDF.mutateAsync(locale)
- *     } catch (error) {
- *       toast.error('匯出失敗')
- *     }
- *   }
- *
- *   return (
- *     <>
- *       <Button onClick={() => handleExport('zh')}>匯出中文PDF</Button>
- *       <Button onClick={() => handleExport('en')}>匯出英文PDF</Button>
- *     </>
- *   )
- * }
- * ```
- */
-export function useExportQuotationPDF(id: string) {
-  return useMutation({
-    mutationFn: (locale: 'zh' | 'en') => exportQuotationPDF(id, locale),
-    onSuccess: (blob, locale) => {
-      // 下載檔案
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `quotation-${id}-${locale}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    },
-  })
-}
-
-/**
  * 批次刪除報價單
  *
  * @example
@@ -549,25 +477,6 @@ export function useBatchUpdateStatus() {
     mutationFn: batchUpdateStatus,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] })
-    },
-  })
-}
-
-/**
- * 批次匯出 PDF
- */
-export function useBatchExportPDFs() {
-  return useMutation({
-    mutationFn: batchExportPDFs,
-    onSuccess: (blob, variables) => {
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `quotations-${variables.locale}.zip`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
     },
   })
 }

@@ -223,6 +223,7 @@
     "downloadEnglishPDF": "Download English PDF",
     "downloadBilingualPDF": "Download Bilingual PDF",
     "downloadError": "Download failed",
+    "print_or_save_pdf": "Print or Save as PDF",
     "selectTemplate": "Select Note Template",
     "template": {
       "standard": "Standard Terms",

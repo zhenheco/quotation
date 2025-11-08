@@ -226,6 +226,7 @@
     "downloadEnglishPDF": "下載英文版",
     "downloadBilingualPDF": "下載雙語版",
     "downloadError": "下載失敗",
+    "print_or_save_pdf": "列印或儲存為 PDF",
     "selectTemplate": "選擇備註模板",
     "template": {
       "standard": "標準條款",

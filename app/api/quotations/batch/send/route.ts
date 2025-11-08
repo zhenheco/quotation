@@ -92,7 +92,6 @@ export async function POST(request: NextRequest) {
           currency: quotation.currency,
           total: quotation.total,
           viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/${locale}/quotations/${quotation.id}`,
-          downloadUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/quotations/${quotation.id}/pdf`,
           companyName: process.env.COMPANY_NAME || 'Company',
         })
 

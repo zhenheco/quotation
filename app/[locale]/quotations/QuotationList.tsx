@@ -11,7 +11,6 @@ import {
   useUpdateQuotation,
   useBatchDeleteQuotations,
   useBatchUpdateStatus,
-  useBatchExportPDFs,
   useSendQuotation,
   useBatchSendQuotations,
   type Quotation,
@@ -37,7 +36,6 @@ export default function QuotationList({ locale }: QuotationListProps) {
   const deleteQuotation = useDeleteQuotation()
   const batchDelete = useBatchDeleteQuotations()
   const batchUpdateStatus = useBatchUpdateStatus()
-  const batchExport = useBatchExportPDFs()
   const sendQuotation = useSendQuotation()
   const batchSend = useBatchSendQuotations()
 
@@ -127,20 +125,6 @@ export default function QuotationList({ locale }: QuotationListProps) {
     }
   }
 
-  const handleBatchExport = async () => {
-    try {
-      await batchExport.mutateAsync({
-        ids: Array.from(selectedIds),
-        locale: locale as 'zh' | 'en',
-      })
-      toast.success('批次匯出成功')
-      setSelectedIds(new Set())
-      setIsBatchOperation(false)
-    } catch (error) {
-      toast.error('批次匯出失敗')
-      console.error('Batch export error:', error)
-    }
-  }
 
   const handleDelete = async () => {
     if (!deleteModal.quotation) return
@@ -298,13 +282,6 @@ export default function QuotationList({ locale }: QuotationListProps) {
                 className="px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 font-medium text-sm cursor-pointer"
               >
                 {t('batch.send')} ({selectedIds.size})
-              </button>
-              <button
-                onClick={handleBatchExport}
-                disabled={batchExport.isPending}
-                className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium text-sm disabled:opacity-50 cursor-pointer"
-              >
-                {batchExport.isPending ? '匯出中...' : `${t('batch.exportPDF')} (${selectedIds.size})`}
               </button>
               <button
                 onClick={() => setBatchDeleteModal(true)}
