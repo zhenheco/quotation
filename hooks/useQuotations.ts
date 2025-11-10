@@ -29,7 +29,7 @@ export interface CreateQuotationItemInput {
   quantity: number
   unit_price: number
   discount: number
-  amount: number
+  subtotal: number
 }
 
 export interface CreateQuotationInput {
@@ -40,7 +40,7 @@ export interface CreateQuotationInput {
   subtotal: number
   tax_rate: number
   tax_amount: number
-  total: number
+  total_amount: number
   notes?: BilingualText
   items: CreateQuotationItemInput[]
 }
@@ -54,7 +54,7 @@ export interface UpdateQuotationInput {
   subtotal?: number
   tax_rate?: number
   tax_amount?: number
-  total?: number
+  total_amount?: number
   notes?: BilingualText
   items?: CreateQuotationItemInput[]
   payment_status?: PaymentStatus

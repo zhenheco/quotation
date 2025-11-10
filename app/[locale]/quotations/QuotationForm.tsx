@@ -284,7 +284,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         subtotal,
         tax_rate: parseFloat(formData.taxRate),
         tax_amount: taxAmount,
-        total,
+        total_amount: total,
         notes: formData.notes ? {
           zh: formData.notes,
           en: formData.notes,
@@ -301,7 +301,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
             quantity: item.quantity,
             unit_price: item.unit_price,
             discount: item.discount,
-            amount: item.subtotal,
+            subtotal: item.subtotal,
           } as CreateQuotationItemInput
         }),
       }
