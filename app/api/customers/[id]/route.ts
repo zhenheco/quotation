@@ -1,51 +1,51 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { toJsonbField } from '@/lib/utils/jsonb-converter'
-import { parseJsonbFields } from '@/lib/utils/jsonb-parser'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { getCustomerById, updateCustomer, deleteCustomer } from '@/lib/dal/customers'
+import { checkPermission } from '@/lib/cache/services'
+
+export const runtime = 'edge'
 
 /**
  * GET /api/customers/[id] - 取得單一客戶
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
 ) {
   try {
     const { id } = await params
+
+    // 驗證使用者
     const supabase = createApiClient(request)
-
     const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: customer, error } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+    // 檢查權限
+    const kv = getKVCache(env)
+    const db = getD1Client(env)
 
-    if (error || !customer) {
-      return NextResponse.json(
-        { error: 'Customer not found' },
-        { status: 404 }
-      )
+    const hasPermission = await checkPermission(kv, db, user.id, 'customers:read')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const parsedCustomer = parseJsonbFields(customer, ['name', 'address', 'contact_person'])
+    // 取得客戶資料
+    const customer = await getCustomerById(db, user.id, id)
 
-    return NextResponse.json(parsedCustomer)
-  } catch (error) {
+    if (!customer) {
+      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(customer)
+  } catch (error: unknown) {
     console.error('Error fetching customer:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch customer' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }
 
@@ -54,59 +54,42 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
 ) {
   try {
     const { id } = await params
-    const supabase = createApiClient(request)
 
-    // 驗證用戶
+    // 驗證使用者
+    const supabase = createApiClient(request)
     const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 檢查權限
+    const kv = getKVCache(env)
+    const db = getD1Client(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'customers:write')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // 取得請求資料
     const body = await request.json()
 
-    // 構建更新資料（轉換 JSONB 格式）
-    const updateData: Record<string, unknown> = {}
-    if (body.name) updateData.name = toJsonbField(body.name)
-    if (body.email) updateData.email = body.email
-    if (body.phone !== undefined) updateData.phone = body.phone
-    if (body.address !== undefined) updateData.address = toJsonbField(body.address)
-    if (body.tax_id !== undefined) updateData.tax_id = body.tax_id
-    if (body.contact_person !== undefined) updateData.contact_person = toJsonbField(body.contact_person)
-    updateData.updated_at = new Date().toISOString()
+    // 更新客戶（DAL 會自動處理 JSON 序列化和過濾 undefined）
+    const customer = await updateCustomer(db, user.id, id, body)
 
-    // 更新客戶
-    const { data: customer, error } = await supabase
-      .from('customers')
-      .update(updateData)
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single()
-
-    if (error || !customer) {
-      return NextResponse.json(
-        { error: 'Customer not found or unauthorized' },
-        { status: 404 }
-      )
+    if (!customer) {
+      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
     }
 
-    const parsedCustomer = parseJsonbFields(customer, ['name', 'address', 'contact_person'])
-
-    return NextResponse.json(parsedCustomer)
-  } catch (error) {
+    return NextResponse.json(customer)
+  } catch (error: unknown) {
     console.error('Error updating customer:', error)
-    return NextResponse.json(
-      { error: 'Failed to update customer' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }
 
@@ -115,41 +98,34 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
 ) {
   try {
     const { id } = await params
-    const supabase = createApiClient(request)
 
-    // 驗證用戶
+    // 驗證使用者
+    const supabase = createApiClient(request)
     const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 檢查權限
+    const kv = getKVCache(env)
+    const db = getD1Client(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'customers:delete')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // 刪除客戶
-    const { error } = await supabase
-      .from('customers')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id)
-
-    if (error) {
-      return NextResponse.json(
-        { error: 'Customer not found or unauthorized' },
-        { status: 404 }
-      )
-    }
+    await deleteCustomer(db, user.id, id)
 
     return NextResponse.json({ message: 'Customer deleted successfully' })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error deleting customer:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete customer' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }

@@ -7,11 +7,22 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // Cloudflare KV - 快取層
   "kv_namespaces": [
     {
       "binding": "KV",
       "id": "ae9ae82472024c009a0513d9e007c4b9",
       "preview_id": "d503cad51c1f404baafc7fdee2943ddc"
+    }
+  ],
+  // Cloudflare D1 - 主資料庫
+  // 請執行 `npx wrangler d1 create quotation-system-db` 建立資料庫
+  // 然後將輸出的 database_id 填入下方
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "quotation-system-db",
+      "database_id": "YOUR_DATABASE_ID_HERE"
     }
   ],
   "analytics_engine_datasets": [

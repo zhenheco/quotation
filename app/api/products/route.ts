@@ -1,35 +1,43 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { createProduct } from '@/lib/services/database'
-import { toJsonbField } from '@/lib/utils/jsonb-converter'
-import { parseJsonbArray } from '@/lib/utils/jsonb-parser'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { getProducts, createProduct } from '@/lib/dal/products'
+import { checkPermission } from '@/lib/cache/services'
 
-export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 /**
  * GET /api/products - 取得所有產品
  */
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { env }: { env: { DB: D1Database; KV: KVNamespace } }
+) {
   try {
+    // 驗證使用者
     const supabase = createApiClient(request)
-
     const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: products, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+    // 檢查權限
+    const kv = getKVCache(env)
+    const db = getD1Client(env)
 
-    if (error) throw error
+    const hasPermission = await checkPermission(kv, db, user.id, 'products:read')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
-    const parsedProducts = parseJsonbArray(products || [], ['name', 'description'])
+    // 取得產品資料
+    const products = await getProducts(db, user.id)
 
-    const mappedProducts = parsedProducts.map(product => ({
+    // 映射欄位以維持向後相容
+    const mappedProducts = products.map(product => ({
       ...product,
       unit_price: product.base_price,
       currency: product.base_currency
@@ -45,17 +53,26 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/products - 建立新產品
  */
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { env }: { env: { DB: D1Database; KV: KVNamespace } }
+) {
   try {
+    // 驗證使用者
     const supabase = createApiClient(request)
-
-    // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 檢查權限
+    const kv = getKVCache(env)
+    const db = getD1Client(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'products:write')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // 取得請求資料
@@ -72,49 +89,45 @@ export async function POST(request: NextRequest) {
     // 驗證價格
     const price = parseFloat(body.base_price)
     if (isNaN(price) || price < 0) {
-      return NextResponse.json(
-        { error: 'Invalid price' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid price' }, { status: 400 })
     }
 
-    // 建立產品資料物件
-    const productData: Record<string, unknown> = {
-      user_id: user.id,
-      name: toJsonbField(body.name),
-      description: toJsonbField(body.description),
+    // 驗證成本價格（如有提供）
+    let costPrice: number | null = null
+    if (body.cost_price !== undefined) {
+      costPrice = parseFloat(body.cost_price)
+      if (isNaN(costPrice) || costPrice < 0) {
+        return NextResponse.json({ error: 'Invalid cost price' }, { status: 400 })
+      }
+    }
+
+    // 驗證利潤率（如有提供）
+    let profitMargin: number | null = null
+    if (body.profit_margin !== undefined) {
+      profitMargin = parseFloat(body.profit_margin)
+      if (isNaN(profitMargin)) {
+        return NextResponse.json({ error: 'Invalid profit margin' }, { status: 400 })
+      }
+    }
+
+    // 建立產品（DAL 會自動處理 JSON 序列化）
+    const product = await createProduct(db, user.id, {
+      name: body.name,
+      description: body.description || null,
       base_price: price,
       base_currency: body.base_currency,
-      category: body.category || undefined,
-      sku: body.sku || undefined,
-    }
-
-    // 成本相關欄位（可選）
-    if (body.cost_price !== undefined) {
-      const costPrice = parseFloat(body.cost_price)
-      if (!isNaN(costPrice) && costPrice >= 0) {
-        productData.cost_price = costPrice
-      }
-    }
-    if (body.cost_currency) productData.cost_currency = body.cost_currency
-    if (body.profit_margin !== undefined) {
-      const profitMargin = parseFloat(body.profit_margin)
-      if (!isNaN(profitMargin)) {
-        productData.profit_margin = profitMargin
-      }
-    }
-    if (body.supplier) productData.supplier = body.supplier
-    if (body.supplier_code) productData.supplier_code = body.supplier_code
-
-    // 建立產品
-    const product = await createProduct(productData)
+      category: body.category || null,
+      sku: body.sku || null,
+      cost_price: costPrice,
+      cost_currency: body.cost_currency || null,
+      profit_margin: profitMargin,
+      supplier: body.supplier || null,
+      supplier_code: body.supplier_code || null
+    })
 
     return NextResponse.json(product, { status: 201 })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error creating product:', error)
-    return NextResponse.json(
-      { error: 'Failed to create product' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }

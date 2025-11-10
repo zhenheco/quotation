@@ -251,3 +251,49 @@ export async function deleteQuotationItem(
 ): Promise<void> {
   await db.execute('DELETE FROM quotation_items WHERE id = ?', [itemId])
 }
+
+/**
+ * 生成報價單號碼
+ */
+export async function generateQuotationNumber(
+  db: D1Client,
+  userId: string
+): Promise<string> {
+  const year = new Date().getFullYear()
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const prefix = `QT${year}${month}`
+
+  const lastQuotation = await db.queryOne<{ quotation_number: string }>(
+    `SELECT quotation_number
+     FROM quotations
+     WHERE user_id = ? AND quotation_number LIKE ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [userId, `${prefix}%`]
+  )
+
+  if (!lastQuotation) {
+    return `${prefix}-0001`
+  }
+
+  const lastNumber = parseInt(lastQuotation.quotation_number.split('-')[1] || '0')
+  const nextNumber = String(lastNumber + 1).padStart(4, '0')
+
+  return `${prefix}-${nextNumber}`
+}
+
+/**
+ * 驗證客戶所有權
+ */
+export async function validateCustomerOwnership(
+  db: D1Client,
+  customerId: string,
+  userId: string
+): Promise<boolean> {
+  const customer = await db.queryOne<{ id: string }>(
+    'SELECT id FROM customers WHERE id = ? AND user_id = ?',
+    [customerId, userId]
+  )
+
+  return customer !== null
+}

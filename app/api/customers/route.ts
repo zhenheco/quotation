@@ -1,35 +1,42 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { createCustomer } from '@/lib/services/database'
-import { toJsonbField } from '@/lib/utils/jsonb-converter'
-import { parseJsonbArray } from '@/lib/utils/jsonb-parser'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { getCustomers, createCustomer } from '@/lib/dal/customers'
+import { checkPermission } from '@/lib/cache/services'
 
-export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 /**
  * GET /api/customers - 取得所有客戶
  */
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { env }: { env: { DB: D1Database; KV: KVNamespace } }
+) {
   try {
+    // 驗證使用者（保留 Supabase Auth）
     const supabase = createApiClient(request)
-
     const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: customers, error } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+    // 檢查權限（使用 KV 快取）
+    const kv = getKVCache(env)
+    const db = getD1Client(env)
 
-    if (error) throw error
+    const hasPermission = await checkPermission(kv, db, user.id, 'customers:read')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
-    const parsedCustomers = parseJsonbArray(customers || [], ['name', 'address', 'contact_person'])
+    // 取得客戶資料（使用 DAL）
+    const customers = await getCustomers(db, user.id)
 
-    return NextResponse.json(parsedCustomers)
+    return NextResponse.json(customers)
   } catch (error: unknown) {
     console.error('Error fetching customers:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
@@ -39,48 +46,51 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/customers - 建立新客戶
  */
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { env }: { env: { DB: D1Database; KV: KVNamespace } }
+) {
   try {
+    // 驗證使用者
     const supabase = createApiClient(request)
-
-    // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 檢查權限
+    const kv = getKVCache(env)
+    const db = getD1Client(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'customers:write')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // 取得請求資料
     const body = await request.json()
-    const { name, email, phone, address, tax_id, contact_person } = body
+    const { name, email, phone, address, tax_id, contact_person, company_id } = body
 
-    // 驗證必填欄位（只有 name 必填）
+    // 驗證必填欄位
     if (!name) {
-      return NextResponse.json(
-        { error: 'Name is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
-    // 建立客戶（轉換 JSONB 格式，所有欄位都是選填）
-    const customer = await createCustomer({
-      user_id: user.id,
-      name: toJsonbField(name),
-      email: email || undefined,
-      phone: phone || undefined,
-      address: address ? toJsonbField(address) : undefined,
-      tax_id: tax_id || undefined,
-      contact_person: contact_person ? toJsonbField(contact_person) : undefined,
+    // 建立客戶（DAL 會自動處理 JSON 序列化）
+    const customer = await createCustomer(db, user.id, {
+      name,
+      email: email || null,
+      phone: phone || null,
+      address: address || null,
+      tax_id: tax_id || null,
+      contact_person: contact_person || null,
+      company_id: company_id || null
     })
 
     return NextResponse.json(customer, { status: 201 })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error creating customer:', error)
-    return NextResponse.json(
-      { error: 'Failed to create customer' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }
