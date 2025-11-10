@@ -182,3 +182,57 @@ export async function updateCompany(
 
   return company
 }
+
+export async function deleteCompany(
+  db: D1Client,
+  companyId: string
+): Promise<void> {
+  const result = await db.execute(
+    'DELETE FROM companies WHERE id = ?',
+    [companyId]
+  )
+
+  if (result.count === 0) {
+    throw new Error('Company not found or already deleted')
+  }
+}
+
+// Company Members
+
+export interface CompanyMember {
+  id: string
+  company_id: string
+  user_id: string
+  role: string
+  is_active: number
+  joined_at: string
+}
+
+export async function addCompanyMember(
+  db: D1Client,
+  companyId: string,
+  userId: string,
+  role: string = 'owner'
+): Promise<void> {
+  const id = crypto.randomUUID()
+  const now = new Date().toISOString()
+
+  await db.execute(
+    `INSERT INTO company_members (id, company_id, user_id, role, is_active, joined_at)
+     VALUES (?, ?, ?, ?, 1, ?)`,
+    [id, companyId, userId, role, now]
+  )
+}
+
+export async function isCompanyMember(
+  db: D1Client,
+  companyId: string,
+  userId: string
+): Promise<boolean> {
+  const member = await db.queryOne<{ id: string }>(
+    'SELECT id FROM company_members WHERE company_id = ? AND user_id = ? AND is_active = 1',
+    [companyId, userId]
+  )
+
+  return member !== null
+}
