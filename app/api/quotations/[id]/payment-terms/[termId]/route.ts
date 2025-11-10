@@ -42,7 +42,7 @@ export async function PUT(
       );
     }
 
-    // @ts-ignore - quotations 是 inner join
+    // @ts-expect-error - quotations 是 inner join
     if (term.quotations.user_id !== user.id) {
       return NextResponse.json(
         { error: '無權限編輯此付款條款' },
@@ -98,7 +98,7 @@ export async function DELETE(
       );
     }
 
-    // @ts-ignore - quotations 是 inner join
+    // @ts-expect-error - quotations 是 inner join
     if (term.quotations.user_id !== user.id) {
       return NextResponse.json(
         { error: '無權限刪除此付款條款' },

@@ -46,7 +46,7 @@ export async function PATCH(
       );
     }
 
-    // @ts-ignore - quotations 是 inner join
+    // @ts-expect-error - quotations 是 inner join
     if (term.quotations.user_id !== user.id) {
       return NextResponse.json(
         { error: '無權限更新付款狀態' },

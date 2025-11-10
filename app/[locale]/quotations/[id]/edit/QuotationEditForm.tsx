@@ -182,7 +182,7 @@ export default function QuotationEditForm({
 
     let finalValue: number = 0
     if (field === 'product_id') {
-      finalValue = value as any
+      finalValue = typeof value === 'string' ? parseInt(value, 10) : (value as number)
     } else {
       const numValue = typeof value === 'string' ? parseFloat(value) : value
       const isValid = typeof numValue === 'number' && !isNaN(numValue) && numValue >= 0
