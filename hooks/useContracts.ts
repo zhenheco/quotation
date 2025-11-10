@@ -390,10 +390,10 @@ export function useDeleteContract() {
       const previousContracts = queryClient.getQueryData(['contracts'])
 
       // 樂觀更新：從列表中移除合約
-      queryClient.setQueriesData({ queryKey: ['contracts'] }, (old: any) => {
+      queryClient.setQueriesData({ queryKey: ['contracts'] }, (old: unknown) => {
         if (!old) return old
         if (Array.isArray(old)) {
-          return old.filter((c: any) => c.id !== contractId)
+          return old.filter((c: { id: string }) => c.id !== contractId)
         }
         return old
       })

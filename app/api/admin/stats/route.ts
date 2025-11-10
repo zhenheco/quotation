@@ -97,11 +97,11 @@ async function getSystemStats() {
   `);
 
   const roleStats = rolesResult.rows.map((row: unknown) => {
-    const r = row as Record<string, any>;
+    const r = row as Record<string, string | number>;
     return {
-      role_name: r.role_name,
-      display_name: r.name_zh, // 使用中文名稱作為顯示名稱
-      count: parseInt(r.user_count || '0')
+      role_name: r.role_name as string,
+      display_name: r.name_zh as string, // 使用中文名稱作為顯示名稱
+      count: parseInt((r.user_count as string) || '0')
     };
   });
 
