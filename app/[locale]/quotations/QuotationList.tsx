@@ -8,7 +8,6 @@ import EmptyState from '@/components/ui/EmptyState'
 import {
   useQuotations,
   useDeleteQuotation,
-  useUpdateQuotation,
   useBatchDeleteQuotations,
   useBatchUpdateStatus,
   useSendQuotation,
@@ -175,29 +174,6 @@ export default function QuotationList({ locale }: QuotationListProps) {
   // 判斷報價單是否已過期
   const isExpired = (validUntil: string) => {
     return new Date(validUntil) < new Date()
-  }
-
-  const getStatusBadge = (quotation: Quotation) => {
-    let status = quotation.status
-
-    // 如果狀態是 sent 或 draft 且已經過期，顯示為 expired
-    if ((status === 'sent' || status === 'draft') && isExpired(quotation.valid_until)) {
-      status = 'expired' as QuotationStatus
-    }
-
-    const statusColors = {
-      draft: 'bg-gray-100 text-gray-800',
-      sent: 'bg-blue-100 text-blue-800',
-      accepted: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
-      expired: 'bg-orange-100 text-orange-800',
-    }
-
-    return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[status as keyof typeof statusColors]}`}>
-        {t(`status.${status}`)}
-      </span>
-    )
   }
 
   // 載入狀態

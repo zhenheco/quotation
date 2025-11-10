@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl'
 import {
   useQuotation,
   useUpdateQuotation,
-  useConvertToContract,
   type QuotationStatus,
 } from '@/hooks/useQuotations'
 import { toast } from 'sonner'
@@ -23,7 +22,6 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
   // Hooks
   const { data: quotation, isLoading, error } = useQuotation(quotationId)
   const updateQuotation = useUpdateQuotation(quotationId)
-  const convertToContract = useConvertToContract(quotationId)
 
   const handleStatusChange = async (newStatus: QuotationStatus) => {
     try {
@@ -32,19 +30,6 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
     } catch (error) {
       toast.error('更新狀態失敗')
       console.error('Error updating status:', error)
-    }
-  }
-
-  const handleConvertToContract = async () => {
-    if (!confirm('確定要將此報價單轉換為合約？')) return
-
-    try {
-      await convertToContract.mutateAsync()
-      toast.success('已成功轉換為合約')
-      router.push(`/${locale}/contracts`)
-    } catch (error) {
-      toast.error('轉換失敗')
-      console.error('Error converting to contract:', error)
     }
   }
 
@@ -57,15 +42,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
     return new Date(validUntil) < new Date()
   }
 
-  const getStatusBadge = (status: QuotationStatus, validUntil: string) => {
-    let displayStatus = status
-
-    // 如果狀態是 sent 或 draft 且已經過期，顯示為 expired
-    if ((status === 'sent' || status === 'draft') && isExpired(validUntil)) {
-      displayStatus = 'expired' as QuotationStatus
-    }
-
-    const statusColors = {
+  const statusColors = {
       draft: 'bg-gray-100 text-gray-800',
       sent: 'bg-blue-100 text-blue-800',
       signed: 'bg-green-100 text-green-800',
@@ -97,7 +74,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
     )
   }
 
-  const isUpdating = updateQuotation.isPending || convertToContract.isPending
+  const isUpdating = updateQuotation.isPending
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
@@ -83,7 +83,6 @@ const STATUSES = ['draft', 'sent', 'signed', 'expired']
 export default function QuotationEditForm({
   locale,
   quotation,
-  customers,
   products,
   versions,
 }: QuotationEditFormProps) {
