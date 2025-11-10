@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>測試產品 API</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #4338ca;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .success {
+      background: #d1fae5;
+      border: 1px solid #059669;
+      color: #065f46;
+    }
+    .error {
+      background: #fee2e2;
+      border: 1px solid #dc2626;
+      color: #991b1b;
+    }
+    .info {
+      background: #dbeafe;
+      border: 1px solid #2563eb;
+      color: #1e40af;
+    }
+    .status {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 測試產品 API - credentials 修復驗證</h1>
+    <p>此頁面用於測試 <code>credentials: 'include'</code> 是否正確包含在 API 請求中。</p>
+
+    <div>
+      <button id="testWithCredentials">✅ 測試 WITH credentials (新版)</button>
+      <button id="testWithoutCredentials">❌ 測試 WITHOUT credentials (舊版)</button>
+      <button id="clearResults">🗑️ 清除結果</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const result = document.getElementById('result');
+
+    function showResult(message, type = 'info') {
+      result.className = type;
+      result.textContent = message;
+    }
+
+    function showLoading() {
+      showResult('⏳ 正在測試...', 'info');
+    }
+
+    // 測試 WITH credentials (應該成功)
+    document.getElementById('testWithCredentials').addEventListener('click', async () => {
+      showLoading();
+      try {
+        const response = await fetch('http://localhost:3000/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // 🔑 關鍵：包含 cookies
+          body: JSON.stringify({
+            name: { zh: '測試產品 (WITH credentials)', en: 'Test Product (WITH credentials)' },
+            base_price: 1000,
+            base_currency: 'TWD',
+            description: { zh: '測試描述', en: 'Test Description' }
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showResult(`✅ 成功！(WITH credentials)\n\nHTTP Status: ${response.status}\n\n回應資料:\n${JSON.stringify(data, null, 2)}`, 'success');
+        } else {
+          showResult(`❌ 失敗 (WITH credentials)\n\nHTTP Status: ${response.status}\n\n錯誤:\n${JSON.stringify(data, null, 2)}`, 'error');
+        }
+      } catch (error) {
+        showResult(`❌ 例外錯誤 (WITH credentials)\n\n${error.message}`, 'error');
+      }
+    });
+
+    // 測試 WITHOUT credentials (應該失敗 401)
+    document.getElementById('testWithoutCredentials').addEventListener('click', async () => {
+      showLoading();
+      try {
+        const response = await fetch('http://localhost:3000/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // 沒有 credentials: 'include' ❌
+          body: JSON.stringify({
+            name: { zh: '測試產品 (WITHOUT credentials)', en: 'Test Product (WITHOUT credentials)' },
+            base_price: 2000,
+            base_currency: 'USD',
+            description: { zh: '測試描述', en: 'Test Description' }
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showResult(`⚠️ 意外成功！(WITHOUT credentials)\n\nHTTP Status: ${response.status}\n\n回應資料:\n${JSON.stringify(data, null, 2)}`, 'info');
+        } else {
+          showResult(`✅ 預期失敗 (WITHOUT credentials)\n\nHTTP Status: ${response.status}\n\n錯誤 (預期 401 Unauthorized):\n${JSON.stringify(data, null, 2)}`, 'success');
+        }
+      } catch (error) {
+        showResult(`❌ 例外錯誤 (WITHOUT credentials)\n\n${error.message}`, 'error');
+      }
+    });
+
+    // 清除結果
+    document.getElementById('clearResults').addEventListener('click', () => {
+      result.textContent = '';
+      result.className = '';
+    });
+
+    // 初始說明
+    showResult('👆 點擊上方按鈕開始測試\n\n預期結果:\n- WITH credentials: 應該成功 (200 或 201)\n- WITHOUT credentials: 應該失敗 (401 Unauthorized)', 'info');
+  </script>
+</body>
+</html>
