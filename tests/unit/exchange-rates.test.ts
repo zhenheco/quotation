@@ -373,7 +373,7 @@ describe('Exchange Rates - Phase 4 測試', () => {
       const { headers } = await import('next/headers')
       vi.mocked(headers).mockReturnValue({
         get: vi.fn(() => 'Bearer wrong-secret'),
-      } as any)
+      } as ReturnType<typeof headers>)
 
       const request = new NextRequest('http://localhost:3000/api/cron/exchange-rates')
       const response = await GET(request)
@@ -389,7 +389,7 @@ describe('Exchange Rates - Phase 4 測試', () => {
       const { headers } = await import('next/headers')
       vi.mocked(headers).mockReturnValue({
         get: vi.fn(() => 'Bearer test-secret'),
-      } as any)
+      } as ReturnType<typeof headers>)
 
       vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
@@ -422,7 +422,7 @@ describe('Exchange Rates - Phase 4 測試', () => {
       const { headers } = await import('next/headers')
       vi.mocked(headers).mockReturnValue({
         get: vi.fn(),
-      } as any)
+      } as ReturnType<typeof headers>)
 
       // 第一個成功，後續失敗
       vi.mocked(global.fetch)

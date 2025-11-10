@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import PageHeader from '@/components/ui/PageHeader';
 import { createClient } from '@/lib/supabase/client';
@@ -236,10 +237,12 @@ export default function CompanySettingsForm() {
               </label>
               {settings?.logo_url && (
                 <div className="mb-2">
-                  <img
+                  <Image
                     src={settings.logo_url}
                     alt="Company Logo"
-                    className="w-32 h-32 object-contain border rounded"
+                    width={128}
+                    height={128}
+                    className="object-contain border rounded"
                   />
                 </div>
               )}
@@ -263,10 +266,12 @@ export default function CompanySettingsForm() {
               </label>
               {settings?.signature_url && (
                 <div className="mb-2">
-                  <img
+                  <Image
                     src={settings.signature_url}
                     alt="Signature"
-                    className="w-32 h-32 object-contain border rounded"
+                    width={128}
+                    height={128}
+                    className="object-contain border rounded"
                   />
                 </div>
               )}
@@ -290,10 +295,12 @@ export default function CompanySettingsForm() {
               </label>
               {settings?.passbook_url && (
                 <div className="mb-2">
-                  <img
+                  <Image
                     src={settings.passbook_url}
                     alt="Passbook"
-                    className="w-32 h-32 object-contain border rounded"
+                    width={128}
+                    height={128}
+                    className="object-contain border rounded"
                   />
                 </div>
               )}

@@ -746,7 +746,7 @@ export async function getNextCollectionReminders(
   const futureDate = new Date();
   futureDate.setDate(today.getDate() + daysAhead);
 
-  let query = supabase
+  const query = supabase
     .from('customer_contracts')
     .select(`
       id,

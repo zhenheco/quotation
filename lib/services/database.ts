@@ -221,13 +221,13 @@ export async function createProduct(data: Omit<Product, 'id' | 'created_at' | 'u
       user_id, sku, name, description, base_price, base_currency, category,
       cost_price, cost_currency, profit_margin, supplier, supplier_code
     )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+     VALUES ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING *`,
     [
       data.user_id,
       data.sku,
-      data.name,
-      data.description,
+      JSON.stringify(data.name),
+      data.description ? JSON.stringify(data.description) : null,
       data.base_price,
       data.base_currency,
       data.category,
@@ -261,9 +261,18 @@ export async function updateProduct(
   data: Partial<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<Product | null> {
   try {
+    // 處理 JSONB 欄位
+    const processedData = { ...data }
+    if (processedData.name) {
+      processedData.name = JSON.stringify(processedData.name) as unknown as { zh: string; en: string }
+    }
+    if (processedData.description) {
+      processedData.description = JSON.stringify(processedData.description) as unknown as { zh: string; en: string }
+    }
+
     // 使用欄位白名單驗證，防止 SQL Injection
     const { fields, values, paramCount } = buildUpdateFields(
-      data,
+      processedData,
       PRODUCT_ALLOWED_FIELDS
     )
 
@@ -272,13 +281,21 @@ export async function updateProduct(
       return getProductById(id, userId)
     }
 
+    // 為 JSONB 欄位添加型別轉換
+    const updatedFields = fields.map(field => {
+      if (field.startsWith('name =') || field.startsWith('description =')) {
+        return field.replace('=', '=').replace(/\$(\d+)/, '$$$1::jsonb')
+      }
+      return field
+    })
+
     // 添加 WHERE 條件參數
     values.push(id, userId)
 
     // 執行更新
     const result = await query(
       `UPDATE products
-       SET ${fields.join(', ')}
+       SET ${updatedFields.join(', ')}
        WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
        RETURNING *`,
       values

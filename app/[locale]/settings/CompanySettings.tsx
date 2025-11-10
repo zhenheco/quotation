@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
 interface Company {
@@ -167,7 +168,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
       const fileName = `${type}.${fileExt}`;
       const filePath = `${selectedCompany.id}/${fileName}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('company-files')
         .upload(filePath, file, { upsert: true, contentType: file.type });
 
@@ -234,7 +235,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
             >
               <div className="flex items-center gap-3">
                 {company.logo_url ? (
-                  <img src={company.logo_url} alt="Logo" className="w-12 h-12 rounded-full object-cover" />
+                  <Image src={company.logo_url} alt="Logo" width={48} height={48} className="rounded-full object-cover" />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
                     <span className="text-xl text-gray-500">🏢</span>
@@ -431,7 +432,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
                     {locale === 'zh' ? '公司 Logo' : 'Company Logo'}
                   </label>
                   {selectedCompany.logo_url && (
-                    <img src={selectedCompany.logo_url} alt="Logo" className="w-32 h-32 object-cover mb-2 rounded" />
+                    <Image src={selectedCompany.logo_url} alt="Logo" width={128} height={128} className="object-cover mb-2 rounded" />
                   )}
                   <input
                     type="file"
@@ -448,7 +449,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
                     {locale === 'zh' ? '負責人簽名' : 'Signature'}
                   </label>
                   {selectedCompany.signature_url && (
-                    <img src={selectedCompany.signature_url} alt="Signature" className="w-32 h-32 object-cover mb-2 rounded" />
+                    <Image src={selectedCompany.signature_url} alt="Signature" width={128} height={128} className="object-cover mb-2 rounded" />
                   )}
                   <input
                     type="file"
@@ -465,7 +466,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
                     {locale === 'zh' ? '存摺封面' : 'Passbook'}
                   </label>
                   {selectedCompany.passbook_url && (
-                    <img src={selectedCompany.passbook_url} alt="Passbook" className="w-32 h-32 object-cover mb-2 rounded" />
+                    <Image src={selectedCompany.passbook_url} alt="Passbook" width={128} height={128} className="object-cover mb-2 rounded" />
                   )}
                   <input
                     type="file"

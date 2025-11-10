@@ -42,20 +42,6 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
     return new Date(validUntil) < new Date()
   }
 
-  const statusColors = {
-      draft: 'bg-gray-100 text-gray-800',
-      sent: 'bg-blue-100 text-blue-800',
-      signed: 'bg-green-100 text-green-800',
-      expired: 'bg-red-100 text-red-800',
-    }
-
-    return (
-      <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColors[displayStatus as keyof typeof statusColors] || 'bg-orange-100 text-orange-800'}`}>
-        {t(`status.${displayStatus}`)}
-      </span>
-    )
-  }
-
   // 載入狀態
   if (isLoading) {
     return (

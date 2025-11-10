@@ -1,7 +1,7 @@
 /// <reference types="node" />
 
 // 確保 Node.js 全域型別在所有 scripts 中可用
-declare module NodeJS {
+declare namespace NodeJS {
   interface ProcessEnv {
     NODE_ENV: 'development' | 'production' | 'test'
     NEXT_PUBLIC_SUPABASE_URL?: string

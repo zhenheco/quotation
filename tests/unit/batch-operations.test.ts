@@ -260,7 +260,7 @@ describe('Batch Operations - Phase 3 測試', () => {
         error: null,
       })
 
-      let updateData: any = null
+      let updateData: Record<string, unknown> | null = null
       mockSupabaseClient.from().update.mockImplementationOnce((data) => {
         updateData = data
         return {

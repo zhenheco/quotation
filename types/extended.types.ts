@@ -422,8 +422,8 @@ export interface AuditLog {
   action: AuditAction;
 
   // Changes
-  old_values: Record<string, any> | null;
-  new_values: Record<string, any> | null;
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
 
   // Metadata
   ip_address: string | null;
