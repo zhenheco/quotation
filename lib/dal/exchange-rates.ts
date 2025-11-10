@@ -12,6 +12,9 @@ export interface ExchangeRate {
   updated_at: string
 }
 
+export const SUPPORTED_CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'CNY'] as const
+export type Currency = typeof SUPPORTED_CURRENCIES[number]
+
 export async function getExchangeRate(
   db: D1Client,
   baseCurrency: string,
@@ -24,7 +27,17 @@ export async function getExchangeRate(
 }
 
 export async function getAllExchangeRates(db: D1Client): Promise<ExchangeRate[]> {
-  return await db.query<ExchangeRate>('SELECT * FROM exchange_rates')
+  return await db.query<ExchangeRate>('SELECT * FROM exchange_rates ORDER BY base_currency, target_currency')
+}
+
+export async function getExchangeRatesByBase(
+  db: D1Client,
+  baseCurrency: string
+): Promise<ExchangeRate[]> {
+  return await db.query<ExchangeRate>(
+    'SELECT * FROM exchange_rates WHERE base_currency = ? ORDER BY target_currency',
+    [baseCurrency]
+  )
 }
 
 export async function upsertExchangeRate(
@@ -47,5 +60,16 @@ export async function upsertExchangeRate(
       'INSERT INTO exchange_rates (id, base_currency, target_currency, rate, updated_at) VALUES (?, ?, ?, ?, ?)',
       [id, baseCurrency, targetCurrency, rate, now]
     )
+  }
+}
+
+export async function batchUpsertExchangeRates(
+  db: D1Client,
+  rates: Array<{ baseCurrency: string; targetCurrency: string; rate: number }>
+): Promise<void> {
+  const now = new Date().toISOString()
+
+  for (const { baseCurrency, targetCurrency, rate } of rates) {
+    await upsertExchangeRate(db, baseCurrency, targetCurrency, rate)
   }
 }
