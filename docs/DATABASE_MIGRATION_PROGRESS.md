@@ -2,7 +2,7 @@
 
 **遷移目標**: 從 Supabase/Zeabur PostgreSQL → Cloudflare D1 + KV
 **最後更新**: 2025-11-11
-**總體進度**: 35% (基礎架構完成，核心 API 已遷移)
+**總體進度**: 63% (22/35 API 端點完成)
 
 ## ✅ 已完成階段
 
@@ -47,46 +47,32 @@
    - `docs/API_MIGRATION_PATTERN.md` - 遷移模式速查
    - `docs/CLOUDFLARE_D1_SETUP.md` - D1 設定指南
 
-### Phase 7-9: API 路由遷移 (20%)
+### Phase 7-9: API 路由遷移 (63%)
 
-#### ✅ 已遷移的核心 API (6/35)
+#### ✅ 已遷移的 API (22/35)
 
-| API 路由 | 狀態 | 說明 |
-|---------|------|------|
-| `/api/customers` GET | ✅ | 取得客戶列表 |
-| `/api/customers` POST | ✅ | 建立客戶 |
-| `/api/customers/[id]` GET | ✅ | 取得單一客戶 |
-| `/api/customers/[id]` PUT | ✅ | 更新客戶 |
-| `/api/customers/[id]` DELETE | ✅ | 刪除客戶 |
-| `/api/products` GET | ✅ | 取得產品列表 |
-| `/api/products` POST | ✅ | 建立產品 |
-| `/api/products/[id]` GET | ✅ | 取得單一產品 |
-| `/api/products/[id]` PUT | ✅ | 更新產品 |
-| `/api/products/[id]` DELETE | ✅ | 刪除產品 |
-| `/api/quotations` GET | ✅ | 取得報價單列表 |
-| `/api/quotations` POST | ✅ | 建立報價單 |
+**P0 核心 API (15/15)**:
+- Customers API (5): GET, POST, GET/:id, PUT/:id, DELETE/:id
+- Products API (5): GET, POST, GET/:id, PUT/:id, DELETE/:id
+- Quotations API (5): GET, POST, GET/:id, PUT/:id, DELETE/:id
 
-#### ⏳ 待遷移的 API (29/35)
+**P1 重要功能 API (7/12)**:
+- Companies API (5): GET, POST, GET/:id, PUT/:id, DELETE/:id
+- Exchange Rates API (2): GET, POST /sync
 
-**優先級 P0** (核心功能，剩餘 6 個):
-- `/api/quotations/[id]` - GET, PUT, DELETE
-- `/api/quotations/[id]/items` - GET, POST
-- `/api/quotations/[id]/items/[itemId]` - DELETE
+#### ⏳ 待遷移的 API (13/35)
 
-**優先級 P1** (重要功能，12 個):
-- `/api/quotations/[id]/pdf` - PDF 生成
-- `/api/companies` - GET, POST
-- `/api/companies/[id]` - GET, PUT, DELETE
-- `/api/exchange-rates` - GET, POST
-- `/api/exchange-rates/sync` - 匯率同步
-- `/api/exchange-rates/[id]` - GET, PUT, DELETE
+**優先級 P1** (剩餘 5 個):
+- `/api/quotations/[id]/pdf` - PDF 生成（需研究 Edge Runtime）
 
-**優先級 P2** (次要功能，11 個):
-- `/api/contracts` - GET, POST
-- `/api/contracts/[id]` - GET, PUT, DELETE
-- `/api/payments` - GET, POST
-- `/api/payments/[id]` - GET, PUT, DELETE
-- `/api/admin/*` - 管理功能 (多個端點)
+**優先級 P2** (次要功能，13+ 個):
+- Contracts API (5+):
+  - 基本 CRUD: GET, POST, GET/:id, PUT/:id, DELETE/:id
+  - 額外端點: from-quotation, overdue, next-collection, payment-progress
+- Payments API (8+):
+  - 基本 CRUD: GET, POST, GET/:id, PUT/:id, DELETE/:id
+  - 額外端點: unpaid, collected, statistics, reminders, mark-overdue
+- Admin API (數量未知)
 
 ## ⏳ 待執行階段
 
