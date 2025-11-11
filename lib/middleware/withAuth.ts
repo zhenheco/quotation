@@ -32,7 +32,7 @@ export async function requirePermission(
   resource: string,
   action: string
 ) {
-  const hasAccess = await checkPermission(userId, resource as unknown, action as unknown);
+  const hasAccess = await checkPermission(userId, resource as PermissionResource, action as PermissionAction);
 
   if (!hasAccess) {
     return NextResponse.json(
@@ -54,7 +54,7 @@ export function withAuth<T extends Record<string, string | string[]>>(
   ) => Promise<NextResponse>
 ) {
   return async (request: NextRequest, context: { params: Promise<T> }) => {
-    const { error, user } = await requireAuth(request);
+    const { error, user } = await requireAuth();
 
     if (error) {
       return error;
@@ -76,7 +76,7 @@ export function withPermission<T extends Record<string, string | string[]>>(
   ) => Promise<NextResponse>
 ) {
   return async (request: NextRequest, context: { params: Promise<T> }) => {
-    const { error, user } = await requireAuth(request);
+    const { error, user } = await requireAuth();
 
     if (error) {
       return error;

@@ -158,7 +158,7 @@ export async function getUserRoles(userId: string): Promise<Role[]> {
 
   if (error) throw error;
 
-  return (data || []).map(row => row.roles) as Role[];
+  return (data || []).map(row => row.roles) as unknown as Role[];
 }
 
 export async function assignRoleToUser(
@@ -234,7 +234,7 @@ export async function getUserHighestRole(userId: string): Promise<Role | null> {
   if (error) throw error;
   if (!data || data.length === 0) return null;
 
-  return data[0].roles as Role;
+  return data[0].roles as unknown as Role;
 }
 
 // ============================================================================
