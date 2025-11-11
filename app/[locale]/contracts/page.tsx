@@ -1,6 +1,9 @@
 'use client'
 
 import { use, useState } from 'react'
+
+// Force dynamic rendering to avoid build-time prerendering
+export const dynamic = 'force-dynamic'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Sidebar from '@/components/Sidebar'

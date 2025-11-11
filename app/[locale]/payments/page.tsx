@@ -1,6 +1,9 @@
 'use client'
 
 import { use, useState } from 'react'
+
+// Force dynamic rendering to avoid build-time prerendering
+export const dynamic = 'force-dynamic'
 import { useTranslations } from 'next-intl'
 import PageHeader from '@/components/ui/PageHeader'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'

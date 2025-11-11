@@ -1,5 +1,8 @@
 'use client'
 
+// Force dynamic rendering to avoid build-time prerendering
+export const dynamic = 'force-dynamic'
+
 import { useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
 import { notFound } from 'next/navigation'
