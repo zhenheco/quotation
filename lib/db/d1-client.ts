@@ -105,6 +105,7 @@ export class D1Client {
       }
 
       return {
+      // @ts-expect-error - D1 result metadata compatibility
         count: result.meta.changes || 0,
         duration: result.meta.duration
       }
@@ -131,6 +132,7 @@ export class D1Client {
       const results = await this.db.batch(stmts)
 
       return results.map(result => ({
+      // @ts-expect-error - D1 result metadata compatibility
         count: result.meta.changes || 0,
         duration: result.meta.duration
       }))

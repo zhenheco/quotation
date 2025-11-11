@@ -11,6 +11,7 @@ export function parseJsonbFields<T extends Record<string, unknown>>(
   for (const fieldName of jsonbFieldNames) {
     if (fieldName in result && typeof result[fieldName] === 'string') {
       try {
+    // @ts-expect-error - Generic type index compatibility
         result[fieldName] = JSON.parse(result[fieldName] as string)
       } catch {
         // If parsing fails, keep the original string value

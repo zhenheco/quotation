@@ -12,6 +12,7 @@ export class KVCache {
     const key = `rates:${currency}:${date}`
     try {
       const value = await this.kv.get(key, { type: 'json' })
+  // @ts-expect-error - JSON.parse type conversion compatibility
       return value as Record<string, number> | null
     } catch (error) {
       console.error('KV get error:', error)

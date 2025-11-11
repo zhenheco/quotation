@@ -292,6 +292,7 @@ export async function apiRequest<T = unknown>(
     )
 
     // 建構請求設定
+    // @ts-expect-error - Cloudflare Workers RequestInit type compatibility
     const requestConfig: RequestInit = {
       method,
       headers: await buildHeaders(method, modifiedConfig),

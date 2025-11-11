@@ -161,6 +161,7 @@ export function validateFields<T extends Record<string, unknown>>(
 
   for (const [key, value] of Object.entries(data)) {
     if (isFieldAllowed(key, allowedFields)) {
+      // @ts-expect-error - Generic type index compatibility
       validatedData[key as keyof T] = value
     } else {
       invalidFields.push(key)

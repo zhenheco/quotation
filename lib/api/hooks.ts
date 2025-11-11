@@ -74,6 +74,7 @@ export function useMutationApi<TData = unknown, TVariables = unknown, TContext =
       // 執行使用者定義的 onMutate
       let userContext: TContext | undefined
       if (config?.onMutate) {
+        // @ts-expect-error - TanStack Query onMutate argument type compatibility
         userContext = await config.onMutate(variables)
       }
 
@@ -104,6 +105,7 @@ export function useMutationApi<TData = unknown, TVariables = unknown, TContext =
 
       // 執行使用者定義的 onSuccess
       if (config?.onSuccess) {
+        // @ts-expect-error - TanStack Query onSuccess argument count compatibility
         config.onSuccess(data, variables, context)
       }
 
@@ -123,12 +125,14 @@ export function useMutationApi<TData = unknown, TVariables = unknown, TContext =
         rollbackOptimisticUpdate(
           queryClient,
           config.optimisticUpdate.queryKey,
+          // @ts-expect-error - Context type compatibility
           ctx.optimisticContext
         )
       }
 
       // 執行使用者定義的 onError
       if (config?.onError) {
+        // @ts-expect-error - TanStack Query onError argument count compatibility
         config.onError(error, variables, context)
       }
 

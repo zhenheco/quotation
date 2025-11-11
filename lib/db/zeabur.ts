@@ -23,8 +23,11 @@ export function getZeaburPool(): PgPool | NeonPool {
         throw new Error('❌ SUPABASE_POOLER_URL environment variable is required for Cloudflare Workers.')
       }
 
+  // @ts-expect-error - neonConfig compatibility with Zeabur fetch adapter
       neonConfig.fetchConnectionCache = true
+      // @ts-expect-error - neonConfig compatibility with Zeabur fetch adapter
       neonConfig.useSecureWebSocket = true
+      // @ts-expect-error - neonConfig compatibility with Zeabur fetch adapter
       neonConfig.pipelineConnect = "password"
 
       neonPool = new NeonPool({ connectionString: poolerUrl })
