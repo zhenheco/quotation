@@ -181,7 +181,7 @@ export class KVCache {
  * 從環境中取得 KV 快取客戶端
  */
 export function getKVCache(env?: { KV?: KVNamespace }): KVCache {
-  const kv = env?.KV || (global as any).KV || (process.env as any).KV
+  const kv = env?.KV || (global as Record<string, unknown>).KV as KVNamespace | undefined || (process.env as Record<string, unknown>).KV as KVNamespace | undefined
 
   if (!kv) {
     throw new Error(

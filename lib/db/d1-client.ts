@@ -185,7 +185,7 @@ export class D1Client {
 export function getD1Client(env?: { DB?: D1Database }): D1Client {
   // 在開發環境中，可能需要從 process.env 取得
   // 在生產環境中，從 Cloudflare Workers 環境取得
-  const database = env?.DB || (global as any).DB || (process.env as any).DB
+  const database = env?.DB || (global as Record<string, unknown>).DB as D1Database | undefined || (process.env as Record<string, unknown>).DB as D1Database | undefined
 
   if (!database) {
     throw new Error(
