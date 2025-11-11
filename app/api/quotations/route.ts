@@ -86,7 +86,28 @@ export async function POST(
     }
 
     // 取得請求資料
-    const body = await request.json() as Record<string, unknown>
+    interface QuotationItemInput {
+      product_id?: string | null;
+      quantity: string | number;
+      unit_price: string | number;
+      discount?: string | number;
+      subtotal: string | number;
+    }
+
+    interface CreateQuotationBody {
+      customer_id: string;
+      issue_date: string;
+      valid_until: string;
+      currency: string;
+      subtotal: string | number;
+      tax_rate: string | number;
+      tax_amount: string | number;
+      total_amount: string | number;
+      notes?: string;
+      items: QuotationItemInput[];
+    }
+
+    const body = await request.json() as CreateQuotationBody
     const {
       customer_id,
       issue_date,
@@ -122,10 +143,10 @@ export async function POST(
       issue_date,
       valid_until,
       currency,
-      subtotal: parseFloat(subtotal),
-      tax_rate: parseFloat(tax_rate),
-      tax_amount: parseFloat(tax_amount),
-      total_amount: parseFloat(total_amount),
+      subtotal: parseFloat(String(subtotal)),
+      tax_rate: parseFloat(String(tax_rate)),
+      tax_amount: parseFloat(String(tax_amount)),
+      total_amount: parseFloat(String(total_amount)),
       notes: notes || null
     })
 
@@ -135,10 +156,10 @@ export async function POST(
         await createQuotationItem(db, {
           quotation_id: quotation.id,
           product_id: item.product_id || null,
-          quantity: parseFloat(item.quantity),
-          unit_price: parseFloat(item.unit_price),
-          discount: parseFloat(item.discount || 0),
-          subtotal: parseFloat(item.subtotal)
+          quantity: parseFloat(String(item.quantity)),
+          unit_price: parseFloat(String(item.unit_price)),
+          discount: parseFloat(String(item.discount || 0)),
+          subtotal: parseFloat(String(item.subtotal))
         })
       }
     }

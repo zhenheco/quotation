@@ -2,16 +2,18 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usePermission } from './usePermission'
-import type { Database } from '@/types/database.types'
+import type {
+  Product,
+  CreateProductData,
+  UpdateProductData
+} from '@/types/models'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type Product = Database['public']['Tables']['products']['Row']
-export type CreateProductData = Database['public']['Tables']['products']['Insert']
-export type UpdateProductData = Database['public']['Tables']['products']['Update']
+export type { Product, CreateProductData, UpdateProductData }
 
 export interface BilingualText {
   zh: string

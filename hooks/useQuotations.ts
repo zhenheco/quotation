@@ -1,7 +1,12 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { Database } from '@/types/database.types'
+import type {
+  Quotation,
+  QuotationItem,
+  CreateQuotationData,
+  UpdateQuotationData
+} from '@/types/models'
 import type { QuotationWithCustomer as QuotationWithCustomerType } from '@/types/extended.types'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 
@@ -9,10 +14,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 // Types
 // ============================================================================
 
-export type Quotation = Database['public']['Tables']['quotations']['Row']
-export type QuotationItem = Database['public']['Tables']['quotation_items']['Row']
-export type CreateQuotationData = Database['public']['Tables']['quotations']['Insert']
-export type UpdateQuotationData = Database['public']['Tables']['quotations']['Update']
+export type { Quotation, QuotationItem, CreateQuotationData, UpdateQuotationData }
 export type QuotationWithCustomer = QuotationWithCustomerType
 
 export type QuotationStatus = 'draft' | 'sent' | 'signed' | 'expired'

@@ -71,7 +71,7 @@ async function syncRatesToD1(
  */
 export async function POST(
   request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace } }
+  { env }: { env: { DB: D1Database; KV: KVNamespace; EXCHANGE_RATE_API_KEY?: string } }
 ) {
   try {
     // 驗證使用者

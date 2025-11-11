@@ -47,7 +47,7 @@ export async function upsertExchangeRate(
   rate: number
 ): Promise<void> {
   const existing = await getExchangeRate(db, baseCurrency, targetCurrency)
-  // const _now = new Date().toISOString()
+  const now = new Date().toISOString()
 
   if (existing) {
     await db.execute(

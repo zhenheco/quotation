@@ -16,9 +16,20 @@ import { useProducts } from '@/hooks/useProducts'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { PaymentTermsEditor } from '@/components/payment-terms'
-import type { Database } from '@/types/database.types'
 
-type PaymentTerm = Database['public']['Tables']['payment_terms']['Row']
+interface PaymentTerm {
+  id: string
+  quotation_id: string
+  term_name: string
+  percentage: number
+  amount: number
+  due_date: string | null
+  paid_amount: number | null
+  paid_date: string | null
+  status: 'unpaid' | 'partial' | 'paid' | 'overdue'
+  created_at: string
+  updated_at: string
+}
 
 interface QuotationFormProps {
   locale: string

@@ -1,16 +1,18 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { Database } from '@/types/database.types'
+import type {
+  Customer,
+  CreateCustomerData,
+  UpdateCustomerData
+} from '@/types/models'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type Customer = Database['public']['Tables']['customers']['Row']
-export type CreateCustomerData = Database['public']['Tables']['customers']['Insert']
-export type UpdateCustomerData = Database['public']['Tables']['customers']['Update']
+export type { Customer, CreateCustomerData, UpdateCustomerData }
 
 export interface BilingualText {
   zh: string

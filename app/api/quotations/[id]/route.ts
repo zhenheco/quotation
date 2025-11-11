@@ -94,6 +94,14 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    interface QuotationItemInput {
+      product_id?: string | null;
+      quantity: string | number;
+      unit_price: string | number;
+      discount?: string | number;
+      subtotal: string | number;
+    }
+
     interface UpdateQuotationBody {
       customer_id?: string;
       status?: string;
@@ -105,7 +113,7 @@ export async function PUT(
       tax_amount?: string | number;
       total_amount?: string | number;
       notes?: string;
-      items?: unknown[];
+      items?: QuotationItemInput[];
     }
 
     const body = await request.json() as UpdateQuotationBody
@@ -165,10 +173,10 @@ export async function PUT(
         await createQuotationItem(db, {
           quotation_id: id,
           product_id: item.product_id || null,
-          quantity: parseFloat(item.quantity),
-          unit_price: parseFloat(item.unit_price),
-          discount: parseFloat(item.discount || 0),
-          subtotal: parseFloat(item.subtotal)
+          quantity: parseFloat(String(item.quantity)),
+          unit_price: parseFloat(String(item.unit_price)),
+          discount: parseFloat(String(item.discount || 0)),
+          subtotal: parseFloat(String(item.subtotal))
         })
       }
     }
@@ -208,7 +216,10 @@ export async function PATCH(
     }
 
     // 取得請求資料
-    const body = await request.json()
+    interface PatchQuotationBody {
+      status: string;
+    }
+    const body = await request.json() as PatchQuotationBody
     const { status } = body
 
     if (!status) {
