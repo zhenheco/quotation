@@ -12,6 +12,14 @@ interface StatusChartProps {
   currency: string
 }
 
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+  }>;
+  label?: string;
+}
+
 export default function StatusChart({ data, currency }: StatusChartProps) {
   const t = useTranslations()
 
@@ -32,7 +40,7 @@ export default function StatusChart({ data, currency }: StatusChartProps) {
   }))
 
   // 自訂 Tooltip
-  const CustomTooltip = ({ active, payload, label }: unknown) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">

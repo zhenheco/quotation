@@ -48,7 +48,7 @@ export default function PDFDownloadButton({
         // 嘗試讀取錯誤訊息
         let errorMessage = 'Failed to download PDF'
         try {
-          const errorData = await response.json()
+          const errorData = await response.json() as { error?: string }
           errorMessage = errorData.error || errorMessage
         } catch {
           // 如果不是 JSON 響應，使用預設錯誤訊息

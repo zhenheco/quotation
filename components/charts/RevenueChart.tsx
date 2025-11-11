@@ -12,6 +12,14 @@ interface RevenueChartProps {
   currency: string
 }
 
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+  }>;
+  label?: string;
+}
+
 export default function RevenueChart({ data, currency }: RevenueChartProps) {
   const t = useTranslations()
 
@@ -21,7 +29,7 @@ export default function RevenueChart({ data, currency }: RevenueChartProps) {
   }
 
   // 自訂 Tooltip
-  const CustomTooltip = ({ active, payload, label }: unknown) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">

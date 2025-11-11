@@ -11,6 +11,34 @@ interface CurrencyChartProps {
   }>
 }
 
+interface PieLabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+}
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: {
+      currency: string;
+      value: number;
+      percentage: string;
+      count: number;
+    };
+  }>;
+}
+
+interface LegendProps {
+  payload?: Array<{
+    value: string;
+    color: string;
+  }>;
+}
+
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
 export default function CurrencyChart({ data }: CurrencyChartProps) {
@@ -31,7 +59,7 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
     innerRadius,
     outerRadius,
     percent,
-  }: unknown) => {
+  }: PieLabelProps) => {
     const RADIAN = Math.PI / 180
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5
     const x = cx + radius * Math.cos(-midAngle * RADIAN)
@@ -52,7 +80,7 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
   }
 
   // 自訂 Tooltip
-  const CustomTooltip = ({ active, payload }: unknown) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload[0]) {
       const data = payload[0].payload
       return (
@@ -76,12 +104,12 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
   }
 
   // 自訂圖例
-  const renderLegend = (props: unknown) => {
+  const renderLegend = (props: LegendProps) => {
     const { payload } = props
 
     return (
       <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
-        {payload.map((entry: unknown, index: number) => (
+        {payload?.map((entry, index: number) => (
           <li key={`item-${index}`} className="flex items-center text-sm">
             <span
               className="inline-block w-3 h-3 rounded-full mr-2"
@@ -109,7 +137,7 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={renderCustomizedLabel}
+            label={renderCustomizedLabel as never}
             outerRadius={100}
             fill="#8884d8"
             dataKey="value"

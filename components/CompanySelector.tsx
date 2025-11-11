@@ -33,12 +33,12 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
     try {
       const response = await fetch('/api/companies');
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json() as UserCompany[];
         setCompanies(data);
 
         // Get selected company from localStorage or use first company
         const storedCompanyId = localStorage.getItem('selectedCompanyId');
-        const isValidCompanyId = storedCompanyId && data.find((c: UserCompany) => c.company_id === storedCompanyId);
+        const isValidCompanyId = storedCompanyId && data.find((c) => c.company_id === storedCompanyId);
 
         if (isValidCompanyId) {
           setSelectedCompanyId(storedCompanyId);
