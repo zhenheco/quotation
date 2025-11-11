@@ -29,6 +29,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes, createHmac } from 'crypto'
+import React from 'react'
 
 // ========================================
 // 配置
@@ -123,7 +124,8 @@ function timingSafeEqual(a: string, b: string): boolean {
  * 檢查路徑是否需要 CSRF 保護
  */
 function requiresCsrfProtection(request: NextRequest): boolean {
-  const { pathname, method } = new URL(request.url)
+  const { pathname } = new URL(request.url)
+  const method = request.method
 
   // 安全的 HTTP 方法不需要檢查
   if (SAFE_METHODS.includes(method)) {

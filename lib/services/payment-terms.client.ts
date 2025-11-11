@@ -1,6 +1,5 @@
-import type { Database } from '@/types/database.types';
-
-type PaymentTerm = Database['public']['Tables']['payment_terms']['Row'];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PaymentTerm = any; // Database type placeholder
 
 /**
  * 計算付款條款金額

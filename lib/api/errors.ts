@@ -174,10 +174,11 @@ export async function createErrorFromResponse(response: Response): Promise<ApiEr
     // 無法解析 JSON，使用 statusText
   }
 
+  const details = (errorData as { details?: Record<string, unknown> })?.details;
   return createErrorFromStatus(
     response.status,
     message,
-    (errorData as { details?: unknown })?.details || errorData
+    details && typeof details === 'object' ? details as Record<string, unknown> : undefined
   )
 }
 

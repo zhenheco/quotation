@@ -43,11 +43,11 @@ class BrevoService {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json() as { message?: string }
         throw new Error(errorData.message || 'Failed to send email')
       }
 
-      const data = await response.json()
+      const data = await response.json() as { messageId?: string }
 
       return {
         success: true,

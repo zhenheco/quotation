@@ -54,7 +54,7 @@ export function withPermission(
       } catch (error: unknown) {
         console.error('Permission middleware error:', error);
         return NextResponse.json(
-          { error: 'Internal server error', message: error.message },
+          { error: 'Internal server error', message: (error as Error).message },
           { status: 500 }
         );
       }
@@ -108,7 +108,7 @@ export function withPermissions(
       } catch (error: unknown) {
         console.error('Permissions middleware error:', error);
         return NextResponse.json(
-          { error: 'Internal server error', message: error.message },
+          { error: 'Internal server error', message: (error as Error).message },
           { status: 500 }
         );
       }

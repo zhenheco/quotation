@@ -46,25 +46,30 @@ async function apiFetch<T = unknown>(
 
   // 處理回應
   if (!response.ok) {
-    const errorData: ApiError = await response.json().catch((): ApiError => ({
+    const errorData = await response.json().catch(() => ({})) as ApiError
+    const fallbackError: ApiError = {
       error: `HTTP ${response.status}: ${response.statusText}`,
-    }))
+    }
+    const finalError: ApiError = errorData.error ? errorData : fallbackError
 
     // 詳細的錯誤日誌
     console.error('[API Error]', {
       url,
       method: options.method || 'GET',
       status: response.status,
-      error: errorData.error,
-      details: errorData.details,
+      error: finalError.error,
+      details: finalError.details,
     })
 
-    throw new Error(errorData.error || `Request failed with status ${response.status}`)
+    throw new Error(finalError.error || `Request failed with status ${response.status}`)
   }
 
   // 解析成功回應
-  const data = await response.json() as { data?: T } | T
-  return ('data' in data && data.data !== undefined ? data.data : data) as T
+  const data = await response.json() as T | { data: T }
+  if (typeof data === 'object' && data !== null && 'data' in data) {
+    return data.data
+  }
+  return data as T
 }
 
 /**
