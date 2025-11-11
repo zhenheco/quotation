@@ -329,6 +329,64 @@ const kv = (global as Record<string, unknown>).KV as KVNamespace | undefined
 
 ---
 
+### 5. **Build 時 Supabase 環境變數缺失** (2025-11-11 新增)
+**錯誤訊息**：
+```
+Error occurred prerendering page "/en/contracts". Read more: https://nextjs.org/docs/messages/prerender-error
+Error: @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
+```
+
+**原因**：
+- Next.js 15 即使對 `'use client'` 頁面也會嘗試進行預渲染（static generation）
+- 預渲染階段會調用 React hooks（如 `useContracts`），導致 Supabase 客戶端初始化
+- GitHub Actions 環境缺少 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- 本地開發有 `.env.local`，但 CI 環境沒有
+
+**解決方案 1：強制動態渲染**（已實施）
+在所有使用 Supabase hooks 的頁面添加：
+```typescript
+'use client'
+
+// Force dynamic rendering to avoid build-time prerendering
+export const dynamic = 'force-dynamic'
+
+import { useState } from 'react'
+// ... rest of imports
+```
+
+**已修復的頁面**：
+- `app/[locale]/contracts/page.tsx`
+- `app/[locale]/contracts/[id]/page.tsx`
+- `app/[locale]/payments/page.tsx`
+- `app/[locale]/customers/[id]/page.tsx`
+- `app/[locale]/products/[id]/page.tsx`
+
+**解決方案 2：添加環境變數到 GitHub Actions**（可選）
+如果希望保留靜態生成，可以在 `.github/workflows/cloudflare-deploy.yml` 添加：
+```yaml
+- name: Build application
+  env:
+    NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+  run: pnpm run build
+```
+
+**注意**：
+- ✅ 使用 `dynamic = 'force-dynamic'` 是最安全的方案
+- ✅ 這些頁面本來就需要動態數據，不適合靜態生成
+- ⚠️ 如果添加環境變數，需要在 GitHub repository settings 設定 secrets
+
+**診斷方法**：
+```bash
+# 查看 build 日誌中的預渲染錯誤
+gh run view <run-id> --log | grep -A 10 "Error occurred prerendering"
+
+# 檢查頁面是否有 dynamic export
+grep -n "export const dynamic" app/[locale]/*/page.tsx
+```
+
+---
+
 ## 🔍 TypeScript 類型檢查最佳實踐
 
 ### 類型錯誤分類與解決方案
