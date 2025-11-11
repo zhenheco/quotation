@@ -5,6 +5,7 @@ import React from 'react';
 interface PaymentTerm {
   id: string
   quotation_id: string
+  term_number: number
   term_name: string
   percentage: number
   amount: number
@@ -12,6 +13,7 @@ interface PaymentTerm {
   paid_amount: number | null
   paid_date: string | null
   status: 'unpaid' | 'partial' | 'paid' | 'overdue'
+  payment_status: 'unpaid' | 'partial' | 'paid' | 'overdue'
   created_at: string
   updated_at: string
 }

@@ -60,6 +60,7 @@ export interface Product {
   currency: string
   category: string | null
   base_price: number
+  base_currency: string
   cost_price: number | null
   cost_currency: string | null
   profit_margin: number | null
@@ -169,6 +170,7 @@ export interface UpdateQuotationData {
 export interface PaymentTerm {
   id: string
   quotation_id: string
+  term_number: number
   term_name: string
   percentage: number
   amount: number
@@ -176,6 +178,7 @@ export interface PaymentTerm {
   paid_amount: number | null
   paid_date: string | null
   status: 'unpaid' | 'partial' | 'paid' | 'overdue'
+  payment_status: 'unpaid' | 'partial' | 'paid' | 'overdue'
   created_at: string
   updated_at: string
 }
