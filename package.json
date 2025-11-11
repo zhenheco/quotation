@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy:cf": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
@@ -33,7 +35,8 @@
     "supabase:db:pull": "supabase db pull",
     "supabase:db:reset": "supabase db reset",
     "supabase:migration:new": "supabase migration new",
-    "supabase:gen:types": "supabase gen types typescript --local > types/database.types.ts"
+    "supabase:gen:types": "supabase gen types typescript --local > types/database.types.ts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
@@ -80,7 +83,9 @@
     "@vitest/ui": "^3.2.4",
     "eslint": "^9",
     "eslint-config-next": "15.5.5",
+    "husky": "^9.1.7",
     "jsdom": "^27.0.0",
+    "lint-staged": "^16.2.6",
     "msw": "^2.11.5",
     "pg": "^8.16.3",
     "playwright": "^1.56.1",
@@ -92,5 +97,10 @@
     "typescript": "^5",
     "vitest": "^3.2.4",
     "wrangler": "^4.45.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix"
+    ]
   }
 }

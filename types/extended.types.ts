@@ -280,7 +280,6 @@ export interface PaymentScheduleWithDetails extends PaymentSchedule {
     contract_number: string;
     title: string;
   };
-  days_overdue?: number;
   days_until_due?: number;
 }
 

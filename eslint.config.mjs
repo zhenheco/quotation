@@ -23,6 +23,14 @@ const eslintConfig = [
       ".open-next/**",
     ],
   },
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": "error",
+      "react-hooks/exhaustive-deps": "error",
+      "@next/next/no-img-element": "error",
+    },
+  },
 ];
 
 export default eslintConfig;
