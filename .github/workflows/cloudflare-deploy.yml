@@ -80,7 +80,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .open-next/assets --project-name=quotation-system
+          command: deploy --env preview
 
       - name: Deploy to Cloudflare Workers (Production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -88,4 +88,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .open-next/assets --project-name=quotation-system --branch=main
+          command: deploy
