@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { hasPermission as checkPermission } from '@/lib/services/rbac';
+import type { PermissionResource, PermissionAction } from '@/types/rbac.types';
 
 export interface AuthenticatedRequest extends NextRequest {
   userId: string;
