@@ -75,6 +75,10 @@ jobs:
         run: pnpm run build
 
       - name: Build OpenNext for Cloudflare Workers
+        env:
+          # OpenNext 內部會再次執行 next build，需要相同的環境變數
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.placeholder
         run: pnpm exec opennextjs-cloudflare build
 
       - name: Deploy to Cloudflare Workers (Preview)
