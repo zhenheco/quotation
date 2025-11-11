@@ -1,7 +1,6 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { isSuperAdmin } from '@/lib/services/rbac';
 import { NextRequest, NextResponse } from 'next/server';
-import { getErrorMessage } from '@/app/api/utils/error-handler'
 
 export async function GET(request: NextRequest) {
   const supabase = createApiClient(request);

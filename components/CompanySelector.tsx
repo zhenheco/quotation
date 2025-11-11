@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface UserCompany {
   company_id: string;
@@ -107,10 +108,12 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
       {/* Company logo or icon */}
       <div className="absolute left-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
         {selectedCompany?.logo_url ? (
-          <img
+          <Image
             src={selectedCompany.logo_url}
             alt="Company logo"
-            className="w-6 h-6 rounded-full object-cover"
+            width={24}
+            height={24}
+            className="rounded-full object-cover"
           />
         ) : (
           <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">

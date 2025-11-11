@@ -4,7 +4,7 @@
  */
 
 import { Pool as PgPool, PoolClient as PgPoolClient } from 'pg'
-import { Pool as NeonPool, neon, neonConfig } from '@neondatabase/serverless'
+import { Pool as NeonPool } from '@neondatabase/serverless'
 
 const isCloudflareWorkers = typeof globalThis.caches !== 'undefined'
 

@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import type { RoleName } from '@/types/extended.types';
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
+import { apiGet } from '@/lib/api-client'
 
 export interface UserCompany {
   company_id: string;

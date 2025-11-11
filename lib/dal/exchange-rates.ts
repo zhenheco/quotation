@@ -47,7 +47,7 @@ export async function upsertExchangeRate(
   rate: number
 ): Promise<void> {
   const existing = await getExchangeRate(db, baseCurrency, targetCurrency)
-  const now = new Date().toISOString()
+  // const _now = new Date().toISOString()
 
   if (existing) {
     await db.execute(
@@ -67,7 +67,7 @@ export async function batchUpsertExchangeRates(
   db: D1Client,
   rates: Array<{ baseCurrency: string; targetCurrency: string; rate: number }>
 ): Promise<void> {
-  const now = new Date().toISOString()
+  // const _now = new Date().toISOString()
 
   for (const { baseCurrency, targetCurrency, rate } of rates) {
     await upsertExchangeRate(db, baseCurrency, targetCurrency, rate)

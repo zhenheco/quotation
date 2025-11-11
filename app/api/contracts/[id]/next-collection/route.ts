@@ -3,10 +3,15 @@
  * PUT /api/contracts/[id]/next-collection
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { updateNextCollection } from '@/lib/services/contracts';
+
+interface UpdateNextCollectionRequest {
+  next_collection_date: string;
+  next_collection_amount: number;
+}
 
 export async function PUT(
   req: NextRequest,
@@ -24,7 +29,7 @@ export async function PUT(
 
     const userId = session.user.id;
     const { id: contractId } = await params;
-    const body = await req.json();
+    const body = await req.json() as UpdateNextCollectionRequest;
 
     // Validate required fields
     if (!body.next_collection_date || body.next_collection_amount === undefined) {

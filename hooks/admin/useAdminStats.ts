@@ -7,7 +7,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 
 interface SystemStats {
   overview: {

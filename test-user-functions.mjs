@@ -35,7 +35,7 @@ async function testUserFunctions() {
         if (contentType && contentType.includes('application/json')) {
           logEntry.response = await response.json();
         }
-      } catch (e) {
+      } catch {
         // Response might not be JSON
       }
 

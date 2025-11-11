@@ -5,6 +5,7 @@ import { getD1Client } from '@/lib/db/d1-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { getCustomerById, updateCustomer, deleteCustomer } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
+import { UpdateCustomerRequest } from '@/app/api/types'
 
 
 /**
@@ -76,7 +77,7 @@ export async function PUT(
     }
 
     // 取得請求資料
-    const body = await request.json()
+    const body = await request.json() as Record<string, unknown> as UpdateCustomerRequest
 
     // 更新客戶（DAL 會自動處理 JSON 序列化和過濾 undefined）
     const customer = await updateCustomer(db, user.id, id, body)

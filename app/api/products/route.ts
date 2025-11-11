@@ -6,6 +6,20 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getProducts, createProduct } from '@/lib/dal/products'
 import { checkPermission } from '@/lib/cache/services'
 
+interface CreateProductRequestBody {
+  name: string;
+  description?: string;
+  base_price: number;
+  base_currency: string;
+  category?: string;
+  sku?: string;
+  cost_price?: number;
+  cost_currency?: string;
+  profit_margin?: number;
+  supplier?: string;
+  supplier_code?: string;
+}
+
 
 /**
  * GET /api/products - 取得所有產品
@@ -75,7 +89,7 @@ export async function POST(
     }
 
     // 取得請求資料
-    const body = await request.json()
+    const body = await request.json() as Record<string, unknown> as CreateProductRequestBody
 
     // 驗證必填欄位
     if (!body.name || body.base_price === undefined || !body.base_currency) {
@@ -111,17 +125,17 @@ export async function POST(
 
     // 建立產品（DAL 會自動處理 JSON 序列化）
     const product = await createProduct(db, user.id, {
-      name: body.name,
-      description: body.description || null,
+      name: typeof body.name === 'string' ? { zh: body.name, en: body.name } : body.name,
+      description: body.description ? (typeof body.description === 'string' ? { zh: body.description, en: body.description } : body.description) : undefined,
       base_price: price,
       base_currency: body.base_currency,
-      category: body.category || null,
-      sku: body.sku || null,
-      cost_price: costPrice,
-      cost_currency: body.cost_currency || null,
-      profit_margin: profitMargin,
-      supplier: body.supplier || null,
-      supplier_code: body.supplier_code || null
+      category: body.category || undefined,
+      sku: body.sku || undefined,
+      cost_price: costPrice || undefined,
+      cost_currency: body.cost_currency || undefined,
+      profit_margin: profitMargin || undefined,
+      supplier: body.supplier || undefined,
+      supplier_code: body.supplier_code || undefined
     })
 
     return NextResponse.json(product, { status: 201 })

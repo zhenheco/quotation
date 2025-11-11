@@ -1,10 +1,10 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
-import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getD1Client } from '@/lib/db/d1-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
-import { getExchangeRatesByBase, Currency, SUPPORTED_CURRENCIES } from '@/lib/dal/exchange-rates'
+import { getExchangeRatesByBase, Currency } from '@/lib/dal/exchange-rates'
 import { checkPermission } from '@/lib/cache/services'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 
 
 /**

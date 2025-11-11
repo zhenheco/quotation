@@ -104,7 +104,7 @@ export async function POST(
     }
 
     // 解析請求
-    const body = await request.json().catch(() => ({}))
+    const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const baseCurrency = (body.baseCurrency || 'TWD') as Currency
     const syncAll = body.syncAll || false
 

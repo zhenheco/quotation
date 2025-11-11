@@ -30,7 +30,7 @@ async function testFullFlow() {
           const body = await response.json();
           console.log(`   Response:`, JSON.stringify(body, null, 2));
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     }

@@ -68,24 +68,24 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = session.user.id;
-    const body = await req.json();
+    const body = await req.json() as Record<string, unknown>;
 
     // Validate required fields
-    if (!body.customer_id) {
+    if (!body.customer_id || typeof body.customer_id !== 'string') {
       return NextResponse.json(
         { error: 'Customer ID is required' },
         { status: 400 }
       );
     }
 
-    if (!body.quotation_id && !body.contract_id) {
+    if ((!body.quotation_id || typeof body.quotation_id !== 'string') && (!body.contract_id || typeof body.contract_id !== 'string')) {
       return NextResponse.json(
         { error: 'Either quotation ID or contract ID is required' },
         { status: 400 }
       );
     }
 
-    if (!body.payment_type || !body.payment_date || !body.amount || !body.currency) {
+    if (!body.payment_type || typeof body.payment_type !== 'string' || !body.payment_date || typeof body.payment_date !== 'string' || typeof body.amount !== 'number' || !body.currency || typeof body.currency !== 'string') {
       return NextResponse.json(
         { error: 'Payment type, date, amount, and currency are required' },
         { status: 400 }
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // Validate payment type
     const validTypes: PaymentType[] = ['deposit', 'installment', 'final', 'full', 'recurring'];
-    if (!validTypes.includes(body.payment_type)) {
+    if (!validTypes.includes(body.payment_type as PaymentType)) {
       return NextResponse.json(
         { error: 'Invalid payment type' },
         { status: 400 }
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate date
-    const paymentDate = new Date(body.payment_date);
+    const paymentDate = new Date(body.payment_date as string);
     if (isNaN(paymentDate.getTime())) {
       return NextResponse.json(
         { error: 'Invalid payment date format' },
@@ -119,9 +119,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate payment method if provided
-    if (body.payment_method) {
+    if (body.payment_method && typeof body.payment_method === 'string') {
       const validMethods: PaymentMethod[] = ['bank_transfer', 'credit_card', 'check', 'cash', 'other'];
-      if (!validMethods.includes(body.payment_method)) {
+      if (!validMethods.includes(body.payment_method as PaymentMethod)) {
         return NextResponse.json(
           { error: 'Invalid payment method' },
           { status: 400 }
@@ -130,17 +130,17 @@ export async function POST(req: NextRequest) {
     }
 
     const paymentData: PaymentFormData & { schedule_id?: string } = {
-      customer_id: body.customer_id,
-      quotation_id: body.quotation_id,
-      contract_id: body.contract_id,
-      payment_type: body.payment_type,
-      payment_date: body.payment_date,
-      amount: body.amount,
-      currency: body.currency,
-      payment_method: body.payment_method,
-      reference_number: body.reference_number,
-      notes: body.notes,
-      schedule_id: body.schedule_id, // Optional: link to payment schedule
+      customer_id: body.customer_id as string,
+      quotation_id: typeof body.quotation_id === 'string' ? body.quotation_id : undefined,
+      contract_id: typeof body.contract_id === 'string' ? body.contract_id : undefined,
+      payment_type: body.payment_type as PaymentType,
+      payment_date: body.payment_date as string,
+      amount: body.amount as number,
+      currency: body.currency as string,
+      payment_method: typeof body.payment_method === 'string' ? body.payment_method as PaymentMethod : undefined,
+      reference_number: typeof body.reference_number === 'string' ? body.reference_number : undefined,
+      notes: typeof body.notes === 'string' ? body.notes : undefined,
+      schedule_id: typeof body.schedule_id === 'string' ? body.schedule_id : undefined,
     };
 
     const payment = await recordPayment(userId, paymentData);

@@ -154,7 +154,7 @@ export function validateFields<T extends Record<string, unknown>>(
   allowedFields: readonly string[],
   options: { strict?: boolean; throwOnInvalid?: boolean } = {}
 ): Partial<T> {
-  const { strict = false, throwOnInvalid = false } = options
+  const { throwOnInvalid = false } = options
 
   const validatedData: Partial<T> = {}
   const invalidFields: string[] = []

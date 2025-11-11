@@ -86,7 +86,7 @@ async function testProductAndCustomerFix() {
               let body = null;
               try {
                 body = await response.json();
-              } catch (e) {
+              } catch {
                 body = await response.text();
               }
               resolve({ url, status, body });
@@ -133,7 +133,7 @@ async function testProductAndCustomerFix() {
             let body = null;
             try {
               body = await response.json();
-            } catch (e) {
+            } catch {
               body = await response.text();
             }
             resolve({ url, status, body });
@@ -178,7 +178,7 @@ async function testProductAndCustomerFix() {
           let body = null;
           try {
             body = await response.json();
-          } catch (e) {
+          } catch {
             body = await response.text();
           }
           resolve({ url, status, body });

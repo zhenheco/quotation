@@ -6,8 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
+import { useState, useEffect, useCallback } from 'react';
 
 export interface CompanyMember {
   user_id: string;
@@ -49,7 +48,7 @@ export function useAdminCompanyDetail(companyId: string | null): UseAdminCompany
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchCompany = async () => {
+  const fetchCompany = useCallback(async () => {
     if (!companyId) {
       setLoading(false);
       return;
@@ -78,11 +77,11 @@ export function useAdminCompanyDetail(companyId: string | null): UseAdminCompany
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId]);
 
   useEffect(() => {
     fetchCompany();
-  }, [companyId]);
+  }, [fetchCompany]);
 
   return {
     company,

@@ -24,7 +24,7 @@ export async function POST(
       )
     }
 
-    const body = await request.json()
+    const body = await request.json() as Record<string, unknown>
     const { subject, content, locale = 'zh' } = body
 
     const quotation = await getQuotationById(id, user.id)

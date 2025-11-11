@@ -6,7 +6,6 @@
 import { createClient } from '@/lib/supabase/server';
 import type {
   Role,
-  Permission,
   UserRole,
   UserProfile,
   UserWithRole,

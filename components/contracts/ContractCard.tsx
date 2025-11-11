@@ -26,7 +26,7 @@ export default function ContractCard({
   const t = useTranslations()
 
   // Fetch payment progress for this contract
-  const { data: progress, isLoading: progressLoading } = useContractProgress(contract.id)
+  const { data: progress } = useContractProgress(contract.id)
 
   const isOverdue = contract.status === 'active' && new Date(contract.end_date) < new Date()
   const daysOverdue = isOverdue

@@ -14,7 +14,7 @@ export const GET = withAuth(async (_request, { userId }) => {
 
 export const PUT = withAuth(async (request, { userId }) => {
   try {
-    const body = await request.json();
+    const body = await request.json() as Record<string, unknown>;
     const profile = await updateUserProfile(userId, body);
     return NextResponse.json(profile);
   } catch (error: unknown) {

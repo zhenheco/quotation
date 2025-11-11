@@ -38,7 +38,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
+    const body = await request.json() as Record<string, unknown>;
 
     const { terms, total } = body;
 

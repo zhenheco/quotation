@@ -51,7 +51,7 @@ async function testQuotationSystem() {
           const text = await response.text();
           body = text.substring(0, 200);
         }
-      } catch (e) {
+      } catch {
         body = 'Failed to read response';
       }
 

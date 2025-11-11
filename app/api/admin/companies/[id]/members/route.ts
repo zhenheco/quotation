@@ -4,6 +4,8 @@ import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { isSuperAdmin, canAssignRole, getRoleByName } from '@/lib/services/rbac';
 import { addCompanyMember } from '@/lib/services/company';
 import { query } from '@/lib/db/zeabur';
+import { AddCompanyMemberRequest } from '@/app/api/types';
+import { RoleName } from '@/types/rbac.types';
 
 /**
  * POST /api/admin/companies/[id]/members
@@ -35,7 +37,7 @@ export async function POST(
     }
 
     const { id: companyId } = await params;
-    const body = await request.json();
+    const body = await request.json() as AddCompanyMemberRequest;
     const { user_id, role_name, full_name, display_name, phone } = body;
 
     // 驗證必填欄位
@@ -46,8 +48,17 @@ export async function POST(
       );
     }
 
+    // 驗證 role_name 類型
+    const validRoles: RoleName[] = ['super_admin', 'company_owner', 'sales_manager', 'salesperson', 'accountant'];
+    if (!validRoles.includes(role_name as RoleName)) {
+      return NextResponse.json(
+        { error: `Invalid role: ${role_name}` },
+        { status: 400 }
+      );
+    }
+
     // 檢查是否可以分配此角色（超管可以分配任何角色）
-    const canAssign = await canAssignRole(user.id, role_name, companyId);
+    const canAssign = await canAssignRole(user.id, role_name as RoleName, companyId);
     if (!canAssign) {
       return NextResponse.json(
         { error: `Cannot assign role: ${role_name}` },
@@ -56,7 +67,7 @@ export async function POST(
     }
 
     // 取得角色
-    const role = await getRoleByName(role_name);
+    const role = await getRoleByName(role_name as RoleName);
     if (!role) {
       return NextResponse.json(
         { error: `Role not found: ${role_name}` },

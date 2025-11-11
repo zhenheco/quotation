@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const body = await request.json() as Record<string, unknown>
     const { ids, subject, content, locale = 'zh' } = body
 
     if (!Array.isArray(ids) || ids.length === 0) {

@@ -64,7 +64,6 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   const [showNotesTemplates, setShowNotesTemplates] = useState(false)
   const [contractFile, setContractFile] = useState<File | null>(null)
   const [contractFileUrl, setContractFileUrl] = useState<string>('')
-  const [uploadingContract, setUploadingContract] = useState(false)
   const [paymentTerms, setPaymentTerms] = useState<Partial<PaymentTerm>[]>([])
 
   // 備註模版
@@ -152,8 +151,6 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     if (!contractFile) return null
 
     try {
-      setUploadingContract(true)
-
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('未登入')
 
@@ -181,8 +178,6 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       console.error('上傳合約失敗:', error)
       toast.error('上傳合約失敗')
       return null
-    } finally {
-      setUploadingContract(false)
     }
   }
 

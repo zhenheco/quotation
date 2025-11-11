@@ -67,7 +67,6 @@ export function RoleSelector({
   disabled = false,
   className = '',
   placeholder = '選擇角色...',
-  excludeSuperAdmin = true, // 預設排除超管
   excludeOwner = false,
   showDescription = true
 }: RoleSelectorProps) {

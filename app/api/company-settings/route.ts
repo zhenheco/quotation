@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { withAuth, withPermission } from '@/lib/middleware/withAuth';
-import { getUserCompanies, getCompanyById, createCompany, updateCompany } from '@/lib/services/company';
+import { getUserCompanies, getCompanyById, createCompany, updateCompany, CompanyFormData } from '@/lib/services/company';
+
+interface UpdateCompanySettingsBody {
+  companyId?: string;
+  [key: string]: unknown;
+}
 
 export const GET = withAuth(async (_request, { userId }) => {
   try {
@@ -22,7 +27,7 @@ export const GET = withAuth(async (_request, { userId }) => {
 
 export const POST = withPermission('company_settings', 'write', async (request, { userId }) => {
   try {
-    const body = await request.json();
+    const body = await request.json() as Record<string, unknown> as CompanyFormData;
     const company = await createCompany(userId, body);
     return NextResponse.json(company, { status: 201 });
   } catch (error: unknown) {
@@ -32,7 +37,7 @@ export const POST = withPermission('company_settings', 'write', async (request, 
 
 export const PUT = withPermission('company_settings', 'write', async (request, { userId }) => {
   try {
-    const body = await request.json();
+    const body = await request.json() as Record<string, unknown> as UpdateCompanySettingsBody;
     const { companyId, ...data } = body;
 
     if (!companyId) {

@@ -7,6 +7,11 @@ import {
   getCompanyMember
 } from '@/lib/services/company';
 import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/services/rbac';
+import { RoleName } from '@/types/rbac.types';
+
+interface UpdateMemberRoleBody {
+  role_name: string;
+}
 
 /**
  * PATCH /api/company/[id]/members/[userId]
@@ -29,13 +34,22 @@ export async function PATCH(
     }
 
     const { id: companyId, userId: targetUserId } = await params;
-    const body = await request.json();
+    const body = await request.json() as UpdateMemberRoleBody;
     const { role_name } = body;
 
     // 驗證必填欄位
     if (!role_name) {
       return NextResponse.json(
         { error: 'role_name is required' },
+        { status: 400 }
+      );
+    }
+
+    // 驗證 role_name 類型
+    const validRoles: RoleName[] = ['super_admin', 'company_owner', 'sales_manager', 'salesperson', 'accountant'];
+    if (!validRoles.includes(role_name as RoleName)) {
+      return NextResponse.json(
+        { error: `Invalid role: ${role_name}` },
         { status: 400 }
       );
     }
@@ -52,7 +66,7 @@ export async function PATCH(
     }
 
     // 檢查是否可以分配此角色
-    const canAssign = await canAssignRole(user.id, role_name, companyId);
+    const canAssign = await canAssignRole(user.id, role_name as RoleName, companyId);
     if (!canAssign) {
       return NextResponse.json(
         { error: `Cannot assign role: ${role_name}` },
@@ -61,7 +75,7 @@ export async function PATCH(
     }
 
     // 取得角色
-    const role = await getRoleByName(role_name);
+    const role = await getRoleByName(role_name as RoleName);
     if (!role) {
       return NextResponse.json(
         { error: `Role not found: ${role_name}` },

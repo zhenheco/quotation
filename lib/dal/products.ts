@@ -18,7 +18,8 @@ export interface Product {
   cost_currency: string | null
   profit_margin: number | null
   supplier: string | null
-  base_price: number | null
+  base_price: number
+  base_currency: string
   created_at: string
   updated_at: string
 }
@@ -37,7 +38,8 @@ interface ProductRow {
   cost_currency: string | null
   profit_margin: number | null
   supplier: string | null
-  base_price: number | null
+  base_price: number
+  base_currency: string
   created_at: string
   updated_at: string
 }

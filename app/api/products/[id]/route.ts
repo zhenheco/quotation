@@ -6,6 +6,20 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getProductById, updateProduct, deleteProduct } from '@/lib/dal/products'
 import { checkPermission } from '@/lib/cache/services'
 
+interface UpdateProductRequestBody {
+  name?: string;
+  description?: string;
+  base_price?: number;
+  base_currency?: string;
+  category?: string;
+  sku?: string;
+  cost_price?: number | null;
+  cost_currency?: string;
+  profit_margin?: number | null;
+  supplier?: string;
+  supplier_code?: string;
+}
+
 
 /**
  * GET /api/products/[id] - 取得單一產品
@@ -83,7 +97,7 @@ export async function PUT(
     }
 
     // 取得請求資料
-    const body = await request.json()
+    const body = await request.json() as Record<string, unknown> as UpdateProductRequestBody
 
     // 驗證數值欄位（如有提供）
     if (body.base_price !== undefined) {

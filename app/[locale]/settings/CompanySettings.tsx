@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
@@ -40,16 +40,12 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
 
   const supabase = createClient();
 
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
-
-  const fetchCompanies = async () => {
+  const fetchCompanies = useCallback(async () => {
     try {
       const response = await fetch('/api/companies');
       if (response.ok) {
-        const data = await response.json();
-        setCompanies(data.map((c: { company_id: string; company_name: { zh: string; en: string }; logo_url?: string }) => ({
+        const data: Array<{ company_id: string; company_name: { zh: string; en: string }; logo_url?: string }> = await response.json();
+        setCompanies(data.map((c) => ({
           id: c.company_id,
           name: c.company_name,
           logo_url: c.logo_url
@@ -58,7 +54,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
         // Select the first company or the one from localStorage
         const storedCompanyId = localStorage.getItem('selectedCompanyId');
         // Verify that storedCompanyId exists in current user's companies
-        const isValidCompanyId = storedCompanyId && data.some((c: { company_id: string }) => c.company_id === storedCompanyId);
+        const isValidCompanyId = storedCompanyId && data.some((c) => c.company_id === storedCompanyId);
 
         if (isValidCompanyId) {
           loadCompany(storedCompanyId);
@@ -74,13 +70,17 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [fetchCompanies]);
 
   const loadCompany = async (companyId: string) => {
     try {
       const response = await fetch(`/api/companies/${companyId}`);
       if (response.ok) {
-        const data = await response.json();
+        const data: Company = await response.json();
         setSelectedCompany(data);
         setIsCreating(false);
       }
@@ -137,12 +137,12 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
       }
 
       if (response.ok) {
-        const data = await response.json();
+        const data: Company = await response.json();
         alert(locale === 'zh' ? '保存成功！' : 'Saved successfully!');
         await fetchCompanies();
         loadCompany(data.id);
       } else {
-        const error = await response.json();
+        const error: { error?: string } = await response.json();
         alert(error.error || 'Failed to save');
       }
     } catch (error) {

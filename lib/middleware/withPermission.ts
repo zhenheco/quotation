@@ -119,9 +119,7 @@ export function withPermissions(
 /**
  * Check if user can access product cost information
  */
-export async function canAccessProductCost(
-  req: NextRequest
-): Promise<boolean> {
+export async function canAccessProductCost(): Promise<boolean> {
   const session = await getServerSession();
 
   if (!session?.user?.id) {
@@ -135,9 +133,7 @@ export async function canAccessProductCost(
 /**
  * Get current user ID from session
  */
-export async function getCurrentUserId(
-  req: NextRequest
-): Promise<string | null> {
+export async function getCurrentUserId(): Promise<string | null> {
   const session = await getServerSession();
   return session?.user?.id || null;
 }

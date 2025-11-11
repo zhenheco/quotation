@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions to create contracts' }, { status: 403 })
     }
 
-    const body = await request.json()
+    const body = await request.json() as Record<string, unknown>
 
     const { data: contract, error } = await supabase.rpc('create_contract', {
       p_user_id: user.id,

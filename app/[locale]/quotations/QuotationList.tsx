@@ -171,10 +171,6 @@ export default function QuotationList({ locale }: QuotationListProps) {
     }
   }
 
-  // 判斷報價單是否已過期
-  const isExpired = (validUntil: string) => {
-    return new Date(validUntil) < new Date()
-  }
 
   // 載入狀態
   if (isLoading) {

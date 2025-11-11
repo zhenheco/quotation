@@ -11,8 +11,7 @@
  *      其他 update 函式建議逐步遷移到相同模式
  */
 
-import { getZeaburPool, query } from '@/lib/db/zeabur'
-import { QueryResult } from 'pg'
+import { query } from '@/lib/db/zeabur'
 import {
   buildUpdateFields,
   CUSTOMER_ALLOWED_FIELDS,
@@ -45,6 +44,8 @@ export interface Product {
   description?: { zh: string; en: string }
   unit_price: number
   currency: string
+  base_price?: number
+  base_currency?: string
   category?: string
   cost_price?: number
   cost_currency?: string
@@ -367,7 +368,7 @@ export async function createQuotation(data: Omit<Quotation, 'id' | 'created_at' 
     [
       data.user_id, data.customer_id, data.quotation_number, data.status,
       data.issue_date, data.valid_until, data.currency, data.exchange_rate || 1,
-      data.subtotal, data.tax_rate, data.tax_amount, data.total_amount, data.notes,
+      data.subtotal, data.tax_rate, data.tax_amount, data.total, data.notes,
       data.payment_status || 'unpaid', data.payment_due_date, data.total_paid || 0,
       data.deposit_amount, data.deposit_paid_date, data.final_payment_amount,
       data.final_payment_due_date, data.contract_signed_date, data.contract_expiry_date,
@@ -436,7 +437,7 @@ export async function deleteQuotation(id: string, userId: string): Promise<boole
 // ========================================
 
 export async function getQuotationItems(quotationId: string, userId: string): Promise<QuotationItem[]> {
-  const pool = getZeaburPool()
+  // const _pool = getZeaburPool()
 
   // 首先驗證報價單屬於該用戶
   const quotation = await getQuotationById(quotationId, userId)
@@ -456,7 +457,7 @@ export async function createQuotationItem(
   userId: string,
   data: Omit<QuotationItem, 'id' | 'quotation_id' | 'created_at' | 'updated_at'>
 ): Promise<QuotationItem> {
-  const pool = getZeaburPool()
+  // const _pool = getZeaburPool()
 
   // 驗證報價單屬於該用戶
   const quotation = await getQuotationById(quotationId, userId)
@@ -474,7 +475,7 @@ export async function createQuotationItem(
 }
 
 export async function deleteQuotationItem(id: string, quotationId: string, userId: string): Promise<boolean> {
-  const pool = getZeaburPool()
+  // const _pool = getZeaburPool()
 
   // 驗證報價單屬於該用戶
   const quotation = await getQuotationById(quotationId, userId)
@@ -496,7 +497,7 @@ export async function deleteQuotationItem(id: string, quotationId: string, userI
 /**
  * 生成下一個報價單號碼
  */
-export async function generateQuotationNumber(userId: string): Promise<string> {
+export async function generateQuotationNumber(): Promise<string> {
   const year = new Date().getFullYear()
   const month = String(new Date().getMonth() + 1).padStart(2, '0')
   const day = String(new Date().getDate()).padStart(2, '0')

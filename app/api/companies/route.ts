@@ -6,6 +6,21 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getUserCompanies, createCompany, addCompanyMember } from '@/lib/dal/companies'
 import { checkPermission } from '@/lib/cache/services'
 
+interface CreateCompanyRequestBody {
+  name: { zh: string; en: string } | string;
+  logo_url?: string;
+  signature_url?: string;
+  passbook_url?: string;
+  tax_id?: string;
+  bank_name?: string;
+  bank_account?: string;
+  bank_code?: string;
+  address?: { zh: string; en: string } | string;
+  phone?: string;
+  email?: string;
+  website?: string;
+}
+
 
 /**
  * GET /api/companies - 取得使用者的所有公司
@@ -68,7 +83,7 @@ export async function POST(
     }
 
     // 取得請求資料
-    const body = await request.json()
+    const body = await request.json() as CreateCompanyRequestBody
 
     // 驗證必填欄位
     if (!body.name) {
@@ -77,18 +92,18 @@ export async function POST(
 
     // 建立公司
     const company = await createCompany(db, {
-      name: body.name,
-      logo_url: body.logo_url || null,
-      signature_url: body.signature_url || null,
-      passbook_url: body.passbook_url || null,
-      tax_id: body.tax_id || null,
-      bank_name: body.bank_name || null,
-      bank_account: body.bank_account || null,
-      bank_code: body.bank_code || null,
-      address: body.address || null,
-      phone: body.phone || null,
-      email: body.email || null,
-      website: body.website || null
+      name: typeof body.name === 'string' ? { zh: body.name, en: body.name } : body.name,
+      logo_url: body.logo_url || undefined,
+      signature_url: body.signature_url || undefined,
+      passbook_url: body.passbook_url || undefined,
+      tax_id: body.tax_id || undefined,
+      bank_name: body.bank_name || undefined,
+      bank_account: body.bank_account || undefined,
+      bank_code: body.bank_code || undefined,
+      address: typeof body.address === 'string' ? { zh: body.address, en: body.address } : body.address || undefined,
+      phone: body.phone || undefined,
+      email: body.email || undefined,
+      website: body.website || undefined
     })
 
     // 將建立者加入為公司成員（owner）

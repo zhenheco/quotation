@@ -6,6 +6,24 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getCompanyById, updateCompany, deleteCompany, isCompanyMember } from '@/lib/dal/companies'
 import { checkPermission } from '@/lib/cache/services'
 
+interface UpdateCompanyRequestBody {
+  name_zh?: string;
+  name_en?: string;
+  address_zh?: string;
+  address_en?: string;
+  logo_url?: string;
+  signature_url?: string;
+  passbook_url?: string;
+  tax_id?: string;
+  bank_name?: string;
+  bank_account?: string;
+  bank_code?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  [key: string]: unknown;
+}
+
 
 /**
  * GET /api/companies/[id] - 取得單一公司資料
@@ -88,7 +106,7 @@ export async function PUT(
     }
 
     // 取得請求資料
-    const body = await request.json()
+    const body = await request.json() as Record<string, unknown> as UpdateCompanyRequestBody
 
     // 構建更新資料
     const updateData: Record<string, unknown> = {}

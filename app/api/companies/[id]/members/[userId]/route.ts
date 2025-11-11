@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { withAuth } from '@/lib/middleware/withAuth';
 import { updateCompanyMemberRole, removeCompanyMember } from '@/lib/services/company';
+import { UpdateMemberRoleRequest } from '@/app/api/types';
 
 /**
  * PUT /api/companies/[id]/members/[userId]
@@ -10,8 +11,10 @@ import { updateCompanyMemberRole, removeCompanyMember } from '@/lib/services/com
  */
 export const PUT = withAuth(async (request, { userId: currentUserId, params }) => {
   try {
-    const { id, userId: targetUserId } = await params;
-    const body = await request.json();
+    const resolvedParams = await params;
+    const id = typeof resolvedParams.id === 'string' ? resolvedParams.id : resolvedParams.id[0];
+    const targetUserId = typeof resolvedParams.userId === 'string' ? resolvedParams.userId : resolvedParams.userId[0];
+    const body = await request.json() as UpdateMemberRoleRequest;
     const { role_id } = body;
 
     if (!role_id) {
@@ -32,7 +35,9 @@ export const PUT = withAuth(async (request, { userId: currentUserId, params }) =
  */
 export const DELETE = withAuth(async (_request, { userId: currentUserId, params }) => {
   try {
-    const { id, userId: targetUserId } = await params;
+    const resolvedParams = await params;
+    const id = typeof resolvedParams.id === 'string' ? resolvedParams.id : resolvedParams.id[0];
+    const targetUserId = typeof resolvedParams.userId === 'string' ? resolvedParams.userId : resolvedParams.userId[0];
     await removeCompanyMember(id, currentUserId, targetUserId);
     return NextResponse.json({ message: 'Member removed successfully' });
   } catch (error: unknown) {

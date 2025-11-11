@@ -3,13 +3,19 @@ import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { withAuth } from '@/lib/middleware/withAuth';
 import { getCompanyMembers, addCompanyMember } from '@/lib/services/company';
 
+interface AddMemberRequest {
+  user_id: string;
+  role_id: string;
+}
+
 /**
  * GET /api/companies/[id]/members
  * Get all members of a company
  */
 export const GET = withAuth(async (_request, { userId, params }) => {
   try {
-    const { id } = await params;
+    const resolvedParams = await params;
+    const id = typeof resolvedParams.id === 'string' ? resolvedParams.id : resolvedParams.id[0];
     const members = await getCompanyMembers(id, userId);
     return NextResponse.json(members);
   } catch (error: unknown) {
@@ -25,8 +31,9 @@ export const GET = withAuth(async (_request, { userId, params }) => {
  */
 export const POST = withAuth(async (request, { userId, params }) => {
   try {
-    const { id } = await params;
-    const body = await request.json();
+    const resolvedParams = await params;
+    const id = typeof resolvedParams.id === 'string' ? resolvedParams.id : resolvedParams.id[0];
+    const body = await request.json() as AddMemberRequest;
     const { user_id, role_id } = body;
 
     if (!user_id || !role_id) {

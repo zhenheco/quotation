@@ -4,6 +4,15 @@ import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getCompanyMembersDetailed, addCompanyMember, getCompanyMember } from '@/lib/services/company';
 import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/services/rbac';
 import { query } from '@/lib/db/zeabur';
+import { RoleName } from '@/types/rbac.types';
+
+interface AddMemberBody {
+  user_id: string;
+  role_name: string;
+  full_name?: string;
+  display_name?: string;
+  phone?: string;
+}
 
 /**
  * GET /api/company/[id]/members
@@ -72,7 +81,7 @@ export async function POST(
     }
 
     const { id: companyId } = await params;
-    const body = await request.json();
+    const body = await request.json() as AddMemberBody;
     const { user_id, role_name, full_name, display_name, phone } = body;
 
     // 驗證必填欄位
@@ -94,8 +103,17 @@ export async function POST(
       );
     }
 
+    // 驗證 role_name 類型
+    const validRoles: RoleName[] = ['super_admin', 'company_owner', 'sales_manager', 'salesperson', 'accountant'];
+    if (!validRoles.includes(role_name as RoleName)) {
+      return NextResponse.json(
+        { error: `Invalid role: ${role_name}` },
+        { status: 400 }
+      );
+    }
+
     // 檢查是否可以分配此角色
-    const canAssign = await canAssignRole(user.id, role_name, companyId);
+    const canAssign = await canAssignRole(user.id, role_name as RoleName, companyId);
     if (!canAssign) {
       return NextResponse.json(
         { error: `Cannot assign role: ${role_name}` },
@@ -104,7 +122,7 @@ export async function POST(
     }
 
     // 取得角色
-    const role = await getRoleByName(role_name);
+    const role = await getRoleByName(role_name as RoleName);
     if (!role) {
       return NextResponse.json(
         { error: `Role not found: ${role_name}` },
@@ -137,7 +155,10 @@ export async function POST(
     console.error('Error adding company member:', error);
 
     // 檢查是否為重複新增
-    if (getErrorMessage(error)?.includes('duplicate') || error.code === '23505') {
+    const errorMessage = getErrorMessage(error);
+    const isDuplicate = errorMessage?.includes('duplicate') ||
+                       (error && typeof error === 'object' && 'code' in error && error.code === '23505');
+    if (isDuplicate) {
       return NextResponse.json(
         { error: 'User is already a member of this company' },
         { status: 409 }

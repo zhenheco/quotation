@@ -5,6 +5,7 @@ import { getD1Client } from '@/lib/db/d1-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { getCustomers, createCustomer } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
+import { CreateCustomerRequest } from '@/app/api/types'
 
 
 /**
@@ -68,7 +69,7 @@ export async function POST(
     }
 
     // 取得請求資料
-    const body = await request.json()
+    const body = await request.json() as CreateCustomerRequest
     const { name, email, phone, address, tax_id, contact_person, company_id } = body
 
     // 驗證必填欄位
@@ -78,13 +79,13 @@ export async function POST(
 
     // 建立客戶（DAL 會自動處理 JSON 序列化）
     const customer = await createCustomer(db, user.id, {
-      name,
-      email: email || null,
-      phone: phone || null,
-      address: address || null,
-      tax_id: tax_id || null,
-      contact_person: contact_person || null,
-      company_id: company_id || null
+      name: typeof name === 'string' ? { zh: name, en: name } : (name as { zh: string; en: string }),
+      email: (email || undefined) as string,
+      phone: phone || undefined,
+      address: address ? (typeof address === 'string' ? { zh: address, en: address } : address) : undefined,
+      tax_id: tax_id || undefined,
+      contact_person: contact_person ? (typeof contact_person === 'string' ? { zh: contact_person, en: contact_person } : contact_person) : undefined,
+      company_id: company_id || undefined
     })
 
     return NextResponse.json(customer, { status: 201 })

@@ -12,6 +12,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useAdminUserDetail } from '@/hooks/admin/useAdminUserDetail';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function AdminUserDetailPage() {
   const params = useParams();
@@ -153,10 +154,12 @@ export default function AdminUserDetailPage() {
           {/* 頭像 */}
           <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
             {user.avatar_url ? (
-              <img
+              <Image
                 src={user.avatar_url}
                 alt={user.name || user.email}
-                className="w-24 h-24 rounded-full"
+                width={96}
+                height={96}
+                className="rounded-full object-cover"
               />
             ) : (
               <span className="text-4xl font-bold text-purple-600">

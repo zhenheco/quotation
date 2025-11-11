@@ -43,7 +43,7 @@ test.describe('寄送報價單功能', () => {
 })
 
 test.describe('寄送報價單 API 測試（需要登入）', () => {
-  test.skip('寄送報價單完整流程', async ({ page, context }) => {
+  test.skip('寄送報價單完整流程', async ({ page }) => {
     await page.goto('/zh/login')
 
     await page.fill('input[type="email"]', 'acejou27@gmail.com')

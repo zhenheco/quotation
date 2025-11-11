@@ -86,7 +86,7 @@ export async function POST(
     }
 
     // 取得請求資料
-    const body = await request.json()
+    const body = await request.json() as Record<string, unknown>
     const {
       customer_id,
       issue_date,

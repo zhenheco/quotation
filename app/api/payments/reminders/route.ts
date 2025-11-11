@@ -32,31 +32,38 @@ export async function GET(req: NextRequest) {
 
     const reminders = await getNextCollectionReminders(userId, filters);
 
-    // Group by status
-    const groupedByStatus = reminders.reduce((acc, r) => {
-      const status = r.collection_status;
+    interface Reminder {
+      collection_status: string;
+      currency: string;
+      next_collection_amount: string | number;
+    }
+
+    const groupedByStatus = reminders.reduce<Record<string, Reminder[]>>((acc, r) => {
+      const reminder = r as Reminder;
+      const status = reminder.collection_status || 'unknown';
       if (!acc[status]) {
         acc[status] = [];
       }
-      acc[status].push(r);
+      acc[status].push(reminder);
       return acc;
-    }, {} as Record<string, unknown[]>);
+    }, {});
 
-    // Calculate totals
-    const totalAmount = reminders.reduce((sum, r) => {
-      const amount = r.next_collection_amount ? parseFloat(String(r.next_collection_amount)) : 0;
+    const totalAmount = reminders.reduce((sum: number, r) => {
+      const reminder = r as Reminder;
+      const amount = reminder.next_collection_amount ? parseFloat(String(reminder.next_collection_amount)) : 0;
       return sum + (isNaN(amount) ? 0 : amount);
     }, 0);
 
-    const currencyGroups = reminders.reduce((acc, r) => {
-      const currency = r.currency || 'TWD';
+    const currencyGroups = reminders.reduce<Record<string, number>>((acc, r) => {
+      const reminder = r as Reminder;
+      const currency = reminder.currency || 'TWD';
       if (!acc[currency]) {
         acc[currency] = 0;
       }
-      const amount = r.next_collection_amount ? parseFloat(String(r.next_collection_amount)) : 0;
+      const amount = reminder.next_collection_amount ? parseFloat(String(reminder.next_collection_amount)) : 0;
       acc[currency] += isNaN(amount) ? 0 : amount;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
 
     return NextResponse.json({
       success: true,

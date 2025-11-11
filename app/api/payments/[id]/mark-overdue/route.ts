@@ -4,7 +4,7 @@
  * Manually mark a payment schedule as overdue
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getServerSession } from '@/lib/auth';
 import { markPaymentAsOverdue } from '@/lib/services/payments';

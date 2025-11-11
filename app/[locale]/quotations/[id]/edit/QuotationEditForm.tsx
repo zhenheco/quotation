@@ -67,6 +67,10 @@ interface Quotation {
     name: { zh: string; en: string }
     email: string
   }
+  customer?: {
+    name: { zh: string; en: string }
+    email: string
+  }
 }
 
 interface QuotationEditFormProps {
@@ -94,10 +98,8 @@ export default function QuotationEditForm({
   const [error, setError] = useState('')
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({})
   const [showVersionHistory, setShowVersionHistory] = useState(false)
-  const [productSearches, setProductSearches] = useState<Record<number, string>>({})
   const [contractFile, setContractFile] = useState<File | null>(null)
   const [contractFileUrl, setContractFileUrl] = useState<string>('')
-  const [uploadingContract, setUploadingContract] = useState(false)
 
   // 日期格式轉換函數
   const formatDateForInput = (dateValue: string | Date): string => {
@@ -132,24 +134,14 @@ export default function QuotationEditForm({
     }
   }, [quotation])
 
-  // 過濾產品列表
-  const getFilteredProducts = (index: number) => {
-    const search = productSearches[index]
-    if (!search) return products
-    const searchLower = search.toLowerCase()
-    return products.filter(product =>
-      product.name?.zh?.toLowerCase().includes(searchLower) ||
-      product.name?.en?.toLowerCase().includes(searchLower)
-    )
-  }
 
   // 獲取匯率數據
   useEffect(() => {
     const fetchExchangeRates = async () => {
       try {
         const response = await fetch(`/api/exchange-rates?base=${formData.currency}`)
-        const data = await response.json()
-        if (data.success) {
+        const data: { success?: boolean; rates?: Record<string, number> } = await response.json()
+        if (data.success && data.rates) {
           setExchangeRates(data.rates)
         }
       } catch (error) {
@@ -284,12 +276,10 @@ export default function QuotationEditForm({
     if (!contractFile) return null
 
     try {
-      setUploadingContract(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('未登入')
 
       const timestamp = Date.now()
-      const fileExt = contractFile.name.split('.').pop()
       const safeFileName = contractFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
       const fileName = `${timestamp}_${safeFileName}`
       const filePath = `${user.id}/${quotationId}/${fileName}`
@@ -311,8 +301,6 @@ export default function QuotationEditForm({
       console.error('上傳合約失敗:', error)
       toast.error('上傳合約失敗')
       return null
-    } finally {
-      setUploadingContract(false)
     }
   }
 
@@ -394,7 +382,7 @@ export default function QuotationEditForm({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData: { error?: string } = await response.json()
         throw new Error(errorData.error || 'Failed to update quotation')
       }
 
@@ -443,7 +431,7 @@ export default function QuotationEditForm({
                 {t('quotation.customer')}
               </label>
               <div className="block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
-                {quotation.customer_name?.[locale as 'zh' | 'en']} ({quotation.customer_email})
+                {quotation.customers?.name?.[locale as 'zh' | 'en'] || quotation.customer?.name?.[locale as 'zh' | 'en']} ({quotation.customers?.email || quotation.customer?.email})
               </div>
             </div>
 
@@ -728,7 +716,7 @@ export default function QuotationEditForm({
                             } else {
                               throw new Error('刪除失敗')
                             }
-                          } catch (error) {
+                          } catch {
                             toast.error('刪除合約失敗')
                           }
                         }

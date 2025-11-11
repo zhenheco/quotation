@@ -19,7 +19,6 @@ import {
 import {
   RequirePermission,
   SuperAdminOnly,
-  CompanyOwnerOnly,
   CompanySelector,
   RoleSelector,
   RoleBadge,

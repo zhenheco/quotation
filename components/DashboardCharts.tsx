@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import RevenueChart from '@/components/charts/RevenueChart'
 import CurrencyChart from '@/components/charts/CurrencyChart'
 import StatusChart from '@/components/charts/StatusChart'
@@ -43,7 +42,6 @@ export default function DashboardCharts({
   defaultCurrency = 'TWD'
 }: DashboardChartsProps) {
   const t = useTranslations()
-  const [selectedPeriod, setSelectedPeriod] = useState('6months')
 
   // 格式化貨幣
   const formatCurrency = (amount: number) => {

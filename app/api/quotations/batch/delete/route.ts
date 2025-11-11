@@ -1,6 +1,5 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
-import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
 
 export async function POST(request: NextRequest) {

@@ -32,15 +32,26 @@ export async function GET(req: NextRequest) {
 
     const payments = await getCollectedPayments(userId, filters);
 
-    // Calculate totals
-    const totalAmount = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
-    const currencyGroups = payments.reduce((acc, p) => {
-      if (!acc[p.currency]) {
-        acc[p.currency] = 0;
+    interface PaymentRecord {
+      amount: string | number;
+      currency: string;
+    }
+
+    const totalAmount = payments.reduce((sum: number, p) => {
+      const payment = p as PaymentRecord;
+      const amount = typeof payment.amount === 'string' ? parseFloat(payment.amount) : payment.amount;
+      return sum + amount;
+    }, 0);
+    const currencyGroups = payments.reduce<Record<string, number>>((acc, p) => {
+      const payment = p as PaymentRecord;
+      const currency = payment.currency || 'UNKNOWN';
+      if (!acc[currency]) {
+        acc[currency] = 0;
       }
-      acc[p.currency] += parseFloat(p.amount);
+      const amount = typeof payment.amount === 'string' ? parseFloat(payment.amount) : payment.amount;
+      acc[currency] += amount;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
 
     return NextResponse.json({
       success: true,

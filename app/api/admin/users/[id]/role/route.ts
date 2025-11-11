@@ -1,7 +1,8 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
-import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { isSuperAdmin, canAssignRole, assignRoleToUser, removeRoleFromUser } from '@/lib/services/rbac';
+import { isSuperAdmin, canAssignRole, assignRoleToUser } from '@/lib/services/rbac';
+import { AssignRoleRequest } from '@/app/api/types';
+import { RoleName } from '@/types/rbac.types';
 
 /**
  * PATCH /api/admin/users/[id]/role
@@ -33,7 +34,7 @@ export async function PATCH(
     }
 
     const { id: targetUserId } = await params;
-    const body = await request.json();
+    const body = await request.json() as AssignRoleRequest;
     const { role_name, company_id } = body;
 
     // 驗證必填欄位
@@ -44,8 +45,17 @@ export async function PATCH(
       );
     }
 
+    // 驗證 role_name 類型
+    const validRoles: RoleName[] = ['super_admin', 'company_owner', 'sales_manager', 'salesperson', 'accountant'];
+    if (!validRoles.includes(role_name as RoleName)) {
+      return NextResponse.json(
+        { error: `Invalid role: ${role_name}` },
+        { status: 400 }
+      );
+    }
+
     // 檢查是否可以分配此角色
-    const canAssign = await canAssignRole(user.id, role_name, company_id);
+    const canAssign = await canAssignRole(user.id, role_name as RoleName, company_id);
     if (!canAssign) {
       return NextResponse.json(
         { error: `Cannot assign role: ${role_name}` },
@@ -55,7 +65,7 @@ export async function PATCH(
 
     // 如果是全域角色（super_admin, company_owner），直接分配
     if (['super_admin', 'company_owner'].includes(role_name)) {
-      const userRole = await assignRoleToUser(targetUserId, role_name, user.id);
+      const userRole = await assignRoleToUser(targetUserId, role_name as RoleName, user.id);
 
       return NextResponse.json({
         message: `Successfully assigned ${role_name} to user`,

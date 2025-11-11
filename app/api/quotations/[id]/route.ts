@@ -94,8 +94,21 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // 取得請求資料
-    const body = await request.json()
+    interface UpdateQuotationBody {
+      customer_id?: string;
+      status?: string;
+      issue_date?: string;
+      valid_until?: string;
+      currency?: string;
+      subtotal?: string | number;
+      tax_rate?: string | number;
+      tax_amount?: string | number;
+      total_amount?: string | number;
+      notes?: string;
+      items?: unknown[];
+    }
+
+    const body = await request.json() as UpdateQuotationBody
     const {
       customer_id,
       status,
@@ -124,17 +137,16 @@ export async function PUT(
       }
     }
 
-    // 構建更新資料
     const updateData: Record<string, unknown> = {}
     if (customer_id !== undefined) updateData.customer_id = customer_id
     if (status !== undefined) updateData.status = status
     if (issue_date !== undefined) updateData.issue_date = issue_date
     if (valid_until !== undefined) updateData.valid_until = valid_until
     if (currency !== undefined) updateData.currency = currency
-    if (subtotal !== undefined) updateData.subtotal = parseFloat(subtotal)
-    if (tax_rate !== undefined) updateData.tax_rate = parseFloat(tax_rate)
-    if (tax_amount !== undefined) updateData.tax_amount = parseFloat(tax_amount)
-    if (total_amount !== undefined) updateData.total_amount = parseFloat(total_amount)
+    if (subtotal !== undefined) updateData.subtotal = typeof subtotal === 'string' ? parseFloat(subtotal) : subtotal
+    if (tax_rate !== undefined) updateData.tax_rate = typeof tax_rate === 'string' ? parseFloat(tax_rate) : tax_rate
+    if (tax_amount !== undefined) updateData.tax_amount = typeof tax_amount === 'string' ? parseFloat(tax_amount) : tax_amount
+    if (total_amount !== undefined) updateData.total_amount = typeof total_amount === 'string' ? parseFloat(total_amount) : total_amount
     if (notes !== undefined) updateData.notes = notes
 
     // 更新報價單

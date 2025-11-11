@@ -13,6 +13,7 @@
 import { useState, useMemo } from 'react';
 import { useAdminUsers } from '@/hooks/admin/useAdminUsers';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function AdminUsersPage() {
   const { users, loading, error, refetch } = useAdminUsers();
@@ -213,12 +214,14 @@ export default function AdminUsersPage() {
                   <tr key={user.user_id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
                           {user.avatar_url ? (
-                            <img
+                            <Image
                               src={user.avatar_url}
                               alt={user.name || user.email}
-                              className="w-10 h-10 rounded-full"
+                              width={40}
+                              height={40}
+                              className="rounded-full object-cover"
                             />
                           ) : (
                             <span className="text-sm font-bold text-purple-600">

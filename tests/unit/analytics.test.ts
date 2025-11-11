@@ -328,7 +328,7 @@ describe('Analytics Service - Phase 2 測試', () => {
 
   describe('性能測試 - N+1 查詢問題', () => {
     it('應該避免 N+1 查詢', async () => {
-      const mockQuotations = Array.from({ length: 100 }, (_, i) => ({
+      const mockQuotations = Array.from({ length: 100 }, () => ({
         issue_date: '2025-01-01',
         total_amount: 1000,
         currency: 'TWD',

@@ -9,6 +9,14 @@ import { getServerSession } from '@/lib/auth';
 import { convertQuotationToContract } from '@/lib/services/contracts';
 import type { PaymentTerms } from '@/types/extended.types';
 
+interface ConvertQuotationRequest {
+  quotation_id: string;
+  signed_date: string;
+  expiry_date: string;
+  payment_frequency: PaymentTerms;
+  payment_day?: number;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession();
@@ -21,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = session.user.id;
-    const body = await req.json();
+    const body = await req.json() as ConvertQuotationRequest;
 
     // Validate required fields
     if (!body.quotation_id) {

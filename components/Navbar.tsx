@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Menu } from '@headlessui/react'
 import CompanySelector from './CompanySelector'
 
@@ -19,11 +20,7 @@ export default function Navbar({ locale }: { locale: string }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
 
-  useEffect(() => {
-    loadUserProfile()
-  }, [])
-
-  async function loadUserProfile() {
+  const loadUserProfile = useCallback(async () => {
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()
@@ -41,7 +38,11 @@ export default function Navbar({ locale }: { locale: string }) {
     } catch (error) {
       console.error('Failed to load user profile:', error)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    loadUserProfile()
+  }, [loadUserProfile])
 
   const handleSignOut = async () => {
     try {
@@ -97,10 +98,12 @@ export default function Navbar({ locale }: { locale: string }) {
             <Menu.Button className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
               {/* Avatar */}
               {userProfile?.avatar_url ? (
-                <img
+                <Image
                   src={userProfile.avatar_url}
                   alt={displayName}
-                  className="w-8 h-8 rounded-full object-cover"
+                  width={32}
+                  height={32}
+                  className="rounded-full object-cover"
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">

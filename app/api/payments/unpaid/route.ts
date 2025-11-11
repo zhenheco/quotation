@@ -32,19 +32,30 @@ export async function GET(req: NextRequest) {
 
     const unpaidPayments = await getUnpaidPayments(userId, filters);
 
-    // Calculate totals
-    const totalAmount = unpaidPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
-    const currencyGroups = unpaidPayments.reduce((acc, p) => {
-      if (!acc[p.currency]) {
-        acc[p.currency] = 0;
+    interface UnpaidPayment {
+      amount: string | number;
+      currency: string;
+      days_overdue: number;
+    }
+
+    const totalAmount = unpaidPayments.reduce((sum: number, p) => {
+      const payment = p as UnpaidPayment;
+      const amount = typeof payment.amount === 'string' ? parseFloat(payment.amount) : payment.amount;
+      return sum + amount;
+    }, 0);
+    const currencyGroups = unpaidPayments.reduce((acc: Record<string, number>, p) => {
+      const payment = p as UnpaidPayment;
+      const currency = payment.currency || 'UNKNOWN';
+      if (!acc[currency]) {
+        acc[currency] = 0;
       }
-      acc[p.currency] += parseFloat(p.amount);
+      const amount = typeof payment.amount === 'string' ? parseFloat(payment.amount) : payment.amount;
+      acc[currency] += amount;
       return acc;
     }, {} as Record<string, number>);
 
-    // Calculate max days overdue
     const maxDaysOverdue = unpaidPayments.length > 0
-      ? Math.max(...unpaidPayments.map(p => p.days_overdue))
+      ? Math.max(...unpaidPayments.map((p) => (p as UnpaidPayment).days_overdue))
       : 0;
 
     return NextResponse.json({

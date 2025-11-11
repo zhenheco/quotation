@@ -64,7 +64,7 @@ async function sendSuccessNotification(syncedCount: number) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // 驗證請求來源 (Vercel Cron 會帶上特殊的 header)
     const headersList = await headers()
@@ -147,7 +147,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // 驗證請求（可以用 API key 或其他方式）
-    const body = await request.json()
+    const body = await request.json() as Record<string, unknown>
     const apiKey = body.apiKey || request.headers.get('x-api-key')
 
     if (apiKey !== process.env.ADMIN_API_KEY && process.env.NODE_ENV === 'production') {
