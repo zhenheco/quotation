@@ -9,13 +9,13 @@ import { checkPermission } from '@/lib/cache/services'
 interface CreateProductRequestBody {
   name: string;
   description?: string;
-  base_price: number;
+  base_price: number | string;
   base_currency: string;
   category?: string;
   sku?: string;
-  cost_price?: number;
+  cost_price?: number | string;
   cost_currency?: string;
-  profit_margin?: number;
+  profit_margin?: number | string;
   supplier?: string;
   supplier_code?: string;
 }
@@ -89,7 +89,7 @@ export async function POST(
     }
 
     // 取得請求資料
-    const body = await request.json() as Record<string, unknown> as CreateProductRequestBody
+    const body = await request.json() as CreateProductRequestBody
 
     // 驗證必填欄位
     if (!body.name || body.base_price === undefined || !body.base_currency) {
@@ -100,42 +100,44 @@ export async function POST(
     }
 
     // 驗證價格
-    const price = parseFloat(body.base_price)
+    const price = typeof body.base_price === 'number' ? body.base_price : parseFloat(body.base_price)
     if (isNaN(price) || price < 0) {
       return NextResponse.json({ error: 'Invalid price' }, { status: 400 })
     }
 
     // 驗證成本價格（如有提供）
-    let costPrice: number | null = null
+    let costPrice: number | undefined = undefined
     if (body.cost_price !== undefined) {
-      costPrice = parseFloat(body.cost_price)
-      if (isNaN(costPrice) || costPrice < 0) {
+      const parsedCost = typeof body.cost_price === 'number' ? body.cost_price : parseFloat(body.cost_price)
+      if (isNaN(parsedCost) || parsedCost < 0) {
         return NextResponse.json({ error: 'Invalid cost price' }, { status: 400 })
       }
+      costPrice = parsedCost
     }
 
     // 驗證利潤率（如有提供）
-    let profitMargin: number | null = null
+    let profitMargin: number | undefined = undefined
     if (body.profit_margin !== undefined) {
-      profitMargin = parseFloat(body.profit_margin)
-      if (isNaN(profitMargin)) {
+      const parsedMargin = typeof body.profit_margin === 'number' ? body.profit_margin : parseFloat(body.profit_margin)
+      if (isNaN(parsedMargin)) {
         return NextResponse.json({ error: 'Invalid profit margin' }, { status: 400 })
       }
+      profitMargin = parsedMargin
     }
 
     // 建立產品（DAL 會自動處理 JSON 序列化）
     const product = await createProduct(db, user.id, {
       name: typeof body.name === 'string' ? { zh: body.name, en: body.name } : body.name,
       description: body.description ? (typeof body.description === 'string' ? { zh: body.description, en: body.description } : body.description) : undefined,
-      base_price: price,
-      base_currency: body.base_currency,
-      category: body.category || undefined,
-      sku: body.sku || undefined,
-      cost_price: costPrice || undefined,
-      cost_currency: body.cost_currency || undefined,
-      profit_margin: profitMargin || undefined,
-      supplier: body.supplier || undefined,
-      supplier_code: body.supplier_code || undefined
+      unit_price: price,
+      currency: body.base_currency,
+      category: body.category,
+      sku: body.sku,
+      cost_price: costPrice,
+      cost_currency: body.cost_currency,
+      profit_margin: profitMargin,
+      supplier: body.supplier,
+      base_price: price
     })
 
     return NextResponse.json(product, { status: 201 })

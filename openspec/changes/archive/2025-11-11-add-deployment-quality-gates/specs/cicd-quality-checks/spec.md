@@ -16,21 +16,21 @@ The system MUST execute complete quality checks in GitHub Actions to ensure code
 
 **Given** 開發者推送程式碼到任何分支
 **When** GitHub Actions workflow 被觸發
-**Then** 系統應該執行以下檢查（依序）：
+**Then** 系統 MUST 執行以下檢查（依序）：
 1. 依賴安裝（使用 --frozen-lockfile）
 2. ESLint 檢查
 3. TypeScript 型別檢查
 4. Build 測試
-**And** 任何一步失敗都應該中止後續步驟
-**And** 失敗的步驟應該提供清晰的錯誤訊息
+**And** 任何一步失敗 MUST 中止後續步驟
+**And** 失敗的步驟 MUST 提供清晰的錯誤訊息
 
 #### Scenario: Pull Request 時執行檢查
 
 **Given** 開發者建立或更新 Pull Request
 **When** GitHub Actions workflow 執行
-**Then** PR 頁面應該顯示所有檢查的狀態
-**And** 必須所有檢查通過才能合併
-**And** 失敗的檢查應該在 PR 中顯示具體錯誤
+**Then** PR 頁面 MUST 顯示所有檢查的狀態
+**And** MUST 所有檢查通過才能合併
+**And** 失敗的檢查 MUST 在 PR 中顯示具體錯誤
 
 ---
 
@@ -46,16 +46,16 @@ The system MUST use frozen lockfile to install dependencies, ensuring CI/CD envi
 
 **Given** pnpm-lock.yaml 與 package.json 保持同步
 **When** GitHub Actions 執行 `pnpm install --frozen-lockfile`
-**Then** 依賴應該成功安裝
-**And** 安裝的版本應該與 lockfile 中指定的版本完全一致
+**Then** 依賴 MUST 成功安裝
+**And** 安裝的版本 MUST 與 lockfile 中指定的版本完全一致
 
 #### Scenario: Lockfile 過期導致失敗
 
 **Given** package.json 被修改但 lockfile 未更新
 **When** GitHub Actions 執行 `pnpm install --frozen-lockfile`
-**Then** 安裝應該失敗
-**And** 錯誤訊息應該明確指出 lockfile 過期
-**And** 錯誤訊息應該提供修復指引（執行 pnpm install）
+**Then** 安裝MUST 失敗
+**And** 錯誤訊息MUST 明確指出 lockfile 過期
+**And** 錯誤訊息MUST 提供修復指引（執行 pnpm install）
 
 ---
 
@@ -71,8 +71,8 @@ The system MUST execute tests on multiple Node.js versions to ensure compatibili
 
 **Given** GitHub Actions matrix 配置包含 Node.js 18 和 20
 **When** 任何分支被推送
-**Then** 品質檢查應該在兩個 Node.js 版本上並行執行
-**And** 必須兩個版本都通過才視為成功
+**Then** 品質檢查MUST 在兩個 Node.js 版本上並行執行
+**And** MUST 兩個版本都通過才視為成功
 
 ---
 
@@ -88,17 +88,17 @@ The system MUST use GitHub Actions caching mechanism to accelerate CI/CD executi
 
 **Given** GitHub Actions workflow 配置了 pnpm 快取
 **When** 第二次或後續執行 workflow
-**Then** pnpm store 應該從快取載入
-**And** 依賴安裝時間應該顯著減少
-**And** 只有新增的依賴需要下載
+**Then** pnpm store MUST 從快取載入
+**And** 依賴安裝時間MUST 顯著減少
+**And** 只有新增的依賴 MUST 下載
 
 #### Scenario: 快取失效重建
 
 **Given** package.json 或 pnpm-lock.yaml 被修改
 **When** GitHub Actions workflow 執行
-**Then** 快取應該失效
-**And** 系統應該重新建立快取
-**And** 後續執行應該使用新的快取
+**Then** 快取MUST 失效
+**And** 系統MUST 重新建立快取
+**And** 後續執行MUST 使用新的快取
 
 ---
 
@@ -114,17 +114,17 @@ The system MUST execute complete build and testing before deploying to Cloudflar
 
 **Given** 所有品質檢查都通過
 **When** 部署步驟開始前
-**Then** 系統應該執行 `pnpm run build`
-**And** 驗證 `.next` 和 `.open-next` 目錄存在
-**And** 驗證 standalone 輸出結構正確
+**Then** 系統MUST 執行 `pnpm run build`
+**And** MUST 驗證 `.next` 和 `.open-next` 目錄存在
+**And** MUST 驗證 standalone 輸出結構正確
 
 #### Scenario: Build 失敗阻止部署
 
 **Given** Build 過程中發生錯誤
 **When** 部署步驟嘗試執行
-**Then** 部署應該被阻止
-**And** workflow 應該標記為失敗
-**And** 不應該有任何檔案被上傳到 Cloudflare
+**Then** 部署MUST 被阻止
+**And** workflow MUST 標記為失敗
+**And** 不MUST 有任何檔案被上傳到 Cloudflare
 
 ---
 
@@ -140,15 +140,15 @@ The system MUST consolidate duplicate GitHub Actions workflows to avoid confusio
 
 **Given** 專案只保留一個 Cloudflare 部署 workflow
 **When** 程式碼被推送到 main 分支
-**Then** 只有一個 workflow 應該被觸發
-**And** 該 workflow 應該包含完整的檢查和部署步驟
+**Then** 只有一個 workflow MUST 被觸發
+**And** 該 workflow MUST 包含完整的檢查和部署步驟
 
 #### Scenario: 廢棄舊 workflow
 
 **Given** 舊的 deploy-cloudflare.yml 被移除
 **When** 查看 .github/workflows/ 目錄
-**Then** 只應該存在 cloudflare-deploy.yml
-**And** 該檔案應該包含所有必要的步驟
+**Then** 只MUST 存在 cloudflare-deploy.yml
+**And** 該檔案MUST 包含所有必要的步驟
 
 ---
 
@@ -164,13 +164,13 @@ The system MUST provide clear error messages and debugging information when CI/C
 
 **Given** ESLint 檢查失敗
 **When** 開發者查看 GitHub Actions 日誌
-**Then** 應該看到所有失敗的規則和位置
-**And** 每個錯誤應該包含檔案路徑和行號
-**And** 應該提供修復建議
+**Then** MUST 看到所有失敗的規則和位置
+**And** 每個錯誤MUST 包含檔案路徑和行號
+**And** MUST 提供修復建議
 
 #### Scenario: TypeScript 錯誤時的錯誤訊息
 
 **Given** 型別檢查失敗
 **When** 開發者查看日誌
-**Then** 應該看到完整的 TypeScript 錯誤輸出
-**And** 包含錯誤的檔案、行號和型別不匹配的詳細資訊
+**Then** MUST 看到完整的 TypeScript 錯誤輸出
+**And** MUST 包含錯誤的檔案、行號和型別不匹配的詳細資訊

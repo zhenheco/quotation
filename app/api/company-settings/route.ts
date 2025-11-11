@@ -27,7 +27,7 @@ export const GET = withAuth(async (_request, { userId }) => {
 
 export const POST = withPermission('company_settings', 'write', async (request, { userId }) => {
   try {
-    const body = await request.json() as Record<string, unknown> as CompanyFormData;
+    const body = await request.json() as CompanyFormData;
     const company = await createCompany(userId, body);
     return NextResponse.json(company, { status: 201 });
   } catch (error: unknown) {
@@ -37,7 +37,7 @@ export const POST = withPermission('company_settings', 'write', async (request, 
 
 export const PUT = withPermission('company_settings', 'write', async (request, { userId }) => {
   try {
-    const body = await request.json() as Record<string, unknown> as UpdateCompanySettingsBody;
+    const body = await request.json() as UpdateCompanySettingsBody;
     const { companyId, ...data } = body;
 
     if (!companyId) {

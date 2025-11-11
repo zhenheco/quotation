@@ -77,10 +77,43 @@ export async function PUT(
     }
 
     // 取得請求資料
-    const body = await request.json() as Record<string, unknown> as UpdateCustomerRequest
+    const body = await request.json() as UpdateCustomerRequest
 
-    // 更新客戶（DAL 會自動處理 JSON 序列化和過濾 undefined）
-    const customer = await updateCustomer(db, user.id, id, body)
+    // 轉換為 DAL 期望的格式
+    const updateData: Partial<{
+      name: { zh: string; en: string }
+      email: string
+      phone: string
+      address: { zh: string; en: string }
+      tax_id: string
+      contact_person: { zh: string; en: string }
+      company_id: string
+    }> = {}
+
+    if (body.name !== undefined) {
+      updateData.name = typeof body.name === 'string' ? { zh: body.name, en: body.name } : body.name as { zh: string; en: string }
+    }
+    if (body.email !== undefined && body.email !== null) {
+      updateData.email = body.email
+    }
+    if (body.phone !== undefined && body.phone !== null) {
+      updateData.phone = body.phone
+    }
+    if (body.address !== undefined && body.address !== null) {
+      updateData.address = typeof body.address === 'string' ? { zh: body.address, en: body.address } : body.address as { zh: string; en: string }
+    }
+    if (body.tax_id !== undefined && body.tax_id !== null) {
+      updateData.tax_id = body.tax_id
+    }
+    if (body.contact_person !== undefined && body.contact_person !== null) {
+      updateData.contact_person = typeof body.contact_person === 'string' ? { zh: body.contact_person, en: body.contact_person } : body.contact_person as { zh: string; en: string }
+    }
+    if (body.company_id !== undefined && body.company_id !== null) {
+      updateData.company_id = body.company_id
+    }
+
+    // 更新客戶（DAL 會自動處理 JSON 序列化）
+    const customer = await updateCustomer(db, user.id, id, updateData)
 
     if (!customer) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
