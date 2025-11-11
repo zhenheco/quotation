@@ -276,6 +276,59 @@ const kv = (global as Record<string, unknown>).KV as KVNamespace | undefined
 
 ---
 
+### 4. **rclone.js Postinstall 網路超時** (2025-11-11 新增)
+**錯誤訊息**：
+```
+.../node_modules/rclone.js postinstall: AggregateError [ETIMEDOUT]:
+    at internalConnectMultiple (node:net:1122:18)
+  code: 'ETIMEDOUT',
+  [errors]: [
+    Error: connect ETIMEDOUT 95.217.6.16:443
+```
+
+**原因**：
+- `rclone.js` 是 `@opennextjs/cloudflare` 的間接依賴
+- postinstall 腳本會嘗試從外部伺服器下載 rclone 二進制檔案
+- GitHub Actions 環境網路不穩定或防火牆限制導致連接超時
+
+**解決方案**：
+已在 GitHub Actions workflow 中添加自動重試邏輯：
+```yaml
+- name: Install dependencies
+  run: |
+    # 添加重試邏輯處理 rclone.js 網路超時問題
+    max_attempts=3
+    attempt=1
+    while [ $attempt -le $max_attempts ]; do
+      echo "安裝依賴 (嘗試 $attempt/$max_attempts)..."
+      if pnpm install --frozen-lockfile; then
+        echo "✅ 依賴安裝成功"
+        break
+      else
+        if [ $attempt -eq $max_attempts ]; then
+          echo "❌ 依賴安裝失敗，已達最大重試次數"
+          exit 1
+        fi
+        echo "⚠️  安裝失敗，10 秒後重試..."
+        sleep 10
+        attempt=$((attempt + 1))
+      fi
+    done
+```
+
+**特點**：
+- ✅ 最多重試 3 次
+- ✅ 每次失敗後等待 10 秒再重試
+- ✅ 只有在所有重試都失敗後才會導致部署失敗
+- ✅ 不影響其他依賴的安裝
+
+**手動重試**（如果自動重試仍失敗）：
+1. 在 GitHub Actions 頁面點擊「Re-run failed jobs」
+2. 檢查網路連接問題是否已解決
+3. 如果持續失敗，考慮在 `.npmrc` 中配置 optional dependencies
+
+---
+
 ## 🔍 TypeScript 類型檢查最佳實踐
 
 ### 類型錯誤分類與解決方案

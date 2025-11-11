@@ -41,7 +41,25 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          # 添加重試邏輯處理 rclone.js 網路超時問題
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "安裝依賴 (嘗試 $attempt/$max_attempts)..."
+            if pnpm install --frozen-lockfile; then
+              echo "✅ 依賴安裝成功"
+              break
+            else
+              if [ $attempt -eq $max_attempts ]; then
+                echo "❌ 依賴安裝失敗，已達最大重試次數"
+                exit 1
+              fi
+              echo "⚠️  安裝失敗，10 秒後重試..."
+              sleep 10
+              attempt=$((attempt + 1))
+            fi
+          done
 
       - name: Run lint
         run: pnpm run lint
