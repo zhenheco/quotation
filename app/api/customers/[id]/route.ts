@@ -6,7 +6,6 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getCustomerById, updateCustomer, deleteCustomer } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
 
-export const runtime = 'edge'
 
 /**
  * GET /api/customers/[id] - 取得單一客戶

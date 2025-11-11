@@ -15,7 +15,6 @@ import {
 import { getCustomerById } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
 
-export const runtime = 'edge'
 
 /**
  * GET /api/quotations/[id] - 取得單一報價單

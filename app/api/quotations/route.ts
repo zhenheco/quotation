@@ -13,7 +13,6 @@ import {
 import { getCustomerById } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
 
-export const runtime = 'edge'
 
 /**
  * GET /api/quotations - 取得所有報價單

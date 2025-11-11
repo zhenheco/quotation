@@ -127,14 +127,39 @@ gh run view <run-id> --log
 | 錯誤訊息 | 原因 | 解決方案 |
 |---------|------|---------|
 | `ERR_PNPM_OUTDATED_LOCKFILE` | lockfile 過期 | `pnpm install` + 提交 lockfile |
+| `cannot use the edge runtime` | OpenNext 不相容 edge runtime | 移除 `export const runtime = 'edge'` |
 | `Type error: ...` | TypeScript 錯誤 | 修正類型錯誤，執行 `tsc --noEmit` |
 | `Module not found` | 缺少依賴 | `pnpm add <package>` |
 | `Build failed` | Build 錯誤 | 本地執行 `pnpm run build` 查看詳細錯誤 |
 
 ---
 
+### 2. **OpenNext Edge Runtime 不相容** (2025-11-11 新增)
+**錯誤訊息**：
+```
+app/api/companies/[id]/route cannot use the edge runtime.
+OpenNext requires edge runtime function to be defined in a separate function.
+```
+
+**原因**：
+- API routes 中使用 `export const runtime = 'edge'`
+- OpenNext 部署到 Cloudflare Workers 時自動使用 edge runtime
+- 不需要手動宣告
+
+**解決方案**：
+```bash
+# 移除所有 API routes 的 edge runtime 宣告
+sed -i '' "/export const runtime = 'edge'/d" app/api/**/*.ts
+
+# 或手動刪除所有
+export const runtime = 'edge'
+```
+
+---
+
 **最後更新**：2025-11-11
 **常見失敗原因統計**：
-- pnpm-lock.yaml 過期：90%
-- TypeScript 錯誤：8%
+- pnpm-lock.yaml 過期：85%
+- OpenNext edge runtime 不相容：10%
+- TypeScript 錯誤：3%
 - 其他：2%

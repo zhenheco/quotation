@@ -6,7 +6,6 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getProducts, createProduct } from '@/lib/dal/products'
 import { checkPermission } from '@/lib/cache/services'
 
-export const runtime = 'edge'
 
 /**
  * GET /api/products - 取得所有產品

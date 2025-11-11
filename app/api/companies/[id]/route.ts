@@ -6,7 +6,6 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getCompanyById, updateCompany, deleteCompany, isCompanyMember } from '@/lib/dal/companies'
 import { checkPermission } from '@/lib/cache/services'
 
-export const runtime = 'edge'
 
 /**
  * GET /api/companies/[id] - 取得單一公司資料

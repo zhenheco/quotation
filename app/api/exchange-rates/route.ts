@@ -6,7 +6,6 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getExchangeRatesByBase, Currency, SUPPORTED_CURRENCIES } from '@/lib/dal/exchange-rates'
 import { checkPermission } from '@/lib/cache/services'
 
-export const runtime = 'edge'
 
 /**
  * GET /api/exchange-rates - 取得匯率資料

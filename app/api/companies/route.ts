@@ -6,7 +6,6 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getUserCompanies, createCompany, addCompanyMember } from '@/lib/dal/companies'
 import { checkPermission } from '@/lib/cache/services'
 
-export const runtime = 'edge'
 
 /**
  * GET /api/companies - 取得使用者的所有公司
