@@ -50,7 +50,7 @@ async function getCsrfToken(): Promise<string> {
 
   try {
     const response = await fetch('/api/csrf-token')
-    const data = await response.json()
+    const data = await response.json() as { token: string }
     csrfToken = data.token
     return csrfToken
   } catch (error) {

@@ -64,7 +64,7 @@ export function useAdminCompanyDetail(companyId: string | null): UseAdminCompany
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json() as { success: boolean; error?: string; company: AdminCompany };
+      const data = await response.json() as { success: boolean; error?: string; company: AdminCompanyDetail };
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch company detail');

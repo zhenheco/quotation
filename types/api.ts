@@ -134,7 +134,8 @@ export interface QueryParams extends PaginationParams {
 /**
  * API 請求配置
  */
-export interface ApiRequestConfig extends RequestInit {
+export interface ApiRequestConfig extends Omit<RequestInit, 'body'> {
+  body?: unknown
   params?: Record<string, string | number | boolean | undefined>
   timeout?: number
   retries?: number

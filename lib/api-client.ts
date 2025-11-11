@@ -8,7 +8,7 @@
  * - 請求/回應日誌
  */
 
-interface FetchOptions extends RequestInit {
+interface FetchOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
 }
 
@@ -46,7 +46,7 @@ async function apiFetch<T = unknown>(
 
   // 處理回應
   if (!response.ok) {
-    const errorData: ApiError = await response.json().catch(() => ({
+    const errorData: ApiError = await response.json().catch((): ApiError => ({
       error: `HTTP ${response.status}: ${response.statusText}`,
     }))
 
@@ -63,8 +63,8 @@ async function apiFetch<T = unknown>(
   }
 
   // 解析成功回應
-  const data = await response.json()
-  return (data.data || data) as T
+  const data = await response.json() as { data?: T } | T
+  return ('data' in data && data.data !== undefined ? data.data : data) as T
 }
 
 /**

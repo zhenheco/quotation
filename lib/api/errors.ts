@@ -168,7 +168,8 @@ export async function createErrorFromResponse(response: Response): Promise<ApiEr
 
   try {
     errorData = await response.json()
-    message = errorData.error || errorData.message || message
+    const data = errorData as { error?: string; message?: string; details?: unknown }
+    message = data.error || data.message || message
   } catch {
     // 無法解析 JSON，使用 statusText
   }
@@ -176,7 +177,7 @@ export async function createErrorFromResponse(response: Response): Promise<ApiEr
   return createErrorFromStatus(
     response.status,
     message,
-    errorData?.details || errorData
+    (errorData as { details?: unknown })?.details || errorData
   )
 }
 
