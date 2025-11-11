@@ -4,6 +4,11 @@ import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
 
 type QuotationStatus = 'draft' | 'sent' | 'signed' | 'expired'
 
+interface BatchStatusBody {
+  ids: string[];
+  status: QuotationStatus;
+}
+
 export async function POST(request: NextRequest) {
   return batchRateLimiter(request, async () => {
     try {
@@ -19,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 獲取要更新的報價單 IDs 和新狀態
-    const { ids, status } = await request.json()
+    const { ids, status } = await request.json() as BatchStatusBody
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json(

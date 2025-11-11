@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createApiClient } from '@/lib/supabase/api'
 
+interface SeedDataBody {
+  clearExisting?: boolean;
+}
+
 /**
  * 建立測試數據的 API 端點
  * 只能由已登入的用戶執行
@@ -22,12 +26,12 @@ export async function POST(request: NextRequest) {
     const userId = user.id
 
     // 清除現有測試數據（可選）
-    const body = await request.json()
+    const body = await request.json() as SeedDataBody
     const { clearExisting = false } = body
 
     if (clearExisting) {
       // 刪除現有的報價單項目
-      await supabase.from('quotation_items').delete().eq('quotation_id', '!=', '')
+      await supabase.from('quotation_items').delete().neq('quotation_id', '')
       // 刪除現有的報價單
       await supabase.from('quotations').delete().eq('user_id', userId)
       // 刪除現有的客戶

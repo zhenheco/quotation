@@ -217,7 +217,7 @@ export async function PATCH(
 
     // 取得請求資料
     interface PatchQuotationBody {
-      status: string;
+      status: 'draft' | 'sent' | 'accepted' | 'rejected';
     }
     const body = await request.json() as PatchQuotationBody
     const { status } = body

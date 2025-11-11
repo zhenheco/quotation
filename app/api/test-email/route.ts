@@ -7,6 +7,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 
+interface TestEmailBody {
+  to: string;
+  locale?: 'zh' | 'en';
+}
+
 // GET - 測試連線
 export async function GET() {
   try {
@@ -39,7 +44,7 @@ export async function GET() {
 // POST - 發送測試 Email
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body = await request.json() as TestEmailBody
     const { to, locale = 'zh' } = body
 
     if (!to) {

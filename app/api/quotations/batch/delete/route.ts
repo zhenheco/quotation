@@ -2,6 +2,10 @@ import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
 
+interface BatchDeleteBody {
+  ids: string[];
+}
+
 export async function POST(request: NextRequest) {
   return batchRateLimiter(request, async () => {
     try {
@@ -17,7 +21,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 獲取要刪除的報價單 IDs
-      const { ids } = await request.json()
+      const { ids } = await request.json() as BatchDeleteBody
       if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return NextResponse.json(
           { error: 'Invalid request: ids array required' },

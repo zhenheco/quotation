@@ -15,6 +15,13 @@ interface BatchSendResult {
   sent_at?: string
 }
 
+interface BatchSendBody {
+  ids: string[];
+  subject?: string;
+  content?: string;
+  locale?: 'zh' | 'en';
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -30,7 +37,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json() as Record<string, unknown>
+    const body = await request.json() as BatchSendBody
     const { ids, subject, content, locale = 'zh' } = body
 
     if (!Array.isArray(ids) || ids.length === 0) {

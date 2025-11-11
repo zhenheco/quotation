@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { updatePaymentStatus } from '@/lib/services/payment-terms';
 import { createClient } from '@/lib/supabase/server';
 
+interface UpdatePaymentStatusBody {
+  paid_amount: number;
+  paid_date?: string;
+}
+
 /**
  * PATCH /api/quotations/[id]/payment-terms/[termId]/status
  * 更新付款狀態
@@ -12,7 +17,7 @@ export async function PATCH(
 ) {
   try {
     const { termId } = await params;
-    const { paid_amount, paid_date } = await request.json();
+    const { paid_amount, paid_date } = await request.json() as UpdatePaymentStatusBody;
 
     if (typeof paid_amount !== 'number' || paid_amount < 0) {
       return NextResponse.json(
@@ -46,8 +51,7 @@ export async function PATCH(
       );
     }
 
-    // @ts-expect-error - quotations 是 inner join
-    if (term.quotations.user_id !== user.id) {
+    if ((term.quotations as { user_id: string }).user_id !== user.id) {
       return NextResponse.json(
         { error: '無權限更新付款狀態' },
         { status: 403 }

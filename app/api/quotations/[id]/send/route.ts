@@ -5,6 +5,12 @@ import { emailService } from '@/lib/services/email'
 import { generateQuotationEmailHTML, generateDefaultEmailSubject } from '@/lib/templates/quotation-email'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 
+interface SendQuotationBody {
+  subject?: string;
+  content?: string;
+  locale?: 'zh' | 'en';
+}
+
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -24,7 +30,7 @@ export async function POST(
       )
     }
 
-    const body = await request.json() as Record<string, unknown>
+    const body = await request.json() as SendQuotationBody
     const { subject, content, locale = 'zh' } = body
 
     const quotation = await getQuotationById(id, user.id)

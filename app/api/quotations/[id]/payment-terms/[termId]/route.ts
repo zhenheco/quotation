@@ -9,13 +9,20 @@ import { createClient } from '@/lib/supabase/server';
  * PUT /api/quotations/[id]/payment-terms/[termId]
  * 更新付款條款
  */
+interface UpdatePaymentTermBody {
+  term_name?: string;
+  percentage?: number;
+  amount?: number;
+  due_date?: string | null;
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; termId: string }> }
 ) {
   try {
     const { termId } = await params;
-    const updates = await request.json();
+    const updates = await request.json() as UpdatePaymentTermBody;
 
     // 驗證用戶權限
     const supabase = await createClient();
@@ -42,8 +49,7 @@ export async function PUT(
       );
     }
 
-    // @ts-expect-error - quotations 是 inner join
-    if (term.quotations.user_id !== user.id) {
+    if ((term.quotations as { user_id: string }).user_id !== user.id) {
       return NextResponse.json(
         { error: '無權限編輯此付款條款' },
         { status: 403 }
@@ -98,8 +104,7 @@ export async function DELETE(
       );
     }
 
-    // @ts-expect-error - quotations 是 inner join
-    if (term.quotations.user_id !== user.id) {
+    if ((term.quotations as { user_id: string }).user_id !== user.id) {
       return NextResponse.json(
         { error: '無權限刪除此付款條款' },
         { status: 403 }
