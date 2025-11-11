@@ -30,7 +30,7 @@ export interface AddMemberData {
   phone?: string;
 }
 
-interface UseCompanyMembersResult {
+export interface UseCompanyMembersResult {
   members: CompanyMember[];
   loading: boolean;
   error: Error | null;
@@ -68,7 +68,7 @@ export function useCompanyMembers(companyId: string | null): UseCompanyMembersRe
         throw new Error(`取得公司成員失敗：${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as { members: CompanyMember[] };
       setMembers(data.members || []);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('未知錯誤');
@@ -104,7 +104,7 @@ export function useCompanyMembers(companyId: string | null): UseCompanyMembersRe
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json() as { error?: string };
         throw new Error(errorData.error || '新增成員失敗');
       }
 
@@ -140,7 +140,7 @@ export function useCompanyMembers(companyId: string | null): UseCompanyMembersRe
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json() as { error?: string };
         throw new Error(errorData.error || '更新成員角色失敗');
       }
 
@@ -172,7 +172,7 @@ export function useCompanyMembers(companyId: string | null): UseCompanyMembersRe
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json() as { error?: string };
         throw new Error(errorData.error || '移除成員失敗');
       }
 

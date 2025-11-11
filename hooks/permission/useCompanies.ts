@@ -18,7 +18,7 @@ export interface UserCompany {
   logo_url: string | null;
 }
 
-interface UseCompaniesResult {
+export interface UseCompaniesResult {
   companies: UserCompany[];
   loading: boolean;
   error: Error | null;

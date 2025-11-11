@@ -48,7 +48,7 @@ export function useAdminCompanies(): UseAdminCompaniesReturn {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as { success: boolean; error?: string; companies: AdminCompany[] };
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch companies');

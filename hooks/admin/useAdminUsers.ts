@@ -51,7 +51,7 @@ export function useAdminUsers(): UseAdminUsersReturn {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as { success: boolean; error?: string; users: AdminUser[] };
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch users');

@@ -28,7 +28,7 @@ export interface UserPermissions {
   companies: CompanyPermission[];
 }
 
-interface UsePermissionsResult {
+export interface UsePermissionsResult {
   permissions: UserPermissions | null;
   loading: boolean;
   error: Error | null;
@@ -58,7 +58,7 @@ export function usePermissions(): UsePermissionsResult {
         throw new Error(`取得權限失敗：${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as UserPermissions;
       setPermissions(data);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('未知錯誤');

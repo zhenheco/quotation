@@ -49,7 +49,7 @@ export function useAdminStats(): UseAdminStatsReturn {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as { success: boolean; error?: string; stats: SystemStats };
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch stats');

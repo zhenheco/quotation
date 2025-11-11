@@ -18,7 +18,7 @@ export interface ManageableCompany {
   logo_url: string | null;
 }
 
-interface UseManageableCompaniesResult {
+export interface UseManageableCompaniesResult {
   companies: ManageableCompany[];
   loading: boolean;
   error: Error | null;
@@ -48,7 +48,7 @@ export function useManageableCompanies(): UseManageableCompaniesResult {
         throw new Error(`取得可管理公司列表失敗：${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as { companies: ManageableCompany[]; total: number };
       setCompanies(data.companies || []);
       setTotal(data.total || 0);
     } catch (err) {
