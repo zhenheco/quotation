@@ -114,3 +114,146 @@ Pre-commit hooks 會自動執行以下檢查（無需手動執行）：
 - ✅ `pnpm-lock.yaml` 與 `package.json` 同步
 
 如果遇到任何錯誤，commit 會被阻止，並顯示錯誤訊息指引如何修正。
+
+---
+
+## 🔒 TypeScript 類型安全規範
+
+### 核心原則
+
+**絕對禁止**：
+- ❌ 使用 `any` 類型（除非使用 `eslint-disable-next-line` 並註明原因）
+- ❌ 忽略類型錯誤以「讓編譯通過」
+- ❌ 使用 `@ts-ignore`（應使用 `@ts-expect-error` 並說明原因）
+
+**強制要求**：
+- ✅ 所有函式參數必須有明確類型
+- ✅ 所有函式必須有回傳類型
+- ✅ API response 必須做類型斷言
+- ✅ Error 物件屬性存取必須使用類型斷言
+
+### 類型定義模式
+
+#### 1. API Response 類型斷言
+```typescript
+// ✅ 正確
+const data = await response.json() as { token: string };
+const errorData = await response.json().catch(() => ({})) as ApiError;
+
+// ❌ 錯誤
+const data = await response.json();  // unknown type
+```
+
+#### 2. Error 物件處理
+```typescript
+// ✅ 正確
+try {
+  // ...
+} catch (error) {
+  console.error((error as Error).message);
+  const code = (error as { code?: string }).code;
+}
+
+// ❌ 錯誤
+try {
+  // ...
+} catch (error) {
+  console.error(error.message);  // Type error
+}
+```
+
+#### 3. Database 類型占位符
+```typescript
+// ✅ 正確（當 Database 類型不可用時）
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CompanyRow = any; // Database type placeholder
+
+// ❌ 錯誤
+type CompanyRow = any;  // 缺少 eslint-disable 和說明
+```
+
+#### 4. RequestInit Body 類型
+```typescript
+// ✅ 正確（避免 Cloudflare Workers 類型衝突）
+interface FetchOptions extends Omit<RequestInit, 'body'> {
+  body?: unknown
+}
+
+// ❌ 錯誤
+interface FetchOptions extends RequestInit {
+  body?: CustomType  // 與 RequestInit['body'] 衝突
+}
+```
+
+#### 5. 中間件類型導入
+```typescript
+// ✅ 必須明確導入類型
+import type { PermissionResource, PermissionAction } from '@/types/rbac.types';
+
+const hasAccess = await checkPermission(
+  userId,
+  resource as PermissionResource,
+  action as PermissionAction
+);
+```
+
+### 何時使用 @ts-expect-error
+
+**允許使用的情況**（必須加註解說明）：
+- ✅ Cloudflare Workers/D1/Neon 等基礎設施類型不相容
+- ✅ TanStack Query 等第三方套件回調參數類型不完整
+- ✅ 複雜泛型類型推導問題
+
+**範例**：
+```typescript
+// ✅ 正確：說明原因
+// @ts-expect-error - Cloudflare Workers RequestInit type compatibility
+const requestConfig: RequestInit = { ... };
+
+// @ts-expect-error - TanStack Query onMutate argument type compatibility
+userContext = await config.onMutate(variables);
+
+// ❌ 錯誤：沒有說明
+// @ts-expect-error
+const config = { ... };
+```
+
+**禁止使用的情況**：
+- ❌ 業務邏輯層的類型錯誤
+- ❌ 可透過正確類型定義解決的問題
+- ❌ 單純為了通過編譯
+
+### 類型檢查工作流程
+
+**開發時**：
+```bash
+# 即時類型檢查（在編輯器中）
+# VS Code 會自動顯示類型錯誤
+
+# 手動執行完整檢查
+pnpm run typecheck
+```
+
+**提交前**：
+```bash
+# Pre-commit hook 會自動執行
+# 無需手動執行，有錯誤會自動阻止 commit
+```
+
+**修復類型錯誤時的優先順序**：
+1. ✅ 優先：定義正確的類型
+2. ✅ 次之：使用類型斷言（`as Type`）
+3. ⚠️ 謹慎：使用 `@ts-expect-error`（必須註明原因）
+4. ❌ 禁止：使用 `any` 或 `@ts-ignore`
+
+### 常見類型錯誤快速參考
+
+| 錯誤訊息 | 解決方案 |
+|---------|---------|
+| `Property 'X' does not exist on type 'unknown'` | 加上 `as Type` 類型斷言 |
+| `Cannot find name 'TypeName'` | 檢查導入和實際類型名稱 |
+| `Property 'error' is missing in type '{}'` | 提供完整的錯誤物件或 fallback |
+| `Conversion of type 'X' to type 'Y' may be a mistake` | 使用 `as unknown as Y` 中間斷言 |
+| `Expected 0 arguments, but got 1` | 檢查函式定義，移除多餘參數 |
+
+**詳細說明**：參考 `DEPLOYMENT_CHECKLIST.md` 的「TypeScript 類型檢查最佳實踐」章節

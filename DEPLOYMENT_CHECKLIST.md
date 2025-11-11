@@ -276,6 +276,177 @@ const kv = (global as Record<string, unknown>).KV as KVNamespace | undefined
 
 ---
 
+## 🔍 TypeScript 類型檢查最佳實踐
+
+### 類型錯誤分類與解決方案
+
+#### 1. Database 類型引用問題
+**問題**：`Database['public']['Tables'][...]` 類型在建置時不可用
+
+**解決方案**：使用 `any` 類型占位符，並加上 eslint-disable 註解
+```typescript
+// ✅ 正確做法
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CompanyRow = any; // Database type placeholder
+
+// ❌ 錯誤做法
+type CompanyRow = Database['public']['Tables']['companies']['Row'];
+```
+
+**適用檔案**：
+- `lib/services/*.ts`
+- `types/extended.types.ts`
+
+#### 2. RequestInit Body 類型衝突
+**問題**：Cloudflare Workers 的 RequestInit 對 body 類型要求更嚴格
+
+**解決方案**：使用 `Omit<RequestInit, 'body'>` 並自定義 body 屬性
+```typescript
+// ✅ 正確做法
+interface FetchOptions extends Omit<RequestInit, 'body'> {
+  body?: unknown
+}
+
+// ❌ 錯誤做法
+interface FetchOptions extends RequestInit {
+  body?: CustomType  // 會與 RequestInit['body'] 衝突
+}
+```
+
+**適用檔案**：
+- `lib/api-client.ts`
+- `types/api.ts`
+
+#### 3. API Response 類型斷言
+**問題**：`response.json()` 回傳 `unknown` 類型
+
+**解決方案**：使用明確的類型斷言
+```typescript
+// ✅ 正確做法
+const data = await response.json() as { token: string };
+
+// ✅ 錯誤處理時的做法
+const errorData = await response.json().catch(() => ({})) as ApiError;
+
+// ❌ 錯誤做法
+const data = await response.json();  // data 是 unknown
+const token = data.token;  // TS 錯誤
+```
+
+**適用檔案**：
+- `lib/api/client.ts`
+- `lib/services/brevo.ts`
+- `hooks/admin/*.ts`
+
+#### 4. 中間件類型導入
+**問題**：缺少必要的類型導入導致編譯錯誤
+
+**解決方案**：明確導入所需類型
+```typescript
+// ✅ 必須導入
+import type { PermissionResource, PermissionAction } from '@/types/rbac.types';
+
+// 使用時才會有正確類型
+const hasAccess = await checkPermission(
+  userId,
+  resource as PermissionResource,
+  action as PermissionAction
+);
+```
+
+**適用檔案**：
+- `lib/middleware/withAuth.ts`
+- `lib/middleware/withPermission.ts`
+
+#### 5. Error 物件屬性存取
+**問題**：`catch` 區塊中的 `error` 是 `unknown` 類型
+
+**解決方案**：使用類型斷言存取屬性
+```typescript
+// ✅ 正確做法
+try {
+  // ...
+} catch (error) {
+  console.error((error as Error).message);
+  const code = (error as { code?: string }).code;
+}
+
+// ❌ 錯誤做法
+try {
+  // ...
+} catch (error) {
+  console.error(error.message);  // TS 錯誤
+}
+```
+
+**適用檔案**：
+- `lib/middleware/withPermission.ts`
+- `lib/logger/index.ts`
+
+#### 6. 何時使用 @ts-expect-error
+
+**適用場景**：
+- ✅ 低階基礎設施類型不相容（Cloudflare Workers, D1, Neon）
+- ✅ 第三方套件類型定義不完整（TanStack Query callbacks）
+- ✅ 複雜泛型類型推導問題
+
+**使用規範**：
+```typescript
+// ✅ 正確：加上描述性註解說明原因
+// @ts-expect-error - Cloudflare Workers RequestInit type compatibility
+const requestConfig: RequestInit = { ... };
+
+// @ts-expect-error - TanStack Query onMutate argument type compatibility
+userContext = await config.onMutate(variables);
+
+// ❌ 錯誤：沒有說明原因
+// @ts-expect-error
+const config = { ... };
+```
+
+**不應使用的情況**：
+- ❌ 可以透過正確類型定義解決的問題
+- ❌ 業務邏輯層的類型錯誤
+- ❌ 單純為了「讓編譯通過」而忽略錯誤
+
+**適用檔案**：
+- `lib/api/client.ts`
+- `lib/api/hooks.ts`
+- `lib/cloudflare/kv.ts`
+- `lib/db/d1-client.ts`
+- `lib/db/zeabur.ts`
+
+#### 7. 類型檢查命令
+
+```bash
+# 執行完整類型檢查
+pnpm run typecheck
+
+# 或直接使用 tsc
+pnpm exec tsc --noEmit
+
+# 預期輸出：無錯誤
+# ✅ Found 0 errors
+```
+
+**Pre-commit Hook**：
+- 所有 commit 前自動執行類型檢查
+- 如果有錯誤會阻止 commit
+- 請在 commit 前先執行 `pnpm run typecheck` 確認
+
+#### 8. 常見類型錯誤模式
+
+| 錯誤訊息 | 原因 | 解決方案 |
+|---------|------|---------|
+| `Property 'X' does not exist on type 'unknown'` | API response 未做類型斷言 | 加上 `as Type` |
+| `Cannot find name 'AdminCompany'` | 類型名稱錯誤 | 檢查實際匯出的類型名稱 |
+| `Property 'error' is missing in type '{}'` | 錯誤處理未提供完整物件 | 提供 fallback 預設值 |
+| `Conversion of type 'X' to type 'Y' may be a mistake` | 類型差異過大 | 使用 `as unknown as Y` 中間斷言 |
+| `Expected 0 arguments, but got 1` | 函式簽名不匹配 | 檢查函式定義並移除多餘參數 |
+| `Property 'method' does not exist on type 'URL'` | 存取錯誤的物件屬性 | 檢查正確的物件（如 `request.method`） |
+
+---
+
 ## 📈 品質防護機制成效
 
 自實施自動化品質防護（2025-11-11）以來：
