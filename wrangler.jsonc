@@ -16,13 +16,11 @@
     }
   ],
   // Cloudflare D1 - 主資料庫
-  // 請執行 `npx wrangler d1 create quotation-system-db` 建立資料庫
-  // 然後將輸出的 database_id 填入下方
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "quotation-system-db",
-      "database_id": "YOUR_DATABASE_ID_HERE"
+      "database_id": "de903a85-2741-4179-8bd0-34631cc64b08"
     }
   ],
   "analytics_engine_datasets": [

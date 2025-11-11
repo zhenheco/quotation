@@ -1,0 +1,178 @@
+[
+  {
+    "id": "18b992e8-d3cf-4626-98cf-f2c50ae5a229",
+    "quotation_id": "8c175ad2-71a7-460a-989d-287d03ad6e01",
+    "product_id": "b31d68e0-596c-499f-a17d-f783035df7b8",
+    "quantity": 1,
+    "unit_price": 300000,
+    "discount": 10,
+    "subtotal": 270000,
+    "created_at": "2025-11-01T16:45:35.301052+00:00",
+    "updated_at": "2025-11-01T16:45:35.301052+00:00"
+  },
+  {
+    "id": "03ccda44-f527-441b-b820-7ff26457d4ca",
+    "quotation_id": "3d9ea7c9-11f1-436e-88c8-4f80515c69bb",
+    "product_id": "7f2d3a7d-c4d0-46b7-8047-0dcb91dc9039",
+    "quantity": 1,
+    "unit_price": 200000,
+    "discount": 0,
+    "subtotal": 200000,
+    "created_at": "2025-11-01T16:45:35.557866+00:00",
+    "updated_at": "2025-11-01T16:45:35.557866+00:00"
+  },
+  {
+    "id": "bd9f45bc-65f6-4509-8a44-8714faa79075",
+    "quotation_id": "a5147f3a-fb43-4c94-a221-b0cf827e1673",
+    "product_id": null,
+    "quantity": 1,
+    "unit_price": 80000,
+    "discount": 0,
+    "subtotal": 80000,
+    "created_at": "2025-11-01T16:45:34.963344+00:00",
+    "updated_at": "2025-11-02T07:09:58.562424+00:00"
+  },
+  {
+    "id": "52a65fbe-425e-4e0c-a470-48482c9253ba",
+    "quotation_id": "800e0955-17b7-4351-b397-809103b3095d",
+    "product_id": "14e66c5d-e90c-49cb-b972-2d939335f449",
+    "quantity": 1,
+    "unit_price": 111,
+    "discount": 0,
+    "subtotal": "NaN",
+    "created_at": "2025-11-02T13:55:36.593636+00:00",
+    "updated_at": "2025-11-02T13:55:36.593636+00:00"
+  },
+  {
+    "id": "9068a09b-532b-4127-bf03-de2f9d07f756",
+    "quotation_id": "9150f7d6-9382-4a51-8ab6-0290f94db17b",
+    "product_id": null,
+    "quantity": 1,
+    "unit_price": 0,
+    "discount": 0,
+    "subtotal": "NaN",
+    "created_at": "2025-11-02T15:50:42.101726+00:00",
+    "updated_at": "2025-11-02T15:50:42.101726+00:00"
+  },
+  {
+    "id": "cdc2ee4e-7cd4-4d48-baf1-b3675db796db",
+    "quotation_id": "f49b5ca3-519f-4944-9514-44c3d7dbf2a4",
+    "product_id": "edfa22cb-c7ec-42b0-b4ef-c2262b5dd9dd",
+    "quantity": 1,
+    "unit_price": 6547654,
+    "discount": 0,
+    "subtotal": "NaN",
+    "created_at": "2025-11-02T15:53:25.195369+00:00",
+    "updated_at": "2025-11-02T15:53:25.195369+00:00"
+  },
+  {
+    "id": "030a006f-b183-4868-b826-46bc01ac5aa8",
+    "quotation_id": "86596378-1ebb-43ac-aea1-372a7e60c3d7",
+    "product_id": "edfa22cb-c7ec-42b0-b4ef-c2262b5dd9dd",
+    "quantity": 1,
+    "unit_price": 6547654,
+    "discount": 0,
+    "subtotal": "NaN",
+    "created_at": "2025-11-02T16:09:08.800892+00:00",
+    "updated_at": "2025-11-02T16:09:08.800892+00:00"
+  },
+  {
+    "id": "cbefd84a-d48a-422d-8a0d-c4e03d8b9973",
+    "quotation_id": "e0a9dcec-c21f-4b4b-a562-fb3580773775",
+    "product_id": "14e66c5d-e90c-49cb-b972-2d939335f449",
+    "quantity": 1,
+    "unit_price": 333,
+    "discount": 0,
+    "subtotal": "NaN",
+    "created_at": "2025-11-02T16:23:50.551742+00:00",
+    "updated_at": "2025-11-02T16:23:50.551742+00:00"
+  },
+  {
+    "id": "7dc66f4f-f254-412b-ab6b-e45545ec861c",
+    "quotation_id": "651464a7-7c77-449f-b673-4c7f02da1fc7",
+    "product_id": "edfa22cb-c7ec-42b0-b4ef-c2262b5dd9dd",
+    "quantity": 1,
+    "unit_price": 0,
+    "discount": 0,
+    "subtotal": 0,
+    "created_at": "2025-11-02T18:37:09.633722+00:00",
+    "updated_at": "2025-11-02T18:37:09.633722+00:00"
+  },
+  {
+    "id": "e955729d-32ad-4b50-a5cc-03d655ef1e82",
+    "quotation_id": "66666666-6666-4666-a666-666666666666",
+    "product_id": "33333333-3333-4333-a333-333333333333",
+    "quantity": 1,
+    "unit_price": 35000,
+    "discount": 0,
+    "subtotal": 35000,
+    "created_at": "2025-11-08T11:12:24.216055+00:00",
+    "updated_at": "2025-11-08T11:12:24.216055+00:00"
+  },
+  {
+    "id": "cd612338-75f1-44a1-8787-b4af5f1d8220",
+    "quotation_id": "66666666-6666-4666-a666-666666666666",
+    "product_id": "44444444-4444-4444-a444-444444444444",
+    "quantity": 2,
+    "unit_price": 800,
+    "discount": 0,
+    "subtotal": 1600,
+    "created_at": "2025-11-08T11:12:24.216055+00:00",
+    "updated_at": "2025-11-08T11:12:24.216055+00:00"
+  },
+  {
+    "id": "a3f6d59a-034b-4431-9a53-59bc12b024cd",
+    "quotation_id": "66666666-6666-4666-a666-666666666666",
+    "product_id": "55555555-5555-4555-a555-555555555555",
+    "quantity": 1,
+    "unit_price": 2500,
+    "discount": 10,
+    "subtotal": 2250,
+    "created_at": "2025-11-08T11:12:24.216055+00:00",
+    "updated_at": "2025-11-08T11:12:24.216055+00:00"
+  },
+  {
+    "id": "f9af44be-36de-485c-86e8-da4364a1c5a1",
+    "quotation_id": "a5147f3a-fb43-4c94-a221-b0cf827e1673",
+    "product_id": null,
+    "quantity": 1,
+    "unit_price": 150000,
+    "discount": 0,
+    "subtotal": 150000,
+    "created_at": "2025-11-01T16:45:34.963344+00:00",
+    "updated_at": "2025-11-08T12:45:59.641238+00:00"
+  },
+  {
+    "id": "4b4bff83-6a6e-45c6-9d4a-b42fc9cb5fdb",
+    "quotation_id": "4ceb723a-7cbf-4edf-b21a-45b938ce6a7b",
+    "product_id": "b31d68e0-596c-499f-a17d-f783035df7b8",
+    "quantity": 1,
+    "unit_price": 300000,
+    "discount": 0,
+    "subtotal": "NaN",
+    "created_at": "2025-11-08T12:48:33.038097+00:00",
+    "updated_at": "2025-11-08T12:48:33.038097+00:00"
+  },
+  {
+    "id": "042da4b6-e7f4-4d96-a60a-427128440fc2",
+    "quotation_id": "7e4a38e5-fe36-4cd3-9a56-41d0b9bfe96e",
+    "product_id": "069b22a1-c52f-429e-863e-01230750f7f7",
+    "quantity": 1,
+    "unit_price": 32136,
+    "discount": 0,
+    "subtotal": "NaN",
+    "created_at": "2025-11-08T13:38:12.645229+00:00",
+    "updated_at": "2025-11-08T13:38:12.645229+00:00"
+  },
+  {
+    "id": "523be3cf-0c82-44d6-8d02-a682add3d586",
+    "quotation_id": "8c175ad2-71a7-460a-989d-287d03ad6e01",
+    "product_id": null,
+    "quantity": 1,
+    "unit_price": 120000,
+    "discount": 0,
+    "subtotal": 120000,
+    "created_at": "2025-11-01T16:45:35.301052+00:00",
+    "updated_at": "2025-11-10T12:12:15.066739+00:00"
+  }
+]

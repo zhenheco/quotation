@@ -10,6 +10,10 @@
 import { createClient } from '@supabase/supabase-js'
 import fs from 'fs/promises'
 import path from 'path'
+import dotenv from 'dotenv'
+
+// 載入 .env.local
+dotenv.config({ path: '.env.local' })
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!

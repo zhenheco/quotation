@@ -1,0 +1,52 @@
+[
+  {
+    "id": "4df6721d-e734-489a-9e4d-72e531590504",
+    "name": "super_admin",
+    "name_zh": "總管理員",
+    "name_en": "Super Admin",
+    "level": 1,
+    "description": "Full system access",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "ba7f90c6-e3de-4bb2-afd1-51e82aefe6f1",
+    "name": "company_owner",
+    "name_zh": "公司負責人",
+    "name_en": "Company Owner",
+    "level": 2,
+    "description": "Company-wide management",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "1b4de813-3791-48a1-bf2d-731fbb458f36",
+    "name": "sales_manager",
+    "name_zh": "業務主管",
+    "name_en": "Sales Manager",
+    "level": 3,
+    "description": "Sales team management",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "a892c505-45c0-4284-83d9-aeb9801ac0c7",
+    "name": "salesperson",
+    "name_zh": "業務人員",
+    "name_en": "Salesperson",
+    "level": 4,
+    "description": "Sales operations",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "6a26d843-fe8a-4724-aeed-ae800c39c8a2",
+    "name": "accountant",
+    "name_zh": "會計",
+    "name_en": "Accountant",
+    "level": 5,
+    "description": "Financial operations",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  }
+]

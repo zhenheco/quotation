@@ -1,0 +1,252 @@
+[
+  {
+    "id": "07ad98d8-2629-4b7b-b028-455c597ab003",
+    "name": "view_customers",
+    "name_zh": "查看客戶",
+    "name_en": "View Customers",
+    "category": "customer_management",
+    "description": "View customer list and details",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "794f7457-a5b4-493b-aecc-ae0240c1e404",
+    "name": "create_customers",
+    "name_zh": "建立客戶",
+    "name_en": "Create Customers",
+    "category": "customer_management",
+    "description": "Create new customers",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "4eeaaf92-c8ac-4917-bad2-f0cb8481c75f",
+    "name": "edit_customers",
+    "name_zh": "編輯客戶",
+    "name_en": "Edit Customers",
+    "category": "customer_management",
+    "description": "Edit customer information",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "bec820a1-b8ef-4727-8e17-99df1827481a",
+    "name": "delete_customers",
+    "name_zh": "刪除客戶",
+    "name_en": "Delete Customers",
+    "category": "customer_management",
+    "description": "Delete customers",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "a33d91f6-09e6-42ae-9db2-b5a0e4bf0909",
+    "name": "view_products",
+    "name_zh": "查看產品",
+    "name_en": "View Products",
+    "category": "product_management",
+    "description": "View product list",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "1c5a0e3a-b8e4-44e9-9432-485d24113c4c",
+    "name": "create_products",
+    "name_zh": "建立產品",
+    "name_en": "Create Products",
+    "category": "product_management",
+    "description": "Create new products",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "9d91ef83-d920-493f-93ba-ee7861f2c870",
+    "name": "edit_products",
+    "name_zh": "編輯產品",
+    "name_en": "Edit Products",
+    "category": "product_management",
+    "description": "Edit product information",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "41320340-f993-43df-adf8-7b9749c30ee0",
+    "name": "delete_products",
+    "name_zh": "刪除產品",
+    "name_en": "Delete Products",
+    "category": "product_management",
+    "description": "Delete products",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "41bcb8eb-125a-428c-b1f9-cbc620029453",
+    "name": "view_quotations",
+    "name_zh": "查看報價單",
+    "name_en": "View Quotations",
+    "category": "quotation_management",
+    "description": "View quotation list",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "690faa56-8b85-4761-b637-3aee217f4387",
+    "name": "create_quotations",
+    "name_zh": "建立報價單",
+    "name_en": "Create Quotations",
+    "category": "quotation_management",
+    "description": "Create new quotations",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "3c9c6742-98a4-45cd-9c18-ccbe00b0bd3d",
+    "name": "edit_quotations",
+    "name_zh": "編輯報價單",
+    "name_en": "Edit Quotations",
+    "category": "quotation_management",
+    "description": "Edit quotation information",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "0f70cf7b-09cb-46ae-b1a9-721d9c962cb0",
+    "name": "delete_quotations",
+    "name_zh": "刪除報價單",
+    "name_en": "Delete Quotations",
+    "category": "quotation_management",
+    "description": "Delete quotations",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "db91ef58-4075-422b-b812-0edb56ab8f60",
+    "name": "view_payments",
+    "name_zh": "查看收款",
+    "name_en": "View Payments",
+    "category": "financial_management",
+    "description": "View payment records",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "9e8c8f38-8a41-4de9-99df-692439735620",
+    "name": "create_payments",
+    "name_zh": "建立收款",
+    "name_en": "Create Payments",
+    "category": "financial_management",
+    "description": "Record new payments",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "5f7259a3-10c8-4c08-b95d-cfed59007de4",
+    "name": "edit_payments",
+    "name_zh": "編輯收款",
+    "name_en": "Edit Payments",
+    "category": "financial_management",
+    "description": "Edit payment information",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "70179a0c-c6d2-4af1-bfe7-4945a4cda7e7",
+    "name": "delete_payments",
+    "name_zh": "刪除收款",
+    "name_en": "Delete Payments",
+    "category": "financial_management",
+    "description": "Delete payment records",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "95bc015a-9a34-4ff2-86e0-d1601a4136c3",
+    "name": "manage_users",
+    "name_zh": "管理使用者",
+    "name_en": "Manage Users",
+    "category": "system_management",
+    "description": "Manage user accounts",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "213f9dc5-9cf0-474f-b5b7-ef858acc185b",
+    "name": "manage_roles",
+    "name_zh": "管理角色",
+    "name_en": "Manage Roles",
+    "category": "system_management",
+    "description": "Manage roles and permissions",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "1678dfec-94fd-4bbf-8671-9017a382d2b1",
+    "name": "manage_company",
+    "name_zh": "管理公司",
+    "name_en": "Manage Company",
+    "category": "system_management",
+    "description": "Manage company settings",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "486b6266-813c-49e4-82da-4c251d64742b",
+    "name": "view_reports",
+    "name_zh": "查看報表",
+    "name_en": "View Reports",
+    "category": "system_management",
+    "description": "View system reports",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "e1d81cd2-6799-479f-9d8e-98a7f1235b82",
+    "name": "view_audit_logs",
+    "name_zh": "查看審計日誌",
+    "name_en": "View Audit Logs",
+    "category": "system_management",
+    "description": "View audit logs",
+    "created_at": "2025-10-23T15:15:49.729494+00:00",
+    "updated_at": "2025-10-23T15:15:49.729494+00:00"
+  },
+  {
+    "id": "c3fdb607-debb-4249-bede-094ab3feda23",
+    "name": "view_contracts",
+    "name_zh": "查看合約",
+    "name_en": "View Contracts",
+    "category": "contract_management",
+    "description": "View contract list and details",
+    "created_at": "2025-10-29T07:45:15.286829+00:00",
+    "updated_at": "2025-10-29T07:45:15.286829+00:00"
+  },
+  {
+    "id": "ec595450-68fd-41c1-b7f6-733cfe1a0291",
+    "name": "create_contracts",
+    "name_zh": "建立合約",
+    "name_en": "Create Contracts",
+    "category": "contract_management",
+    "description": "Create new contracts",
+    "created_at": "2025-10-29T07:45:15.286829+00:00",
+    "updated_at": "2025-10-29T07:45:15.286829+00:00"
+  },
+  {
+    "id": "a405073d-9760-4511-af71-a873ddfb8abf",
+    "name": "edit_contracts",
+    "name_zh": "編輯合約",
+    "name_en": "Edit Contracts",
+    "category": "contract_management",
+    "description": "Edit contract information",
+    "created_at": "2025-10-29T07:45:15.286829+00:00",
+    "updated_at": "2025-10-29T07:45:15.286829+00:00"
+  },
+  {
+    "id": "739172a0-77a7-4e46-87b2-466c714c14a9",
+    "name": "delete_contracts",
+    "name_zh": "刪除合約",
+    "name_en": "Delete Contracts",
+    "category": "contract_management",
+    "description": "Delete contracts",
+    "created_at": "2025-10-29T07:45:15.286829+00:00",
+    "updated_at": "2025-10-29T07:45:15.286829+00:00"
+  }
+]

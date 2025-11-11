@@ -1,0 +1,3 @@
+INSERT INTO company_members (id, company_id, user_id, role_id, position, department, is_active, joined_at, left_at, created_at, updated_at, is_owner) VALUES
+('e427689d-76e4-44cb-a4cc-00c319ac4d25', 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d', '77241142-dcdf-4433-b955-b448dc08109f', 'ba7f90c6-e3de-4bb2-afd1-51e82aefe6f1', NULL, NULL, 1, '2025-11-01T07:27:28.322225+00:00', NULL, NULL, '2025-11-01T07:27:28.322225+00:00', 1),
+('492bcd56-221f-4619-a7b7-0c623b190e55', 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d', '2ba3df78-8b23-4b3f-918b-d4f7eea2bfba', 'ba7f90c6-e3de-4bb2-afd1-51e82aefe6f1', NULL, NULL, 1, '2025-11-01T07:45:20.411653+00:00', NULL, NULL, '2025-11-01T07:54:23.754962+00:00', 1);

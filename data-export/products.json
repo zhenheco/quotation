@@ -1,0 +1,185 @@
+[
+  {
+    "id": "33333333-3333-4333-a333-333333333333",
+    "user_id": "f80e1007-a684-4248-8241-4a78cf35941c",
+    "sku": "LAPTOP-001",
+    "name": {
+      "en": "Laptop Computer",
+      "zh": "筆記型電腦"
+    },
+    "description": {
+      "en": "15.6\" Intel i7 16GB RAM 512GB SSD",
+      "zh": "15.6吋 Intel i7 16GB RAM 512GB SSD"
+    },
+    "base_price": 35000,
+    "base_currency": "TWD",
+    "category": null,
+    "created_at": "2025-11-08T11:12:24.216055+00:00",
+    "updated_at": "2025-11-08T11:12:24.216055+00:00",
+    "company_id": null,
+    "cost_price": null,
+    "cost_currency": null,
+    "profit_margin": null,
+    "supplier": null,
+    "supplier_code": null
+  },
+  {
+    "id": "44444444-4444-4444-a444-444444444444",
+    "user_id": "f80e1007-a684-4248-8241-4a78cf35941c",
+    "sku": "MOUSE-001",
+    "name": {
+      "en": "Wireless Mouse",
+      "zh": "無線滑鼠"
+    },
+    "description": {
+      "en": "2.4GHz Wireless Ergonomic Design",
+      "zh": "2.4GHz 無線連接 人體工學設計"
+    },
+    "base_price": 800,
+    "base_currency": "TWD",
+    "category": null,
+    "created_at": "2025-11-08T11:12:24.216055+00:00",
+    "updated_at": "2025-11-08T11:12:24.216055+00:00",
+    "company_id": null,
+    "cost_price": null,
+    "cost_currency": null,
+    "profit_margin": null,
+    "supplier": null,
+    "supplier_code": null
+  },
+  {
+    "id": "55555555-5555-4555-a555-555555555555",
+    "user_id": "f80e1007-a684-4248-8241-4a78cf35941c",
+    "sku": "KEYBOARD-001",
+    "name": {
+      "en": "Mechanical Keyboard",
+      "zh": "機械式鍵盤"
+    },
+    "description": {
+      "en": "Blue Switch RGB Backlit 104 Keys",
+      "zh": "青軸 RGB 背光 104鍵"
+    },
+    "base_price": 2500,
+    "base_currency": "TWD",
+    "category": null,
+    "created_at": "2025-11-08T11:12:24.216055+00:00",
+    "updated_at": "2025-11-08T11:12:24.216055+00:00",
+    "company_id": null,
+    "cost_price": null,
+    "cost_currency": null,
+    "profit_margin": null,
+    "supplier": null,
+    "supplier_code": null
+  },
+  {
+    "id": "069b22a1-c52f-429e-863e-01230750f7f7",
+    "user_id": "294a66d9-a0af-4cbe-b9d9-a6a242588c07",
+    "sku": null,
+    "name": {
+      "en": "",
+      "zh": "123123"
+    },
+    "description": null,
+    "base_price": 32136,
+    "base_currency": "TWD",
+    "category": null,
+    "created_at": "2025-11-08T13:34:54.605575+00:00",
+    "updated_at": "2025-11-08T13:34:54.605575+00:00",
+    "company_id": null,
+    "cost_price": null,
+    "cost_currency": null,
+    "profit_margin": null,
+    "supplier": null,
+    "supplier_code": null
+  },
+  {
+    "id": "b31d68e0-596c-499f-a17d-f783035df7b8",
+    "user_id": "2ba3df78-8b23-4b3f-918b-d4f7eea2bfba",
+    "sku": null,
+    "name": {
+      "en": "Mobile App Development",
+      "zh": "行動應用程式開發"
+    },
+    "description": {
+      "en": "Native iOS and Android mobile application development",
+      "zh": "iOS 和 Android 雙平台原生應用程式開發"
+    },
+    "base_price": 3000001,
+    "base_currency": "TWD",
+    "category": "應用程式開發",
+    "created_at": "2025-11-01T16:45:34.701382+00:00",
+    "updated_at": "2025-11-10T12:11:51.640867+00:00",
+    "company_id": null,
+    "cost_price": null,
+    "cost_currency": null,
+    "profit_margin": null,
+    "supplier": null,
+    "supplier_code": null
+  },
+  {
+    "id": "7f2d3a7d-c4d0-46b7-8047-0dcb91dc9039",
+    "user_id": "2ba3df78-8b23-4b3f-918b-d4f7eea2bfba",
+    "sku": null,
+    "name": {
+      "en": "Cloud System Integration",
+      "zh": "雲端系統整合服務"
+    },
+    "description": {
+      "en": "AWS/Azure/GCP cloud architecture design and system migration",
+      "zh": "AWS/Azure/GCP 雲端架構設計與系統遷移"
+    },
+    "base_price": 200000,
+    "base_currency": "TWD",
+    "category": "雲端服務",
+    "created_at": "2025-11-01T16:45:34.701382+00:00",
+    "updated_at": "2025-11-01T16:45:34.701382+00:00",
+    "company_id": null,
+    "cost_price": null,
+    "cost_currency": null,
+    "profit_margin": null,
+    "supplier": null,
+    "supplier_code": null
+  },
+  {
+    "id": "14e66c5d-e90c-49cb-b972-2d939335f449",
+    "user_id": "77241142-dcdf-4433-b955-b448dc08109f",
+    "sku": null,
+    "name": {
+      "en": "",
+      "zh": "測試價格"
+    },
+    "description": null,
+    "base_price": 333,
+    "base_currency": "TWD",
+    "category": null,
+    "created_at": "2025-11-02T12:44:47.248412+00:00",
+    "updated_at": "2025-11-02T14:31:02.719649+00:00",
+    "company_id": null,
+    "cost_price": null,
+    "cost_currency": null,
+    "profit_margin": null,
+    "supplier": null,
+    "supplier_code": null
+  },
+  {
+    "id": "edfa22cb-c7ec-42b0-b4ef-c2262b5dd9dd",
+    "user_id": "77241142-dcdf-4433-b955-b448dc08109f",
+    "sku": null,
+    "name": {
+      "en": "",
+      "zh": "21321"
+    },
+    "description": null,
+    "base_price": 6547654,
+    "base_currency": "TWD",
+    "category": null,
+    "created_at": "2025-11-02T15:11:30.00128+00:00",
+    "updated_at": "2025-11-02T15:11:48.54489+00:00",
+    "company_id": null,
+    "cost_price": null,
+    "cost_currency": null,
+    "profit_margin": null,
+    "supplier": null,
+    "supplier_code": null
+  }
+]

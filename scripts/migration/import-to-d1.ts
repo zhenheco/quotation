@@ -19,9 +19,9 @@ const DATABASE_NAME = 'quotation-system-db'
 const EXPORT_DIR = path.join(process.cwd(), 'data-export')
 
 const TABLES = [
-  // 先導入沒有外鍵依賴的表
-  'roles',
-  'permissions',
+  // 跳過 roles 和 permissions（D1 schema 已包含預設值）
+  // 'roles',
+  // 'permissions',
   'role_permissions',
   'user_roles',
   'companies',
@@ -44,10 +44,37 @@ interface ImportOptions {
 }
 
 /**
+ * D1 schema 欄位映射（只保留 D1 中存在的欄位）
+ */
+const D1_SCHEMA_FIELDS: Record<string, string[]> = {
+  role_permissions: ['id', 'role_id', 'permission_id', 'created_at'],
+  user_roles: ['id', 'user_id', 'role_id', 'assigned_by', 'created_at', 'updated_at'],
+  companies: ['id', 'name', 'logo_url', 'signature_url', 'passbook_url', 'tax_id', 'bank_name', 'bank_account', 'bank_code', 'address', 'phone', 'email', 'website', 'created_at', 'updated_at'],
+  company_members: ['id', 'company_id', 'user_id', 'role_id', 'is_owner', 'is_active', 'joined_at', 'updated_at'],
+  customers: ['id', 'user_id', 'company_id', 'name', 'email', 'phone', 'address', 'tax_id', 'contact_person', 'created_at', 'updated_at'],
+  products: ['id', 'user_id', 'company_id', 'sku', 'name', 'description', 'unit_price', 'currency', 'category', 'cost_price', 'cost_currency', 'profit_margin', 'supplier', 'base_price', 'created_at', 'updated_at'],
+  quotations: ['id', 'user_id', 'company_id', 'customer_id', 'quotation_number', 'status', 'issue_date', 'valid_until', 'currency', 'subtotal', 'tax_rate', 'tax_amount', 'discount', 'total_amount', 'notes', 'created_at', 'updated_at'],
+  quotation_items: ['id', 'quotation_id', 'product_id', 'description', 'quantity', 'unit_price', 'currency', 'discount', 'tax_rate', 'subtotal', 'total', 'sort_order', 'created_at'],
+  quotation_shares: ['id', 'quotation_id', 'share_token', 'expires_at', 'created_at'],
+  quotation_versions: ['id', 'quotation_id', 'version_number', 'data', 'created_by', 'created_at'],
+  customer_contracts: ['id', 'customer_id', 'company_id', 'quotation_id', 'contract_number', 'contract_file_url', 'contract_file_name', 'status', 'signed_date', 'start_date', 'end_date', 'total_amount', 'currency', 'payment_terms', 'notes', 'created_at', 'updated_at'],
+  payments: ['id', 'contract_id', 'company_id', 'amount', 'currency', 'payment_date', 'payment_method', 'status', 'notes', 'created_at', 'updated_at'],
+  exchange_rates: ['id', 'from_currency', 'to_currency', 'rate', 'rate_date', 'source', 'created_at', 'updated_at']
+}
+
+/**
  * 轉換 PostgreSQL 資料到 SQLite 格式
  */
 function transformRow(row: any, tableName: string): any {
-  const transformed: any = { ...row }
+  // 只保留 D1 schema 中定義的欄位
+  const allowedFields = D1_SCHEMA_FIELDS[tableName] || Object.keys(row)
+  const transformed: any = {}
+
+  for (const field of allowedFields) {
+    if (row[field] !== undefined) {
+      transformed[field] = row[field]
+    }
+  }
 
   // 轉換 JSON 欄位
   const jsonFields: Record<string, string[]> = {

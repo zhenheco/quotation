@@ -1,0 +1,2 @@
+INSERT INTO companies (id, name, tax_id, phone, email, address, website, logo_url, is_active, settings, created_by, created_at, updated_at) VALUES
+('a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d', '測試科技股份有限公司', '12345678', '02-1234-5678', 'contact@test-tech.com', '台北市信義區信義路五段7號', NULL, NULL, NULL, NULL, NULL, '2025-11-01T07:26:55.289949+00:00', '2025-11-01T07:26:55.289949+00:00');

@@ -47,29 +47,35 @@ export async function requirePermission(
 /**
  * HOC to wrap API routes with auth
  */
-export function withAuth(
-  handler: (request: NextRequest, context: { userId: string }) => Promise<NextResponse>
+export function withAuth<T extends Record<string, string | string[]>>(
+  handler: (
+    request: NextRequest,
+    context: { userId: string; params: Promise<T> }
+  ) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest) => {
+  return async (request: NextRequest, context: { params: Promise<T> }) => {
     const { error, user } = await requireAuth(request);
 
     if (error) {
       return error;
     }
 
-    return handler(request, { userId: user!.id });
+    return handler(request, { userId: user!.id, params: context.params });
   };
 }
 
 /**
  * HOC to wrap API routes with auth and permission check
  */
-export function withPermission(
+export function withPermission<T extends Record<string, string | string[]>>(
   resource: string,
   action: string,
-  handler: (request: NextRequest, context: { userId: string }) => Promise<NextResponse>
+  handler: (
+    request: NextRequest,
+    context: { userId: string; params: Promise<T> }
+  ) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest) => {
+  return async (request: NextRequest, context: { params: Promise<T> }) => {
     const { error, user } = await requireAuth(request);
 
     if (error) {
@@ -81,6 +87,6 @@ export function withPermission(
       return permissionError;
     }
 
-    return handler(request, { userId: user!.id });
+    return handler(request, { userId: user!.id, params: context.params });
   };
 }

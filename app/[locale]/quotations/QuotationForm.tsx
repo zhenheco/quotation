@@ -64,6 +64,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   const [showNotesTemplates, setShowNotesTemplates] = useState(false)
   const [contractFile, setContractFile] = useState<File | null>(null)
   const [contractFileUrl, setContractFileUrl] = useState<string>('')
+  const [uploadingContract, setUploadingContract] = useState(false)
   const [paymentTerms, setPaymentTerms] = useState<Partial<PaymentTerm>[]>([])
 
   // 備註模版
