@@ -23,9 +23,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({
-      statistics: data,
-    })
+    return NextResponse.json(data)
   } catch (error: unknown) {
     console.error('Failed to fetch payment statistics:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
