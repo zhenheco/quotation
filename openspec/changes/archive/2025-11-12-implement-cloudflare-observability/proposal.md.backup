@@ -1,0 +1,185 @@
+# Implement Cloudflare Workers Observability System
+
+## Why
+
+建立全方位的可觀測性系統，讓開發團隊能夠有效監控、除錯和優化部署在 Cloudflare Workers 上的應用程式。
+
+### 目標
+- **開發除錯**：提供即時日誌查詢，快速定位問題
+- **生產監控**：追蹤錯誤率、效能指標，主動發現異常
+- **效能優化**：分析請求延遲、識別瓶頸，持續改善
+- **業務洞察**：了解 API 使用模式、使用者行為趨勢
+
+### 價值
+1. 大幅縮短問題排查時間（從數小時降至數分鐘）
+2. 透過主動監控減少生產事故
+3. 基於資料驅動的效能優化決策
+4. 提升整體系統可靠性和使用者體驗
+
+## What Changes
+
+實作三大核心能力：
+
+### 1. Workers Logs - 即時日誌系統
+- 整合 Cloudflare Workers Logpush
+- 提供日誌查詢 API 和前端介面
+- 支援日誌過濾、搜尋、匯出
+
+### 2. Workers Traces - 分散式追蹤
+- 實作 OpenTelemetry 整合
+- 追蹤請求跨服務流動路徑
+- 延遲分析和瓶頸識別
+
+### 3. Analytics Dashboard - 監控儀表板
+- 使用現有 Analytics Engine binding
+- 自訂業務指標收集
+- 即時圖表和告警通知
+
+## Problem Description
+
+### 當前痛點
+1. **缺乏可見性**：無法查看 Worker 執行的詳細日誌和錯誤
+2. **除錯困難**：生產環境問題難以重現和定位
+3. **效能盲點**：不知道哪些 API 慢、為什麼慢
+4. **被動響應**：只有使用者回報才知道有問題
+
+### 技術限制
+- Cloudflare Workers 環境限制傳統 logging 方案
+- 需要整合多個 Cloudflare 服務（Logpush, Analytics Engine, Trace Workers）
+- 需要在不影響效能的前提下收集資料
+
+## Solution
+
+### 架構設計
+
+```
+┌─────────────────┐
+│  Next.js App    │
+│  (Worker)       │
+└────────┬────────┘
+         │
+    ┌────┴─────────────────────────┐
+    │                              │
+    v                              v
+┌─────────────┐            ┌──────────────┐
+│  Logpush    │            │  Analytics   │
+│  (R2/HTTP)  │            │  Engine      │
+└─────────────┘            └──────────────┘
+    │                              │
+    v                              v
+┌─────────────────────────────────────┐
+│    Observability API (Worker)       │
+│  - Logs Query                       │
+│  - Metrics Aggregation              │
+│  - Alerting Rules                   │
+└─────────────────────────────────────┘
+                 │
+                 v
+┌─────────────────────────────────────┐
+│  Admin Dashboard (Frontend)         │
+│  - Real-time Logs Viewer            │
+│  - Metrics Charts                   │
+│  - Alert Configuration              │
+└─────────────────────────────────────┘
+```
+
+### 技術�棧
+- **日誌收集**：Cloudflare Logpush → R2 + D1 索引
+- **追蹤**：OpenTelemetry + Cloudflare Trace Workers
+- **指標**：Analytics Engine (已綁定)
+- **查詢 API**：Cloudflare Worker + Hono
+- **前端**：Next.js + TanStack Query + Recharts
+
+### 實作階段
+
+#### Phase 1: 基礎設施 (2-3天)
+1. 配置 Logpush 到 R2
+2. 建立 D1 日誌索引 schema
+3. 實作日誌攝取 Worker
+
+#### Phase 2: 查詢 API (2-3天)
+1. 開發日誌查詢 API (Hono)
+2. 實作過濾、分頁、搜尋
+3. 整合 Analytics Engine 查詢
+
+#### Phase 3: 前端儀表板 (3-4天)
+1. 建立監控儀表板頁面
+2. 實作即時日誌查看器
+3. 整合圖表和指標視覺化
+
+#### Phase 4: 追蹤和告警 (2-3天)
+1. 實作 OpenTelemetry 追蹤
+2. 配置告警規則和通知
+3. Email 告警整合
+
+## Verification
+
+### 驗證標準
+
+#### 日誌系統
+- [ ] 可以查看最近 7 天的日誌
+- [ ] 支援按錯誤等級、時間範圍過濾
+- [ ] 查詢延遲 < 2 秒
+- [ ] 日誌保留策略正常運作
+
+#### 追蹤系統
+- [ ] 可以追蹤單個請求的完整路徑
+- [ ] 延遲分析準確度 > 95%
+- [ ] Trace overhead < 5ms
+
+#### 監控儀表板
+- [ ] 即時顯示錯誤率、請求量
+- [ ] 圖表資料更新延遲 < 10 秒
+- [ ] 支援自訂時間範圍查詢
+
+#### 告警系統
+- [ ] 錯誤率 > 5% 時觸發 Email 告警
+- [ ] 告警延遲 < 1 分鐘
+- [ ] 告警通知包含足夠的除錯資訊
+
+### 測試場景
+
+1. **模擬錯誤**：觸發 500 錯誤，驗證日誌記錄和告警
+2. **效能測試**：高負載下驗證追蹤不影響回應時間
+3. **查詢效能**：在 100萬+ 日誌中查詢特定錯誤
+4. **告警準確性**：驗證錯誤率計算和通知正確性
+
+## Impact
+
+### 正面影響
+- 問題排查時間減少 80%
+- 生產事故發現時間從數小時降至數分鐘
+- 基於資料的效能優化決策
+- 提升團隊對系統的信心
+
+### 潛在風險
+- 日誌存儲成本增加（預估每月 $5-10）
+- 需要學習新的監控工具
+- 初期配置需要投入時間
+
+### 緩解措施
+- 實作日誌保留策略（7天熱資料，30天歸檔）
+- 提供完整的使用文件和訓練
+- 分階段實作，逐步上線
+
+## Dependencies
+
+### 技術依賴
+- Cloudflare R2 bucket（日誌存儲）
+- Cloudflare D1 database（索引和查詢）
+- Analytics Engine binding（已配置）
+- OpenTelemetry SDK for Workers
+
+### 外部服務
+- Email 服務（Gmail SMTP，已配置）
+- 可選：Slack/Discord webhook（告警通知）
+
+### 權限需求
+- Cloudflare Logpush 權限
+- R2 bucket 讀寫權限
+- Analytics Engine 讀取權限
+
+## Related Changes
+
+- 無前置依賴
+- 未來可擴展：整合 APM 工具（Datadog, New Relic）

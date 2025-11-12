@@ -1,0 +1,30 @@
+{
+  "name": "observability-api",
+  "main": "workers/observability-api/index.ts",
+  "compatibility_date": "2025-01-13",
+  "node_compat": true,
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "quotation-system-db",
+      "database_id": "YOUR_DATABASE_ID"
+    }
+  ],
+
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS"
+    }
+  ],
+
+  "triggers": {
+    "crons": [
+      "*/5 * * * *"
+    ]
+  },
+
+  "vars": {
+    "ENVIRONMENT": "development"
+  }
+}
