@@ -106,6 +106,26 @@ export async function invalidateExchangeRates(kv: KVCache): Promise<void> {
 }
 
 /**
+ * 權限名稱映射：API 格式 -> 資料庫格式
+ */
+const permissionMapping: Record<string, string[]> = {
+  'customers:read': ['view_customers'],
+  'customers:write': ['create_customers', 'edit_customers'],
+  'customers:delete': ['delete_customers'],
+  'products:read': ['view_products'],
+  'products:write': ['create_products', 'edit_products'],
+  'products:delete': ['delete_products'],
+  'quotations:read': ['view_quotations'],
+  'quotations:write': ['create_quotations', 'edit_quotations'],
+  'quotations:delete': ['delete_quotations'],
+  'companies:read': ['view_customers'], // 公司可以查看客戶
+  'companies:write': ['create_customers', 'edit_customers'],
+  'companies:delete': ['delete_customers'],
+  'exchange_rates:read': ['view_products'], // 匯率屬於產品相關
+  'exchange_rates:write': ['create_products', 'edit_products']
+}
+
+/**
  * 檢查使用者是否有權限（帶快取）
  */
 export async function checkPermission(
@@ -115,5 +135,19 @@ export async function checkPermission(
   permissionName: string
 ): Promise<boolean> {
   const permissions = await getCachedUserPermissions(kv, db, userId)
-  return permissions.some(p => p.name === permissionName)
+
+  // 先嘗試直接匹配
+  if (permissions.some(p => p.name === permissionName)) {
+    return true
+  }
+
+  // 使用映射表檢查
+  const mappedPermissions = permissionMapping[permissionName]
+  if (mappedPermissions) {
+    return mappedPermissions.some(mp =>
+      permissions.some(p => p.name === mp)
+    )
+  }
+
+  return false
 }
