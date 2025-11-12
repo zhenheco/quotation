@@ -4,25 +4,29 @@
 
 import { vi } from 'vitest'
 
+// 創建一個可重用的查詢建構器
+// 使用函式讓每個方法可以被 .mockResolvedValue() 覆蓋
+const queryBuilder = {
+  select: vi.fn(function(this: typeof queryBuilder) { return this }),
+  insert: vi.fn(function(this: typeof queryBuilder) { return this }),
+  update: vi.fn(function(this: typeof queryBuilder) { return this }),
+  delete: vi.fn(function(this: typeof queryBuilder) { return this }),
+  eq: vi.fn(function(this: typeof queryBuilder) { return this }),
+  in: vi.fn(function(this: typeof queryBuilder) { return this }),
+  gte: vi.fn(function(this: typeof queryBuilder) { return this }),
+  lt: vi.fn(function(this: typeof queryBuilder) { return this }),
+  order: vi.fn(function(this: typeof queryBuilder) { return this }),
+  limit: vi.fn(function(this: typeof queryBuilder) { return this }),
+  single: vi.fn(),
+}
+
 export const mockSupabaseClient = {
   auth: {
     getUser: vi.fn(),
     signInWithOAuth: vi.fn(),
     signOut: vi.fn(),
   },
-  from: vi.fn(() => ({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
-    gte: vi.fn().mockReturnThis(),
-    lt: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    single: vi.fn(),
-  })),
+  from: vi.fn(() => queryBuilder),
 }
 
 export const createMockUser = (overrides = {}) => ({
