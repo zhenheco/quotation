@@ -109,20 +109,8 @@ export async function invalidateExchangeRates(kv: KVCache): Promise<void> {
  * 權限名稱映射：API 格式 -> 資料庫格式
  */
 const permissionMapping: Record<string, string[]> = {
-  'customers:read': ['view_customers'],
-  'customers:write': ['create_customers', 'edit_customers'],
-  'customers:delete': ['delete_customers'],
-  'products:read': ['view_products'],
-  'products:write': ['create_products', 'edit_products'],
-  'products:delete': ['delete_products'],
-  'quotations:read': ['view_quotations'],
-  'quotations:write': ['create_quotations', 'edit_quotations'],
-  'quotations:delete': ['delete_quotations'],
-  'companies:read': ['view_customers'], // 公司可以查看客戶
-  'companies:write': ['create_customers', 'edit_customers'],
-  'companies:delete': ['delete_customers'],
-  'exchange_rates:read': ['view_products'], // 匯率屬於產品相關
-  'exchange_rates:write': ['create_products', 'edit_products']
+  'companies:read': ['company_settings:read'],
+  'companies:write': ['company_settings:write']
 }
 
 /**
