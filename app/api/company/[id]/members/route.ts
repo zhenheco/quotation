@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getCompanyMembersDetailed, addCompanyMember, getCompanyMember } from '@/lib/services/company';
 import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/services/rbac';
-import { query } from '@/lib/db/zeabur';
 import { RoleName } from '@/types/rbac.types';
 
 interface AddMemberBody {
@@ -130,16 +129,23 @@ export async function POST(
       );
     }
 
-    // 建立或更新 user profile
-    await query(
-      `INSERT INTO user_profiles (user_id, full_name, display_name, phone)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (user_id) DO UPDATE
-       SET full_name = COALESCE($2, user_profiles.full_name),
-           display_name = COALESCE($3, user_profiles.display_name),
-           phone = COALESCE($4, user_profiles.phone)`,
-      [user_id, full_name || null, display_name || null, phone || null]
-    );
+    // 建立或更新 user metadata (使用 Supabase Auth)
+    if (full_name || display_name || phone) {
+      const updates: Record<string, string> = {};
+      if (full_name) updates.full_name = full_name;
+      if (display_name) updates.display_name = display_name;
+      if (phone) updates.phone = phone;
+
+      const { error: updateError } = await supabase.auth.admin.updateUserById(
+        user_id,
+        { user_metadata: updates }
+      );
+
+      if (updateError) {
+        console.warn('Failed to update user metadata:', updateError);
+        // 不阻止成員新增，繼續執行
+      }
+    }
 
     // 新增到公司
     const newMember = await addCompanyMember(

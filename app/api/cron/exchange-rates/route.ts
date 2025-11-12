@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { syncRatesToDatabase, SUPPORTED_CURRENCIES } from '@/lib/services/exchange-rate-zeabur'
+import { syncRatesToDatabase, SUPPORTED_CURRENCIES } from '@/lib/services/exchange-rate-d1'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { headers } from 'next/headers'
 
 // 錯誤通知函數
@@ -65,6 +67,8 @@ async function sendSuccessNotification(syncedCount: number) {
 }
 
 export async function GET() {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證請求來源 (Vercel Cron 會帶上特殊的 header)
     const headersList = await headers()
@@ -82,6 +86,8 @@ export async function GET() {
     console.log('🕒 Starting scheduled exchange rate sync...')
     const startTime = Date.now()
 
+    const db = getD1Client(env)
+
     // 同步所有支援的基準貨幣
     const results = []
     let totalSynced = 0
@@ -89,7 +95,7 @@ export async function GET() {
     for (const baseCurrency of SUPPORTED_CURRENCIES) {
       console.log(`📊 Syncing rates for base currency: ${baseCurrency}`)
 
-      const success = await syncRatesToDatabase(baseCurrency)
+      const success = await syncRatesToDatabase(db, baseCurrency)
 
       results.push({
         currency: baseCurrency,
@@ -145,6 +151,8 @@ export async function GET() {
 
 // 手動觸發端點（用於測試）
 export async function POST(request: Request) {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證請求（可以用 API key 或其他方式）
     const body = await request.json() as Record<string, unknown>
@@ -159,10 +167,12 @@ export async function POST(request: Request) {
 
     console.log('🔧 Manual exchange rate sync triggered')
 
+    const db = getD1Client(env)
+
     // 執行同步
     const results = []
     for (const baseCurrency of SUPPORTED_CURRENCIES) {
-      const success = await syncRatesToDatabase(baseCurrency)
+      const success = await syncRatesToDatabase(db, baseCurrency)
       results.push({ currency: baseCurrency, success })
     }
 

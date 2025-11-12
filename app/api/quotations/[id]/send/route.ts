@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getQuotationById, updateQuotation } from '@/lib/services/database'
+import { getQuotationById, updateQuotation } from '@/lib/dal/quotations'
+import { getCustomerById } from '@/lib/dal/customers'
 import { emailService } from '@/lib/services/email'
 import { generateQuotationEmailHTML, generateDefaultEmailSubject } from '@/lib/templates/quotation-email'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 interface SendQuotationBody {
   subject?: string;
@@ -30,10 +33,13 @@ export async function POST(
       )
     }
 
+    const { env } = await getCloudflareContext()
+    const db = getD1Client(env)
+
     const body = await request.json() as SendQuotationBody
     const { subject, content, locale = 'zh' } = body
 
-    const quotation = await getQuotationById(id, user.id)
+    const quotation = await getQuotationById(db, user.id, id)
 
     if (!quotation) {
       return NextResponse.json(
@@ -42,7 +48,17 @@ export async function POST(
       )
     }
 
-    if (!quotation.customer_email) {
+    // 查詢客戶資料
+    const customer = await getCustomerById(db, user.id, quotation.customer_id)
+
+    if (!customer) {
+      return NextResponse.json(
+        { success: false, error: 'Customer not found', code: 'CUSTOMER_NOT_FOUND' },
+        { status: 404 }
+      )
+    }
+
+    if (!customer.email) {
       return NextResponse.json(
         {
           success: false,
@@ -58,17 +74,17 @@ export async function POST(
     const emailHTML = content || generateQuotationEmailHTML({
       locale: locale as 'zh' | 'en',
       quotationNumber: quotation.quotation_number,
-      customerName: locale === 'zh' ? quotation.customer_name?.zh || '' : quotation.customer_name?.en || '',
+      customerName: locale === 'zh' ? customer.name.zh : customer.name.en,
       issueDate: new Date(quotation.issue_date).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US'),
       validUntil: new Date(quotation.valid_until).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US'),
       currency: quotation.currency,
-      total: quotation.total,
+      total: quotation.total_amount,
       viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/${locale}/quotations/${quotation.id}`,
       companyName: process.env.COMPANY_NAME || 'Company',
     })
 
     const emailResult = await emailService.sendEmail({
-      to: quotation.customer_email,
+      to: customer.email,
       subject: emailSubject,
       html: emailHTML,
     })
@@ -85,8 +101,9 @@ export async function POST(
     }
 
     const updatedQuotation = await updateQuotation(
-      id,
+      db,
       user.id,
+      id,
       { status: 'sent' as const }
     )
 
@@ -97,7 +114,7 @@ export async function POST(
         id: updatedQuotation.id,
         quotation_number: updatedQuotation.quotation_number,
         status: updatedQuotation.status,
-        customer_email: quotation.customer_email,
+        customer_email: customer.email,
       },
     })
   } catch (error: unknown) {

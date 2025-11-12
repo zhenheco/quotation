@@ -9,9 +9,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createApiClient } from '@/lib/supabase/api';
 import { isSuperAdmin } from '@/lib/services/rbac';
-import { query } from '@/lib/db/zeabur';
+import { getD1Client } from '@/lib/db/d1-client';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 export async function GET(request: NextRequest) {
+  const { env } = await getCloudflareContext();
   try {
     // 驗證使用者身份
     const supabase = createApiClient(request);
@@ -34,7 +36,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 獲取統計資料
-    const stats = await getSystemStats();
+    const db = getD1Client(env);
+    const stats = await getSystemStats(db);
 
     return NextResponse.json({
       success: true,
@@ -53,37 +56,42 @@ export async function GET(request: NextRequest) {
 /**
  * 獲取系統統計資料
  */
-async function getSystemStats() {
+async function getSystemStats(db: ReturnType<typeof getD1Client>) {
   // 公司總數
-  const companiesResult = await query(
+  const companies = await db.query<{ count: number }>(
     'SELECT COUNT(*) as count FROM companies'
   );
-  const totalCompanies = parseInt(companiesResult.rows[0]?.count || '0');
+  const totalCompanies = companies[0]?.count || 0;
 
-  // 使用者總數
-  const usersResult = await query(
-    'SELECT COUNT(*) as count FROM user_profiles'
+  // 使用者總數（從 user_roles 統計唯一 user_id）
+  const users = await db.query<{ count: number }>(
+    'SELECT COUNT(DISTINCT user_id) as count FROM user_roles'
   );
-  const totalUsers = parseInt(usersResult.rows[0]?.count || '0');
+  const totalUsers = users[0]?.count || 0;
 
   // 活躍公司數（有成員的公司）
-  const activeCompaniesResult = await query(`
+  const activeCompanies = await db.query<{ count: number }>(`
     SELECT COUNT(DISTINCT company_id) as count
     FROM company_members
-    WHERE is_active = true
+    WHERE is_active = 1
   `);
-  const activeCompanies = parseInt(activeCompaniesResult.rows[0]?.count || '0');
+  const activeCompaniesCount = activeCompanies[0]?.count || 0;
 
   // 公司成員總數
-  const membersResult = await query(`
+  const members = await db.query<{ count: number }>(`
     SELECT COUNT(*) as count
     FROM company_members
-    WHERE is_active = true
+    WHERE is_active = 1
   `);
-  const totalMembers = parseInt(membersResult.rows[0]?.count || '0');
+  const totalMembers = members[0]?.count || 0;
 
   // 各角色數量
-  const rolesResult = await query(`
+  const roles = await db.query<{
+    role_name: string;
+    name_zh: string;
+    name_en: string;
+    user_count: number;
+  }>(`
     SELECT
       r.name as role_name,
       r.name_zh,
@@ -96,41 +104,38 @@ async function getSystemStats() {
     ORDER BY r.level
   `);
 
-  const roleStats = rolesResult.rows.map((row: unknown) => {
-    const r = row as Record<string, string | number>;
-    return {
-      role_name: r.role_name as string,
-      display_name: r.name_zh as string, // 使用中文名稱作為顯示名稱
-      count: parseInt((r.user_count as string) || '0')
-    };
-  });
+  const roleStats = roles.map((r) => ({
+    role_name: r.role_name,
+    display_name: r.name_zh, // 使用中文名稱作為顯示名稱
+    count: r.user_count || 0
+  }));
 
-  // 最近新增的公司（最近7天）
-  const recentCompaniesResult = await query(`
+  // 最近新增的公司（最近7天）- SQLite 使用 datetime
+  const recentCompanies = await db.query<{ count: number }>(`
     SELECT COUNT(*) as count
     FROM companies
-    WHERE created_at >= NOW() - INTERVAL '7 days'
+    WHERE created_at >= datetime('now', '-7 days')
   `);
-  const recentCompanies = parseInt(recentCompaniesResult.rows[0]?.count || '0');
+  const recentCompaniesCount = recentCompanies[0]?.count || 0;
 
-  // 最近新增的使用者（最近7天）
-  const recentUsersResult = await query(`
-    SELECT COUNT(*) as count
-    FROM user_profiles
-    WHERE created_at >= NOW() - INTERVAL '7 days'
+  // 最近新增的使用者（最近7天）- 從 user_roles 統計
+  const recentUsers = await db.query<{ count: number }>(`
+    SELECT COUNT(DISTINCT user_id) as count
+    FROM user_roles
+    WHERE created_at >= datetime('now', '-7 days')
   `);
-  const recentUsers = parseInt(recentUsersResult.rows[0]?.count || '0');
+  const recentUsersCount = recentUsers[0]?.count || 0;
 
   return {
     overview: {
       totalCompanies,
       totalUsers,
-      activeCompanies,
+      activeCompanies: activeCompaniesCount,
       totalMembers
     },
     recent: {
-      newCompanies: recentCompanies,
-      newUsers: recentUsers
+      newCompanies: recentCompaniesCount,
+      newUsers: recentUsersCount
     },
     roles: roleStats
   };
