@@ -6,6 +6,7 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getCustomerById, updateCustomer, deleteCustomer } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
 import { UpdateCustomerRequest } from '@/app/api/types'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 
 /**
@@ -13,8 +14,10 @@ import { UpdateCustomerRequest } from '@/app/api/types'
  */
 export async function GET(
   request: NextRequest,
-  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { id } = await params
 
@@ -54,8 +57,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { id } = await params
 
@@ -131,8 +136,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { id } = await params
 

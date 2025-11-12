@@ -6,15 +6,15 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getCustomers, createCustomer } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
 import { CreateCustomerRequest } from '@/app/api/types'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 
 /**
  * GET /api/customers - 取得所有客戶
  */
-export async function GET(
-  request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace } }
-) {
+export async function GET(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證使用者（保留 Supabase Auth）
     const supabase = createApiClient(request)
@@ -46,10 +46,9 @@ export async function GET(
 /**
  * POST /api/customers - 建立新客戶
  */
-export async function POST(
-  request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace } }
-) {
+export async function POST(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證使用者
     const supabase = createApiClient(request)

@@ -5,6 +5,7 @@ import { getD1Client } from '@/lib/db/d1-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { getCompanyById, updateCompany, deleteCompany, isCompanyMember } from '@/lib/dal/companies'
 import { checkPermission } from '@/lib/cache/services'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 interface UpdateCompanyRequestBody {
   name_zh?: string;
@@ -30,8 +31,10 @@ interface UpdateCompanyRequestBody {
  */
 export async function GET(
   request: NextRequest,
-  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { id } = await params
 
@@ -77,8 +80,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { id } = await params
 
@@ -162,8 +167,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { id } = await params
 

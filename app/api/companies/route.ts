@@ -5,6 +5,7 @@ import { getD1Client } from '@/lib/db/d1-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { getUserCompanies, createCompany, addCompanyMember } from '@/lib/dal/companies'
 import { checkPermission } from '@/lib/cache/services'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 interface CreateCompanyRequestBody {
   name: { zh: string; en: string } | string;
@@ -25,10 +26,9 @@ interface CreateCompanyRequestBody {
 /**
  * GET /api/companies - 取得使用者的所有公司
  */
-export async function GET(
-  request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace } }
-) {
+export async function GET(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證使用者
     const supabase = createApiClient(request)
@@ -60,10 +60,9 @@ export async function GET(
 /**
  * POST /api/companies - 建立新公司
  */
-export async function POST(
-  request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace } }
-) {
+export async function POST(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證使用者
     const supabase = createApiClient(request)

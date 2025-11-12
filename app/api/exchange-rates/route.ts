@@ -5,15 +5,15 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getExchangeRatesByBase, Currency } from '@/lib/dal/exchange-rates'
 import { checkPermission } from '@/lib/cache/services'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 
 /**
  * GET /api/exchange-rates - 取得匯率資料
  */
-export async function GET(
-  request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace } }
-) {
+export async function GET(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { searchParams } = new URL(request.url)
     const baseCurrency = (searchParams.get('base') || 'TWD') as Currency

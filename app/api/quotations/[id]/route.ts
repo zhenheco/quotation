@@ -14,6 +14,7 @@ import {
 } from '@/lib/dal/quotations'
 import { getCustomerById } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 
 /**
@@ -21,8 +22,10 @@ import { checkPermission } from '@/lib/cache/services'
  */
 export async function GET(
   request: NextRequest,
-  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { id } = await params
 
@@ -72,8 +75,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { id } = await params
 
@@ -193,8 +198,10 @@ export async function PUT(
  */
 export async function PATCH(
   request: NextRequest,
-  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { id } = await params
 
@@ -247,8 +254,10 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params, env }: { params: Promise<{ id: string }>; env: { DB: D1Database; KV: KVNamespace } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext()
+
   try {
     const { id } = await params
 

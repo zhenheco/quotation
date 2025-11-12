@@ -5,6 +5,7 @@ import { getD1Client } from '@/lib/db/d1-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { getProducts, createProduct } from '@/lib/dal/products'
 import { checkPermission } from '@/lib/cache/services'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 interface CreateProductRequestBody {
   name: string;
@@ -24,10 +25,9 @@ interface CreateProductRequestBody {
 /**
  * GET /api/products - 取得所有產品
  */
-export async function GET(
-  request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace } }
-) {
+export async function GET(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證使用者
     const supabase = createApiClient(request)
@@ -66,10 +66,9 @@ export async function GET(
 /**
  * POST /api/products - 建立新產品
  */
-export async function POST(
-  request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace } }
-) {
+export async function POST(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證使用者
     const supabase = createApiClient(request)

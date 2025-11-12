@@ -5,6 +5,7 @@ import { getD1Client } from '@/lib/db/d1-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { upsertExchangeRate, SUPPORTED_CURRENCIES, Currency } from '@/lib/dal/exchange-rates'
 import { checkPermission } from '@/lib/cache/services'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 
 interface ExchangeRateAPIResponse {
@@ -69,10 +70,9 @@ async function syncRatesToD1(
 /**
  * POST /api/exchange-rates/sync - 手動同步匯率到 D1
  */
-export async function POST(
-  request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace; EXCHANGE_RATE_API_KEY?: string } }
-) {
+export async function POST(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證使用者
     const supabase = createApiClient(request)

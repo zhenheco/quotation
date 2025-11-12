@@ -12,15 +12,15 @@ import {
 } from '@/lib/dal/quotations'
 import { getCustomerById } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 
 /**
  * GET /api/quotations - 取得所有報價單
  */
-export async function GET(
-  request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace } }
-) {
+export async function GET(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證使用者
     const supabase = createApiClient(request)
@@ -63,10 +63,9 @@ export async function GET(
 /**
  * POST /api/quotations - 建立新報價單
  */
-export async function POST(
-  request: NextRequest,
-  { env }: { env: { DB: D1Database; KV: KVNamespace } }
-) {
+export async function POST(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     // 驗證使用者
     const supabase = createApiClient(request)
