@@ -7,7 +7,7 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getContracts, createContract } from '@/lib/dal/contracts'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 /**
  * GET /api/contracts - 取得所有合約

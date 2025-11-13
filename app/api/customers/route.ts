@@ -7,7 +7,7 @@ import { getCustomers, createCustomer } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
 import { CreateCustomerRequest } from '@/app/api/types'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-export const runtime = 'edge';
+// Note: Edge runtime removed for OpenNext compatibility;
 
 
 /**

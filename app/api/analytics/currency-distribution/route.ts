@@ -7,7 +7,7 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getCurrencyDistribution } from '@/lib/dal/analytics'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 /**
  * GET /api/analytics/currency-distribution

@@ -12,7 +12,7 @@ import { checkPermission } from '@/lib/cache/services'
 import { createApiClient } from '@/lib/supabase/api'
 import { convertQuotationToContract } from '@/lib/dal/contracts'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 type PaymentTerms = 'monthly' | 'quarterly' | 'semi_annual' | 'annual'
 

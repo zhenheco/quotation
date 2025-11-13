@@ -6,7 +6,7 @@ import { RoleName } from '@/types/rbac.types';
 import { getD1Client } from '@/lib/db/d1-client';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-export const runtime = 'edge';
+// Note: Edge runtime removed for OpenNext compatibility;
 
 /**
  * PATCH /api/admin/users/[id]/role

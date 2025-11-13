@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createApiClient } from '@/lib/supabase/api'
-export const runtime = 'edge';
+// Note: Edge runtime removed for OpenNext compatibility;
 
 /**
  * 獲取當前登入用戶的資訊

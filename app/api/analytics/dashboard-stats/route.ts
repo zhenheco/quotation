@@ -7,7 +7,7 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getDashboardStats } from '@/lib/dal/analytics'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 /**
  * GET /api/analytics/dashboard-stats

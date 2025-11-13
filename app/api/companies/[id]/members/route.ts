@@ -13,7 +13,7 @@ import { checkPermission } from '@/lib/cache/services'
 import { createApiClient } from '@/lib/supabase/api'
 import { getCompanyMembers, addCompanyMember, isCompanyMember, getCompanyMember } from '@/lib/dal/companies'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 interface AddMemberRequest {
   user_id: string;

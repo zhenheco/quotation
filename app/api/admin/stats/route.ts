@@ -12,7 +12,7 @@ import { isSuperAdmin } from '@/lib/dal/rbac';
 import { getD1Client } from '@/lib/db/d1-client';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-export const runtime = 'edge';
+// Note: Edge runtime removed for OpenNext compatibility;
 
 export async function GET(request: NextRequest) {
   const { env } = await getCloudflareContext();

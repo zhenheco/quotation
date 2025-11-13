@@ -4,7 +4,7 @@ import { getD1Client } from '@/lib/db/d1-client'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 /**
  * DELETE /api/user/reset-data

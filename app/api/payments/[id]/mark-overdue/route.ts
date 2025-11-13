@@ -13,7 +13,7 @@ import { checkPermission } from '@/lib/cache/services'
 import { createApiClient } from '@/lib/supabase/api'
 import { markPaymentScheduleAsOverdue } from '@/lib/dal/payments';
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 export async function POST(
   req: NextRequest,

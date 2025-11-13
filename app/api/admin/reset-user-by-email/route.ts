@@ -5,7 +5,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { isSuperAdmin } from '@/lib/dal/rbac'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 /**
  * DELETE /api/admin/reset-user-by-email?email=xxx

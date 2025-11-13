@@ -8,7 +8,7 @@ import { getD1Client } from '@/lib/db/d1-client';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { User } from '@supabase/supabase-js';
 
-export const runtime = 'edge';
+// Note: Edge runtime removed for OpenNext compatibility;
 
 interface AddMemberBody {
   user_id: string;

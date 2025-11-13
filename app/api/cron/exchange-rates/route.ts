@@ -5,7 +5,7 @@ import { getD1Client } from '@/lib/db/d1-client'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { headers } from 'next/headers'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 // 錯誤通知函數
 async function sendErrorNotification(error: Error) {

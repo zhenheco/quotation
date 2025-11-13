@@ -6,7 +6,7 @@ import { hasPermission } from '@/lib/dal/rbac';
 import { getD1Client } from '@/lib/db/d1-client';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-export const runtime = 'edge';
+// Note: Edge runtime removed for OpenNext compatibility;
 
 type CompanyFormData = Omit<Company, 'id' | 'created_at' | 'updated_at'>;
 

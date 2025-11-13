@@ -14,7 +14,7 @@ import { createApiClient } from '@/lib/supabase/api'
 import { getPaymentsWithRelations, recordPayment } from '@/lib/dal/payments'
 import type { PaymentType, PaymentMethod } from '@/types/extended.types';
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 export async function GET(req: NextRequest) {
   try {

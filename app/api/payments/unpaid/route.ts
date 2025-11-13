@@ -13,7 +13,7 @@ import { checkPermission } from '@/lib/cache/services'
 import { createApiClient } from '@/lib/supabase/api'
 import { getUnpaidPaymentSchedules } from '@/lib/dal/payments';
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 export async function GET(req: NextRequest) {
   try {

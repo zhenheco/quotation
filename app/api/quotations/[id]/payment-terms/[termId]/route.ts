@@ -7,7 +7,7 @@ import { checkPermission } from '@/lib/cache/services';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { getErrorMessage } from '@/app/api/utils/error-handler';
 
-export const runtime = 'edge';
+// Note: Edge runtime removed for OpenNext compatibility;
 
 /**
  * PUT /api/quotations/[id]/payment-terms/[termId]

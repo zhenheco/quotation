@@ -7,7 +7,7 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getPaymentStatistics } from '@/lib/dal/payments'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 export async function GET(request: NextRequest) {
   try {

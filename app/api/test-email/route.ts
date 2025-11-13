@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-export const runtime = 'edge';
+// Note: Edge runtime removed for OpenNext compatibility;
 
 interface TestEmailBody {
   to: string;

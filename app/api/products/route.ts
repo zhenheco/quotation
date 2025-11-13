@@ -6,7 +6,7 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getProducts, createProduct } from '@/lib/dal/products'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-export const runtime = 'edge';
+// Note: Edge runtime removed for OpenNext compatibility;
 
 interface CreateProductRequestBody {
   name: string;

@@ -13,7 +13,7 @@ import { checkPermission } from '@/lib/cache/services'
 import { createApiClient } from '@/lib/supabase/api'
 import { updateCompanyMemberRole, removeCompanyMember, getCompanyMember } from '@/lib/dal/companies'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 interface UpdateMemberRoleRequest {
   role_id: string;

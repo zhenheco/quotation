@@ -7,7 +7,7 @@ import { getCompanyById, updateCompany, deleteCompany, isCompanyMember } from '@
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 interface UpdateCompanyRequestBody {
   name_zh?: string;

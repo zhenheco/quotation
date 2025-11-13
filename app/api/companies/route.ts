@@ -7,7 +7,7 @@ import { getUserCompanies, createCompany, addCompanyMember } from '@/lib/dal/com
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
-export const runtime = 'edge'
+// Note: Edge runtime removed for OpenNext compatibility
 
 interface CreateCompanyRequestBody {
   name: { zh: string; en: string } | string;
