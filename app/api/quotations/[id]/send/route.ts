@@ -10,7 +10,7 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
-export const runtime = 'edge'
+// Note: Cannot use edge runtime because emailService uses nodemailer which requires Node.js APIs
 
 interface SendQuotationBody {
   subject?: string;

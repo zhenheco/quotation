@@ -7,7 +7,7 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 
-export const runtime = 'edge'
+// Note: Cannot use edge runtime because rate-limiter uses crypto which requires Node.js APIs
 
 interface BatchDeleteBody {
   ids: string[];
