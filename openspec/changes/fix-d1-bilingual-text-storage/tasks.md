@@ -165,23 +165,23 @@
 - [x] 執行 `pnpm run lint:fix` 修正 ESLint 錯誤
 - [x] 執行 `pnpm run lint` 確認無錯誤
 - [x] 執行 `pnpm run typecheck` 確認無型別錯誤
-- [ ] 執行 `pnpm run build` 確認專案可建置
+- [x] 執行 `pnpm run build` 確認專案可建置
 
 ## 階段 9：程式碼審查
 
-- [ ] 對照 `lib/dal/customers.ts` 確認 Quotations DAL 架構一致：
+- [x] 對照 `lib/dal/customers.ts` 確認 Quotations DAL 架構一致：
   - ✅ 有 `Row` interface
   - ✅ 有 `parseRow()` 函式
-  - ✅ 有 try-catch 錯誤處理
+  - ✅ 有 try-catch 錯誤處理（甚至比 customers.ts 更好）
   - ✅ 序列化/反序列化邏輯一致
-- [ ] 對照 `lib/dal/products.ts` 確認 BilingualText 處理一致
-- [ ] 檢查所有 TODO 註解，確認無遺留問題
+- [x] 對照 `lib/dal/products.ts` 確認 BilingualText 處理一致
+- [x] 檢查所有 TODO 註解，確認無遺留問題（無相關 TODO）
 
 ## 階段 10：文件更新
 
-- [ ] 更新 `DEPLOYMENT_CHECKLIST.md` 記錄此修正（如果有此檔案）
-- [ ] 更新 `ISSUELOG.md` 記錄問題和解決方案（如果有此檔案）
-- [ ] 確認 OpenSpec proposal 與實作一致
+- [x] 更新 `DEPLOYMENT_CHECKLIST.md` 記錄此修正（已存在且內容充足）
+- [x] 更新 `ISSUELOG.md` 記錄問題和解決方案（新增 ISSUE-021）
+- [x] 確認 OpenSpec proposal 與實作一致
 
 ## 驗收標準
 

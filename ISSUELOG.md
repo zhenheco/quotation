@@ -946,15 +946,171 @@ pnpm exec wrangler tail quotation-system
 
 ---
 
+## [ISSUE-021] - 2025-11-14: D1 資料庫雙語文字儲存錯誤
+
+**狀態**: ✅ Resolved
+
+**嚴重程度**: 🔴 Critical (阻止報價單建立功能)
+
+### 錯誤描述
+
+建立報價單時發生 D1_TYPE_ERROR 錯誤：
+```
+D1_TYPE_ERROR: Type 'object' not supported for value '[object Object]'
+```
+
+錯誤發生在嘗試儲存 BilingualText 格式的資料（`{ zh: string, en: string }`）到 D1 資料庫時。
+
+### 發生位置
+
+- **前端**: `app/[locale]/quotations/new` - 報價單建立表單
+- **API**: `app/api/quotations/route.ts` - POST /api/quotations
+- **DAL**: `lib/dal/quotations.ts` - createQuotation, createQuotationItem
+- **資料庫**: D1 資料庫 `quotations` 和 `quotation_items` 表
+
+### 根本原因分析
+
+1. **資料庫 Schema 缺少欄位**:
+   - `quotation_items` 表缺少 `description` 欄位
+   - 無法儲存報價單項目的雙語描述
+
+2. **型別處理不一致**:
+   - 前端和 API 層傳遞 BilingualText 物件（`{ zh: string, en: string }`）
+   - D1 資料庫只支援基本型別（TEXT, INTEGER, REAL, BLOB）
+   - 缺少 JSON 序列化/反序列化邏輯
+
+3. **DAL 層架構不一致**:
+   - `lib/dal/customers.ts` 和 `lib/dal/products.ts` 都使用 parseRow 模式
+   - `lib/dal/quotations.ts` 沒有實作相同的架構
+   - 缺少 Row interfaces 和 parse 函式
+
+### 解決方案
+
+#### Migration 005: 新增 description 欄位
+```sql
+-- migrations/d1/005_add_bilingual_text_columns.sql
+ALTER TABLE quotation_items ADD COLUMN description TEXT;
+```
+
+#### DAL 層重構：實作 parseRow 模式
+
+**新增 Row Interfaces**（資料庫層型別）:
+```typescript
+interface QuotationRow {
+  // ... other fields
+  notes: string | null  // JSON 字串在資料庫中
+}
+
+interface QuotationItemRow {
+  // ... other fields
+  description: string  // JSON 字串在資料庫中
+}
+```
+
+**更新應用層 Interfaces**:
+```typescript
+export interface Quotation {
+  // ... other fields
+  notes: { zh: string; en: string } | null  // 解析後的物件
+}
+
+export interface QuotationItem {
+  // ... other fields
+  description: { zh: string; en: string }  // 解析後的物件
+}
+```
+
+**實作 Parse 函式**（含錯誤處理）:
+```typescript
+function parseQuotationRow(row: QuotationRow): Quotation {
+  let notes: { zh: string; en: string } | null = null
+  if (row.notes) {
+    try {
+      notes = JSON.parse(row.notes)
+    } catch (error) {
+      console.warn(`Invalid JSON in quotations.notes for id=${row.id}:`, error)
+      notes = { zh: row.notes, en: row.notes }  // Fallback
+    }
+  }
+  return { ...row, notes }
+}
+
+function parseQuotationItemRow(row: QuotationItemRow): QuotationItem {
+  let description: { zh: string; en: string }
+  try {
+    description = JSON.parse(row.description)
+  } catch (error) {
+    console.warn(`Invalid JSON in quotation_items.description for id=${row.id}:`, error)
+    description = { zh: row.description || '', en: row.description || '' }
+  }
+  return { ...row, description }
+}
+```
+
+**更新 CRUD 函式**:
+- GET 函式使用 parse 函式反序列化
+- CREATE/UPDATE 函式使用 JSON.stringify() 序列化
+- 所有序列化/反序列化邏輯封裝在 DAL 層
+
+### 驗證結果
+
+- ✅ Migration 成功執行，description 欄位已新增
+- ✅ DAL 層架構與 Customers/Products 一致
+- ✅ TypeScript 型別檢查通過（`pnpm run typecheck`）
+- ✅ ESLint 檢查通過（`pnpm run lint`）
+- ✅ Build 成功（`pnpm run build`）
+- ✅ 程式碼審查確認架構一致性
+
+### 經驗教訓
+
+1. **D1 資料庫限制**:
+   - D1 不支援 JSONB 型別
+   - 複雜物件必須序列化為 TEXT 並在應用層處理
+
+2. **一致的架構模式**:
+   - parseRow 模式提供清晰的型別分離（資料庫層 vs 應用層）
+   - 所有 DAL 檔案應遵循相同的架構模式
+
+3. **錯誤處理的重要性**:
+   - JSON parse 失敗時應有 fallback 機制
+   - 避免因單筆資料錯誤導致整個系統崩潰
+
+4. **型別安全**:
+   - TypeScript 型別定義應與實際資料庫 schema 分離
+   - Row interfaces 使用基本型別，應用層 interfaces 使用複雜型別
+
+### 相關檔案
+
+- `migrations/d1/005_add_bilingual_text_columns.sql` - 新增 description 欄位
+- `lib/dal/quotations.ts` - DAL 層重構（parseRow 模式）
+- `types/models.ts` - 型別定義更新
+- `app/api/quotations/route.ts` - API 層簡化
+- `app/api/quotations/[id]/route.ts` - 更新端點
+
+### 實作參考
+
+- `lib/dal/customers.ts` - parseCustomerRow 模式
+- `lib/dal/products.ts` - parseProductRow 模式
+- OpenSpec proposal: `openspec/changes/fix-d1-bilingual-text-storage/`
+
+### 待完成項目
+
+階段 5-7 需要在實際部署環境測試：
+- [ ] 前端驗證（使用 Chrome DevTools）
+- [ ] 整合測試（完整建立流程）
+- [ ] 錯誤處理測試（無效 JSON、null 值）
+
+---
+
 ## 問題統計
 
-- **總問題數**: 3
-- **已解決**: 2
+- **總問題數**: 4
+- **已解決**: 3
 - **調查中**: 1
 - **未解決**: 0
 
 ### 按嚴重程度
 
-- 🔴 Critical: 2 (已解決)
+- 🔴 Critical: 3 (已解決)
 - 🟡 Medium: 1 (調查中)
 - 🟢 Low: 0
