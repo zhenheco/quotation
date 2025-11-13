@@ -198,12 +198,12 @@ export async function getDashboardStats(
        WHERE user_id = ? AND status = 'active' AND next_collection_date < ?`,
       [userId, now.toISOString()]
     ),
-    db.query<{ status: string; amount: number; is_overdue: number; currency: string }>(
-      'SELECT status, amount, is_overdue, currency FROM payments WHERE user_id = ? AND payment_date >= ?',
+    db.query<{ status: string; amount: number; currency: string }>(
+      'SELECT status, amount, currency FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
       [userId, currentMonthStart.toISOString()]
     ),
-    db.query<{ status: string; amount: number; is_overdue: number; currency: string }>(
-      'SELECT status, amount, is_overdue, currency FROM payments WHERE user_id = ? AND payment_date >= ?',
+    db.query<{ status: string; amount: number; currency: string }>(
+      'SELECT status, amount, currency FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
       [userId, currentYearStart.toISOString()]
     ),
   ])
@@ -227,11 +227,11 @@ export async function getDashboardStats(
   }
 
   const currentMonthCollected = currentMonthPayments
-    .filter((p) => p.status === 'completed')
+    .filter((p) => p.status === 'paid')
     .reduce((sum, p) => sum + p.amount, 0)
 
   const currentYearCollected = currentYearPayments
-    .filter((p) => p.status === 'completed')
+    .filter((p) => p.status === 'paid')
     .reduce((sum, p) => sum + p.amount, 0)
 
   const currentYearPending = currentYearPayments
@@ -239,7 +239,7 @@ export async function getDashboardStats(
     .reduce((sum, p) => sum + p.amount, 0)
 
   const currentYearOverdue = currentYearPayments
-    .filter((p) => p.is_overdue === 1)
+    .filter((p) => p.status === 'overdue')
     .reduce((sum, p) => sum + p.amount, 0)
 
   const currency = currentMonthPayments.find((p) => p.currency)?.currency || 'TWD'

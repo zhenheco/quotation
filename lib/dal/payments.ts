@@ -341,51 +341,53 @@ export async function getPaymentStatistics(
   const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const currentYearStart = new Date(now.getFullYear(), 0, 1)
 
-  const [currentMonthPayments, currentYearPayments, overduePayments] = await Promise.all([
-    db.query<{ status: string; amount: number; is_overdue: number; currency: string }>(
-      'SELECT status, amount, is_overdue, currency FROM payments WHERE user_id = ? AND payment_date >= ?',
+  const [currentMonthSchedules, currentYearSchedules, overdueSchedules] = await Promise.all([
+    db.query<{ status: string; amount: number; currency: string }>(
+      'SELECT status, amount, currency FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
       [userId, currentMonthStart.toISOString()]
     ),
-    db.query<{ status: string; amount: number; is_overdue: number; currency: string }>(
-      'SELECT status, amount, is_overdue, currency FROM payments WHERE user_id = ? AND payment_date >= ?',
+    db.query<{ status: string; amount: number; currency: string }>(
+      'SELECT status, amount, currency FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
       [userId, currentYearStart.toISOString()]
     ),
-    db.query<{ days_overdue: number; amount: number }>(
-      'SELECT days_overdue, amount FROM payments WHERE user_id = ? AND is_overdue = 1',
+    db.query<{ amount: number; days_overdue: number }>(
+      `SELECT amount, CAST(julianday('now') - julianday(due_date) AS INTEGER) as days_overdue
+       FROM payment_schedules
+       WHERE user_id = ? AND status = 'overdue'`,
       [userId]
     ),
   ])
 
-  const currentMonthCollected = currentMonthPayments
-    .filter(p => p.status === 'completed')
+  const currentMonthCollected = currentMonthSchedules
+    .filter(p => p.status === 'paid')
     .reduce((sum, p) => sum + p.amount, 0)
 
-  const currentMonthPending = currentMonthPayments
+  const currentMonthPending = currentMonthSchedules
     .filter(p => p.status === 'pending')
     .reduce((sum, p) => sum + p.amount, 0)
 
-  const currentMonthOverdue = currentMonthPayments
-    .filter(p => p.is_overdue === 1)
+  const currentMonthOverdue = currentMonthSchedules
+    .filter(p => p.status === 'overdue')
     .reduce((sum, p) => sum + p.amount, 0)
 
-  const currentYearCollected = currentYearPayments
-    .filter(p => p.status === 'completed')
+  const currentYearCollected = currentYearSchedules
+    .filter(p => p.status === 'paid')
     .reduce((sum, p) => sum + p.amount, 0)
 
-  const currentYearPending = currentYearPayments
+  const currentYearPending = currentYearSchedules
     .filter(p => p.status === 'pending')
     .reduce((sum, p) => sum + p.amount, 0)
 
-  const currentYearOverdue = currentYearPayments
-    .filter(p => p.is_overdue === 1)
+  const currentYearOverdue = currentYearSchedules
+    .filter(p => p.status === 'overdue')
     .reduce((sum, p) => sum + p.amount, 0)
 
-  const currency = currentMonthPayments.find(p => p.currency)?.currency || 'TWD'
+  const currency = currentMonthSchedules.find(p => p.currency)?.currency || 'TWD'
 
-  const overdueCount = overduePayments.length
-  const overdueTotalAmount = overduePayments.reduce((sum, p) => sum + p.amount, 0)
+  const overdueCount = overdueSchedules.length
+  const overdueTotalAmount = overdueSchedules.reduce((sum, p) => sum + p.amount, 0)
   const overdueAverageDays = overdueCount > 0
-    ? Math.floor(overduePayments.reduce((sum, p) => sum + p.days_overdue, 0) / overdueCount)
+    ? Math.floor(overdueSchedules.reduce((sum, p) => sum + p.days_overdue, 0) / overdueCount)
     : 0
 
   return {
