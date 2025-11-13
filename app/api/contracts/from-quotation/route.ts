@@ -5,9 +5,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getServerSession } from '@/lib/auth';
-import { convertQuotationToContract } from '@/lib/services/contracts';
-import type { PaymentTerms } from '@/types/extended.types';
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { createApiClient } from '@/lib/supabase/api'
+import { convertQuotationToContract } from '@/lib/dal/contracts'
+
+export const runtime = 'edge'
+
+type PaymentTerms = 'monthly' | 'quarterly' | 'semi_annual' | 'annual'
 
 interface ConvertQuotationRequest {
   quotation_id: string;
@@ -19,16 +26,28 @@ interface ConvertQuotationRequest {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const { env } = await getCloudflareContext()
+    const supabase = createApiClient(req)
 
-    if (!session?.user?.id) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'contracts:write')
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to create contracts' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json() as ConvertQuotationRequest;
 
     // Validate required fields
@@ -73,9 +92,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert quotation to contract
     const result = await convertQuotationToContract(
-      userId,
+      db,
+      user.id,
       body.quotation_id,
       {
         signed_date: body.signed_date,

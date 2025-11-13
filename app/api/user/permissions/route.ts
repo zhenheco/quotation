@@ -1,7 +1,11 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserPermissions, isSuperAdmin } from '@/lib/services/rbac';
-import { getUserCompanies } from '@/lib/services/company';
+import { getUserPermissions, isSuperAdmin, getUserRoles } from '@/lib/dal/rbac';
+import { getUserCompanies } from '@/lib/dal/companies';
+import { getD1Client } from '@/lib/db/d1-client';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+
+export const runtime = 'edge';
 
 /**
  * GET /api/user/permissions
@@ -9,6 +13,8 @@ import { getUserCompanies } from '@/lib/services/company';
  * 包含：全域角色、公司角色、權限列表
  */
 export async function GET(request: NextRequest) {
+  const { env } = await getCloudflareContext();
+
   try {
     const supabase = createApiClient(request);
 
@@ -21,32 +27,36 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const db = getD1Client(env);
+
     // 檢查是否為超級管理員
-    const isAdmin = await isSuperAdmin(user.id);
+    const isAdmin = await isSuperAdmin(db, user.id);
 
     // 取得使用者權限
-    const permissions = await getUserPermissions(user.id);
+    const permissions = await getUserPermissions(db, user.id);
+
+    // 取得使用者角色
+    const roles = await getUserRoles(db, user.id);
 
     // 取得使用者所屬公司
-    const companies = await getUserCompanies(user.id);
+    const companies = await getUserCompanies(db, user.id);
 
-    // 為每個公司取得權限
+    // 為每個公司準備資料
     const companiesWithPermissions = companies.map(company => ({
-      company_id: company.company_id,
-      company_name: company.company_name,
-      role_name: company.role_name,
-      is_owner: company.is_owner,
+      company_id: company.id,
+      company_name: company.name,
       logo_url: company.logo_url,
-      // 根據角色取得權限（這裡簡化處理，實際應從資料庫查詢）
-      permissions: permissions ? Array.from(permissions.permissions) : []
+      permissions: permissions.map(p => p.name)
     }));
+
+    const primaryRole = roles[0];
 
     return NextResponse.json({
       user_id: user.id,
       is_super_admin: isAdmin,
-      global_permissions: permissions ? Array.from(permissions.permissions) : [],
-      role_name: permissions?.role_name,
-      role_level: permissions?.role_level,
+      global_permissions: permissions.map(p => p.name),
+      role_name: primaryRole?.name || null,
+      role_level: primaryRole?.level || null,
       companies: companiesWithPermissions
     });
 

@@ -1,23 +1,98 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { withAuth } from '@/lib/middleware/withAuth';
-import { getUserProfile, updateUserProfile } from '@/lib/services/rbac';
+import { createApiClient } from '@/lib/supabase/api';
 
-export const GET = withAuth(async (_request, { userId }) => {
+export const runtime = 'edge';
+
+/**
+ * GET /api/rbac/user-profile
+ * 取得當前用戶的 profile 資訊（從 Supabase Auth user_metadata）
+ */
+export async function GET(request: NextRequest) {
   try {
-    const profile = await getUserProfile(userId);
+    const supabase = createApiClient(request);
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // 從 user metadata 返回 profile 資訊
+    const profile = {
+      user_id: user.id,
+      email: user.email,
+      full_name: user.user_metadata?.full_name || null,
+      display_name: user.user_metadata?.display_name || user.user_metadata?.full_name || null,
+      phone: user.user_metadata?.phone || user.phone || null,
+      department: user.user_metadata?.department || null,
+      avatar_url: user.user_metadata?.avatar_url || null,
+    };
+
     return NextResponse.json(profile || {});
   } catch (error: unknown) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
-});
+}
 
-export const PUT = withAuth(async (request, { userId }) => {
+/**
+ * PUT /api/rbac/user-profile
+ * 更新當前用戶的 profile 資訊（更新 Supabase Auth user_metadata）
+ */
+export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json() as Record<string, unknown>;
-    const profile = await updateUserProfile(userId, body);
+    const supabase = createApiClient(request);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json() as Partial<{
+      full_name: string;
+      display_name: string;
+      phone: string;
+      department: string;
+      avatar_url: string;
+    }>;
+
+    if (Object.keys(body).length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+
+    // 更新 user metadata
+    const { data: updatedUser, error: updateError } = await supabase.auth.updateUser({
+      data: {
+        ...user.user_metadata,
+        ...body
+      }
+    });
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    // 返回更新後的 profile
+    const profile = {
+      user_id: updatedUser.user.id,
+      email: updatedUser.user.email,
+      full_name: updatedUser.user.user_metadata?.full_name || null,
+      display_name: updatedUser.user.user_metadata?.display_name || updatedUser.user.user_metadata?.full_name || null,
+      phone: updatedUser.user.user_metadata?.phone || updatedUser.user.phone || null,
+      department: updatedUser.user.user_metadata?.department || null,
+      avatar_url: updatedUser.user.user_metadata?.avatar_url || null,
+    };
+
     return NextResponse.json(profile);
   } catch (error: unknown) {
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
-});
+}

@@ -1,10 +1,14 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { isSuperAdmin, canAssignRole, getRoleByName } from '@/lib/services/rbac';
-import { addCompanyMember } from '@/lib/services/company';
+import { isSuperAdmin, canAssignRole, getRoleByName } from '@/lib/dal/rbac';
+import { addCompanyMember, getCompanyMember } from '@/lib/dal/companies';
 import { AddCompanyMemberRequest } from '@/app/api/types';
 import { RoleName } from '@/types/rbac.types';
+import { getD1Client } from '@/lib/db/d1-client';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+
+export const runtime = 'edge';
 
 /**
  * POST /api/admin/companies/[id]/members
@@ -14,6 +18,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext();
+
   try {
     const supabase = createApiClient(request);
 
@@ -26,8 +32,10 @@ export async function POST(
       );
     }
 
+    const db = getD1Client(env);
+
     // 檢查是否為超管
-    const isAdmin = await isSuperAdmin(user.id);
+    const isAdmin = await isSuperAdmin(db, user.id);
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'Forbidden: Super admin access required' },
@@ -57,7 +65,7 @@ export async function POST(
     }
 
     // 檢查是否可以分配此角色（超管可以分配任何角色）
-    const canAssign = await canAssignRole(user.id, role_name as RoleName, companyId);
+    const canAssign = await canAssignRole(db, user.id, role_name as RoleName, companyId);
     if (!canAssign) {
       return NextResponse.json(
         { error: `Cannot assign role: ${role_name}` },
@@ -66,7 +74,7 @@ export async function POST(
     }
 
     // 取得角色
-    const role = await getRoleByName(role_name as RoleName);
+    const role = await getRoleByName(db, role_name as RoleName);
     if (!role) {
       return NextResponse.json(
         { error: `Role not found: ${role_name}` },
@@ -88,17 +96,14 @@ export async function POST(
 
       if (updateError) {
         console.warn('Failed to update user metadata:', updateError);
-        // 不阻止成員新增，繼續執行
       }
     }
 
     // 新增到公司
-    const member = await addCompanyMember(
-      companyId,
-      user.id,
-      user_id,
-      role.id
-    );
+    await addCompanyMember(db, companyId, user_id, role.id);
+
+    // 取得新增的成員資料
+    const member = await getCompanyMember(db, companyId, user_id);
 
     return NextResponse.json(member, { status: 201 });
 

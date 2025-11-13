@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createApiClient } from '@/lib/supabase/api'
+export const runtime = 'edge';
 
 /**
  * 獲取當前登入用戶的資訊

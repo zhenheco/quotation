@@ -1,8 +1,12 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
-import { isSuperAdmin, canAssignRole, assignRoleToUser } from '@/lib/services/rbac';
+import { isSuperAdmin, canAssignRole, assignRoleToUser, getRoleByName } from '@/lib/dal/rbac';
 import { AssignRoleRequest } from '@/app/api/types';
 import { RoleName } from '@/types/rbac.types';
+import { getD1Client } from '@/lib/db/d1-client';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+
+export const runtime = 'edge';
 
 /**
  * PATCH /api/admin/users/[id]/role
@@ -12,6 +16,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext();
+
   try {
     const supabase = createApiClient(request);
 
@@ -24,8 +30,10 @@ export async function PATCH(
       );
     }
 
+    const db = getD1Client(env);
+
     // 檢查是否為超管
-    const isAdmin = await isSuperAdmin(user.id);
+    const isAdmin = await isSuperAdmin(db, user.id);
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'Forbidden: Super admin access required' },
@@ -55,7 +63,7 @@ export async function PATCH(
     }
 
     // 檢查是否可以分配此角色
-    const canAssign = await canAssignRole(user.id, role_name as RoleName, company_id);
+    const canAssign = await canAssignRole(db, user.id, role_name as RoleName, company_id);
     if (!canAssign) {
       return NextResponse.json(
         { error: `Cannot assign role: ${role_name}` },
@@ -65,11 +73,20 @@ export async function PATCH(
 
     // 如果是全域角色（super_admin, company_owner），直接分配
     if (['super_admin', 'company_owner'].includes(role_name)) {
-      const userRole = await assignRoleToUser(targetUserId, role_name as RoleName, user.id);
+      const role = await getRoleByName(db, role_name as RoleName);
+      if (!role) {
+        return NextResponse.json(
+          { error: `Role not found: ${role_name}` },
+          { status: 404 }
+        );
+      }
+
+      await assignRoleToUser(db, targetUserId, role.id, user.id);
 
       return NextResponse.json({
         message: `Successfully assigned ${role_name} to user`,
-        user_role: userRole
+        user_id: targetUserId,
+        role_name: role_name
       });
     }
 

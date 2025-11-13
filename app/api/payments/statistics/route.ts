@@ -1,11 +1,17 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { getPaymentStatistics } from '@/lib/dal/payments'
 
-export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 export async function GET(request: NextRequest) {
   try {
+    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const {
@@ -16,12 +22,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data, error } = await supabase.rpc('get_payment_statistics')
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
 
-    if (error) {
-      console.error('Failed to fetch payment statistics:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const hasPermission = await checkPermission(kv, db, user.id, 'payments:read')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+
+    const data = await getPaymentStatistics(db, user.id)
 
     return NextResponse.json(data)
   } catch (error: unknown) {

@@ -6,31 +6,51 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getServerSession } from '@/lib/auth';
-import { getNextCollectionReminders } from '@/lib/services/payments';
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { createApiClient } from '@/lib/supabase/api'
+import { getPaymentReminders } from '@/lib/dal/payments';
+
+export const runtime = 'edge'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const { env } = await getCloudflareContext()
+    const supabase = createApiClient(req)
 
-    if (!session?.user?.id) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'payments:read')
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to view payment reminders' },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
 
-    const filters = {
-      days_ahead: searchParams.get('days_ahead')
-        ? parseInt(searchParams.get('days_ahead')!)
-        : 30,
-      status: searchParams.get('status') as 'overdue' | 'due_today' | 'due_soon' | 'upcoming' | undefined,
-    };
+    const daysAhead = searchParams.get('days_ahead')
+      ? parseInt(searchParams.get('days_ahead')!)
+      : 30;
+    const statusFilter = searchParams.get('status') as 'overdue' | 'due_today' | 'due_soon' | 'upcoming' | undefined;
 
-    const reminders = await getNextCollectionReminders(userId, filters);
+    let reminders = await getPaymentReminders(db, user.id, daysAhead);
+
+    if (statusFilter) {
+      reminders = reminders.filter(r => r.collection_status === statusFilter);
+    }
 
     interface Reminder {
       collection_status: string;

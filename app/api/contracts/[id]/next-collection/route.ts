@@ -5,8 +5,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getServerSession } from '@/lib/auth';
-import { updateNextCollection } from '@/lib/services/contracts';
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { createApiClient } from '@/lib/supabase/api'
+import { updateContractNextCollection } from '@/lib/dal/contracts'
+
+export const runtime = 'edge'
 
 interface UpdateNextCollectionRequest {
   next_collection_date: string;
@@ -18,16 +24,28 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession();
+    const { env } = await getCloudflareContext()
+    const supabase = createApiClient(req)
 
-    if (!session?.user?.id) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'contracts:write')
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to update contracts' },
+        { status: 403 }
+      );
+    }
+
     const { id: contractId } = await params;
     const body = await req.json() as UpdateNextCollectionRequest;
 
@@ -56,7 +74,7 @@ export async function PUT(
       );
     }
 
-    const contract = await updateNextCollection(userId, contractId, {
+    const contract = await updateContractNextCollection(db, user.id, contractId, {
       next_collection_date: body.next_collection_date,
       next_collection_amount: body.next_collection_amount,
     });

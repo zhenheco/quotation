@@ -1,14 +1,20 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { checkPermission } from '@/lib/dal/rbac'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import type { PermissionResource, PermissionAction } from '@/types/rbac.types'
 
-export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 /**
  * POST /api/rbac/check-permission
  * Check if user has permission for a specific action on a resource
  */
 export async function POST(request: NextRequest) {
+  const { env } = await getCloudflareContext()
+
   try {
     const supabase = createApiClient(request)
 
@@ -27,9 +33,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 簡單的權限檢查：已登入用戶有基本權限
-    // 可以根據需求擴充更複雜的 RBAC 邏輯
-    const hasPermission = true
+    const db = getD1Client(env)
+
+    // 使用 DAL 的 checkPermission 函數進行權限檢查
+    const hasPermission = await checkPermission(
+      db,
+      user.id,
+      resource as PermissionResource,
+      action as PermissionAction
+    )
 
     return NextResponse.json({
       hasPermission,

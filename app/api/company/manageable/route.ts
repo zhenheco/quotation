@@ -1,6 +1,10 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
-import { getManageableCompanies } from '@/lib/services/rbac';
+import { getManageableCompanies } from '@/lib/dal/companies';
+import { getD1Client } from '@/lib/db/d1-client';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+
+export const runtime = 'edge';
 
 /**
  * GET /api/company/manageable
@@ -9,6 +13,8 @@ import { getManageableCompanies } from '@/lib/services/rbac';
  * 一般使用者：所屬公司（且為 owner 才能管理成員）
  */
 export async function GET(request: NextRequest) {
+  const { env } = await getCloudflareContext();
+
   try {
     const supabase = createApiClient(request);
 
@@ -21,8 +27,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const db = getD1Client(env);
+
     // 取得可管理的公司列表
-    const companies = await getManageableCompanies(user.id);
+    const companies = await getManageableCompanies(db, user.id);
 
     return NextResponse.json({
       companies,

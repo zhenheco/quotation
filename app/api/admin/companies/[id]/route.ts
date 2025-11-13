@@ -1,8 +1,13 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { isSuperAdmin } from '@/lib/services/rbac';
-import { getCompanyById, getCompanyMembersDetailed, getCompanyStats } from '@/lib/services/company';
+import { isSuperAdmin } from '@/lib/dal/rbac';
+import { getCompanyById, getCompanyMembers, getCompanyStats } from '@/lib/dal/companies';
+import { getD1Client } from '@/lib/db/d1-client';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+import type { User } from '@supabase/supabase-js';
+
+export const runtime = 'edge';
 
 /**
  * GET /api/admin/companies/[id]
@@ -12,6 +17,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext();
+
   try {
     const supabase = createApiClient(request);
 
@@ -24,8 +31,10 @@ export async function GET(
       );
     }
 
+    const db = getD1Client(env);
+
     // 檢查是否為超管
-    const isAdmin = await isSuperAdmin(user.id);
+    const isAdmin = await isSuperAdmin(db, user.id);
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'Forbidden: Super admin access required' },
@@ -35,8 +44,8 @@ export async function GET(
 
     const { id: companyId } = await params;
 
-    // 取得公司資訊（超管可以存取任何公司）
-    const company = await getCompanyById(companyId, user.id);
+    // 取得公司資訊
+    const company = await getCompanyById(db, companyId);
     if (!company) {
       return NextResponse.json(
         { error: 'Company not found' },
@@ -45,10 +54,32 @@ export async function GET(
     }
 
     // 取得公司成員
-    const members = await getCompanyMembersDetailed(companyId, user.id);
+    const dbMembers = await getCompanyMembers(db, companyId);
+
+    // 從 Supabase Auth 取得使用者資訊
+    const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+
+    if (authError) {
+      console.error('Error fetching auth users:', authError);
+    }
+
+    const authUserMap = new Map<string, User>(
+      authUsers?.map(u => [u.id, u] as const) || []
+    );
+
+    const members = dbMembers.map(member => {
+      const authUser = authUserMap.get(member.user_id);
+      return {
+        ...member,
+        full_name: authUser?.user_metadata?.full_name || authUser?.email || 'Unknown',
+        display_name: authUser?.user_metadata?.display_name || authUser?.user_metadata?.full_name || authUser?.email || 'Unknown',
+        phone: authUser?.user_metadata?.phone || authUser?.phone || null,
+        avatar_url: authUser?.user_metadata?.avatar_url || null,
+      };
+    });
 
     // 取得統計資訊
-    const stats = await getCompanyStats(companyId, user.id);
+    const stats = await getCompanyStats(db, companyId);
 
     return NextResponse.json({
       company,

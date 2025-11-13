@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+export const runtime = 'edge';
 
 interface TestEmailBody {
   to: string;

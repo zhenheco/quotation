@@ -7,6 +7,7 @@ import { getCustomerById, updateCustomer, deleteCustomer } from '@/lib/dal/custo
 import { checkPermission } from '@/lib/cache/services'
 import { UpdateCustomerRequest } from '@/app/api/types'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
+export const runtime = 'edge';
 
 
 /**

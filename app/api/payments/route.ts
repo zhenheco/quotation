@@ -6,22 +6,40 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getServerSession } from '@/lib/auth';
-import { getPayments, recordPayment } from '@/lib/services/payments';
-import type { PaymentFormData, PaymentType, PaymentMethod } from '@/types/extended.types';
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { createApiClient } from '@/lib/supabase/api'
+import { getPaymentsWithRelations, recordPayment } from '@/lib/dal/payments'
+import type { PaymentType, PaymentMethod } from '@/types/extended.types';
+
+export const runtime = 'edge'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const { env } = await getCloudflareContext()
+    const supabase = createApiClient(req)
 
-    if (!session?.user?.id) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'payments:read')
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to view payments' },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
 
     const filters = {
@@ -32,7 +50,7 @@ export async function GET(req: NextRequest) {
       payment_type: searchParams.get('payment_type') || undefined,
     };
 
-    const payments = await getPayments(userId, filters);
+    const payments = await getPaymentsWithRelations(db, user.id, filters);
 
     return NextResponse.json({
       success: true,
@@ -41,13 +59,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     console.error('Get payments error:', error);
-
-    if (getErrorMessage(error).includes('permissions')) {
-      return NextResponse.json(
-        { error: getErrorMessage(error) },
-        { status: 403 }
-      );
-    }
 
     return NextResponse.json(
       { error: 'Failed to get payments', message: getErrorMessage(error) },
@@ -58,16 +69,28 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const { env } = await getCloudflareContext()
+    const supabase = createApiClient(req)
 
-    if (!session?.user?.id) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'payments:write')
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to record payments' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json() as Record<string, unknown>;
 
     // Validate required fields
@@ -129,7 +152,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const paymentData: PaymentFormData & { schedule_id?: string } = {
+    const paymentData = {
       customer_id: body.customer_id as string,
       quotation_id: typeof body.quotation_id === 'string' ? body.quotation_id : undefined,
       contract_id: typeof body.contract_id === 'string' ? body.contract_id : undefined,
@@ -143,7 +166,7 @@ export async function POST(req: NextRequest) {
       schedule_id: typeof body.schedule_id === 'string' ? body.schedule_id : undefined,
     };
 
-    const payment = await recordPayment(userId, paymentData);
+    const payment = await recordPayment(db, user.id, paymentData);
 
     return NextResponse.json({
       success: true,

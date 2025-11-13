@@ -322,7 +322,36 @@ CREATE INDEX idx_payments_contract ON payments(contract_id);
 CREATE INDEX idx_payments_customer ON payments(customer_id);
 CREATE INDEX idx_payments_status ON payments(status);
 
--- 15. 匯率表
+-- 15. 付款排程表 (Payment Schedules)
+CREATE TABLE IF NOT EXISTS payment_schedules (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  contract_id TEXT NOT NULL,
+  customer_id TEXT NOT NULL,
+  schedule_number INTEGER NOT NULL,
+  due_date TEXT NOT NULL,
+  amount REAL NOT NULL,
+  currency TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'overdue', 'cancelled')),
+  paid_amount REAL DEFAULT 0,
+  paid_date TEXT,
+  payment_id TEXT,
+  notes TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(contract_id, schedule_number),
+  FOREIGN KEY (contract_id) REFERENCES customer_contracts(id) ON DELETE CASCADE,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+  FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_payment_schedules_contract ON payment_schedules(contract_id);
+CREATE INDEX idx_payment_schedules_customer ON payment_schedules(customer_id);
+CREATE INDEX idx_payment_schedules_due_date ON payment_schedules(due_date);
+CREATE INDEX idx_payment_schedules_status ON payment_schedules(status);
+CREATE INDEX idx_payment_schedules_user ON payment_schedules(user_id);
+
+-- 16. 匯率表
 CREATE TABLE IF NOT EXISTS exchange_rates (
   id TEXT PRIMARY KEY,
   base_currency TEXT NOT NULL,
@@ -346,7 +375,7 @@ INSERT INTO exchange_rates (id, base_currency, target_currency, rate) VALUES
   ('rate-cny-twd', 'CNY', 'TWD', 4.5)
 ON CONFLICT (base_currency, target_currency) DO NOTHING;
 
--- 16. 審計日誌表
+-- 17. 審計日誌表
 CREATE TABLE IF NOT EXISTS audit_logs (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,

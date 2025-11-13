@@ -1,8 +1,13 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { getCurrencyDistribution } from '@/lib/dal/analytics'
 
-export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 /**
  * GET /api/analytics/currency-distribution
@@ -11,6 +16,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(request: NextRequest) {
   try {
+    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const {
@@ -21,36 +27,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: quotations, error } = await supabase
-      .from('quotations')
-      .select('currency, total_amount, status')
-      .eq('user_id', user.id)
-      .eq('status', 'accepted') // 只統計已接受的報價單
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
 
-    if (error) {
-      throw error
+    const hasPermission = await checkPermission(kv, db, user.id, 'analytics:read')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // 按幣別分組統計
-    const currencyData = new Map()
+    const data = await getCurrencyDistribution(db, user.id)
 
-    quotations?.forEach((quotation) => {
-      if (!currencyData.has(quotation.currency)) {
-        currencyData.set(quotation.currency, {
-          currency: quotation.currency,
-          value: 0,
-          count: 0,
-        })
-      }
-
-      const data = currencyData.get(quotation.currency)
-      data.value += quotation.total_amount
-      data.count += 1
-    })
-
-    const result = Array.from(currencyData.values()).sort((a, b) => b.value - a.value)
-
-    return NextResponse.json({ data: result })
+    return NextResponse.json({ data })
   } catch (error: unknown) {
     console.error('Failed to fetch currency distribution:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })

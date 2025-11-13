@@ -5,6 +5,8 @@ import { getD1Client } from '@/lib/db/d1-client'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { headers } from 'next/headers'
 
+export const runtime = 'edge'
+
 // 錯誤通知函數
 async function sendErrorNotification(error: Error) {
   const webhookUrl = process.env.ERROR_WEBHOOK_URL || process.env.SLACK_WEBHOOK_URL

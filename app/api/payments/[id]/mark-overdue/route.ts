@@ -6,27 +6,52 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getServerSession } from '@/lib/auth';
-import { markPaymentAsOverdue } from '@/lib/services/payments';
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { createApiClient } from '@/lib/supabase/api'
+import { markPaymentScheduleAsOverdue } from '@/lib/dal/payments';
+
+export const runtime = 'edge'
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession();
+    const { env } = await getCloudflareContext()
+    const supabase = createApiClient(req)
 
-    if (!session?.user?.id) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'payments:write')
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to update payment schedule' },
+        { status: 403 }
+      );
+    }
+
     const { id: scheduleId } = await params;
 
-    const schedule = await markPaymentAsOverdue(userId, scheduleId);
+    const schedule = await markPaymentScheduleAsOverdue(db, user.id, scheduleId);
+
+    if (!schedule) {
+      return NextResponse.json(
+        { error: 'Payment schedule not found or already processed' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

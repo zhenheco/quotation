@@ -7,6 +7,8 @@ import { getCompanyById, updateCompany, deleteCompany, isCompanyMember } from '@
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
+export const runtime = 'edge'
+
 interface UpdateCompanyRequestBody {
   name_zh?: string;
   name_en?: string;

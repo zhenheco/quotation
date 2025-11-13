@@ -83,3 +83,65 @@ export async function assignRoleToUser(
     [id, userId, roleId, assignedBy || null, now, now]
   )
 }
+
+export async function isSuperAdmin(
+  db: D1Client,
+  userId: string
+): Promise<boolean> {
+  const sql = `
+    SELECT COUNT(*) as count FROM user_roles ur
+    INNER JOIN roles r ON ur.role_id = r.id
+    WHERE ur.user_id = ? AND r.name = 'super_admin'
+  `
+
+  const result = await db.queryOne<{ count: number }>(sql, [userId])
+  return result ? result.count > 0 : false
+}
+
+export async function getRoleByName(
+  db: D1Client,
+  roleName: string
+): Promise<Role | null> {
+  return await db.queryOne<Role>('SELECT * FROM roles WHERE name = ?', [roleName])
+}
+
+export async function canAssignRole(
+  db: D1Client,
+  userId: string,
+  targetRoleName: string,
+  companyId?: string
+): Promise<boolean> {
+  const isSuper = await isSuperAdmin(db, userId)
+  if (isSuper) {
+    return true
+  }
+
+  if (!companyId) {
+    return false
+  }
+
+  const memberResult = await db.queryOne<{
+    is_owner: number
+    role_level: number
+  }>(`
+    SELECT cm.is_owner, r.level as role_level
+    FROM company_members cm
+    INNER JOIN roles r ON cm.role_id = r.id
+    WHERE cm.company_id = ? AND cm.user_id = ? AND cm.is_active = 1
+  `, [companyId, userId])
+
+  if (!memberResult) {
+    return false
+  }
+
+  const targetRole = await getRoleByName(db, targetRoleName)
+  if (!targetRole) {
+    return false
+  }
+
+  if (memberResult.is_owner === 1) {
+    return memberResult.role_level < targetRole.level
+  }
+
+  return false
+}

@@ -5,9 +5,13 @@ import {
   updateCompanyMemberRole,
   removeCompanyMember,
   getCompanyMember
-} from '@/lib/services/company';
-import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/services/rbac';
+} from '@/lib/dal/companies';
+import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/dal/rbac';
 import { RoleName } from '@/types/rbac.types';
+import { getD1Client } from '@/lib/db/d1-client';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+
+export const runtime = 'edge';
 
 interface UpdateMemberRoleBody {
   role_name: string;
@@ -21,6 +25,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
+  const { env } = await getCloudflareContext();
+
   try {
     const supabase = createApiClient(request);
 
@@ -33,6 +39,7 @@ export async function PATCH(
       );
     }
 
+    const db = getD1Client(env);
     const { id: companyId, userId: targetUserId } = await params;
     const body = await request.json() as UpdateMemberRoleBody;
     const { role_name } = body;
@@ -55,10 +62,10 @@ export async function PATCH(
     }
 
     // 檢查是否為超管或公司 owner
-    const isAdmin = await isSuperAdmin(user.id);
-    const member = await getCompanyMember(companyId, user.id);
+    const isAdmin = await isSuperAdmin(db, user.id);
+    const member = await getCompanyMember(db, companyId, user.id);
 
-    if (!isAdmin && (!member || !member.is_owner)) {
+    if (!isAdmin && (!member || member.is_owner !== 1)) {
       return NextResponse.json(
         { error: 'Forbidden: Only company owner or super admin can update members' },
         { status: 403 }
@@ -66,7 +73,7 @@ export async function PATCH(
     }
 
     // 檢查是否可以分配此角色
-    const canAssign = await canAssignRole(user.id, role_name as RoleName, companyId);
+    const canAssign = await canAssignRole(db, user.id, role_name as RoleName, companyId);
     if (!canAssign) {
       return NextResponse.json(
         { error: `Cannot assign role: ${role_name}` },
@@ -75,7 +82,7 @@ export async function PATCH(
     }
 
     // 取得角色
-    const role = await getRoleByName(role_name as RoleName);
+    const role = await getRoleByName(db, role_name as RoleName);
     if (!role) {
       return NextResponse.json(
         { error: `Role not found: ${role_name}` },
@@ -85,8 +92,8 @@ export async function PATCH(
 
     // 更新成員角色
     const updatedMember = await updateCompanyMemberRole(
+      db,
       companyId,
-      user.id,
       targetUserId,
       role.id
     );
@@ -125,6 +132,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
+  const { env } = await getCloudflareContext();
+
   try {
     const supabase = createApiClient(request);
 
@@ -137,13 +146,14 @@ export async function DELETE(
       );
     }
 
+    const db = getD1Client(env);
     const { id: companyId, userId: targetUserId } = await params;
 
     // 檢查是否為超管或公司 owner
-    const isAdmin = await isSuperAdmin(user.id);
-    const member = await getCompanyMember(companyId, user.id);
+    const isAdmin = await isSuperAdmin(db, user.id);
+    const member = await getCompanyMember(db, companyId, user.id);
 
-    if (!isAdmin && (!member || !member.is_owner)) {
+    if (!isAdmin && (!member || member.is_owner !== 1)) {
       return NextResponse.json(
         { error: 'Forbidden: Only company owner or super admin can remove members' },
         { status: 403 }
@@ -151,7 +161,7 @@ export async function DELETE(
     }
 
     // 移除成員
-    await removeCompanyMember(companyId, user.id, targetUserId);
+    await removeCompanyMember(db, companyId, targetUserId);
 
     return NextResponse.json({
       message: 'Member removed successfully'

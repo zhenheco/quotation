@@ -1,9 +1,14 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getCompanyMembersDetailed, addCompanyMember, getCompanyMember } from '@/lib/services/company';
-import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/services/rbac';
+import { getCompanyMembers, addCompanyMember, getCompanyMember, isCompanyMember } from '@/lib/dal/companies';
+import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/dal/rbac';
 import { RoleName } from '@/types/rbac.types';
+import { getD1Client } from '@/lib/db/d1-client';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+import type { User } from '@supabase/supabase-js';
+
+export const runtime = 'edge';
 
 interface AddMemberBody {
   user_id: string;
@@ -21,6 +26,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext();
+
   try {
     const supabase = createApiClient(request);
 
@@ -33,10 +40,42 @@ export async function GET(
       );
     }
 
+    const db = getD1Client(env);
     const { id: companyId } = await params;
 
-    // 取得公司成員（內部會檢查權限）
-    const members = await getCompanyMembersDetailed(companyId, user.id);
+    // 檢查是否為公司成員
+    const isMember = await isCompanyMember(db, companyId, user.id);
+    if (!isMember) {
+      return NextResponse.json(
+        { error: 'Forbidden: Access denied' },
+        { status: 403 }
+      );
+    }
+
+    // 取得公司成員
+    const dbMembers = await getCompanyMembers(db, companyId);
+
+    // 從 Supabase Auth 取得使用者資訊
+    const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+
+    if (authError) {
+      console.error('Error fetching auth users:', authError);
+    }
+
+    const authUserMap = new Map<string, User>(
+      authUsers?.map(u => [u.id, u] as const) || []
+    );
+
+    const members = dbMembers.map(member => {
+      const authUser = authUserMap.get(member.user_id);
+      return {
+        ...member,
+        full_name: authUser?.user_metadata?.full_name || authUser?.email || 'Unknown',
+        display_name: authUser?.user_metadata?.display_name || authUser?.user_metadata?.full_name || authUser?.email || 'Unknown',
+        phone: authUser?.user_metadata?.phone || authUser?.phone || null,
+        avatar_url: authUser?.user_metadata?.avatar_url || null,
+      };
+    });
 
     return NextResponse.json({
       members
@@ -67,6 +106,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { env } = await getCloudflareContext();
+
   try {
     const supabase = createApiClient(request);
 
@@ -79,6 +120,7 @@ export async function POST(
       );
     }
 
+    const db = getD1Client(env);
     const { id: companyId } = await params;
     const body = await request.json() as AddMemberBody;
     const { user_id, role_name, full_name, display_name, phone } = body;
@@ -92,10 +134,10 @@ export async function POST(
     }
 
     // 檢查是否為超管或公司 owner
-    const isAdmin = await isSuperAdmin(user.id);
-    const member = await getCompanyMember(companyId, user.id);
+    const isAdmin = await isSuperAdmin(db, user.id);
+    const member = await getCompanyMember(db, companyId, user.id);
 
-    if (!isAdmin && (!member || !member.is_owner)) {
+    if (!isAdmin && (!member || member.is_owner !== 1)) {
       return NextResponse.json(
         { error: 'Forbidden: Only company owner or super admin can add members' },
         { status: 403 }
@@ -112,7 +154,7 @@ export async function POST(
     }
 
     // 檢查是否可以分配此角色
-    const canAssign = await canAssignRole(user.id, role_name as RoleName, companyId);
+    const canAssign = await canAssignRole(db, user.id, role_name as RoleName, companyId);
     if (!canAssign) {
       return NextResponse.json(
         { error: `Cannot assign role: ${role_name}` },
@@ -121,7 +163,7 @@ export async function POST(
     }
 
     // 取得角色
-    const role = await getRoleByName(role_name as RoleName);
+    const role = await getRoleByName(db, role_name as RoleName);
     if (!role) {
       return NextResponse.json(
         { error: `Role not found: ${role_name}` },
@@ -143,17 +185,14 @@ export async function POST(
 
       if (updateError) {
         console.warn('Failed to update user metadata:', updateError);
-        // 不阻止成員新增，繼續執行
       }
     }
 
     // 新增到公司
-    const newMember = await addCompanyMember(
-      companyId,
-      user.id,
-      user_id,
-      role.id
-    );
+    await addCompanyMember(db, companyId, user_id, role.id);
+
+    // 取得新增的成員資料
+    const newMember = await getCompanyMember(db, companyId, user_id);
 
     return NextResponse.json(newMember, { status: 201 });
 

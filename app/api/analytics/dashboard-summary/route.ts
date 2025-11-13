@@ -1,8 +1,13 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { getDashboardSummary } from '@/lib/dal/analytics'
 
-export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 /**
  * GET /api/analytics/dashboard-summary
@@ -12,6 +17,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(request: NextRequest) {
   try {
+    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const {
@@ -22,68 +28,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 獲取當月數據
-    const currentMonth = new Date()
-    currentMonth.setDate(1)
-    currentMonth.setHours(0, 0, 0, 0)
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
 
-    const { data: currentMonthQuotations } = await supabase
-      .from('quotations')
-      .select('total_amount, status')
-      .eq('user_id', user.id)
-      .gte('issue_date', currentMonth.toISOString())
-
-    // 獲取上月數據（用於比較）
-    const lastMonth = new Date(currentMonth)
-    lastMonth.setMonth(lastMonth.getMonth() - 1)
-
-    const { data: lastMonthQuotations } = await supabase
-      .from('quotations')
-      .select('total_amount, status')
-      .eq('user_id', user.id)
-      .gte('issue_date', lastMonth.toISOString())
-      .lt('issue_date', currentMonth.toISOString())
-
-    // 計算統計數據
-    const currentRevenue =
-      currentMonthQuotations
-        ?.filter((q) => q.status === 'signed')
-        .reduce((sum, q) => sum + q.total_amount, 0) || 0
-
-    const lastRevenue =
-      lastMonthQuotations
-        ?.filter((q) => q.status === 'signed')
-        .reduce((sum, q) => sum + q.total_amount, 0) || 0
-
-    const revenueGrowth =
-      lastRevenue > 0 ? ((currentRevenue - lastRevenue) / lastRevenue) * 100 : 0
-
-    const currentCount = currentMonthQuotations?.length || 0
-    const lastCount = lastMonthQuotations?.length || 0
-
-    const countGrowth = lastCount > 0 ? ((currentCount - lastCount) / lastCount) * 100 : 0
-
-    // 計算轉換率
-    const acceptedCount =
-      currentMonthQuotations?.filter((q) => q.status === 'signed').length || 0
-    const sentCount =
-      currentMonthQuotations?.filter(
-        (q) => q.status === 'sent' || q.status === 'signed'
-      ).length || 0
-    const conversionRate = sentCount > 0 ? (acceptedCount / sentCount) * 100 : 0
-
-    const result = {
-      currentMonthRevenue: currentRevenue,
-      revenueGrowth: parseFloat(revenueGrowth.toFixed(1)),
-      currentMonthCount: currentCount,
-      countGrowth: parseFloat(countGrowth.toFixed(1)),
-      conversionRate: parseFloat(conversionRate.toFixed(1)),
-      acceptedCount,
-      pendingCount: currentMonthQuotations?.filter((q) => q.status === 'sent').length || 0,
-      draftCount: currentMonthQuotations?.filter((q) => q.status === 'draft').length || 0,
+    const hasPermission = await checkPermission(kv, db, user.id, 'analytics:read')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    return NextResponse.json({ data: result })
+    const data = await getDashboardSummary(db, user.id)
+
+    return NextResponse.json({ data })
   } catch (error: unknown) {
     console.error('Failed to fetch dashboard summary:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updatePaymentStatus } from '@/lib/services/payment-terms';
-import { createClient } from '@/lib/supabase/server';
+import { updatePaymentStatus } from '@/lib/dal/payment-terms';
+import { createApiClient } from '@/lib/supabase/api';
+import { getD1Client } from '@/lib/db/d1-client';
+import { getKVCache } from '@/lib/cache/kv-cache';
+import { checkPermission } from '@/lib/cache/services';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getErrorMessage } from '@/app/api/utils/error-handler';
+
+export const runtime = 'edge';
 
 interface UpdatePaymentStatusBody {
   paid_amount: number;
@@ -17,6 +24,28 @@ export async function PATCH(
 ) {
   try {
     const { termId } = await params;
+    const { env } = await getCloudflareContext();
+    const supabase = createApiClient(request);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const db = getD1Client(env);
+    const kv = getKVCache(env);
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write');
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to update payment status' },
+        { status: 403 }
+      );
+    }
+
     const { paid_amount, paid_date } = await request.json() as UpdatePaymentStatusBody;
 
     if (typeof paid_amount !== 'number' || paid_amount < 0) {
@@ -26,39 +55,9 @@ export async function PATCH(
       );
     }
 
-    // 驗證用戶權限
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: '未授權' },
-        { status: 401 }
-      );
-    }
-
-    // 驗證付款條款是否存在且用戶有權限
-    const { data: term, error: termError } = await supabase
-      .from('payment_terms')
-      .select('*, quotations!inner(user_id)')
-      .eq('id', termId)
-      .single();
-
-    if (termError || !term) {
-      return NextResponse.json(
-        { error: '付款條款不存在' },
-        { status: 404 }
-      );
-    }
-
-    if ((term.quotations as { user_id: string }).user_id !== user.id) {
-      return NextResponse.json(
-        { error: '無權限更新付款狀態' },
-        { status: 403 }
-      );
-    }
-
     const updatedTerm = await updatePaymentStatus(
+      db,
+      user.id,
       termId,
       paid_amount,
       paid_date
@@ -68,7 +67,7 @@ export async function PATCH(
   } catch (error) {
     console.error('更新付款狀態失敗:', error);
     return NextResponse.json(
-      { error: '更新付款狀態失敗' },
+      { error: getErrorMessage(error) || '更新付款狀態失敗' },
       { status: 500 }
     );
   }

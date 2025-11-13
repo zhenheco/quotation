@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
 import { getQuotationById, updateQuotation } from '@/lib/dal/quotations'
 import { getCustomerById } from '@/lib/dal/customers'
 import { emailService } from '@/lib/services/email'
 import { generateQuotationEmailHTML, generateDefaultEmailSubject } from '@/lib/templates/quotation-email'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
+
+export const runtime = 'edge'
 
 interface SendQuotationBody {
   subject?: string;
@@ -20,7 +24,8 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params
-    const supabase = await createClient()
+    const { env } = await getCloudflareContext()
+    const supabase = createApiClient(request)
 
     const {
       data: { user },
@@ -33,8 +38,16 @@ export async function POST(
       )
     }
 
-    const { env } = await getCloudflareContext()
     const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')
+    if (!hasPermission) {
+      return NextResponse.json(
+        { success: false, error: 'Insufficient permissions to send quotations' },
+        { status: 403 }
+      )
+    }
 
     const body = await request.json() as SendQuotationBody
     const { subject, content, locale = 'zh' } = body

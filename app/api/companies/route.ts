@@ -7,6 +7,8 @@ import { getUserCompanies, createCompany, addCompanyMember } from '@/lib/dal/com
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
+export const runtime = 'edge'
+
 interface CreateCompanyRequestBody {
   name: { zh: string; en: string } | string;
   logo_url?: string;

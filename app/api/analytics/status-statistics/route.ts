@@ -1,8 +1,13 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { getStatusStatistics } from '@/lib/dal/analytics'
 
-export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 /**
  * GET /api/analytics/status-statistics
@@ -11,6 +16,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(request: NextRequest) {
   try {
+    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const {
@@ -21,39 +27,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: quotations, error } = await supabase
-      .from('quotations')
-      .select('status, total_amount')
-      .eq('user_id', user.id)
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
 
-    if (error) {
-      throw error
+    const hasPermission = await checkPermission(kv, db, user.id, 'analytics:read')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // 按狀態分組統計
-    const statusData = new Map()
-    const statuses = ['draft', 'sent', 'signed', 'expired']
+    const data = await getStatusStatistics(db, user.id)
 
-    // 初始化所有狀態
-    statuses.forEach((status) => {
-      statusData.set(status, {
-        status,
-        count: 0,
-        value: 0,
-      })
-    })
-
-    quotations?.forEach((quotation) => {
-      const data = statusData.get(quotation.status)
-      if (data) {
-        data.count += 1
-        data.value += quotation.total_amount
-      }
-    })
-
-    const result = statuses.map((status) => statusData.get(status))
-
-    return NextResponse.json({ data: result })
+    return NextResponse.json({ data })
   } catch (error: unknown) {
     console.error('Failed to fetch status statistics:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })

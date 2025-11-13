@@ -6,6 +6,7 @@ import { getExchangeRatesByBase, Currency } from '@/lib/dal/exchange-rates'
 import { checkPermission } from '@/lib/cache/services'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
+export const runtime = 'edge';
 
 
 /**

@@ -6,6 +6,7 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getProductById, updateProduct, deleteProduct } from '@/lib/dal/products'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
+export const runtime = 'edge';
 
 interface UpdateProductRequestBody {
   name?: string;

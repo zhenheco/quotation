@@ -1,8 +1,13 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { getRevenueTrend } from '@/lib/dal/analytics'
 
-export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 /**
  * GET /api/analytics/revenue-trend?months=6
@@ -11,6 +16,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(request: NextRequest) {
   try {
+    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const {
@@ -21,68 +27,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 從 query parameters 取得月份數量
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'analytics:read')
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const months = parseInt(searchParams.get('months') || '6')
 
-    // 計算起始日期
-    const startDate = new Date()
-    startDate.setMonth(startDate.getMonth() - months)
-    startDate.setDate(1)
-    startDate.setHours(0, 0, 0, 0)
+    const data = await getRevenueTrend(db, user.id, months)
 
-    const { data: quotations, error } = await supabase
-      .from('quotations')
-      .select('issue_date, total_amount, status')
-      .eq('user_id', user.id)
-      .gte('issue_date', startDate.toISOString())
-      .order('issue_date')
-
-    if (error) {
-      throw error
-    }
-
-    // 按月份分組統計
-    const monthlyData = new Map()
-
-    quotations?.forEach((quotation) => {
-      const date = new Date(quotation.issue_date)
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-
-      if (!monthlyData.has(monthKey)) {
-        monthlyData.set(monthKey, {
-          month: monthKey,
-          revenue: 0,
-          count: 0,
-        })
-      }
-
-      const data = monthlyData.get(monthKey)
-      // 只統計已簽約的報價單
-      if (quotation.status === 'signed') {
-        data.revenue += quotation.total_amount
-      }
-      data.count += 1
-    })
-
-    // 填充缺失的月份
-    const result = []
-    const current = new Date(startDate)
-
-    while (current <= new Date()) {
-      const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`
-      const monthName = current.toLocaleDateString('zh-TW', { year: 'numeric', month: 'short' })
-
-      result.push({
-        month: monthName,
-        revenue: monthlyData.get(monthKey)?.revenue || 0,
-        count: monthlyData.get(monthKey)?.count || 0,
-      })
-
-      current.setMonth(current.getMonth() + 1)
-    }
-
-    return NextResponse.json({ data: result })
+    return NextResponse.json({ data })
   } catch (error: unknown) {
     console.error('Failed to fetch revenue trend:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })

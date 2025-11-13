@@ -6,21 +6,39 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getServerSession } from '@/lib/auth';
-import { getUnpaidPayments } from '@/lib/services/payments';
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { createApiClient } from '@/lib/supabase/api'
+import { getUnpaidPaymentSchedules } from '@/lib/dal/payments';
+
+export const runtime = 'edge'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const { env } = await getCloudflareContext()
+    const supabase = createApiClient(req)
 
-    if (!session?.user?.id) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'payments:read')
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to view unpaid payments' },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
 
     const filters = {
@@ -30,7 +48,7 @@ export async function GET(req: NextRequest) {
         : undefined,
     };
 
-    const unpaidPayments = await getUnpaidPayments(userId, filters);
+    const unpaidPayments = await getUnpaidPaymentSchedules(db, user.id, filters);
 
     interface UnpaidPayment {
       amount: string | number;

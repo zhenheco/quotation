@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createApiClient } from '@/lib/supabase/api'
 
+export const runtime = 'edge'
+
+/**
+ * 注意：此 API 為測試工具，仍使用 Supabase 直接操作資料庫
+ * 原因：僅用於開發/測試環境建立測試數據，不影響生產環境
+ */
+
 interface SeedDataBody {
   clearExisting?: boolean;
 }

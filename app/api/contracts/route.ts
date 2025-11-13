@@ -1,15 +1,20 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { hasPermission } from '@/lib/services/rbac'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { getContracts, createContract } from '@/lib/dal/contracts'
 
-export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
 
 /**
  * GET /api/contracts - 取得所有合約
  */
 export async function GET(request: NextRequest) {
   try {
+    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -17,28 +22,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const canRead = await hasPermission(user.id, 'contracts', 'read')
-    if (!canRead) {
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'contracts:read')
+    if (!hasPermission) {
       return NextResponse.json({ error: 'Insufficient permissions to view contracts' }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
-    let query = supabase
-      .from('customer_contracts')
-      .select('*')
-      .eq('user_id', user.id)
+    const contracts = await getContracts(db, user.id)
 
-    if (status) {
-      query = query.eq('status', status)
-    }
+    const filteredContracts = status
+      ? contracts.filter(c => c.status === status)
+      : contracts
 
-    const { data: contracts, error } = await query.order('created_at', { ascending: false })
-
-    if (error) throw error
-
-    return NextResponse.json(contracts)
+    return NextResponse.json(filteredContracts)
   } catch (error: unknown) {
     console.error('Error fetching contracts:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -57,32 +59,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const canWrite = await hasPermission(user.id, 'contracts', 'write')
-    if (!canWrite) {
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'contracts:write')
+    if (!hasPermission) {
       return NextResponse.json({ error: 'Insufficient permissions to create contracts' }, { status: 403 })
     }
 
     const body = await request.json() as Record<string, unknown>
 
-    const { data: contract, error } = await supabase.rpc('create_contract', {
-      p_user_id: user.id,
-      p_customer_id: body.customer_id,
-      p_quotation_id: body.quotation_id || null,
-      p_contract_number: body.contract_number,
-      p_title: body.title,
-      p_description: body.description || null,
-      p_start_date: body.start_date,
-      p_end_date: body.end_date || null,
-      p_total_amount: body.total_amount,
-      p_currency: body.currency || 'TWD',
-      p_payment_terms: body.payment_terms || null,
-      p_billing_frequency: body.billing_frequency || 'one_time',
-      p_next_billing_date: body.next_billing_date || null,
-      p_auto_renew: body.auto_renew || false,
-      p_status: body.status || 'draft'
+    const contract = await createContract(db, user.id, {
+      company_id: body.company_id as string | null,
+      customer_id: body.customer_id as string,
+      contract_number: body.contract_number as string,
+      title: body.title as string,
+      start_date: body.start_date as string,
+      end_date: body.end_date as string,
+      signed_date: (body.signed_date as string | null) || null,
+      status: (body.status as 'draft' | 'active' | 'expired' | 'terminated') || 'draft',
+      total_amount: body.total_amount as number,
+      currency: (body.currency as string) || 'TWD',
+      payment_terms: (body.payment_terms as string | null) || null,
+      contract_file_url: null,
+      notes: (body.notes as string | null) || null,
     })
-
-    if (error) throw error
 
     return NextResponse.json(contract, { status: 201 })
   } catch (error: unknown) {

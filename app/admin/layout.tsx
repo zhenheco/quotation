@@ -9,7 +9,9 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { isSuperAdmin } from '@/lib/services/rbac';
+import { isSuperAdmin } from '@/lib/dal/rbac';
+import { getD1Client } from '@/lib/db/d1-client';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 
@@ -32,8 +34,12 @@ export default async function AdminLayout({
     redirect('/login?redirect=/admin');
   }
 
-  // 檢查是否為超級管理員
-  const isAdmin = await isSuperAdmin(user.id);
+  // 獲取 D1 client
+  const { env } = await getCloudflareContext();
+  const db = getD1Client(env);
+
+  // 檢查是否為超級管理員（使用 D1）
+  const isAdmin = await isSuperAdmin(db, user.id);
   if (!isAdmin) {
     // 非超管則導向首頁並顯示錯誤訊息
     redirect('/?error=unauthorized');

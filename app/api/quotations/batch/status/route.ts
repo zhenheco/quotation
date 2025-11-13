@@ -1,8 +1,15 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { checkPermission } from '@/lib/cache/services'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 
-type QuotationStatus = 'draft' | 'sent' | 'signed' | 'expired'
+export const runtime = 'edge'
+
+type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
 
 interface BatchStatusBody {
   ids: string[];
@@ -12,9 +19,9 @@ interface BatchStatusBody {
 export async function POST(request: NextRequest) {
   return batchRateLimiter(request, async () => {
     try {
+    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
-    // 驗證用戶
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json(
@@ -23,7 +30,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 獲取要更新的報價單 IDs 和新狀態
+    const db = getD1Client(env)
+    const kv = getKVCache(env)
+
+    const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to update quotations' },
+        { status: 403 }
+      )
+    }
+
     const { ids, status } = await request.json() as BatchStatusBody
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -33,59 +50,54 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const validStatuses: QuotationStatus[] = ['draft', 'sent', 'signed', 'expired']
+    const validStatuses: QuotationStatus[] = ['draft', 'sent', 'accepted', 'rejected']
     if (!status || !validStatuses.includes(status)) {
       return NextResponse.json(
-        { error: 'Invalid status. Must be one of: draft, sent, signed, expired' },
+        { error: 'Invalid status. Must be one of: draft, sent, accepted, rejected' },
         { status: 400 }
       )
     }
 
-    // 驗證所有報價單都屬於當前用戶
-    const { data: quotations, error: fetchError } = await supabase
-      .from('quotations')
-      .select('id')
-      .eq('user_id', user.id)
-      .in('id', ids)
+    let updatedCount = 0
+    const errors: string[] = []
 
-    if (fetchError) {
-      console.error('Error fetching quotations:', fetchError)
-      return NextResponse.json(
-        { error: 'Failed to fetch quotations' },
-        { status: 500 }
-      )
+    for (const id of ids) {
+      try {
+        const existingQuotation = await db.queryOne<{ id: string }>(
+          'SELECT id FROM quotations WHERE id = ? AND user_id = ?',
+          [id, user.id]
+        )
+
+        if (!existingQuotation) {
+          errors.push(`Quotation ${id} not found or unauthorized`)
+          continue
+        }
+
+        await db.execute(
+          'UPDATE quotations SET status = ?, updated_at = ? WHERE id = ? AND user_id = ?',
+          [status, new Date().toISOString(), id, user.id]
+        )
+
+        updatedCount++
+      } catch (error: unknown) {
+        console.error(`Error updating quotation ${id}:`, error)
+        errors.push(`Failed to update quotation ${id}: ${getErrorMessage(error)}`)
+      }
     }
 
-    if (!quotations || quotations.length !== ids.length) {
+    if (updatedCount === 0) {
       return NextResponse.json(
-        { error: 'Some quotations not found or unauthorized' },
-        { status: 403 }
-      )
-    }
-
-    // 更新報價單狀態
-    const { error: updateError } = await supabase
-      .from('quotations')
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user.id)
-      .in('id', ids)
-      .select()
-
-    if (updateError) {
-      console.error('Error updating quotations:', updateError)
-      return NextResponse.json(
-        { error: 'Failed to update quotations' },
-        { status: 500 }
+        { error: 'No quotations were updated', details: errors },
+        { status: 400 }
       )
     }
 
     return NextResponse.json({
-      message: `Successfully updated ${ids.length} quotations to status: ${status}`,
-      updatedCount: ids.length,
-      status: status
+      message: `Successfully updated ${updatedCount} out of ${ids.length} quotations to status: ${status}`,
+      updatedCount,
+      total: ids.length,
+      status,
+      errors: errors.length > 0 ? errors : undefined,
     })
   } catch (error) {
     console.error('Batch status update error:', error)

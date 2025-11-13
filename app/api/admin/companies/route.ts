@@ -1,9 +1,11 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { isSuperAdmin } from '@/lib/services/rbac';
+import { isSuperAdmin } from '@/lib/dal/rbac';
 import { getD1Client } from '@/lib/db/d1-client';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+
+export const runtime = 'edge';
 
 /**
  * GET /api/admin/companies
@@ -24,16 +26,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const db = getD1Client(env);
+
     // 檢查是否為超管
-    const isAdmin = await isSuperAdmin(user.id);
+    const isAdmin = await isSuperAdmin(db, user.id);
     if (!isAdmin) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: Super admin access required' },
         { status: 403 }
       );
     }
-
-    const db = getD1Client(env);
 
     // 取得所有公司
     const companies = await db.query<{

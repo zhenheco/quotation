@@ -8,9 +8,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createApiClient } from '@/lib/supabase/api';
-import { isSuperAdmin } from '@/lib/services/rbac';
+import { isSuperAdmin } from '@/lib/dal/rbac';
 import { getD1Client } from '@/lib/db/d1-client';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   const { env } = await getCloudflareContext();
@@ -26,8 +28,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const db = getD1Client(env);
+
     // 檢查是否為超級管理員
-    const isAdmin = await isSuperAdmin(user.id);
+    const isAdmin = await isSuperAdmin(db, user.id);
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'Forbidden: Super admin access required' },
@@ -36,7 +40,6 @@ export async function GET(request: NextRequest) {
     }
 
     // 獲取統計資料
-    const db = getD1Client(env);
     const stats = await getSystemStats(db);
 
     return NextResponse.json({
