@@ -40,11 +40,11 @@ export async function DELETE(request: NextRequest) {
     // 查詢目標用戶
     const { data: targetUser, error: userError } = await supabase.auth.admin.listUsers()
 
-    if (userError) {
+    if (userError || !targetUser) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 
-    const targetUserData = targetUser.users.find((u) => u.email === targetEmail)
+    const targetUserData = targetUser.users.find((u: { email?: string | null }) => u.email === targetEmail)
 
     if (!targetUserData) {
       return NextResponse.json({ error: `User not found: ${targetEmail}` }, { status: 404 })

@@ -88,7 +88,7 @@ export async function DELETE(request: NextRequest) {
     )
 
     // 9. 刪除用戶擁有的公司（is_owner = 1）
-    const ownedCompanies = await db.query(
+    const ownedCompanies = await db.query<{ id: string }>(
       'SELECT id FROM companies WHERE id IN (SELECT company_id FROM company_members WHERE user_id = ? AND is_owner = 1)',
       [userId]
     )

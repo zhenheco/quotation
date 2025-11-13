@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createApiClient } from '@/lib/supabase/api';
 import { getUserCompanies, getCompanyById, createCompany, updateCompany, type Company } from '@/lib/dal/companies';
-import { checkPermission } from '@/lib/dal/rbac';
+import { hasPermission } from '@/lib/dal/rbac';
 import { getD1Client } from '@/lib/db/d1-client';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const db = getD1Client(env);
 
     // 檢查權限
-    const hasAccess = await checkPermission(db, user.id, 'company_settings', 'write');
+    const hasAccess = await hasPermission(db, user.id, 'company_settings:write');
     if (!hasAccess) {
       return NextResponse.json(
         { error: 'Insufficient permissions: company_settings:write' },
@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest) {
     const db = getD1Client(env);
 
     // 檢查權限
-    const hasAccess = await checkPermission(db, user.id, 'company_settings', 'write');
+    const hasAccess = await hasPermission(db, user.id, 'company_settings:write');
     if (!hasAccess) {
       return NextResponse.json(
         { error: 'Insufficient permissions: company_settings:write' },

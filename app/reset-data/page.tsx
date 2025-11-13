@@ -23,7 +23,7 @@ export default function ResetDataPage() {
         method: 'DELETE',
       })
 
-      const data = await response.json()
+      const data = await response.json() as { success?: boolean; message?: string; error?: string }
       setResult(data)
 
       if (data.success) {

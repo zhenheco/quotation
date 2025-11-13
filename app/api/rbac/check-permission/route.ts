@@ -1,10 +1,9 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { checkPermission } from '@/lib/dal/rbac'
+import { hasPermission } from '@/lib/dal/rbac'
 import { getD1Client } from '@/lib/db/d1-client'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import type { PermissionResource, PermissionAction } from '@/types/rbac.types'
 
 export const runtime = 'edge'
 
@@ -35,16 +34,16 @@ export async function POST(request: NextRequest) {
 
     const db = getD1Client(env)
 
-    // 使用 DAL 的 checkPermission 函數進行權限檢查
-    const hasPermission = await checkPermission(
+    // 使用 DAL 的 hasPermission 函數進行權限檢查
+    const permissionName = `${resource}:${action}`
+    const hasPerms = await hasPermission(
       db,
       user.id,
-      resource as PermissionResource,
-      action as PermissionAction
+      permissionName
     )
 
     return NextResponse.json({
-      hasPermission,
+      hasPermission: hasPerms,
       resource,
       action,
       userId: user.id
