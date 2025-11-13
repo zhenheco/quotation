@@ -102,6 +102,7 @@ export async function PUT(
 
     interface QuotationItemInput {
       product_id?: string | null;
+      description: { zh: string; en: string };
       quantity: string | number;
       unit_price: string | number;
       discount?: string | number;
@@ -118,7 +119,7 @@ export async function PUT(
       tax_rate?: string | number;
       tax_amount?: string | number;
       total_amount?: string | number;
-      notes?: string;
+      notes?: { zh: string; en: string };
       items?: QuotationItemInput[];
     }
 
@@ -179,6 +180,7 @@ export async function PUT(
         await createQuotationItem(db, {
           quotation_id: id,
           product_id: item.product_id || null,
+          description: item.description,
           quantity: parseFloat(String(item.quantity)),
           unit_price: parseFloat(String(item.unit_price)),
           discount: parseFloat(String(item.discount || 0)),

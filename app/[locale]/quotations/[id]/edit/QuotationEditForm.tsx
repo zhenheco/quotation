@@ -53,7 +53,7 @@ interface Quotation {
   currency: string
   status: string
   tax_rate?: number
-  notes?: string
+  notes?: { zh: string; en: string } | null
   contract_file_url?: string
   contract_file_name?: string
   items?: Array<{
@@ -108,13 +108,23 @@ export default function QuotationEditForm({
     return dateStr.split('T')[0]
   }
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    customerId: string
+    issueDate: string
+    validUntil: string
+    currency: string
+    taxRate: string
+    notes: string
+    status: string
+  }>({
     customerId: quotation.customer_id,
     issueDate: formatDateForInput(quotation.issue_date),
     validUntil: formatDateForInput(quotation.valid_until),
     currency: quotation.currency,
     taxRate: quotation.tax_rate?.toString() || '5',
-    notes: quotation.notes || '',
+    notes: (typeof quotation.notes === 'object' && quotation.notes !== null)
+      ? quotation.notes[locale as 'zh' | 'en'] || ''
+      : '',
     status: quotation.status,
   })
 

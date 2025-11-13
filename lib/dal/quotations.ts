@@ -4,7 +4,7 @@
 
 import { D1Client } from '@/lib/db/d1-client'
 
-export interface Quotation {
+interface QuotationRow {
   id: string
   user_id: string
   company_id: string | null
@@ -23,16 +23,89 @@ export interface Quotation {
   updated_at: string
 }
 
-export interface QuotationItem {
+interface QuotationItemRow {
   id: string
   quotation_id: string
   product_id: string | null
+  description: string
   quantity: number
   unit_price: number
   discount: number
   subtotal: number
   created_at: string
   updated_at: string
+}
+
+export interface Quotation {
+  id: string
+  user_id: string
+  company_id: string | null
+  customer_id: string
+  quotation_number: string
+  status: 'draft' | 'sent' | 'accepted' | 'rejected'
+  issue_date: string
+  valid_until: string
+  currency: string
+  subtotal: number
+  tax_rate: number
+  tax_amount: number
+  total_amount: number
+  notes: { zh: string; en: string } | null
+  created_at: string
+  updated_at: string
+}
+
+export interface QuotationItem {
+  id: string
+  quotation_id: string
+  product_id: string | null
+  description: { zh: string; en: string }
+  quantity: number
+  unit_price: number
+  discount: number
+  subtotal: number
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * 將資料庫行轉換為 Quotation 物件
+ */
+function parseQuotationRow(row: QuotationRow): Quotation {
+  let notes: { zh: string; en: string } | null = null
+
+  if (row.notes) {
+    try {
+      notes = JSON.parse(row.notes)
+    } catch (error) {
+      console.warn(`Invalid JSON in quotations.notes for id=${row.id}:`, error)
+      notes = { zh: row.notes, en: row.notes }
+    }
+  }
+
+  return {
+    ...row,
+    notes
+  }
+}
+
+/**
+ * 將資料庫行轉換為 QuotationItem 物件
+ */
+function parseQuotationItemRow(row: QuotationItemRow): QuotationItem {
+  let description: { zh: string; en: string }
+
+  try {
+    description = JSON.parse(row.description)
+  } catch (error) {
+    console.warn(`Invalid JSON in quotation_items.description for id=${row.id}:`, error)
+    description = { zh: row.description || '', en: row.description || '' }
+  }
+
+  return {
+    ...row,
+    description
+  }
 }
 
 export async function getQuotations(
@@ -56,7 +129,8 @@ export async function getQuotations(
 
   sql += ' ORDER BY created_at DESC'
 
-  return await db.query<Quotation>(sql, params)
+  const rows = await db.query<QuotationRow>(sql, params)
+  return rows.map(parseQuotationRow)
 }
 
 export async function getQuotationById(
@@ -64,10 +138,12 @@ export async function getQuotationById(
   userId: string,
   quotationId: string
 ): Promise<Quotation | null> {
-  return await db.queryOne<Quotation>(
+  const row = await db.queryOne<QuotationRow>(
     'SELECT * FROM quotations WHERE id = ? AND user_id = ?',
     [quotationId, userId]
   )
+
+  return row ? parseQuotationRow(row) : null
 }
 
 export async function createQuotation(
@@ -86,11 +162,15 @@ export async function createQuotation(
     tax_rate?: number
     tax_amount?: number
     total_amount?: number
-    notes?: string
+    notes?: { zh: string; en: string }
   }
 ): Promise<Quotation> {
   const id = data.id || crypto.randomUUID()
   const now = new Date().toISOString()
+
+  console.log('[DAL] createQuotation - input data:', JSON.stringify(data, null, 2))
+  console.log('[DAL] createQuotation - notes type:', typeof data.notes, data.notes)
+  console.log('[DAL] createQuotation - notes serialized:', data.notes ? JSON.stringify(data.notes) : null)
 
   await db.execute(
     `INSERT INTO quotations (
@@ -112,7 +192,7 @@ export async function createQuotation(
       data.tax_rate || 5.0,
       data.tax_amount || 0,
       data.total_amount || 0,
-      data.notes || null,
+      data.notes ? JSON.stringify(data.notes) : null,
       now,
       now
     ]
@@ -135,17 +215,22 @@ export async function updateQuotation(
   const updates: string[] = []
   const params: unknown[] = []
 
-  const fields = [
+  const simpleFields = [
     'company_id', 'customer_id', 'quotation_number', 'status',
     'issue_date', 'valid_until', 'currency', 'subtotal', 'tax_rate',
-    'tax_amount', 'total_amount', 'notes'
+    'tax_amount', 'total_amount'
   ]
 
-  for (const field of fields) {
+  for (const field of simpleFields) {
     if (data[field as keyof typeof data] !== undefined) {
       updates.push(`${field} = ?`)
       params.push(data[field as keyof typeof data])
     }
+  }
+
+  if (data.notes !== undefined) {
+    updates.push('notes = ?')
+    params.push(data.notes ? JSON.stringify(data.notes) : null)
   }
 
   if (updates.length === 0) {
@@ -195,10 +280,11 @@ export async function getQuotationItems(
   db: D1Client,
   quotationId: string
 ): Promise<QuotationItem[]> {
-  return await db.query<QuotationItem>(
+  const rows = await db.query<QuotationItemRow>(
     'SELECT * FROM quotation_items WHERE quotation_id = ? ORDER BY created_at',
     [quotationId]
   )
+  return rows.map(parseQuotationItemRow)
 }
 
 export async function createQuotationItem(
@@ -207,6 +293,7 @@ export async function createQuotationItem(
     id?: string
     quotation_id: string
     product_id?: string
+    description: { zh: string; en: string }
     quantity: number
     unit_price: number
     discount?: number
@@ -216,14 +303,19 @@ export async function createQuotationItem(
   const id = data.id || crypto.randomUUID()
   const now = new Date().toISOString()
 
+  console.log('[DAL] createQuotationItem - input data:', JSON.stringify(data, null, 2))
+  console.log('[DAL] createQuotationItem - description type:', typeof data.description, data.description)
+  console.log('[DAL] createQuotationItem - description serialized:', JSON.stringify(data.description))
+
   await db.execute(
     `INSERT INTO quotation_items (
-      id, quotation_id, product_id, quantity, unit_price, discount, subtotal, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, quotation_id, product_id, description, quantity, unit_price, discount, subtotal, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       data.quotation_id,
       data.product_id || null,
+      JSON.stringify(data.description),
       data.quantity,
       data.unit_price,
       data.discount || 0,
@@ -233,16 +325,16 @@ export async function createQuotationItem(
     ]
   )
 
-  const item = await db.queryOne<QuotationItem>(
+  const row = await db.queryOne<QuotationItemRow>(
     'SELECT * FROM quotation_items WHERE id = ?',
     [id]
   )
 
-  if (!item) {
+  if (!row) {
     throw new Error('Failed to create quotation item')
   }
 
-  return item
+  return parseQuotationItemRow(row)
 }
 
 export async function deleteQuotationItem(

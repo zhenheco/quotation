@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
     // 取得請求資料
     interface QuotationItemInput {
       product_id?: string | null;
+      description: { zh: string; en: string };
       quantity: string | number;
       unit_price: string | number;
       discount?: string | number;
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
       tax_rate: string | number;
       tax_amount: string | number;
       total_amount: string | number;
-      notes?: string;
+      notes?: { zh: string; en: string };
       items: QuotationItemInput[];
     }
 
@@ -136,6 +137,9 @@ export async function POST(request: NextRequest) {
     const quotationNumber = await generateQuotationNumber(db, user.id)
 
     // 建立報價單
+    console.log('[API] POST /api/quotations - notes type:', typeof notes, notes)
+    console.log('[API] POST /api/quotations - items:', JSON.stringify(items, null, 2))
+
     const quotation = await createQuotation(db, user.id, {
       customer_id,
       quotation_number: quotationNumber,
@@ -147,7 +151,7 @@ export async function POST(request: NextRequest) {
       tax_rate: parseFloat(String(tax_rate)),
       tax_amount: parseFloat(String(tax_amount)),
       total_amount: parseFloat(String(total_amount)),
-      notes: notes || null
+      notes
     })
 
     // 建立報價單項目
@@ -156,6 +160,7 @@ export async function POST(request: NextRequest) {
         await createQuotationItem(db, {
           quotation_id: quotation.id,
           product_id: item.product_id || null,
+          description: item.description,
           quantity: parseFloat(String(item.quantity)),
           unit_price: parseFloat(String(item.unit_price)),
           discount: parseFloat(String(item.discount || 0)),

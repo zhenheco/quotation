@@ -118,7 +118,7 @@ export interface Quotation {
   tax_rate: number
   tax_amount: number
   total_amount: number
-  notes: string | null
+  notes: BilingualText | null
   created_at: string
   updated_at: string
 }
@@ -127,6 +127,7 @@ export interface QuotationItem {
   id: string
   quotation_id: string
   product_id: string | null
+  description: BilingualText
   quantity: number
   unit_price: number
   discount: number
@@ -147,7 +148,17 @@ export interface CreateQuotationData {
   tax_rate: number
   tax_amount: number
   total_amount: number
-  notes?: string | null
+  notes?: BilingualText | null
+}
+
+export interface CreateQuotationItemData {
+  quotation_id: string
+  product_id?: string
+  description: BilingualText
+  quantity: number
+  unit_price: number
+  discount?: number
+  subtotal: number
 }
 
 export interface UpdateQuotationData {
@@ -160,7 +171,7 @@ export interface UpdateQuotationData {
   tax_rate?: number
   tax_amount?: number
   total_amount?: number
-  notes?: string | null
+  notes?: BilingualText | null
 }
 
 // ============================================================================
