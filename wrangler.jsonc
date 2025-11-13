@@ -20,7 +20,8 @@
     {
       "binding": "DB",
       "database_name": "quotation-system-db",
-      "database_id": "de903a85-2741-4179-8bd0-34631cc64b08"
+      "database_id": "de903a85-2741-4179-8bd0-34631cc64b08",
+      "migrations_dir": "migrations/d1"
     }
   ],
   "analytics_engine_datasets": [
