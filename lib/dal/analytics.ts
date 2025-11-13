@@ -185,8 +185,8 @@ export async function getDashboardStats(
       'SELECT status, end_date, next_collection_date FROM customer_contracts WHERE user_id = ?',
       [userId]
     ),
-    db.query<{ id: string; is_active: number }>(
-      'SELECT id, is_active FROM customers WHERE user_id = ?',
+    db.query<{ id: string }>(
+      'SELECT id FROM customers WHERE user_id = ?',
       [userId]
     ),
     db.query<{ id: string }>(
@@ -254,7 +254,7 @@ export async function getDashboardStats(
 
   const customerStats: CustomerStats = {
     total: customers.length,
-    active: customers.filter((c) => c.is_active === 1).length,
+    active: customers.length, // 暫時假設所有客戶都是活躍的，因為 D1 schema 尚未包含 is_active 欄位
   }
 
   const productStats: ProductStats = {
