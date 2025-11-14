@@ -258,7 +258,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
               value={formData.baseCurrency}
               onChange={(e) => setFormData({ ...formData, baseCurrency: e.target.value })}
               required
-              className={`block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${formData.baseCurrency ? 'bg-gray-50' : ''}`}
+              className={`block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${formData.baseCurrency ? 'text-gray-900 font-medium' : 'text-gray-700'}`}
             >
               {CURRENCIES.map((currency) => (
                 <option key={currency} value={currency}>
@@ -326,7 +326,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
                     name="costCurrency"
                     value={formData.costCurrency}
                     onChange={(e) => setFormData({ ...formData, costCurrency: e.target.value })}
-                    className={`block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${formData.costCurrency ? 'bg-gray-50' : ''}`}
+                    className={`block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${formData.costCurrency ? 'text-gray-900 font-medium' : 'text-gray-700'}`}
                   >
                     {CURRENCIES.map((currency) => (
                       <option key={currency} value={currency}>
