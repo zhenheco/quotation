@@ -241,7 +241,14 @@
     "version": "版本",
     "noVersionHistory": "無版本歷史記錄",
     "summary": "摘要",
-    "actions": "操作"
+    "actions": "操作",
+    "item": {
+      "description": "品項說明",
+      "quantity": "數量",
+      "unitPrice": "單價",
+      "discount": "折扣",
+      "subtotal": "小計"
+    }
   },
   "customer": {
     "title": "客戶",

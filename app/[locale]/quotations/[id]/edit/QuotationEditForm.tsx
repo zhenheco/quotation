@@ -440,7 +440,7 @@ export default function QuotationEditForm({
                 value={formData.customerId}
                 onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
                 required
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">{t('quotation.selectCustomer')}</option>
                 {customers.map((customer) => (
@@ -458,7 +458,7 @@ export default function QuotationEditForm({
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 {STATUSES.map((status) => (
                   <option key={status} value={status}>
@@ -507,7 +507,7 @@ export default function QuotationEditForm({
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                 required
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 {CURRENCIES.map((currency) => (
                   <option key={currency} value={currency}>
@@ -562,7 +562,7 @@ export default function QuotationEditForm({
                     value={item.product_id || ''}
                     onChange={(e) => handleProductChange(index, e.target.value)}
                     required
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    className={`block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm ${item.product_id ? 'bg-gray-50' : ''}`}
                   >
                     <option value="">{t('quotation.selectProduct')}</option>
                     {products.map((product) => (
@@ -584,7 +584,7 @@ export default function QuotationEditForm({
                     }}
                     min="1"
                     required
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className={`block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${item.quantity > 0 ? 'bg-gray-50' : ''}`}
                   />
                 </div>
 
@@ -600,7 +600,7 @@ export default function QuotationEditForm({
                     min="0"
                     step={currentLocale === 'zh' ? '1' : '0.01'}
                     required
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className={`block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${item.unit_price > 0 ? 'bg-gray-50' : ''}`}
                   />
                 </div>
 
@@ -616,7 +616,7 @@ export default function QuotationEditForm({
                     }}
                     max="0"
                     step={currentLocale === 'zh' ? '1' : '0.01'}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className={`block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${item.discount !== 0 ? 'bg-gray-50' : ''}`}
                   />
                 </div>
 
@@ -661,7 +661,7 @@ export default function QuotationEditForm({
                     min="0"
                     max="100"
                     step={currentLocale === 'zh' ? '1' : '0.01'}
-                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                    className="w-20 px-2 py-1 bg-gray-50 border border-gray-300 rounded text-sm"
                   />
                   <span className="text-gray-700">%</span>
                 </div>

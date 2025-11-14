@@ -236,7 +236,16 @@
     "showHistory": "Show History",
     "hideHistory": "Hide History",
     "version": "Version",
-    "noVersionHistory": "No version history"
+    "noVersionHistory": "No version history",
+    "summary": "Summary",
+    "actions": "Actions",
+    "item": {
+      "description": "Description",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "discount": "Discount",
+      "subtotal": "Subtotal"
+    }
   },
   "customer": {
     "title": "Customers",
