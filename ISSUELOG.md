@@ -4,6 +4,29 @@
 
 ---
 
+## 2025-11-14：quotation_items description 欄位位置錯誤（已修復）
+
+### 問題描述
+使用 `ALTER TABLE ADD COLUMN` 新增的 `description` 欄位被加到了表定義的末尾，但 INSERT 語句期望它在第4個位置，導致無法儲存報價單。
+
+### 錯誤訊息
+```
+D1_ERROR: table quotation_items has no column named description: SQLITE_ERROR
+```
+
+### 解決方案
+執行遷移腳本 `006_fix_quotation_items_structure.sql` 重建表結構，將 description 欄位放在正確的位置。
+
+### 驗證步驟
+1. 執行遷移腳本重建表結構
+2. 驗證表結構中 description 在正確位置
+3. 測試報價單建立功能
+
+### 狀態
+✅ 已修復（2025-11-14）
+
+---
+
 ## [ISSUE-019] - 2025-10-29: /api/contracts 端點未使用 RBAC 和正確的視圖
 
 **狀態**: ✅ Resolved
