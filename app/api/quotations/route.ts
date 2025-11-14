@@ -43,13 +43,14 @@ export async function GET(request: NextRequest) {
     // 取得報價單資料
     const quotations = await getQuotations(db, user.id)
 
-    // 載入客戶名稱（D1 不支援 JOIN，需要手動查詢）
+    // 載入客戶名稱和 Email（D1 不支援 JOIN，需要手動查詢）
     const formattedQuotations = await Promise.all(
       quotations.map(async (q) => {
         const customer = await getCustomerById(db, user.id, q.customer_id)
         return {
           ...q,
-          customer_name: customer?.name || null
+          customer_name: customer?.name || null,
+          customer_email: customer?.email || null
         }
       })
     )

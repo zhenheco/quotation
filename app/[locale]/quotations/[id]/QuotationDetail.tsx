@@ -186,7 +186,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
           </div>
           <div className="flex justify-between text-lg font-bold border-t pt-2">
             <span>{t('quotation.total')}:</span>
-            <span>{quotation.currency} {quotation.total?.toLocaleString() || '0'}</span>
+            <span>{quotation.currency} {quotation.total_amount?.toLocaleString() || '0'}</span>
           </div>
         </div>
       </div>

@@ -371,7 +371,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {quotation.currency} {quotation.total?.toLocaleString() || '0'}
+                      {quotation.currency} {quotation.total_amount?.toLocaleString() || '0'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
