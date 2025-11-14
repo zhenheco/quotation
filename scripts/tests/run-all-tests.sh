@@ -26,7 +26,7 @@ COVERAGE_PASSED=false
 echo "=================================================="
 echo "第一階段: 單元測試"
 echo "=================================================="
-if npm run test:unit; then
+if pnpm run test:unit; then
   echo -e "${GREEN}✓ 單元測試通過${NC}"
   UNIT_TESTS_PASSED=true
 else
@@ -38,7 +38,7 @@ echo ""
 echo "=================================================="
 echo "第二階段: 測試覆蓋率分析"
 echo "=================================================="
-if npm run test:coverage; then
+if pnpm run test:coverage; then
   echo -e "${GREEN}✓ 覆蓋率測試通過（目標: 80%+）${NC}"
   COVERAGE_PASSED=true
 else
@@ -51,7 +51,7 @@ echo "=================================================="
 echo "第三階段: 整合測試（可選）"
 echo "=================================================="
 if [ -d "tests/integration" ] && [ "$(ls -A tests/integration)" ]; then
-  npm run test:integration || echo -e "${YELLOW}⚠ 整合測試未完全通過${NC}"
+  pnpm run test:integration || echo -e "${YELLOW}⚠ 整合測試未完全通過${NC}"
 else
   echo -e "${YELLOW}⚠ 整合測試尚未實作${NC}"
 fi
@@ -62,7 +62,7 @@ echo "=================================================="
 echo "第四階段: E2E 測試（可選）"
 echo "=================================================="
 if [ -d "tests/e2e" ] && [ "$(ls -A tests/e2e)" ]; then
-  npm run test:e2e || echo -e "${YELLOW}⚠ E2E 測試未完全通過${NC}"
+  pnpm run test:e2e || echo -e "${YELLOW}⚠ E2E 測試未完全通過${NC}"
 else
   echo -e "${YELLOW}⚠ E2E 測試尚未實作${NC}"
 fi

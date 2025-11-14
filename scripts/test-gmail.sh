@@ -67,7 +67,7 @@ test_connection() {
     if ! curl -s http://localhost:3000 > /dev/null 2>&1; then
         echo -e "${YELLOW}⚠${NC}  Next.js 伺服器未運行"
         echo "正在啟動伺服器..."
-        npm run dev &
+        pnpm run dev &
         SERVER_PID=$!
         echo "等待伺服器啟動..."
         sleep 5

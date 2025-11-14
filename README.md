@@ -60,7 +60,7 @@ A modern, bilingual (English/Chinese) quotation management system with multi-cur
 ## 📋 Prerequisites | 前置需求
 
 - Node.js 18+
-- npm or yarn
+- pnpm (套件管理器)
 - **Supabase account** (僅用於認證)
 - **PostgreSQL database** (Self-hosted on Zeabur or other platform)
 - **Google Cloud Console account** (for OAuth)
@@ -78,7 +78,7 @@ cd quotation-app
 ### 2. Install dependencies | 安裝依賴套件
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. Set up Supabase (認證服務) | 設置 Supabase
@@ -165,7 +165,7 @@ EXCHANGE_RATE_API_KEY=your-exchangerate-api-key
 ### 7. Run the development server | 啟動開發伺服器
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) (or the port shown in terminal)
@@ -177,13 +177,13 @@ Supabase CLI 已安裝為本地依賴。查看完整指南：[SUPABASE.md](SUPAB
 快速開始：
 ```bash
 # 登入 Supabase
-npm run supabase:login
+pnpm run supabase:login
 
 # 連結到您的專案
-npm run supabase:link
+pnpm run supabase:link
 
 # 生成 TypeScript 類型
-npm run supabase:gen:types
+pnpm run supabase:gen:types
 ```
 
 ## 📁 Project Structure | 專案結構

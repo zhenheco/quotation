@@ -5,8 +5,8 @@
 Supabase CLI 已作為本地依賴安裝（版本 2.51.0）。
 
 您可以使用以下兩種方式執行命令：
-- `npx supabase <command>`
-- `npm run supabase:<command>`（使用預設腳本）
+- `pnpm exec supabase <command>`
+- `ppnpm run supabase:<command>`（使用預設腳本）
 
 ---
 
@@ -17,7 +17,7 @@ Supabase CLI 已作為本地依賴安裝（版本 2.51.0）。
 首次使用需要登入：
 
 ```bash
-npm run supabase:login
+pnpm run supabase:login
 ```
 
 這會開啟瀏覽器進行認證。
@@ -27,7 +27,7 @@ npm run supabase:login
 連結本地專案到您的 Supabase 雲端專案：
 
 ```bash
-npm run supabase:link
+pnpm run supabase:link
 ```
 
 系統會要求輸入：
@@ -39,7 +39,7 @@ npm run supabase:link
 檢查 Supabase 連線狀態：
 
 ```bash
-npm run supabase:status
+pnpm run supabase:status
 ```
 
 ---
@@ -51,7 +51,7 @@ npm run supabase:status
 將本地的 SQL schema 推送到 Supabase：
 
 ```bash
-npm run supabase:db:push
+pnpm run supabase:db:push
 ```
 
 這會執行 `supabase/migrations/` 目錄中的所有 migration 檔案。
@@ -61,7 +61,7 @@ npm run supabase:db:push
 將雲端的資料庫 schema 拉取到本地：
 
 ```bash
-npm run supabase:db:pull
+pnpm run supabase:db:pull
 ```
 
 ### 重置本地資料庫
@@ -69,7 +69,7 @@ npm run supabase:db:pull
 重置本地開發資料庫（需要先啟動本地 Supabase）：
 
 ```bash
-npm run supabase:db:reset
+pnpm run supabase:db:reset
 ```
 
 ---
@@ -81,12 +81,12 @@ npm run supabase:db:reset
 建立新的資料庫遷移檔案：
 
 ```bash
-npm run supabase:migration:new <migration_name>
+pnpm run supabase:migration:new <migration_name>
 ```
 
 例如：
 ```bash
-npm run supabase:migration:new add_user_preferences
+pnpm run supabase:migration:new add_user_preferences
 ```
 
 這會在 `supabase/migrations/` 建立新的 SQL 檔案。
@@ -107,7 +107,7 @@ cp supabase-schema.sql supabase/migrations/20250101000000_initial_schema.sql
 從資料庫 schema 自動生成 TypeScript 類型定義：
 
 ```bash
-npm run supabase:gen:types
+pnpm run supabase:gen:types
 ```
 
 這會更新 [types/database.types.ts](types/database.types.ts)。
@@ -122,39 +122,39 @@ npm run supabase:gen:types
 
 1. **登入**：
    ```bash
-   npm run supabase:login
+   pnpm run supabase:login
    ```
 
 2. **連結到雲端專案**：
    ```bash
-   npm run supabase:link
+   pnpm run supabase:link
    ```
 
 3. **（可選）拉取現有 schema**：
    ```bash
-   npm run supabase:db:pull
+   pnpm run supabase:db:pull
    ```
 
 4. **生成 TypeScript 類型**：
    ```bash
-   npm run supabase:gen:types
+   pnpm run supabase:gen:types
    ```
 
 ### 方式 2：使用本地 Supabase
 
 1. **啟動本地 Supabase**（需要 Docker）：
    ```bash
-   npx supabase start
+   pnpm exec supabase start
    ```
 
 2. **應用 schema**：
    ```bash
-   npx supabase db reset
+   pnpm exec supabase db reset
    ```
 
 3. **生成類型**：
    ```bash
-   npm run supabase:gen:types
+   pnpm run supabase:gen:types
    ```
 
 ---
@@ -164,25 +164,25 @@ npm run supabase:gen:types
 ### 查看所有可用命令
 
 ```bash
-npm run supabase -- --help
+pnpm run supabase -- --help
 ```
 
 ### 查看特定命令的幫助
 
 ```bash
-npm run supabase -- db --help
+pnpm run supabase -- db --help
 ```
 
 ### 執行自定義 SQL
 
 ```bash
-npx supabase db execute --file path/to/your.sql
+pnpm exec supabase db execute --file path/to/your.sql
 ```
 
 ### 查看 migration 歷史
 
 ```bash
-npx supabase migration list
+pnpm exec supabase migration list
 ```
 
 ---
@@ -204,7 +204,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 1. **總是使用 migrations**：不要直接在生產資料庫執行 SQL，使用 migration 檔案
 2. **版本控制**：將 `supabase/migrations/` 加入 git
-3. **定期備份**：使用 `npm run supabase:db:pull` 備份 schema
+3. **定期備份**：使用 `pnpm run supabase:db:pull` 備份 schema
 4. **測試 migrations**：在本地測試後再推送到生產環境
 
 ---
@@ -213,21 +213,21 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 ### 無法連線到 Supabase
 
-1. 確認已登入：`npm run supabase:login`
-2. 確認專案已連結：`npm run supabase:link`
+1. 確認已登入：`pnpm run supabase:login`
+2. 確認專案已連結：`pnpm run supabase:link`
 3. 檢查網路連線
 
 ### TypeScript 類型生成失敗
 
 1. 確保資料庫 schema 已正確部署
 2. 檢查是否已連結到專案或啟動本地實例
-3. 嘗試手動執行：`npx supabase gen types typescript --linked`
+3. 嘗試手動執行：`pnpm exec supabase gen types typescript --linked`
 
 ### Migration 衝突
 
 如果出現 migration 衝突，檢查：
 1. `supabase/migrations/` 中的檔案順序
-2. 使用 `npx supabase migration list` 查看已應用的 migrations
+2. 使用 `pnpm exec supabase migration list` 查看已應用的 migrations
 
 ---
 

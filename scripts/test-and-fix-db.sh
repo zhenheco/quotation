@@ -9,7 +9,7 @@ set -e
 echo "🔍 檢查開發伺服器..."
 if ! curl -s http://localhost:3000/api/exchange-rates > /dev/null 2>&1; then
     echo "⚠️  開發伺服器未運行，啟動中..."
-    npm run dev &
+    pnpm run dev &
     sleep 10
 fi
 

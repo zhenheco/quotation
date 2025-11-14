@@ -9,7 +9,7 @@
 在開始之前，請確認您已安裝：
 
 - ✅ **Node.js** 18+ ([下載](https://nodejs.org/))
-- ✅ **npm** 或 **yarn** (隨 Node.js 一起安裝)
+- ✅ **pnpm** ([安裝指南](https://pnpm.io/installation))
 - ✅ **Git** ([下載](https://git-scm.com/))
 - ✅ **瀏覽器** (Chrome、Firefox、Safari 或 Edge)
 
@@ -27,7 +27,7 @@ cd quotation-system
 ### 步驟 2: 安裝依賴
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 步驟 3: 建立環境變數檔案
@@ -40,7 +40,7 @@ cp .env.local.example .env.local
 ### 步驟 4: 啟動開發伺服器
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 開啟瀏覽器訪問 [http://localhost:3000](http://localhost:3000)
@@ -162,7 +162,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 1. 確保開發伺服器正在運行：
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 
 2. 訪問 [http://localhost:3000](http://localhost:3000)
@@ -264,7 +264,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 #### 4.1 登入 Supabase CLI
 
 ```bash
-npm run supabase:login
+pnpm run supabase:login
 ```
 
 這會開啟瀏覽器讓您授權。
@@ -272,7 +272,7 @@ npm run supabase:login
 #### 4.2 連結到專案
 
 ```bash
-npm run supabase:link
+pnpm run supabase:link
 ```
 
 系統會詢問：
@@ -282,7 +282,7 @@ npm run supabase:link
 #### 4.3 生成 TypeScript 類型（可選）
 
 ```bash
-npm run supabase:gen:types
+pnpm run supabase:gen:types
 ```
 
 這會根據資料庫 schema 自動生成 TypeScript 類型定義。
@@ -398,7 +398,7 @@ taskkill /PID <PID> /F
 完成以下所有項目即表示設置成功：
 
 - [ ] Node.js 18+ 已安裝
-- [ ] 專案依賴已安裝 (`npm install`)
+- [ ] 專案依賴已安裝 (`pnpm install`)
 - [ ] Supabase 專案已建立
 - [ ] 資料庫 schema 已執行
 - [ ] `.env.local` 已正確設定

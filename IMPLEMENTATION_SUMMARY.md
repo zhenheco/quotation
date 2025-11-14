@@ -90,9 +90,9 @@
 
 **執行方式：**
 ```bash
-npm run seed
+pnpm run seed
 # 或
-npx tsx scripts/seed-test-data.ts
+pnpm exec tsx scripts/seed-test-data.ts
 ```
 
 **建立的測試資料：**
@@ -216,7 +216,7 @@ npx tsx scripts/seed-test-data.ts
 #### 完整收款週期測試
 ```bash
 # Step 1: 建立測試資料
-npm run seed
+pnpm run seed
 
 # Step 2: 查詢報價單
 GET /api/quotations?status=sent
@@ -327,12 +327,12 @@ echo $ZEABUR_POSTGRES_URL
 
 ### 3. 建立測試資料（開發環境）
 ```bash
-npm run seed
+pnpm run seed
 ```
 
 ### 4. 啟動應用
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ### 5. 驗證 API

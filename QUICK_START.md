@@ -9,7 +9,7 @@
 
 1. **Install dependencies:**
 ```bash
-npm install
+pnpm install
 ```
 
 2. **Set up environment variables:**
@@ -27,7 +27,7 @@ Execute the SQL schema in your Supabase project:
 
 4. **Start development server:**
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 5. **Access the application:**

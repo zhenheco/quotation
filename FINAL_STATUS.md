@@ -248,7 +248,7 @@ API 端點:     2 個
 **解決**: 已修復
 ```bash
 rm -rf .next
-npm run dev
+pnpm run dev
 ```
 
 ### 問題: PostgreSQL MCP 只讀

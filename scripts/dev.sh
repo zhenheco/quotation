@@ -40,7 +40,7 @@ echo ""
 # 安裝依賴（如果需要）
 if [ ! -d "node_modules" ]; then
     echo "📦 安裝依賴套件..."
-    npm install
+    pnpm install
     echo "✅ 依賴安裝完成"
     echo ""
 fi
@@ -55,4 +55,4 @@ echo "按 Ctrl+C 停止伺服器"
 echo "========================================"
 echo ""
 
-npm run dev
+pnpm run dev
