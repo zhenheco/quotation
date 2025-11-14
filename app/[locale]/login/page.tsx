@@ -5,6 +5,8 @@ import LoginButton from './LoginButton'
 import EmailLoginForm from './EmailLoginForm'
 import LoginTabs from './LoginTabs'
 
+export const dynamic = 'force-dynamic'
+
 export default async function LoginPage({
   params,
   searchParams,
