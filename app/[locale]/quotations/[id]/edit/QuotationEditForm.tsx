@@ -61,16 +61,10 @@ interface Quotation {
     quantity: number
     unit_price: number
     discount: number
-    amount: number
+    subtotal: number
   }>
-  customers?: {
-    name: { zh: string; en: string }
-    email: string
-  }
-  customer?: {
-    name: { zh: string; en: string }
-    email: string
-  }
+  customer_name?: { zh: string; en: string } | null
+  customer_email?: string | null
 }
 
 interface QuotationEditFormProps {
@@ -87,6 +81,7 @@ const STATUSES = ['draft', 'sent', 'signed', 'expired']
 export default function QuotationEditForm({
   locale,
   quotation,
+  customers,
   products,
   versions,
 }: QuotationEditFormProps) {
@@ -134,7 +129,7 @@ export default function QuotationEditForm({
       quantity: item.quantity,
       unit_price: item.unit_price,
       discount: item.discount,
-      subtotal: item.amount,
+      subtotal: item.subtotal,
     })) || []
   )
 
@@ -437,12 +432,23 @@ export default function QuotationEditForm({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="customerId" className="block text-sm font-medium text-gray-700 mb-1">
                 {t('quotation.customer')}
               </label>
-              <div className="block w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
-                {quotation.customers?.name?.[locale as 'zh' | 'en'] || quotation.customer?.name?.[locale as 'zh' | 'en']} ({quotation.customers?.email || quotation.customer?.email})
-              </div>
+              <select
+                id="customerId"
+                value={formData.customerId}
+                onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
+                required
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">{t('quotation.selectCustomer')}</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name[locale as 'zh' | 'en']} ({customer.email})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

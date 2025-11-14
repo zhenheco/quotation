@@ -166,6 +166,63 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
         </div>
       </div>
 
+      {/* Items */}
+      {quotation.items && quotation.items.length > 0 && (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.items')}</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('quotation.item.description')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('quotation.item.quantity')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('quotation.item.unitPrice')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('quotation.item.discount')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('quotation.item.subtotal')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {quotation.items.map((item: { id: string; description: { zh: string; en: string }; quantity: number; unit_price: number; discount: number; subtotal: number }) => (
+                  <tr key={item.id}>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {typeof item.description === 'string'
+                          ? item.description
+                          : (item.description as Record<string, string>)[locale as 'zh' | 'en']}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.quantity}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {quotation.currency} {item.unit_price.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.discount > 0 ? `${item.discount}%` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {quotation.currency} {item.subtotal.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.summary')}</h3>
