@@ -267,7 +267,6 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
               </label>
               <input
                 type="text"
-                required
                 value={selectedCompany.name.zh}
                 onChange={(e) => setSelectedCompany({
                   ...selectedCompany,
@@ -283,7 +282,6 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
               </label>
               <input
                 type="text"
-                required
                 value={selectedCompany.name.en}
                 onChange={(e) => setSelectedCompany({
                   ...selectedCompany,
@@ -420,12 +418,18 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
           </div>
 
           {/* File Uploads */}
-          {!isCreating && (
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium mb-4">
-                {locale === 'zh' ? '檔案上傳' : 'File Uploads'}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium mb-4">
+              {locale === 'zh' ? '檔案上傳' : 'File Uploads'}
+            </h3>
+            {isCreating && (
+              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  {locale === 'zh' ? '請先保存公司資料後再上傳檔案' : 'Please save company information first before uploading files'}
+                </p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Logo */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -477,8 +481,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
                   />
                 </div>
               </div>
-            </div>
-          )}
+          </div>
 
           {/* Save Button */}
           <div className="flex justify-end">
