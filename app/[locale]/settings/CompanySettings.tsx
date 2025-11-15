@@ -305,7 +305,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
                   </div>
                 )}
                 <div>
-                  <div className="font-medium">{locale === 'zh' ? company.name.zh : company.name.en}</div>
+                  <div className="font-medium">{locale === 'zh' ? (company.name?.zh || '') : (company.name?.en || '')}</div>
                 </div>
               </div>
             </div>

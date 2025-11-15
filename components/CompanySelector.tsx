@@ -4,15 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-interface UserCompany {
-  company_id: string;
-  company_name: {
+interface Company {
+  id: string;
+  name: {
     zh: string;
     en: string;
   };
-  role_name: string;
-  is_owner: boolean;
-  logo_url?: string;
+  logo_url?: string | null;
 }
 
 interface CompanySelectorProps {
@@ -20,7 +18,7 @@ interface CompanySelectorProps {
 }
 
 export default function CompanySelector({ locale }: CompanySelectorProps) {
-  const [companies, setCompanies] = useState<UserCompany[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -33,12 +31,12 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
     try {
       const response = await fetch('/api/companies');
       if (response.ok) {
-        const data = await response.json() as UserCompany[];
+        const data = await response.json() as Company[];
         setCompanies(data);
 
         // Get selected company from localStorage or use first company
         const storedCompanyId = localStorage.getItem('selectedCompanyId');
-        const isValidCompanyId = storedCompanyId && data.find((c) => c.company_id === storedCompanyId);
+        const isValidCompanyId = storedCompanyId && data.find((c) => c.id === storedCompanyId);
 
         if (isValidCompanyId) {
           setSelectedCompanyId(storedCompanyId);
@@ -47,8 +45,8 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
           if (storedCompanyId) {
             localStorage.removeItem('selectedCompanyId');
           }
-          setSelectedCompanyId(data[0].company_id);
-          localStorage.setItem('selectedCompanyId', data[0].company_id);
+          setSelectedCompanyId(data[0].id);
+          localStorage.setItem('selectedCompanyId', data[0].id);
         }
       }
     } catch (error) {
@@ -65,7 +63,7 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
     router.refresh();
   };
 
-  const selectedCompany = companies.find(c => c.company_id === selectedCompanyId);
+  const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
   if (loading) {
     return (
@@ -98,9 +96,8 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
         className="appearance-none flex items-center gap-2 pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         {companies.map((company) => (
-          <option key={company.company_id} value={company.company_id}>
-            {locale === 'zh' ? company.company_name.zh : company.company_name.en}
-            {company.is_owner && ` (${locale === 'zh' ? '擁有者' : 'Owner'})`}
+          <option key={company.id} value={company.id}>
+            {locale === 'zh' ? (company.name?.zh || '') : (company.name?.en || '')}
           </option>
         ))}
       </select>
@@ -118,7 +115,7 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
         ) : (
           <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
             <span className="text-xs font-semibold text-blue-600">
-              {selectedCompany?.company_name?.zh?.charAt(0) || 'C'}
+              {selectedCompany?.name?.zh?.charAt(0) || 'C'}
             </span>
           </div>
         )}
