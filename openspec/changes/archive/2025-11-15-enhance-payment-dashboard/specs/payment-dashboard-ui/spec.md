@@ -3,7 +3,7 @@
 ## Purpose
 優化收款管理儀表板 UI，移除收款率卡片、新增當月應收總額卡片，並在已收款/未收款區域增加報價單編號和期數資訊。
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: System SHALL display updated statistics cards
 

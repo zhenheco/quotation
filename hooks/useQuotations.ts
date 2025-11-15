@@ -17,7 +17,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
 export type { Quotation, QuotationItem, CreateQuotationData, UpdateQuotationData }
 export type QuotationWithCustomer = QuotationWithCustomerType
 
-export type QuotationStatus = 'draft' | 'sent' | 'signed' | 'expired'
+export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved'
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overdue'
 
 export interface BilingualText {
