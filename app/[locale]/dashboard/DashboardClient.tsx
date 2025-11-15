@@ -7,6 +7,7 @@ import { usePaymentStatistics, usePaymentReminders } from '@/hooks/usePayments'
 import { useOverdueContracts } from '@/hooks/useContracts'
 import DashboardCharts from '@/components/DashboardCharts'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import QuickCreateButton from '@/components/QuickCreateButton'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface StatCardProps {
@@ -211,6 +212,28 @@ export default function DashboardClient({ locale }: { locale: string }) {
             day: 'numeric',
           })}
         </div>
+      </div>
+
+      {/* 頂部精簡快速建立區 */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <QuickCreateButton
+          href={`/${locale}/quotations/new`}
+          icon="📄"
+          title="建立報價單"
+          variant="primary"
+        />
+        <QuickCreateButton
+          href={`/${locale}/customers/new`}
+          icon="👥"
+          title="新增客戶"
+          variant="secondary"
+        />
+        <QuickCreateButton
+          href={`/${locale}/products/new`}
+          icon="📦"
+          title="新增產品"
+          variant="secondary"
+        />
       </div>
 
       {/* 提醒與警告區 */}
