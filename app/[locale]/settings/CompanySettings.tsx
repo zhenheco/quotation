@@ -46,25 +46,21 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
     try {
       const response = await fetch('/api/companies');
       if (response.ok) {
-        const data: Array<{ company_id: string; company_name: { zh: string; en: string }; logo_url?: string }> = await response.json();
-        setCompanies(data.map((c) => ({
-          id: c.company_id,
-          name: c.company_name,
-          logo_url: c.logo_url
-        })));
+        const data = await response.json() as Company[];
+        setCompanies(data);
 
         // Select the first company or the one from localStorage
         const storedCompanyId = localStorage.getItem('selectedCompanyId');
         // Verify that storedCompanyId exists in current user's companies
-        const isValidCompanyId = storedCompanyId && data.some((c) => c.company_id === storedCompanyId);
+        const isValidCompanyId = storedCompanyId && data.some((c) => c.id === storedCompanyId);
 
         if (isValidCompanyId) {
           loadCompany(storedCompanyId);
         } else if (data.length > 0) {
           // Clear invalid stored company ID
           localStorage.removeItem('selectedCompanyId');
-          loadCompany(data[0].company_id);
-          localStorage.setItem('selectedCompanyId', data[0].company_id);
+          loadCompany(data[0].id);
+          localStorage.setItem('selectedCompanyId', data[0].id);
         }
       }
     } catch (error) {
