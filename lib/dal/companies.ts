@@ -41,10 +41,34 @@ interface CompanyRow {
 }
 
 function parseCompanyRow(row: CompanyRow): Company {
+  let name: { zh: string; en: string }
+  try {
+    name = JSON.parse(row.name)
+    // 確保 name 有正確的結構
+    if (!name || typeof name !== 'object') {
+      name = { zh: '', en: '' }
+    }
+    name = {
+      zh: name.zh || '',
+      en: name.en || ''
+    }
+  } catch {
+    name = { zh: '', en: '' }
+  }
+
+  let address: { zh: string; en: string } | null = null
+  if (row.address) {
+    try {
+      address = JSON.parse(row.address)
+    } catch {
+      address = null
+    }
+  }
+
   return {
     ...row,
-    name: JSON.parse(row.name),
-    address: row.address ? JSON.parse(row.address) : null
+    name,
+    address
   }
 }
 

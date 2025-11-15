@@ -86,9 +86,22 @@ export async function POST(request: NextRequest) {
     // 取得請求資料
     const body = await request.json() as CreateCompanyRequestBody
 
+    // 處理 name 欄位（確保有預設值）
+    let companyName: { zh: string; en: string }
+    if (typeof body.name === 'string') {
+      companyName = { zh: body.name, en: body.name }
+    } else if (body.name && typeof body.name === 'object') {
+      companyName = {
+        zh: body.name.zh || '',
+        en: body.name.en || ''
+      }
+    } else {
+      companyName = { zh: '', en: '' }
+    }
+
     // 建立公司
     const company = await createCompany(db, {
-      name: typeof body.name === 'string' ? { zh: body.name, en: body.name } : body.name,
+      name: companyName,
       logo_url: body.logo_url || undefined,
       signature_url: body.signature_url || undefined,
       passbook_url: body.passbook_url || undefined,
