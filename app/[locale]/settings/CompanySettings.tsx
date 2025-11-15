@@ -37,6 +37,7 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState({ logo: false, signature: false, passbook: false });
+  const [pendingFiles, setPendingFiles] = useState<{ logo?: File; signature?: File; passbook?: File }>({});
 
   const supabase = createClient();
 
@@ -138,9 +139,17 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
 
       if (response.ok) {
         const data: Company = await response.json();
+
+        // 如果是新增且有暫存檔案，立即上傳
+        if (isCreating && Object.keys(pendingFiles).length > 0) {
+          await uploadPendingFiles(data.id);
+        }
+
         alert(locale === 'zh' ? '保存成功！' : 'Saved successfully!');
         await fetchCompanies();
         loadCompany(data.id);
+        setIsCreating(false);
+        setPendingFiles({});
       } else {
         const error: { error?: string } = await response.json();
         alert(error.error || 'Failed to save');
@@ -153,9 +162,65 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
     }
   };
 
+  const handleFileSelect = (file: File | null, type: 'logo' | 'signature' | 'passbook') => {
+    if (!file) return;
+
+    if (isCreating) {
+      // 新增模式：暫存檔案
+      setPendingFiles(prev => ({ ...prev, [type]: file }));
+    } else {
+      // 編輯模式：直接上傳
+      uploadFile(file, type);
+    }
+  };
+
+  const uploadPendingFiles = async (companyId: string) => {
+    const fileTypes: Array<'logo' | 'signature' | 'passbook'> = ['logo', 'signature', 'passbook'];
+
+    for (const type of fileTypes) {
+      const file = pendingFiles[type];
+      if (file) {
+        try {
+          setUploading(prev => ({ ...prev, [type]: true }));
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('Not authenticated');
+
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${type}.${fileExt}`;
+          const filePath = `${companyId}/${fileName}`;
+
+          const { error } = await supabase.storage
+            .from('company-files')
+            .upload(filePath, file, { upsert: true, contentType: file.type });
+
+          if (error) throw error;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('company-files')
+            .getPublicUrl(filePath);
+
+          // Update company with file URL
+          const updateData: Record<string, string> = {};
+          if (type === 'logo') updateData.logo_url = publicUrl;
+          if (type === 'signature') updateData.signature_url = publicUrl;
+          if (type === 'passbook') updateData.passbook_url = publicUrl;
+
+          await fetch(`/api/companies/${companyId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+          });
+        } catch (error) {
+          console.error(`Upload error for ${type}:`, error);
+        } finally {
+          setUploading(prev => ({ ...prev, [type]: false }));
+        }
+      }
+    }
+  };
+
   const uploadFile = async (file: File, type: 'logo' | 'signature' | 'passbook') => {
     if (!selectedCompany || !selectedCompany.id) {
-      alert(locale === 'zh' ? '請先保存公司資料' : 'Please save company first');
       return;
     }
 
@@ -422,26 +487,25 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
             <h3 className="text-lg font-medium mb-4">
               {locale === 'zh' ? '檔案上傳' : 'File Uploads'}
             </h3>
-            {isCreating && (
-              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="text-sm text-yellow-800">
-                  {locale === 'zh' ? '請先保存公司資料後再上傳檔案' : 'Please save company information first before uploading files'}
-                </p>
-              </div>
-            )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Logo */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {locale === 'zh' ? '公司 Logo' : 'Company Logo'}
                   </label>
-                  {selectedCompany.logo_url && (
-                    <Image src={selectedCompany.logo_url} alt="Logo" width={128} height={128} className="object-cover mb-2 rounded" />
+                  {(selectedCompany.logo_url || pendingFiles.logo) && (
+                    <Image
+                      src={pendingFiles.logo ? URL.createObjectURL(pendingFiles.logo) : selectedCompany.logo_url!}
+                      alt="Logo"
+                      width={128}
+                      height={128}
+                      className="object-cover mb-2 rounded"
+                    />
                   )}
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], 'logo')}
+                    onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0], 'logo')}
                     disabled={uploading.logo}
                     className="w-full text-sm"
                   />
@@ -452,13 +516,19 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {locale === 'zh' ? '負責人簽名' : 'Signature'}
                   </label>
-                  {selectedCompany.signature_url && (
-                    <Image src={selectedCompany.signature_url} alt="Signature" width={128} height={128} className="object-cover mb-2 rounded" />
+                  {(selectedCompany.signature_url || pendingFiles.signature) && (
+                    <Image
+                      src={pendingFiles.signature ? URL.createObjectURL(pendingFiles.signature) : selectedCompany.signature_url!}
+                      alt="Signature"
+                      width={128}
+                      height={128}
+                      className="object-cover mb-2 rounded"
+                    />
                   )}
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], 'signature')}
+                    onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0], 'signature')}
                     disabled={uploading.signature}
                     className="w-full text-sm"
                   />
@@ -469,13 +539,19 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {locale === 'zh' ? '存摺封面' : 'Passbook'}
                   </label>
-                  {selectedCompany.passbook_url && (
-                    <Image src={selectedCompany.passbook_url} alt="Passbook" width={128} height={128} className="object-cover mb-2 rounded" />
+                  {(selectedCompany.passbook_url || pendingFiles.passbook) && (
+                    <Image
+                      src={pendingFiles.passbook ? URL.createObjectURL(pendingFiles.passbook) : selectedCompany.passbook_url!}
+                      alt="Passbook"
+                      width={128}
+                      height={128}
+                      className="object-cover mb-2 rounded"
+                    />
                   )}
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], 'passbook')}
+                    onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0], 'passbook')}
                     disabled={uploading.passbook}
                     className="w-full text-sm"
                   />
