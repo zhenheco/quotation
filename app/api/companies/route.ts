@@ -86,11 +86,6 @@ export async function POST(request: NextRequest) {
     // 取得請求資料
     const body = await request.json() as CreateCompanyRequestBody
 
-    // 驗證必填欄位
-    if (!body.name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
-    }
-
     // 建立公司
     const company = await createCompany(db, {
       name: typeof body.name === 'string' ? { zh: body.name, en: body.name } : body.name,

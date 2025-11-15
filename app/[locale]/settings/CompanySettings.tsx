@@ -106,14 +106,12 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
     setSaving(true);
     try {
       const payload = {
-        name_zh: selectedCompany.name.zh,
-        name_en: selectedCompany.name.en,
+        name: selectedCompany.name,
         tax_id: selectedCompany.tax_id,
         bank_name: selectedCompany.bank_name,
         bank_account: selectedCompany.bank_account,
         bank_code: selectedCompany.bank_code,
-        address_zh: selectedCompany.address?.zh,
-        address_en: selectedCompany.address?.en,
+        address: selectedCompany.address,
         phone: selectedCompany.phone,
         email: selectedCompany.email,
         website: selectedCompany.website,
@@ -503,12 +501,21 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
                     />
                   )}
                   <input
+                    id="logo-upload"
                     type="file"
                     accept="image/*"
                     onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0], 'logo')}
                     disabled={uploading.logo}
-                    className="w-full text-sm"
+                    className="hidden"
                   />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('logo-upload')?.click()}
+                    disabled={uploading.logo}
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {uploading.logo ? (locale === 'zh' ? '上傳中...' : 'Uploading...') : (locale === 'zh' ? '選擇檔案' : 'Choose File')}
+                  </button>
                 </div>
 
                 {/* Signature */}
@@ -526,12 +533,21 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
                     />
                   )}
                   <input
+                    id="signature-upload"
                     type="file"
                     accept="image/*"
                     onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0], 'signature')}
                     disabled={uploading.signature}
-                    className="w-full text-sm"
+                    className="hidden"
                   />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('signature-upload')?.click()}
+                    disabled={uploading.signature}
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {uploading.signature ? (locale === 'zh' ? '上傳中...' : 'Uploading...') : (locale === 'zh' ? '選擇檔案' : 'Choose File')}
+                  </button>
                 </div>
 
                 {/* Passbook */}
@@ -549,12 +565,21 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
                     />
                   )}
                   <input
+                    id="passbook-upload"
                     type="file"
                     accept="image/*"
                     onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0], 'passbook')}
                     disabled={uploading.passbook}
-                    className="w-full text-sm"
+                    className="hidden"
                   />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('passbook-upload')?.click()}
+                    disabled={uploading.passbook}
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {uploading.passbook ? (locale === 'zh' ? '上傳中...' : 'Uploading...') : (locale === 'zh' ? '選擇檔案' : 'Choose File')}
+                  </button>
                 </div>
               </div>
           </div>
