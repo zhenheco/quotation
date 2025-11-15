@@ -530,9 +530,29 @@
       "current_month_collected": "本月已收",
       "total_pending": "未收總額",
       "total_overdue": "逾期總額",
+      "total_receivable": "本月應收總額",
       "collection_rate": "收款率",
       "monthly_trend": "月度收款趨勢"
     },
+    "current_month_receivables": "當月應收款項",
+    "receivables_summary": "共 {total} 筆，未收 {pending} 筆，已收 {paid} 筆，逾期 {overdue} 筆",
+    "quotation_number": "報價單編號",
+    "customer_name": "客戶名稱",
+    "schedule": "期數",
+    "schedule_info": "第 {current} 期/共 {total} 期",
+    "status": {
+      "pending": "未收",
+      "paid": "已收",
+      "overdue": "逾期"
+    },
+    "mark_as_collected": "標記為已收",
+    "collected": "已收",
+    "mark_collected_success": "已成功標記為收款",
+    "mark_collected_error": "標記收款失敗",
+    "already_paid": "此款項已經收款",
+    "schedule_not_found": "找不到此款項",
+    "load_error": "載入資料失敗",
+    "no_receivables": "本月無應收款項",
     "emptyState": {
       "unpaid": {
         "title": "無未收款項目",

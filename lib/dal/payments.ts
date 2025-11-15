@@ -285,6 +285,7 @@ export interface PaymentStatistics {
     total_collected: number
     total_pending: number
     total_overdue: number
+    total_receivable: number
     currency: string
   }
   current_year: {
@@ -298,6 +299,40 @@ export interface PaymentStatistics {
     total_amount: number
     average_days: number
   }
+}
+
+export interface CurrentMonthReceivable {
+  id: string
+  schedule_number: number
+  total_schedules: number
+  customer_id: string
+  customer_name_zh: string
+  customer_name_en: string
+  quotation_id: string | null
+  quotation_number: string | null
+  contract_id: string
+  contract_number: string
+  contract_title: string
+  due_date: string
+  amount: number
+  currency: string
+  status: 'pending' | 'paid' | 'overdue'
+  paid_date: string | null
+  payment_id: string | null
+  days_until_due: number
+  is_overdue: boolean
+}
+
+export interface CurrentMonthReceivablesSummary {
+  total_count: number
+  pending_count: number
+  paid_count: number
+  overdue_count: number
+  total_amount: number
+  pending_amount: number
+  paid_amount: number
+  overdue_amount: number
+  currency: string
 }
 
 export async function getCollectedPayments(
@@ -395,6 +430,7 @@ export async function getPaymentStatistics(
       total_collected: currentMonthCollected,
       total_pending: currentMonthPending,
       total_overdue: currentMonthOverdue,
+      total_receivable: currentMonthPending + currentMonthOverdue,
       currency,
     },
     current_year: {
@@ -408,6 +444,191 @@ export async function getPaymentStatistics(
       total_amount: overdueTotalAmount,
       average_days: overdueAverageDays,
     },
+  }
+}
+
+export async function getCurrentMonthReceivables(
+  db: D1Client,
+  userId: string,
+  month?: string
+): Promise<{
+  receivables: CurrentMonthReceivable[]
+  summary: CurrentMonthReceivablesSummary
+}> {
+  const targetMonth = month || new Date().toISOString().slice(0, 7)
+
+  const sql = `
+    SELECT
+      ps.id,
+      ps.schedule_number,
+      (SELECT COUNT(*) FROM payment_schedules WHERE contract_id = ps.contract_id) as total_schedules,
+      c.id as customer_id,
+      c.name as customer_name_zh,
+      c.name as customer_name_en,
+      q.id as quotation_id,
+      q.quotation_number,
+      ct.id as contract_id,
+      ct.contract_number,
+      ct.title as contract_title,
+      ps.due_date,
+      ps.amount,
+      ps.currency,
+      ps.status,
+      ps.paid_date,
+      ps.payment_id,
+      CAST(julianday(ps.due_date) - julianday('now') AS INTEGER) as days_until_due,
+      CASE WHEN ps.due_date < date('now') AND ps.status = 'pending' THEN 1 ELSE 0 END as is_overdue
+    FROM payment_schedules ps
+    INNER JOIN customers c ON ps.customer_id = c.id
+    INNER JOIN customer_contracts ct ON ps.contract_id = ct.id
+    LEFT JOIN quotations q ON ct.quotation_id = q.id
+    WHERE ps.user_id = ?
+      AND strftime('%Y-%m', ps.due_date) = ?
+    ORDER BY ps.due_date ASC, ps.schedule_number ASC
+  `
+
+  const rows = await db.query<{
+    id: string
+    schedule_number: number
+    total_schedules: number
+    customer_id: string
+    customer_name_zh: string
+    customer_name_en: string
+    quotation_id: string | null
+    quotation_number: string | null
+    contract_id: string
+    contract_number: string
+    contract_title: string
+    due_date: string
+    amount: number
+    currency: string
+    status: 'pending' | 'paid' | 'overdue'
+    paid_date: string | null
+    payment_id: string | null
+    days_until_due: number
+    is_overdue: number
+  }>(sql, [userId, targetMonth])
+
+  const receivables: CurrentMonthReceivable[] = rows.map(row => ({
+    ...row,
+    is_overdue: row.is_overdue === 1,
+  }))
+
+  const summary: CurrentMonthReceivablesSummary = {
+    total_count: receivables.length,
+    pending_count: receivables.filter(r => r.status === 'pending').length,
+    paid_count: receivables.filter(r => r.status === 'paid').length,
+    overdue_count: receivables.filter(r => r.status === 'overdue').length,
+    total_amount: receivables.reduce((sum, r) => sum + r.amount, 0),
+    pending_amount: receivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0),
+    paid_amount: receivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0),
+    overdue_amount: receivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0),
+    currency: receivables[0]?.currency || 'TWD',
+  }
+
+  return {
+    receivables,
+    summary,
+  }
+}
+
+export async function markScheduleAsCollected(
+  db: D1Client,
+  userId: string,
+  scheduleId: string,
+  data: {
+    payment_date: string
+    amount?: number
+    payment_method?: 'bank_transfer' | 'credit_card' | 'check' | 'cash' | 'other'
+    reference_number?: string
+    notes?: string
+  }
+): Promise<{
+  payment_schedule: PaymentSchedule
+  payment: Payment
+}> {
+  const schedule = await db.queryOne<PaymentSchedule>(
+    'SELECT * FROM payment_schedules WHERE id = ? AND user_id = ?',
+    [scheduleId, userId]
+  )
+
+  if (!schedule) {
+    throw new Error('Schedule not found')
+  }
+
+  if (schedule.status === 'paid') {
+    throw new Error('Schedule already paid')
+  }
+
+  const contract = await db.queryOne<{ customer_id: string; quotation_id: string | null }>(
+    'SELECT customer_id, quotation_id FROM customer_contracts WHERE id = ?',
+    [schedule.contract_id]
+  )
+
+  if (!contract) {
+    throw new Error('Contract not found')
+  }
+
+  const payment = await createPayment(db, userId, {
+    company_id: null,
+    quotation_id: contract.quotation_id,
+    contract_id: schedule.contract_id,
+    customer_id: contract.customer_id,
+    payment_type: 'installment',
+    payment_date: data.payment_date,
+    amount: data.amount || schedule.amount,
+    currency: schedule.currency,
+    payment_method: data.payment_method || null,
+    reference_number: data.reference_number || null,
+    receipt_url: null,
+    status: 'confirmed',
+    notes: data.notes || null,
+  })
+
+  const now = new Date().toISOString()
+  await db.execute(
+    `UPDATE payment_schedules
+     SET status = 'paid', paid_date = ?, paid_amount = ?, payment_id = ?, updated_at = ?
+     WHERE id = ? AND user_id = ?`,
+    [data.payment_date, data.amount || schedule.amount, payment.id, now, scheduleId, userId]
+  )
+
+  const nextSchedule = await db.queryOne<PaymentSchedule>(
+    `SELECT * FROM payment_schedules
+     WHERE contract_id = ? AND user_id = ? AND status = 'pending'
+     ORDER BY due_date ASC
+     LIMIT 1`,
+    [schedule.contract_id, userId]
+  )
+
+  if (nextSchedule) {
+    await db.execute(
+      `UPDATE customer_contracts
+       SET next_collection_date = ?, next_collection_amount = ?, updated_at = ?
+       WHERE id = ?`,
+      [nextSchedule.due_date, nextSchedule.amount, now, schedule.contract_id]
+    )
+  } else {
+    await db.execute(
+      `UPDATE customer_contracts
+       SET next_collection_date = NULL, next_collection_amount = NULL, updated_at = ?
+       WHERE id = ?`,
+      [now, schedule.contract_id]
+    )
+  }
+
+  const updatedSchedule = await db.queryOne<PaymentSchedule>(
+    'SELECT * FROM payment_schedules WHERE id = ? AND user_id = ?',
+    [scheduleId, userId]
+  )
+
+  if (!updatedSchedule) {
+    throw new Error('Failed to update schedule')
+  }
+
+  return {
+    payment_schedule: updatedSchedule,
+    payment,
   }
 }
 

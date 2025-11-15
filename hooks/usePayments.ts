@@ -45,6 +45,7 @@ export interface PaymentStatistics {
     total_collected: number
     total_pending: number
     total_overdue: number
+    total_receivable: number
     currency: string
   }
   current_year: {
@@ -58,6 +59,48 @@ export interface PaymentStatistics {
     total_amount: number
     average_days: number
   }
+}
+
+export interface CurrentMonthReceivable {
+  id: string
+  schedule_number: number
+  total_schedules: number
+  customer_id: string
+  customer_name_zh: string
+  customer_name_en: string
+  quotation_id: string | null
+  quotation_number: string | null
+  contract_id: string
+  contract_number: string
+  contract_title: string
+  due_date: string
+  amount: number
+  currency: string
+  status: 'pending' | 'paid' | 'overdue'
+  paid_date: string | null
+  payment_id: string | null
+  days_until_due: number
+  is_overdue: boolean
+}
+
+export interface CurrentMonthReceivablesSummary {
+  total_count: number
+  pending_count: number
+  paid_count: number
+  overdue_count: number
+  total_amount: number
+  pending_amount: number
+  paid_amount: number
+  overdue_amount: number
+  currency: string
+}
+
+export interface MarkCollectedInput {
+  payment_date: string
+  amount?: number
+  payment_method?: 'bank_transfer' | 'credit_card' | 'check' | 'cash' | 'other'
+  reference_number?: string
+  notes?: string
 }
 
 export interface NextCollectionReminder {
@@ -111,6 +154,21 @@ async function markPaymentAsOverdue(paymentId: string): Promise<void> {
 
 async function fetchPaymentStatistics(): Promise<PaymentStatistics> {
   return apiGet<PaymentStatistics>('/api/payments/statistics')
+}
+
+async function fetchCurrentMonthReceivables(month?: string): Promise<{
+  receivables: CurrentMonthReceivable[]
+  summary: CurrentMonthReceivablesSummary
+}> {
+  const url = month ? `/api/payments/current-month-receivables?month=${month}` : '/api/payments/current-month-receivables'
+  return apiGet<{
+    receivables: CurrentMonthReceivable[]
+    summary: CurrentMonthReceivablesSummary
+  }>(url)
+}
+
+async function markScheduleAsCollected(scheduleId: string, input: MarkCollectedInput): Promise<void> {
+  return apiPost(`/api/payments/schedules/${scheduleId}/mark-collected`, input)
 }
 
 // ============================================================================
@@ -360,4 +418,73 @@ export function useContractPayments(contractId: string) {
  */
 export function useQuotationPayments(quotationId: string) {
   return usePayments({ quotation_id: quotationId })
+}
+
+export function useCurrentMonthReceivables(month?: string) {
+  return useQuery({
+    queryKey: ['payments', 'current-month-receivables', month],
+    queryFn: () => fetchCurrentMonthReceivables(month),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useMarkScheduleAsCollected() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ scheduleId, input }: { scheduleId: string; input: MarkCollectedInput }) =>
+      markScheduleAsCollected(scheduleId, input),
+    onMutate: async ({ scheduleId }) => {
+      await queryClient.cancelQueries({ queryKey: ['payments', 'current-month-receivables'] })
+
+      const previousData = queryClient.getQueryData(['payments', 'current-month-receivables'])
+
+      queryClient.setQueryData<{
+        receivables: CurrentMonthReceivable[]
+        summary: CurrentMonthReceivablesSummary
+      }>(['payments', 'current-month-receivables'], (old) => {
+        if (!old) return old
+
+        const updatedReceivables = old.receivables.map(item =>
+          item.id === scheduleId
+            ? { ...item, status: 'paid' as const, paid_date: new Date().toISOString() }
+            : item
+        )
+
+        const paidCount = updatedReceivables.filter(r => r.status === 'paid').length
+        const pendingCount = updatedReceivables.filter(r => r.status === 'pending').length
+        const overdueCount = updatedReceivables.filter(r => r.status === 'overdue').length
+        const paidAmount = updatedReceivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0)
+        const pendingAmount = updatedReceivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0)
+        const overdueAmount = updatedReceivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0)
+
+        return {
+          receivables: updatedReceivables,
+          summary: {
+            ...old.summary,
+            paid_count: paidCount,
+            pending_count: pendingCount,
+            overdue_count: overdueCount,
+            paid_amount: paidAmount,
+            pending_amount: pendingAmount,
+            overdue_amount: overdueAmount,
+          },
+        }
+      })
+
+      return { previousData }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['payments', 'current-month-receivables'], context.previousData)
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', 'current-month-receivables'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'statistics'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'collected'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'unpaid'] })
+    },
+  })
 }

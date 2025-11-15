@@ -504,9 +504,29 @@
       "current_month_collected": "Current Month Collected",
       "total_pending": "Total Pending",
       "total_overdue": "Total Overdue",
+      "total_receivable": "Total Receivable",
       "collection_rate": "Collection Rate",
       "monthly_trend": "Monthly Collection Trend"
     },
+    "current_month_receivables": "Current Month Receivables",
+    "receivables_summary": "{total} total, {pending} pending, {paid} paid, {overdue} overdue",
+    "quotation_number": "Quotation Number",
+    "customer_name": "Customer Name",
+    "schedule": "Schedule",
+    "schedule_info": "{current} of {total}",
+    "status": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "overdue": "Overdue"
+    },
+    "mark_as_collected": "Mark as Collected",
+    "collected": "Collected",
+    "mark_collected_success": "Successfully marked as collected",
+    "mark_collected_error": "Failed to mark as collected",
+    "already_paid": "This payment has already been collected",
+    "schedule_not_found": "Payment schedule not found",
+    "load_error": "Failed to load data",
+    "no_receivables": "No receivables for this month",
     "emptyState": {
       "unpaid": {
         "title": "No unpaid items",

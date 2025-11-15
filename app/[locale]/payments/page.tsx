@@ -9,6 +9,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { CollectedPaymentCard, UnpaidPaymentCard } from '@/components/payments/PaymentCard'
+import { CurrentMonthReceivablesTable } from '@/components/payments/CurrentMonthReceivablesTable'
 import {
   useCollectedPayments,
   useUnpaidPayments,
@@ -97,32 +98,34 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
 
       {statistics && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
             <p className="text-sm text-gray-600 mb-1">{t('payments.statistics.current_month_collected')}</p>
             <p className="text-2xl font-bold text-green-600">
               {safeToLocaleString(statistics.current_month.total_collected)} {statistics.current_month.currency}
             </p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
             <p className="text-sm text-gray-600 mb-1">{t('payments.statistics.total_pending')}</p>
             <p className="text-2xl font-bold text-yellow-600">
               {safeToLocaleString(statistics.current_month.total_pending)} {statistics.current_month.currency}
             </p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
             <p className="text-sm text-gray-600 mb-1">{t('payments.statistics.total_overdue')}</p>
             <p className="text-2xl font-bold text-red-600">
               {safeToLocaleString(statistics.current_month.total_overdue)} {statistics.current_month.currency}
             </p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-sm text-gray-600 mb-1">{t('payments.statistics.collection_rate')}</p>
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+            <p className="text-sm text-gray-600 mb-1">{t('payments.statistics.total_receivable')}</p>
             <p className="text-2xl font-bold text-blue-600">
-              {((statistics.current_month.total_collected / (statistics.current_month.total_collected + statistics.current_month.total_pending)) * 100).toFixed(1)}%
+              {safeToLocaleString(statistics.current_month.total_receivable)} {statistics.current_month.currency}
             </p>
           </div>
         </div>
       )}
+
+      <CurrentMonthReceivablesTable locale={locale} />
 
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex flex-col md:flex-row gap-4">
