@@ -10,7 +10,7 @@ interface QuotationRow {
   company_id: string | null
   customer_id: string
   quotation_number: string
-  status: 'draft' | 'sent' | 'accepted' | 'rejected'
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved'
   issue_date: string
   valid_until: string
   currency: string
@@ -53,7 +53,7 @@ export interface Quotation {
   company_id: string | null
   customer_id: string
   quotation_number: string
-  status: 'draft' | 'sent' | 'accepted' | 'rejected'
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved'
   issue_date: string
   valid_until: string
   currency: string

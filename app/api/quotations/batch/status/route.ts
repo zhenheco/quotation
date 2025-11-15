@@ -9,7 +9,7 @@ import { getErrorMessage } from '@/app/api/utils/error-handler'
 
 // Note: Cannot use edge runtime because rate-limiter uses crypto which requires Node.js APIs
 
-type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
+type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved'
 
 interface BatchStatusBody {
   ids: string[];
@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const validStatuses: QuotationStatus[] = ['draft', 'sent', 'accepted', 'rejected']
+    const validStatuses: QuotationStatus[] = ['draft', 'sent', 'accepted', 'rejected', 'approved']
     if (!status || !validStatuses.includes(status)) {
       return NextResponse.json(
-        { error: 'Invalid status. Must be one of: draft, sent, accepted, rejected' },
+        { error: 'Invalid status. Must be one of: draft, sent, accepted, rejected, approved' },
         { status: 400 }
       )
     }

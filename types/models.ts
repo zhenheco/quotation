@@ -119,7 +119,7 @@ export interface Quotation {
   user_id: string
   quotation_number: string
   customer_id: string
-  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved'
   issue_date: string
   valid_until: string
   currency: string
@@ -151,7 +151,7 @@ export interface CreateQuotationData {
   user_id: string
   quotation_number: string
   customer_id: string
-  status?: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
+  status?: 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved'
   issue_date: string
   valid_until: string
   currency: string
@@ -176,7 +176,7 @@ export interface CreateQuotationItemData {
 
 export interface UpdateQuotationData {
   customer_id?: string
-  status?: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
+  status?: 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved'
   issue_date?: string
   valid_until?: string
   currency?: string
