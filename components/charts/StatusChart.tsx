@@ -2,6 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useTranslations } from 'next-intl'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface StatusChartProps {
   data: Array<{
@@ -24,8 +25,8 @@ export default function StatusChart({ data, currency }: StatusChartProps) {
   const t = useTranslations()
 
   // 格式化貨幣
-  const formatCurrency = (value: number) => {
-    return `${currency} ${value.toLocaleString()}`
+  const formatCurrency = (value: number | undefined | null) => {
+    return `${currency} ${safeToLocaleString(value)}`
   }
 
   // 翻譯狀態名稱

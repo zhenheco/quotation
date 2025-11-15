@@ -110,7 +110,8 @@ export async function invalidateExchangeRates(kv: KVCache): Promise<void> {
  */
 const permissionMapping: Record<string, string[]> = {
   'companies:read': ['company_settings:read'],
-  'companies:write': ['company_settings:write']
+  'companies:write': ['company_settings:write'],
+  'exchange_rates:read': ['exchange_rates:read']
 }
 
 /**

@@ -16,6 +16,7 @@ import { useProducts } from '@/hooks/useProducts'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { PaymentTermsEditor } from '@/components/payment-terms'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface PaymentTerm {
   id: string
@@ -618,7 +619,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                       {t('quotation.subtotal')}
                     </label>
                     <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900">
-                      {formData.currency} {item.subtotal.toLocaleString()}
+                      {formData.currency} {safeToLocaleString(item.subtotal)}
                     </div>
                   </div>
                   <button
@@ -649,7 +650,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">{t('quotation.subtotal')}:</span>
             <span className="text-gray-900 font-medium">
-              {formData.currency} {subtotal.toLocaleString()}
+              {formData.currency} {safeToLocaleString(subtotal)}
             </span>
           </div>
           <div className="flex justify-between text-sm">
@@ -657,12 +658,12 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
               {t('quotation.tax')} ({formData.taxRate}%):
             </span>
             <span className="text-gray-900 font-medium">
-              {formData.currency} {taxAmount.toLocaleString()}
+              {formData.currency} {safeToLocaleString(taxAmount)}
             </span>
           </div>
           <div className="flex justify-between text-lg font-bold border-t pt-2">
             <span>{t('quotation.total')}:</span>
-            <span>{formData.currency} {total.toLocaleString()}</span>
+            <span>{formData.currency} {safeToLocaleString(total)}</span>
           </div>
         </div>
       </div>

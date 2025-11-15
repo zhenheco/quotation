@@ -1,3 +1,5 @@
+import { safeToLocaleString } from '@/lib/utils/formatters'
+
 export interface QuotationEmailData {
   locale: 'zh' | 'en'
   quotationNumber: string
@@ -161,8 +163,8 @@ export function generateQuotationEmailHTML(data: QuotationEmailData): string {
           <tr>
             <td>${item.description}</td>
             <td>${item.quantity}</td>
-            <td>${currency} ${item.unitPrice.toLocaleString()}</td>
-            <td>${currency} ${item.amount.toLocaleString()}</td>
+            <td>${currency} ${safeToLocaleString(item.unitPrice)}</td>
+            <td>${currency} ${safeToLocaleString(item.amount)}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -171,7 +173,7 @@ export function generateQuotationEmailHTML(data: QuotationEmailData): string {
 
   const totalSection = `
     <div class="total">
-      ${isZh ? '總金額' : 'Total Amount'}: ${currency} ${total.toLocaleString()}
+      ${isZh ? '總金額' : 'Total Amount'}: ${currency} ${safeToLocaleString(total)}
     </div>
   `
 

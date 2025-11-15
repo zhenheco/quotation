@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import type { CustomerContractWithCustomer } from '@/types/extended.types'
 import PaymentProgressBar from './PaymentProgressBar'
 import { useContractProgress } from '@/hooks/useContracts'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface ContractCardProps {
   contract: CustomerContractWithCustomer
@@ -84,7 +85,7 @@ export default function ContractCard({
         </div>
         <div>
           <p className="text-xs text-gray-500">{t('contracts.total_amount')}</p>
-          <p className="text-sm font-medium">{contract.total_amount.toLocaleString()} {contract.currency}</p>
+          <p className="text-sm font-medium">{safeToLocaleString(contract.total_amount)} {contract.currency}</p>
         </div>
         <div>
           <p className="text-xs text-gray-500">{t('contracts.payment_frequency')}</p>
@@ -102,7 +103,7 @@ export default function ContractCard({
               {new Date(contract.next_collection_date).toLocaleDateString(locale)}
             </span>
             <span className="text-sm font-semibold text-blue-900">
-              {contract.next_collection_amount.toLocaleString()} {contract.currency}
+              {safeToLocaleString(contract.next_collection_amount)} {contract.currency}
             </span>
           </div>
         </div>

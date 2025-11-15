@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useTranslations } from 'next-intl'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface PaymentProgressBarProps {
   totalAmount: number
@@ -38,21 +39,21 @@ export default function PaymentProgressBar({
           <div
             className="bg-green-500 h-full"
             style={{ width: `${paidPercentage}%` }}
-            title={`${t('payments.received')}: ${totalPaid.toLocaleString()} ${currency}`}
+            title={`${t('payments.received')}: ${safeToLocaleString(totalPaid)} ${currency}`}
           />
         )}
         {overduePercentage > 0 && (
           <div
             className="bg-red-500 h-full"
             style={{ width: `${overduePercentage}%` }}
-            title={`${t('payments.overdue')}: ${totalOverdue.toLocaleString()} ${currency}`}
+            title={`${t('payments.overdue')}: ${safeToLocaleString(totalOverdue)} ${currency}`}
           />
         )}
         {pendingPercentage > 0 && (
           <div
             className="bg-yellow-400 h-full"
             style={{ width: `${pendingPercentage}%` }}
-            title={`${t('payments.pending')}: ${totalPending.toLocaleString()} ${currency}`}
+            title={`${t('payments.pending')}: ${safeToLocaleString(totalPending)} ${currency}`}
           />
         )}
       </div>
@@ -61,19 +62,19 @@ export default function PaymentProgressBar({
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-green-500" />
           <span className="text-gray-600">
-            {t('payments.received')}: {totalPaid.toLocaleString()} {currency}
+            {t('payments.received')}: {safeToLocaleString(totalPaid)} {currency}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-yellow-400" />
           <span className="text-gray-600">
-            {t('payments.pending')}: {totalPending.toLocaleString()} {currency}
+            {t('payments.pending')}: {safeToLocaleString(totalPending)} {currency}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-red-500" />
           <span className="text-gray-600">
-            {t('payments.overdue')}: {totalOverdue.toLocaleString()} {currency}
+            {t('payments.overdue')}: {safeToLocaleString(totalOverdue)} {currency}
           </span>
         </div>
       </div>

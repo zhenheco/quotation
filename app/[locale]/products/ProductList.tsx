@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
 import ProductCostDisplay from '@/components/products/ProductCostDisplay'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 import {
   useFilteredProducts,
   useDeleteProduct,
@@ -214,7 +215,7 @@ export default function ProductList({ locale }: ProductListProps) {
                             {product.cost_price ? (
                               <>
                                 {product.cost_currency || product.base_currency}{' '}
-                                {product.cost_price.toLocaleString()}
+                                {safeToLocaleString(product.cost_price)}
                                 {product.cost_price &&
                                   product.base_price &&
                                   product.cost_currency === product.base_currency && (

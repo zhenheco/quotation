@@ -17,6 +17,7 @@ import {
   useMarkPaymentAsOverdue,
 } from '@/hooks/usePayments'
 import { toast } from 'sonner'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 export default function PaymentsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = use(params)
@@ -87,7 +88,7 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
           <div className="space-y-2">
             {reminders.slice(0, 3).map((reminder) => (
               <div key={reminder.contract_id} className="text-sm text-blue-800">
-                {reminder.customer_name} - {reminder.next_collection_amount.toLocaleString()} ({reminder.days_until_due} {t('payments.daysUntilDue')})
+                {reminder.customer_name} - {safeToLocaleString(reminder.next_collection_amount)} ({reminder.days_until_due} {t('payments.daysUntilDue')})
               </div>
             ))}
           </div>
@@ -99,19 +100,19 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-sm text-gray-600 mb-1">{t('payments.statistics.current_month_collected')}</p>
             <p className="text-2xl font-bold text-green-600">
-              {statistics.current_month.total_collected.toLocaleString()} {statistics.current_month.currency}
+              {safeToLocaleString(statistics.current_month.total_collected)} {statistics.current_month.currency}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-sm text-gray-600 mb-1">{t('payments.statistics.total_pending')}</p>
             <p className="text-2xl font-bold text-yellow-600">
-              {statistics.current_month.total_pending.toLocaleString()} {statistics.current_month.currency}
+              {safeToLocaleString(statistics.current_month.total_pending)} {statistics.current_month.currency}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-sm text-gray-600 mb-1">{t('payments.statistics.total_overdue')}</p>
             <p className="text-2xl font-bold text-red-600">
-              {statistics.current_month.total_overdue.toLocaleString()} {statistics.current_month.currency}
+              {safeToLocaleString(statistics.current_month.total_overdue)} {statistics.current_month.currency}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow p-4">

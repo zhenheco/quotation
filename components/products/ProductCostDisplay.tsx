@@ -4,6 +4,7 @@ import React from 'react'
 import { useTranslations } from 'next-intl'
 import { useCanViewCost } from '@/hooks/usePermission'
 import PermissionGuard from './PermissionGuard'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface ProductCostDisplayProps {
   costPrice: number | null
@@ -33,7 +34,7 @@ export default function ProductCostDisplay({
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">{t('product.cost_price')}</span>
           <span className="font-medium">
-            {costPrice ? `${costPrice.toLocaleString()} ${costCurrency || currency}` : '-'}
+            {costPrice ? `${safeToLocaleString(costPrice)} ${costCurrency || currency}` : '-'}
           </span>
         </div>
 
@@ -42,7 +43,7 @@ export default function ProductCostDisplay({
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">{t('product.profit_amount')}</span>
               <span className={`font-medium ${profitAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {profitAmount.toLocaleString()} {currency}
+                {safeToLocaleString(profitAmount)} {currency}
               </span>
             </div>
 

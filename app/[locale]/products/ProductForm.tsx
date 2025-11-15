@@ -17,6 +17,7 @@ import {
   type UpdateProductInput,
 } from '@/hooks/useProducts'
 import { usePermission } from '@/hooks/usePermission'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface ProductFormProps {
   locale: string
@@ -385,7 +386,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
                   <span className="text-gray-600">{t('product.costPrice')}</span>
                   <span className="font-medium">
                     {product.cost_currency || product.base_currency}{' '}
-                    {product.cost_price.toLocaleString()}
+                    {safeToLocaleString(product.cost_price)}
                   </span>
                 </div>
                 {product.profit_margin !== null && product.profit_margin !== undefined && (

@@ -9,6 +9,7 @@ import {
 } from '@/hooks/useQuotations'
 import { toast } from 'sonner'
 import './print.css'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface QuotationDetailProps {
   quotationId: string
@@ -207,13 +208,13 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                       {item.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {quotation.currency} {item.unit_price.toLocaleString()}
+                      {quotation.currency} {safeToLocaleString(item.unit_price)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {item.discount > 0 ? `${item.discount}%` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {quotation.currency} {item.subtotal.toLocaleString()}
+                      {quotation.currency} {safeToLocaleString(item.subtotal)}
                     </td>
                   </tr>
                 ))}

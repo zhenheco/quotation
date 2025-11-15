@@ -2,6 +2,7 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useTranslations } from 'next-intl'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface RevenueChartProps {
   data: Array<{
@@ -24,8 +25,8 @@ export default function RevenueChart({ data, currency }: RevenueChartProps) {
   const t = useTranslations()
 
   // 格式化貨幣
-  const formatCurrency = (value: number) => {
-    return `${currency} ${value.toLocaleString()}`
+  const formatCurrency = (value: number | undefined | null) => {
+    return `${currency} ${safeToLocaleString(value)}`
   }
 
   // 自訂 Tooltip

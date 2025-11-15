@@ -15,6 +15,7 @@ import { useContractDetail, useUpdateNextCollection } from '@/hooks/useContracts
 import { useContractPayments } from '@/hooks/usePayments'
 import { toast } from 'sonner'
 import { useState } from 'react'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 export default function ContractDetailPage({
   params,
@@ -164,7 +165,7 @@ export default function ContractDetailPage({
                     <div>
                       <p className="text-sm text-gray-600">{t('contracts.totalAmount')}</p>
                       <p className="font-medium">
-                        {contract.total_amount.toLocaleString()} {contract.currency}
+                        {safeToLocaleString(contract.total_amount)} {contract.currency}
                       </p>
                     </div>
                     <div>
@@ -210,7 +211,7 @@ export default function ContractDetailPage({
                           <div className="flex justify-between items-start">
                             <div>
                               <p className="font-medium">
-                                {payment.amount.toLocaleString()} {payment.currency}
+                                {safeToLocaleString(payment.amount)} {payment.currency}
                               </p>
                               <p className="text-sm text-gray-600">
                                 {new Date(payment.payment_date).toLocaleDateString(locale)}
@@ -248,7 +249,7 @@ export default function ContractDetailPage({
                       {new Date(contract.next_collection_date).toLocaleDateString(locale)}
                     </p>
                     <p className="text-lg font-bold text-blue-900 mt-1">
-                      {contract.next_collection_amount.toLocaleString()} {contract.currency}
+                      {safeToLocaleString(contract.next_collection_amount)} {contract.currency}
                     </p>
                   </div>
                 )}

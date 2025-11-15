@@ -7,6 +7,7 @@ import { usePaymentStatistics, usePaymentReminders } from '@/hooks/usePayments'
 import { useOverdueContracts } from '@/hooks/useContracts'
 import DashboardCharts from '@/components/DashboardCharts'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface StatCardProps {
   title: string
@@ -145,7 +146,7 @@ function AlertCard({ title, items, type, onViewAll }: AlertCardProps) {
             )}
             {item.amount !== undefined && (
               <div className="text-xs text-gray-600 mt-1">
-                金額: {item.amount.toLocaleString()}
+                金額: {safeToLocaleString(item.amount)}
               </div>
             )}
           </div>
@@ -168,8 +169,8 @@ export default function DashboardClient({ locale }: { locale: string }) {
   const defaultCurrency = paymentStats?.current_month?.currency || 'TWD'
 
   // 格式化貨幣
-  const formatCurrency = (amount: number) => {
-    return `${defaultCurrency} ${amount.toLocaleString()}`
+  const formatCurrency = (amount: number | undefined | null) => {
+    return `${defaultCurrency} ${safeToLocaleString(amount)}`
   }
 
   if (dashboardData.isLoading) {

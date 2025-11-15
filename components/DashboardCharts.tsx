@@ -4,6 +4,7 @@ import RevenueChart from '@/components/charts/RevenueChart'
 import CurrencyChart from '@/components/charts/CurrencyChart'
 import StatusChart from '@/components/charts/StatusChart'
 import { useTranslations } from 'next-intl'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface DashboardChartsProps {
   revenueData: Array<{
@@ -44,8 +45,8 @@ export default function DashboardCharts({
   const t = useTranslations()
 
   // 格式化貨幣
-  const formatCurrency = (amount: number) => {
-    return `${defaultCurrency} ${amount.toLocaleString()}`
+  const formatCurrency = (amount: number | undefined | null) => {
+    return `${defaultCurrency} ${safeToLocaleString(amount)}`
   }
 
   return (

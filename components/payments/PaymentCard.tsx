@@ -3,6 +3,7 @@
 import React from 'react'
 import { useTranslations } from 'next-intl'
 import type { CollectedPaymentRecord, UnpaidPaymentRecord } from '@/types/extended.types'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface CollectedPaymentCardProps {
   payment: CollectedPaymentRecord
@@ -37,7 +38,7 @@ export function CollectedPaymentCard({ payment, locale }: CollectedPaymentCardPr
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">{t('payments.amount')}</span>
           <span className="font-semibold text-green-600">
-            {payment.amount.toLocaleString()} {payment.currency}
+            {safeToLocaleString(payment.amount)} {payment.currency}
           </span>
         </div>
         {payment.payment_frequency && (
@@ -106,7 +107,7 @@ export function UnpaidPaymentCard({
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">{t('payments.amount')}</span>
           <span className={`font-semibold ${isOverdue ? 'text-red-600' : 'text-yellow-600'}`}>
-            {payment.amount.toLocaleString()} {payment.currency}
+            {safeToLocaleString(payment.amount)} {payment.currency}
           </span>
         </div>
         {payment.payment_terms && (

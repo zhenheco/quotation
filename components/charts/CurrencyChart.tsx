@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { useTranslations } from 'next-intl'
+import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface CurrencyChartProps {
   data: Array<{
@@ -89,7 +90,7 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
             {data.currency}
           </p>
           <p className="text-sm text-gray-600">
-            {t('charts.amount')}: {data.currency} {data.value.toLocaleString()}
+            {t('charts.amount')}: {data.currency} {safeToLocaleString(data.value)}
           </p>
           <p className="text-sm text-gray-600">
             {t('charts.percentage')}: {data.percentage}%
