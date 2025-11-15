@@ -28,9 +28,10 @@ interface Company {
 
 interface CompanySettingsProps {
   locale: string;
+  triggerCreate?: boolean;
 }
 
-export default function CompanySettings({ locale }: CompanySettingsProps) {
+export default function CompanySettings({ locale, triggerCreate }: CompanySettingsProps) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -90,14 +91,16 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
     }
   };
 
-  const handleCreateCompany = () => {
-    setIsCreating(true);
-    setSelectedCompany({
-      id: '',
-      name: { zh: '', en: '' },
-      address: { zh: '', en: '' }
-    });
-  };
+  useEffect(() => {
+    if (triggerCreate) {
+      setIsCreating(true);
+      setSelectedCompany({
+        id: '',
+        name: { zh: '', en: '' },
+        address: { zh: '', en: '' }
+      });
+    }
+  }, [triggerCreate]);
 
   const handleSaveCompany = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,43 +276,73 @@ export default function CompanySettings({ locale }: CompanySettingsProps) {
     <div className="space-y-6">
       {/* Company List */}
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">
-            {locale === 'zh' ? '我的公司' : 'My Companies'}
-          </h2>
-          <button
-            onClick={handleCreateCompany}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            + {locale === 'zh' ? '新增公司' : 'Add Company'}
-          </button>
-        </div>
+        <h2 className="text-xl font-semibold mb-4">
+          {locale === 'zh' ? '我的公司' : 'My Companies'}
+        </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {companies.map((company) => (
-            <div
-              key={company.id}
-              onClick={() => loadCompany(company.id)}
-              className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                selectedCompany?.id === company.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-300'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {company.logo_url ? (
-                  <Image src={company.logo_url} alt="Logo" width={48} height={48} className="rounded-full object-cover" />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-xl text-gray-500">🏢</span>
+          {companies.map((company) => {
+            const primaryName = company.name?.zh || company.name?.en || '';
+            const secondaryName = company.name?.en && company.name?.zh !== company.name?.en ? company.name.en : '';
+            const isSelected = selectedCompany?.id === company.id;
+            const ariaLabel = `${locale === 'zh' ? '選擇公司' : 'Select company'}: ${primaryName}`;
+
+            return (
+              <div
+                key={company.id}
+                onClick={() => loadCompany(company.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    loadCompany(company.id);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={ariaLabel}
+                aria-current={isSelected || undefined}
+                className={`
+                  p-4 border-2 rounded-lg cursor-pointer transition-all duration-200
+                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+                  ${isSelected
+                    ? 'border-indigo-500 bg-indigo-50 shadow-lg'
+                    : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-gray-50 hover:shadow-md'
+                  }
+                `}
+              >
+                <div className="flex items-start gap-3">
+                  {company.logo_url ? (
+                    <Image
+                      src={company.logo_url}
+                      alt=""
+                      width={48}
+                      height={48}
+                      className="rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xl text-gray-500" aria-hidden="true">🏢</span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-lg font-semibold text-gray-900 truncate">
+                      {primaryName}
+                    </div>
+                    {company.tax_id && (
+                      <div className="text-sm font-normal text-gray-600 mt-0.5">
+                        ({locale === 'zh' ? '統編' : 'Tax ID'}: {company.tax_id})
+                      </div>
+                    )}
+                    {secondaryName && (
+                      <div className="text-sm font-normal text-gray-500 mt-1 truncate">
+                        {secondaryName}
+                      </div>
+                    )}
                   </div>
-                )}
-                <div>
-                  <div className="font-medium">{locale === 'zh' ? (company.name?.zh || '') : (company.name?.en || '')}</div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

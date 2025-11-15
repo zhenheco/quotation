@@ -1,12 +1,16 @@
 import Link from 'next/link'
 
+type PageHeaderAction = {
+  label: string
+} & (
+  | { href: string; onClick?: never }
+  | { onClick: () => void; href?: never }
+)
+
 interface PageHeaderProps {
   title: string
   description?: string
-  action?: {
-    label: string
-    href: string
-  }
+  action?: PageHeaderAction
 }
 
 export default function PageHeader({ title, description, action }: PageHeaderProps) {
@@ -20,12 +24,22 @@ export default function PageHeader({ title, description, action }: PageHeaderPro
           )}
         </div>
         {action && (
-          <Link
-            href={action.href}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-          >
-            {action.label}
-          </Link>
+          'href' in action ? (
+            <Link
+              href={action.href}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
+              {action.label}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={action.onClick}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
+              {action.label}
+            </button>
+          )
         )}
       </div>
     </div>
