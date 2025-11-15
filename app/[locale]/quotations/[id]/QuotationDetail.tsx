@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import {
   useQuotation,
   useUpdateQuotation,
@@ -61,8 +62,57 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
 
   return (
     <div className="space-y-6">
+      {/* Company Branding Header */}
+      <div className="bg-white rounded-lg shadow p-6 print:shadow-none print:p-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-0">
+          {/* Logo Area - Left */}
+          <div className="flex-shrink-0">
+            {(quotation as { company_logo_url?: string | null }).company_logo_url ? (
+              <Image
+                src={(quotation as { company_logo_url?: string | null }).company_logo_url as string}
+                alt={`${(quotation as { company_name?: { zh: string; en: string } }).company_name?.[locale as 'zh' | 'en'] || 'Company'} Logo`}
+                width={200}
+                height={80}
+                className="max-w-[200px] max-h-[80px] md:max-w-[200px] print:max-w-[150px] object-contain company-logo"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none'
+                }}
+              />
+            ) : (
+              <div className="h-20 flex items-center">
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {(quotation as { company_name?: { zh: string; en: string } }).company_name?.[locale as 'zh' | 'en'] || ''}
+                </h1>
+              </div>
+            )}
+          </div>
+
+          {/* Company Info - Right */}
+          <div className="text-left md:text-right company-info">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {(quotation as { company_name?: { zh: string; en: string } }).company_name?.[locale as 'zh' | 'en'] || ''}
+            </h2>
+            {(quotation as { company_tax_id?: string | null }).company_tax_id && (
+              <p className="text-sm text-gray-600">
+                {locale === 'zh' ? '統一編號' : 'Tax ID'}: {(quotation as { company_tax_id?: string | null }).company_tax_id}
+              </p>
+            )}
+            {(quotation as { company_phone?: string | null }).company_phone && (
+              <p className="text-sm text-gray-600">
+                {locale === 'zh' ? '電話' : 'Phone'}: {(quotation as { company_phone?: string | null }).company_phone}
+              </p>
+            )}
+            {(quotation as { company_email?: string | null }).company_email && (
+              <p className="text-sm text-gray-600">
+                {(quotation as { company_email?: string | null }).company_email}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Quotation Header */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow p-6 quotation-header">
         <div className="flex items-center justify-between mb-6">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-gray-900">
@@ -225,9 +275,9 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
       )}
 
       {/* Summary */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow p-6 print:shadow-none total-section">
         <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.summary')}</h3>
-        <div className="max-w-md space-y-2">
+        <div className="max-w-md ml-auto space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">{t('quotation.subtotal')}:</span>
             <span className="text-gray-900 font-medium">
@@ -247,6 +297,27 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
             <span>{quotation.currency} {quotation.total_amount?.toLocaleString() || '0'}</span>
           </div>
         </div>
+
+        {/* Company Signature - Below Total */}
+        {(quotation as { company_signature_url?: string | null }).company_signature_url && (
+          <div className="flex justify-end mt-6 print:mt-4 signature-section">
+            <div className="flex flex-col items-end">
+              <Image
+                src={(quotation as { company_signature_url?: string | null }).company_signature_url as string}
+                alt="Company Stamp"
+                width={150}
+                height={150}
+                className="max-w-[150px] max-h-[150px] print:max-w-[120px] object-contain signature"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none'
+                }}
+              />
+              <span className="text-xs text-gray-500 mt-1 print:hidden">
+                {locale === 'zh' ? '報價專用章' : 'Official Quotation Stamp'}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Notes */}

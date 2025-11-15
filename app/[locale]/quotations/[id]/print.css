@@ -121,11 +121,38 @@
     page-break-inside: avoid;
   }
 
-  /* Logo 和簽章 */
-  .company-logo,
-  .signature {
-    max-width: 150px;
+  /* Logo 和簽章優化 */
+  .company-logo {
+    max-width: 150px !important;
     height: auto;
+    page-break-inside: avoid;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  .signature {
+    max-width: 120px !important;
+    height: auto;
+    page-break-inside: avoid;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  /* 品牌標題區域不分頁 */
+  .company-branding,
+  .quotation-header {
+    page-break-inside: avoid;
+    page-break-after: avoid;
+  }
+
+  /* 總計和簽章區域不分頁 */
+  .signature-section {
+    page-break-inside: avoid;
+  }
+
+  /* 確保公司資訊清晰可見 */
+  .company-info {
+    color: #000 !important;
   }
 
   /* 連結顯示 URL */

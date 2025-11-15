@@ -25,6 +25,15 @@ interface QuotationRow {
   updated_at: string
 }
 
+interface CompanyBrandingRow {
+  company_logo_url: string | null
+  company_signature_url: string | null
+  company_name: string
+  company_tax_id: string | null
+  company_phone: string | null
+  company_email: string | null
+}
+
 interface QuotationItemRow {
   id: string
   quotation_id: string
@@ -57,6 +66,15 @@ export interface Quotation {
   payment_notes: string | null
   created_at: string
   updated_at: string
+}
+
+export interface QuotationWithCompany extends Quotation {
+  company_logo_url: string | null
+  company_signature_url: string | null
+  company_name: { zh: string; en: string }
+  company_tax_id: string | null
+  company_phone: string | null
+  company_email: string | null
 }
 
 export interface QuotationItem {
@@ -143,13 +161,36 @@ export async function getQuotationById(
   db: D1Client,
   userId: string,
   quotationId: string
-): Promise<Quotation | null> {
-  const row = await db.queryOne<QuotationRow>(
-    'SELECT * FROM quotations WHERE id = ? AND user_id = ?',
-    [quotationId, userId]
-  )
+): Promise<QuotationWithCompany | null> {
+  const sql = `
+    SELECT
+      q.*,
+      c.logo_url as company_logo_url,
+      c.signature_url as company_signature_url,
+      c.name as company_name,
+      c.tax_id as company_tax_id,
+      c.phone as company_phone,
+      c.email as company_email
+    FROM quotations q
+    LEFT JOIN companies c ON q.company_id = c.id
+    WHERE q.id = ? AND q.user_id = ?
+  `
 
-  return row ? parseQuotationRow(row) : null
+  const row = await db.queryOne<QuotationRow & CompanyBrandingRow>(sql, [quotationId, userId])
+
+  if (!row) return null
+
+  const quotation = parseQuotationRow(row)
+
+  return {
+    ...quotation,
+    company_logo_url: row.company_logo_url,
+    company_signature_url: row.company_signature_url,
+    company_name: row.company_name ? JSON.parse(row.company_name) as { zh: string; en: string } : { zh: '', en: '' },
+    company_tax_id: row.company_tax_id,
+    company_phone: row.company_phone,
+    company_email: row.company_email,
+  }
 }
 
 export async function createQuotation(
