@@ -72,6 +72,8 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     currency: 'TWD',
     taxRate: '5',
     notes: '',
+    paymentMethod: '',
+    paymentNotes: '',
   })
   const [items, setItems] = useState<QuotationItem[]>([])
   const [error, setError] = useState('')
@@ -132,6 +134,8 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         notes: typeof existingQuotation.notes === 'string'
           ? existingQuotation.notes
           : (existingQuotation.notes as unknown as BilingualText)?.[locale as 'zh' | 'en'] || '',
+        paymentMethod: (existingQuotation as { payment_method?: string }).payment_method || '',
+        paymentNotes: (existingQuotation as { payment_notes?: string }).payment_notes || '',
       })
 
       // 設定已選客戶
@@ -297,6 +301,8 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           zh: formData.notes,
           en: formData.notes,
         } as BilingualText : undefined,
+        payment_method: formData.paymentMethod || undefined,
+        payment_notes: formData.paymentNotes || undefined,
         items: items.map((item) => {
           const product = products.find(p => p.id === item.product_id)
           const productName = product?.name as BilingualText | undefined
@@ -733,6 +739,58 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
           placeholder={t('quotation.notesPlaceholder')}
         />
+      </div>
+
+      {/* 付款資訊 */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.paymentInfo')}</h3>
+
+        <div className="space-y-4">
+          {/* 付款方式 */}
+          <div>
+            <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700 mb-1">
+              {t('quotation.paymentMethodOptional')}
+            </label>
+            <select
+              id="paymentMethod"
+              value={formData.paymentMethod}
+              onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">-- {t('common.optional')} --</option>
+              <option value="cash">{t('quotation.paymentMethods.cash')}</option>
+              <option value="bank_transfer">{t('quotation.paymentMethods.bank_transfer')}</option>
+              <option value="ach_transfer">{t('quotation.paymentMethods.ach_transfer')}</option>
+              <option value="credit_card">{t('quotation.paymentMethods.credit_card')}</option>
+              <option value="check">{t('quotation.paymentMethods.check')}</option>
+              <option value="cryptocurrency">{t('quotation.paymentMethods.cryptocurrency')}</option>
+              <option value="other">{t('quotation.paymentMethods.other')}</option>
+            </select>
+          </div>
+
+          {/* 付款備註 */}
+          <div>
+            <label htmlFor="paymentNotes" className="block text-sm font-medium text-gray-700 mb-1">
+              {t('quotation.paymentNotes')}
+            </label>
+            <textarea
+              id="paymentNotes"
+              value={formData.paymentNotes}
+              onChange={(e) => setFormData({ ...formData, paymentNotes: e.target.value })}
+              rows={3}
+              maxLength={500}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder={
+                formData.paymentMethod
+                  ? t(`quotation.paymentNotesPlaceholderByMethod.${formData.paymentMethod}` as unknown as never)
+                  : t('quotation.paymentNotesPlaceholder')
+              }
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              {formData.paymentNotes.length} / 500
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* 合約上傳 */}

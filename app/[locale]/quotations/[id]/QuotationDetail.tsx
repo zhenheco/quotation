@@ -261,6 +261,31 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
         </div>
       )}
 
+      {/* Payment Information */}
+      {((quotation as { payment_method?: string }).payment_method || (quotation as { payment_notes?: string }).payment_notes) && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.paymentInfo')}</h3>
+          <div className="space-y-3">
+            {(quotation as { payment_method?: string }).payment_method && (
+              <div>
+                <span className="text-sm text-gray-600">{t('quotation.paymentMethod')}:</span>{' '}
+                <span className="text-sm text-gray-900 font-medium">
+                  {t(`quotation.paymentMethods.${(quotation as { payment_method?: string }).payment_method}` as never)}
+                </span>
+              </div>
+            )}
+            {(quotation as { payment_notes?: string }).payment_notes && (
+              <div>
+                <span className="text-sm text-gray-600">{t('quotation.paymentNotes')}:</span>
+                <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
+                  {(quotation as { payment_notes?: string }).payment_notes}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Contract Upload */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">
