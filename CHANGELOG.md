@@ -9,6 +9,30 @@
 
 ## [Unreleased]
 
+### 🐛 修復儀表板錯誤 (2025-11-15)
+
+#### 修復內容
+- ✅ **權限映射**：確認 `exchange_rates:read` 權限已正確映射
+- ✅ **資料格式化安全性**：所有格式化函式已加入 null/undefined 檢查
+  - `DashboardClient.tsx:148` - AlertCard amount 格式化
+  - `DashboardClient.tsx:171-173` - formatCurrency 函式
+  - `components/DashboardCharts.tsx:47-50` - 圖表格式化函式
+  - `components/charts/RevenueChart.tsx:27-30` - 營收圖表格式化
+  - `components/charts/StatusChart.tsx:27-30` - 狀態圖表格式化
+- ✅ **文件**：建立瀏覽器擴充套件衝突說明文件 `docs/BROWSER_EXTENSION_CONFLICTS.md`
+
+#### 技術細節
+- 使用 nullish coalescing operator (`??`) 提供預設值
+- 所有 `toLocaleString()` 呼叫都有防護性檢查
+- 確保在資料未載入時顯示有意義的預設值
+
+#### 相關檔案
+- `lib/cache/services.ts:114` - 權限映射
+- `app/[locale]/dashboard/DashboardClient.tsx` - 主儀表板
+- `components/DashboardCharts.tsx` - 圖表容器
+- `components/charts/*.tsx` - 各類圖表元件
+- `docs/BROWSER_EXTENSION_CONFLICTS.md` - 瀏覽器擴充套件衝突文件
+
 ### 📊 儀表板與統計功能整合 (2025-10-25)
 
 #### 整合概述
