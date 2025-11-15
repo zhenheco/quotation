@@ -114,7 +114,7 @@ export async function getStatusStatistics() {
 
   // 按狀態分組統計
   const statusData = new Map()
-  const statuses = ['draft', 'sent', 'accepted', 'rejected']
+  const statuses = ['draft', 'sent', 'accepted', 'rejected', 'approved']
 
   // 初始化所有狀態
   statuses.forEach(status => {

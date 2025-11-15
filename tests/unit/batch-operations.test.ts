@@ -204,7 +204,7 @@ describe('Batch Operations - Phase 3 測試', () => {
     })
 
     it('應該接受所有有效的狀態值', async () => {
-      const validStatuses = ['draft', 'sent', 'accepted', 'rejected']
+      const validStatuses = ['draft', 'sent', 'accepted', 'rejected', 'approved']
 
       for (const status of validStatuses) {
         mockSupabaseClient.from().in.mockResolvedValue({

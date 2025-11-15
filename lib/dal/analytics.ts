@@ -84,11 +84,11 @@ export async function getDashboardSummary(
   )
 
   const currentRevenue = currentMonthQuotations
-    .filter((q) => q.status === 'signed')
+    .filter((q) => q.status === 'accepted')
     .reduce((sum, q) => sum + q.total_amount, 0)
 
   const lastRevenue = lastMonthQuotations
-    .filter((q) => q.status === 'signed')
+    .filter((q) => q.status === 'accepted')
     .reduce((sum, q) => sum + q.total_amount, 0)
 
   const revenueGrowth = lastRevenue > 0 ? ((currentRevenue - lastRevenue) / lastRevenue) * 100 : 0
@@ -98,9 +98,9 @@ export async function getDashboardSummary(
 
   const countGrowth = lastCount > 0 ? ((currentCount - lastCount) / lastCount) * 100 : 0
 
-  const acceptedCount = currentMonthQuotations.filter((q) => q.status === 'signed').length
+  const acceptedCount = currentMonthQuotations.filter((q) => q.status === 'accepted').length
   const sentCount = currentMonthQuotations.filter(
-    (q) => q.status === 'sent' || q.status === 'signed'
+    (q) => q.status === 'sent' || q.status === 'accepted'
   ).length
   const conversionRate = sentCount > 0 ? (acceptedCount / sentCount) * 100 : 0
 
@@ -119,8 +119,9 @@ export async function getDashboardSummary(
 export interface QuotationStats {
   draft: number
   sent: number
-  signed: number
-  expired: number
+  accepted: number
+  rejected: number
+  approved: number
   total: number
 }
 
@@ -211,8 +212,9 @@ export async function getDashboardStats(
   const quotationStats: QuotationStats = {
     draft: quotations.filter((q) => q.status === 'draft').length,
     sent: quotations.filter((q) => q.status === 'sent').length,
-    signed: quotations.filter((q) => q.status === 'signed').length,
-    expired: quotations.filter((q) => q.status === 'expired').length,
+    accepted: quotations.filter((q) => q.status === 'accepted').length,
+    rejected: quotations.filter((q) => q.status === 'rejected').length,
+    approved: quotations.filter((q) => q.status === 'approved').length,
     total: quotations.length,
   }
 
@@ -287,7 +289,7 @@ export async function getRevenueTrend(
 
     const quotations = await db.query<{ total_amount: number }>(
       `SELECT total_amount FROM quotations
-       WHERE user_id = ? AND status = 'signed'
+       WHERE user_id = ? AND status = 'accepted'
        AND issue_date >= ? AND issue_date < ?`,
       [userId, monthStart.toISOString(), monthEnd.toISOString()]
     )
@@ -321,7 +323,7 @@ export async function getCurrencyDistribution(
       SUM(total_amount) as amount,
       COUNT(*) as count
      FROM quotations
-     WHERE user_id = ? AND status = 'signed'
+     WHERE user_id = ? AND status = 'accepted'
      GROUP BY currency
      ORDER BY amount DESC`,
     [userId]
