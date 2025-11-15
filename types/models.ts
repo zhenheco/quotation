@@ -105,6 +105,15 @@ export interface UpdateProductData {
 // Quotation Types
 // ============================================================================
 
+export type PaymentMethod =
+  | 'cash'
+  | 'bank_transfer'
+  | 'ach_transfer'
+  | 'credit_card'
+  | 'check'
+  | 'cryptocurrency'
+  | 'other'
+
 export interface Quotation {
   id: string
   user_id: string
@@ -119,6 +128,8 @@ export interface Quotation {
   tax_amount: number
   total_amount: number
   notes: BilingualText | null
+  payment_method: PaymentMethod | null
+  payment_notes: string | null
   created_at: string
   updated_at: string
 }
@@ -149,6 +160,8 @@ export interface CreateQuotationData {
   tax_amount: number
   total_amount: number
   notes?: BilingualText | null
+  payment_method?: PaymentMethod | null
+  payment_notes?: string | null
 }
 
 export interface CreateQuotationItemData {
@@ -172,6 +185,8 @@ export interface UpdateQuotationData {
   tax_amount?: number
   total_amount?: number
   notes?: BilingualText | null
+  payment_method?: PaymentMethod | null
+  payment_notes?: string | null
 }
 
 // ============================================================================

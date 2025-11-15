@@ -120,6 +120,8 @@ export async function PUT(
       tax_amount?: string | number;
       total_amount?: string | number;
       notes?: { zh: string; en: string };
+      payment_method?: string;
+      payment_notes?: string;
       items?: QuotationItemInput[];
     }
 
@@ -135,6 +137,8 @@ export async function PUT(
       tax_amount,
       total_amount,
       notes,
+      payment_method,
+      payment_notes,
       items
     } = body
 
@@ -163,6 +167,8 @@ export async function PUT(
     if (tax_amount !== undefined) updateData.tax_amount = typeof tax_amount === 'string' ? parseFloat(tax_amount) : tax_amount
     if (total_amount !== undefined) updateData.total_amount = typeof total_amount === 'string' ? parseFloat(total_amount) : total_amount
     if (notes !== undefined) updateData.notes = notes
+    if (payment_method !== undefined) updateData.payment_method = payment_method
+    if (payment_notes !== undefined) updateData.payment_notes = payment_notes
 
     // 更新報價單
     const quotation = await updateQuotation(db, user.id, id, updateData)

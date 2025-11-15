@@ -19,6 +19,8 @@ interface QuotationRow {
   tax_amount: number
   total_amount: number
   notes: string | null
+  payment_method: string | null
+  payment_notes: string | null
   created_at: string
   updated_at: string
 }
@@ -51,6 +53,8 @@ export interface Quotation {
   tax_amount: number
   total_amount: number
   notes: { zh: string; en: string } | null
+  payment_method: string | null
+  payment_notes: string | null
   created_at: string
   updated_at: string
 }
@@ -85,7 +89,9 @@ function parseQuotationRow(row: QuotationRow): Quotation {
 
   return {
     ...row,
-    notes
+    notes,
+    payment_method: row.payment_method,
+    payment_notes: row.payment_notes
   }
 }
 
@@ -163,6 +169,8 @@ export async function createQuotation(
     tax_amount?: number
     total_amount?: number
     notes?: { zh: string; en: string }
+    payment_method?: string
+    payment_notes?: string
   }
 ): Promise<Quotation> {
   const id = data.id || crypto.randomUUID()
@@ -176,8 +184,8 @@ export async function createQuotation(
     `INSERT INTO quotations (
       id, user_id, company_id, customer_id, quotation_number, status,
       issue_date, valid_until, currency, subtotal, tax_rate, tax_amount, total_amount,
-      notes, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      notes, payment_method, payment_notes, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       userId,
@@ -193,6 +201,8 @@ export async function createQuotation(
       data.tax_amount || 0,
       data.total_amount || 0,
       data.notes ? JSON.stringify(data.notes) : null,
+      data.payment_method || null,
+      data.payment_notes || null,
       now,
       now
     ]
@@ -218,7 +228,7 @@ export async function updateQuotation(
   const simpleFields = [
     'company_id', 'customer_id', 'quotation_number', 'status',
     'issue_date', 'valid_until', 'currency', 'subtotal', 'tax_rate',
-    'tax_amount', 'total_amount'
+    'tax_amount', 'total_amount', 'payment_method', 'payment_notes'
   ]
 
   for (const field of simpleFields) {
