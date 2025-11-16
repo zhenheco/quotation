@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import FormInput from '@/components/ui/FormInput'
 import { formatPrice } from '@/lib/utils/format'
+import { PaymentTermsEditor } from '@/components/payment-terms/PaymentTermsEditor'
 
 interface Customer {
   id: string
@@ -27,6 +28,21 @@ interface QuotationItem {
   unit_price: number
   discount: number
   subtotal: number
+}
+
+interface PaymentTerm {
+  id?: string
+  quotation_id?: string
+  term_number: number
+  term_name?: string
+  percentage: number
+  amount: number
+  due_date?: string | null
+  paid_amount?: number | null
+  paid_date?: string | null
+  payment_status?: 'unpaid' | 'partial' | 'paid' | 'overdue'
+  created_at?: string
+  updated_at?: string
 }
 
 interface VersionChanges {
@@ -133,11 +149,30 @@ export default function QuotationEditForm({
     })) || []
   )
 
+  const [paymentTerms, setPaymentTerms] = useState<Partial<PaymentTerm>[]>([])
+  const [paymentMethod, setPaymentMethod] = useState<string>('')
+  const [paymentNotes, setPaymentNotes] = useState<string>('')
+
   useEffect(() => {
     if (quotation.contract_file_url) {
       setContractFileUrl(quotation.contract_file_url)
     }
   }, [quotation])
+
+  useEffect(() => {
+    const fetchPaymentTerms = async () => {
+      try {
+        const response = await fetch(`/api/quotations/${quotation.id}/payment-terms`)
+        if (response.ok) {
+          const data = await response.json() as { payment_terms: PaymentTerm[] }
+          setPaymentTerms(data.payment_terms || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch payment terms:', error)
+      }
+    }
+    fetchPaymentTerms()
+  }, [quotation.id])
 
 
   // 獲取匯率數據
@@ -368,6 +403,8 @@ export default function QuotationEditForm({
         tax_amount: taxAmount,
         total_amount: total,
         notes: formData.notes || null,
+        payment_method: paymentMethod || null,
+        payment_notes: paymentNotes || null,
         items: items.map((item) => ({
           product_id: item.product_id,
           quantity: item.quantity,
@@ -375,7 +412,13 @@ export default function QuotationEditForm({
           discount: item.discount,
           subtotal: item.subtotal,
         })),
-        changes: getChanges(), // 記錄變更
+        payment_terms: paymentTerms.map((term) => ({
+          term_number: term.term_number,
+          percentage: term.percentage,
+          amount: term.amount,
+          due_date: term.due_date || null,
+        })),
+        changes: getChanges(),
       }
 
       const response = await fetch(`/api/quotations/${quotation.id}`, {
@@ -672,6 +715,49 @@ export default function QuotationEditForm({
                 <span>{t('quotation.total')}:</span>
                 <span>{formData.currency} {formatPrice(total, currentLocale)}</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white shadow-md rounded-lg p-6">
+          <PaymentTermsEditor
+            terms={paymentTerms}
+            totalAmount={total}
+            currency={formData.currency}
+            locale={locale}
+            onChange={setPaymentTerms}
+          />
+
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {locale === 'zh' ? '付款方式' : 'Payment Method'}
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">{locale === 'zh' ? '請選擇' : 'Select'}</option>
+                <option value="bank_transfer">{locale === 'zh' ? '銀行轉帳' : 'Bank Transfer'}</option>
+                <option value="credit_card">{locale === 'zh' ? '信用卡' : 'Credit Card'}</option>
+                <option value="check">{locale === 'zh' ? '支票' : 'Check'}</option>
+                <option value="cash">{locale === 'zh' ? '現金' : 'Cash'}</option>
+                <option value="other">{locale === 'zh' ? '其他' : 'Other'}</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {locale === 'zh' ? '付款備註' : 'Payment Notes'}
+              </label>
+              <input
+                type="text"
+                value={paymentNotes}
+                onChange={(e) => setPaymentNotes(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder={locale === 'zh' ? '例：請匯款至指定帳戶' : 'e.g. Please transfer to specified account'}
+              />
             </div>
           </div>
         </div>
