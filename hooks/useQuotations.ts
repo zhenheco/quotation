@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type {
   Quotation,
   QuotationItem,
+  QuotationVersion,
   CreateQuotationData,
   UpdateQuotationData
 } from '@/types/models'
@@ -162,6 +163,10 @@ async function batchSendQuotations(params: BatchSendParams): Promise<{
   }
 }> {
   return apiPost('/api/quotations/batch/send', params)
+}
+
+async function fetchQuotationVersions(quotationId: string): Promise<QuotationVersion[]> {
+  return apiGet<QuotationVersion[]>(`/api/quotations/${quotationId}/versions`)
 }
 
 // ============================================================================
@@ -391,5 +396,38 @@ export function useBatchSendQuotations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] })
     },
+  })
+}
+
+/**
+ * 取得報價單版本歷史
+ *
+ * @param quotationId - 報價單 ID
+ *
+ * @example
+ * ```tsx
+ * function VersionHistory({ quotationId }: { quotationId: string }) {
+ *   const { data: versions, isLoading } = useQuotationVersions(quotationId)
+ *
+ *   if (isLoading) return <div>載入中...</div>
+ *
+ *   return (
+ *     <div>
+ *       {versions?.map(v => (
+ *         <div key={v.id}>
+ *           版本 {v.version_number} - {v.changed_at}
+ *         </div>
+ *       ))}
+ *     </div>
+ *   )
+ * }
+ * ```
+ */
+export function useQuotationVersions(quotationId: string) {
+  return useQuery({
+    queryKey: ['quotation-versions', quotationId],
+    queryFn: () => fetchQuotationVersions(quotationId),
+    staleTime: 5 * 60 * 1000, // 5 分鐘
+    enabled: !!quotationId, // 只在有 quotationId 時才執行
   })
 }

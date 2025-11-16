@@ -190,6 +190,30 @@ export interface UpdateQuotationData {
 }
 
 // ============================================================================
+// Quotation Version Types
+// ============================================================================
+
+export interface QuotationVersion {
+  id: string
+  quotation_id: string
+  version_number: number
+  changed_by: string
+  changed_at: string
+  changes: Record<string, unknown>
+}
+
+// ============================================================================
+// Exchange Rate Types
+// ============================================================================
+
+export interface ExchangeRate {
+  from_currency: string
+  to_currency: string
+  rate: number
+  updated_at: string
+}
+
+// ============================================================================
 // Payment Term Types
 // ============================================================================
 

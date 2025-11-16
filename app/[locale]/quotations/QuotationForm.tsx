@@ -8,9 +8,12 @@ import {
   useCreateQuotation,
   useUpdateQuotation,
   useQuotation,
+  useQuotationVersions,
   type CreateQuotationItemInput,
   type BilingualText,
 } from '@/hooks/useQuotations'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { QuotationVersion, ExchangeRate } from '@/types/models'
 import { useCustomers, type Customer } from '@/hooks/useCustomers'
 import { useProducts } from '@/hooks/useProducts'
 import { toast } from 'sonner'
@@ -55,10 +58,16 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   const router = useRouter()
   const supabase = createClient()
 
+  // 模式判斷
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const isEditMode = !!quotationId
+
   // Hooks
   const { data: customers = [], isLoading: loadingCustomers } = useCustomers()
   const { data: products = [], isLoading: loadingProducts } = useProducts()
   const { data: existingQuotation } = useQuotation(quotationId || '')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { data: versions = [] } = useQuotationVersions(quotationId || '')
   const createQuotation = useCreateQuotation()
   const updateQuotation = useUpdateQuotation(quotationId || '')
 
@@ -74,6 +83,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     notes: '',
     paymentMethod: '',
     paymentNotes: '',
+    status: 'draft' as 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved',
   })
   const [items, setItems] = useState<QuotationItem[]>([])
   const [error, setError] = useState('')
@@ -81,6 +91,12 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   const [contractFile, setContractFile] = useState<File | null>(null)
   const [contractFileUrl, setContractFileUrl] = useState<string>('')
   const [paymentTerms, setPaymentTerms] = useState<Partial<PaymentTerm>[]>([])
+
+  // 編輯模式特有狀態（待實作 UI）
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({})
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [showVersionHistory, setShowVersionHistory] = useState(false)
 
   // 備註模版
   const notesTemplates = [
@@ -136,6 +152,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           : (existingQuotation.notes as unknown as BilingualText)?.[locale as 'zh' | 'en'] || '',
         paymentMethod: (existingQuotation as { payment_method?: string }).payment_method || '',
         paymentNotes: (existingQuotation as { payment_notes?: string }).payment_notes || '',
+        status: existingQuotation.status || 'draft',
       })
 
       // 設定已選客戶
