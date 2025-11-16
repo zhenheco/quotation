@@ -13,7 +13,6 @@ import {
   validateCustomerOwnership
 } from '@/lib/dal/quotations'
 import { getCustomerById } from '@/lib/dal/customers'
-import { getPaymentTerms, deletePaymentTerm, batchCreatePaymentTerms } from '@/lib/dal/payment-terms'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 // Note: Edge runtime removed for OpenNext compatibility;
@@ -110,13 +109,6 @@ export async function PUT(
       subtotal: string | number;
     }
 
-    interface PaymentTermInput {
-      term_number: number;
-      percentage: number;
-      amount: number;
-      due_date?: string | null;
-    }
-
     interface UpdateQuotationBody {
       customer_id?: string;
       status?: string;
@@ -131,7 +123,6 @@ export async function PUT(
       payment_method?: string;
       payment_notes?: string;
       items?: QuotationItemInput[];
-      payment_terms?: PaymentTermInput[];
     }
 
     const body = await request.json() as UpdateQuotationBody
@@ -148,8 +139,7 @@ export async function PUT(
       notes,
       payment_method,
       payment_notes,
-      items,
-      payment_terms
+      items
     } = body
 
     // 驗證報價單是否存在
@@ -202,31 +192,6 @@ export async function PUT(
           discount: parseFloat(String(item.discount || 0)),
           subtotal: parseFloat(String(item.subtotal))
         })
-      }
-    }
-
-    // 如果提供了付款條款，則刪除舊的並重新插入
-    if (payment_terms && Array.isArray(payment_terms)) {
-      // 刪除舊付款條款
-      const oldTerms = await getPaymentTerms(db, user.id, id)
-      for (const oldTerm of oldTerms) {
-        await deletePaymentTerm(db, user.id, oldTerm.id)
-      }
-
-      // 批次建立新付款條款
-      if (payment_terms.length > 0 && total_amount) {
-        const totalAmount = typeof total_amount === 'string' ? parseFloat(total_amount) : total_amount
-        await batchCreatePaymentTerms(
-          db,
-          user.id,
-          id,
-          payment_terms.map(term => ({
-            term_number: term.term_number,
-            percentage: term.percentage,
-            due_date: term.due_date || null
-          })),
-          totalAmount
-        )
       }
     }
 

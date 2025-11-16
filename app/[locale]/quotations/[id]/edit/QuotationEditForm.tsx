@@ -412,12 +412,6 @@ export default function QuotationEditForm({
           discount: item.discount,
           subtotal: item.subtotal,
         })),
-        payment_terms: paymentTerms.map((term) => ({
-          term_number: term.term_number,
-          percentage: term.percentage,
-          amount: term.amount,
-          due_date: term.due_date || null,
-        })),
         changes: getChanges(),
       }
 
@@ -432,6 +426,27 @@ export default function QuotationEditForm({
       if (!response.ok) {
         const errorData: { error?: string } = await response.json()
         throw new Error(errorData.error || 'Failed to update quotation')
+      }
+
+      // 儲存付款條款
+      if (paymentTerms.length > 0) {
+        try {
+          await fetch(`/api/quotations/${quotation.id}/payment-terms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              terms: paymentTerms.map(term => ({
+                term_number: term.term_number,
+                percentage: term.percentage,
+                due_date: term.due_date || null,
+              })),
+              total,
+            }),
+          })
+        } catch (paymentTermsError) {
+          console.error('Failed to save payment terms:', paymentTermsError)
+          toast.error('付款條款儲存失敗')
+        }
       }
 
       if (contractFile) {
