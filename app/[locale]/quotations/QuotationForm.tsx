@@ -59,14 +59,12 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   const supabase = createClient()
 
   // 模式判斷
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isEditMode = !!quotationId
 
   // Hooks
   const { data: customers = [], isLoading: loadingCustomers } = useCustomers()
   const { data: products = [], isLoading: loadingProducts } = useProducts()
   const { data: existingQuotation } = useQuotation(quotationId || '')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data: versions = [] } = useQuotationVersions(quotationId || '')
   const createQuotation = useCreateQuotation()
   const updateQuotation = useUpdateQuotation(quotationId || '')
@@ -92,11 +90,27 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   const [contractFileUrl, setContractFileUrl] = useState<string>('')
   const [paymentTerms, setPaymentTerms] = useState<Partial<PaymentTerm>[]>([])
 
-  // 編輯模式特有狀態（待實作 UI）
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // 編輯模式特有狀態
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({})
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showVersionHistory, setShowVersionHistory] = useState(false)
+
+  // 取得匯率資料（僅編輯模式）
+  useEffect(() => {
+    if (!isEditMode) return
+
+    const fetchExchangeRates = async () => {
+      try {
+        const response = await fetch(`/api/exchange-rates?base=${formData.currency}`)
+        const data: { success?: boolean; rates?: Record<string, number> } = await response.json()
+        if (data.success && data.rates) {
+          setExchangeRates(data.rates)
+        }
+      } catch (error) {
+        console.error('Failed to fetch exchange rates:', error)
+      }
+    }
+    fetchExchangeRates()
+  }, [formData.currency, isEditMode])
 
   // 備註模版
   const notesTemplates = [
@@ -248,6 +262,52 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     setItems(items.filter((_, i) => i !== index))
   }
 
+  // 處理產品選擇（含匯率轉換）
+  const handleProductChange = (index: number, productId: string) => {
+    const product = products.find((p) => p.id === productId)
+    if (!product) return
+
+    let convertedPrice = product.unit_price
+
+    // 如果產品幣別與報價單幣別不同，進行匯率換算
+    if (isEditMode && product.currency && product.currency !== formData.currency) {
+      const rate = exchangeRates[product.currency]
+      if (rate && rate !== 0) {
+        convertedPrice = product.unit_price / rate
+      } else {
+        console.warn(`No exchange rate found for ${product.currency} to ${formData.currency}`)
+      }
+    }
+
+    const newItems = [...items]
+    const currentItem = newItems[index]
+
+    const quantity = typeof currentItem.quantity === 'number' && currentItem.quantity > 0
+      ? currentItem.quantity
+      : 1
+
+    const discount = typeof currentItem.discount === 'number'
+      ? currentItem.discount
+      : 0
+
+    const validPrice = typeof convertedPrice === 'number' && !isNaN(convertedPrice) && convertedPrice >= 0
+      ? convertedPrice
+      : 0
+
+    const subtotal = (validPrice * quantity) - discount
+
+    newItems[index] = {
+      ...currentItem,
+      product_id: productId,
+      unit_price: validPrice,
+      quantity,
+      discount,
+      subtotal: Math.max(0, subtotal),
+    }
+
+    setItems(newItems)
+  }
+
   // 更新行項目
   const handleItemChange = (index: number, field: keyof QuotationItem, value: string | number) => {
     const newItems = [...items]
@@ -262,15 +322,10 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       newItems[index].subtotal = quantity * unitPrice - discount
     }
 
-    // 如果選擇產品，自動填入單價
+    // 如果選擇產品，使用 handleProductChange 處理（含匯率轉換）
     if (field === 'product_id') {
-      const product = products.find(p => p.id === value)
-      if (product && product.base_price) {
-        newItems[index].unit_price = product.base_price
-        const quantity = parseFloat(newItems[index].quantity.toString()) || 0
-        const discount = parseFloat(newItems[index].discount.toString()) || 0
-        newItems[index].subtotal = quantity * product.base_price - discount
-      }
+      handleProductChange(index, value as string)
+      return
     }
 
     setItems(newItems)
@@ -505,6 +560,27 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           </div>
         </div>
 
+        {/* 狀態選擇（僅編輯模式） */}
+        {isEditMode && (
+          <div>
+            <label htmlFor="status" className="block text-sm font-semibold text-gray-900 mb-1">
+              {t('quotation.status')}
+            </label>
+            <select
+              id="status"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved' })}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="draft">{t('status.draft')}</option>
+              <option value="sent">{t('status.sent')}</option>
+              <option value="accepted">{t('status.accepted')}</option>
+              <option value="rejected">{t('status.rejected')}</option>
+              <option value="approved">{t('status.approved')}</option>
+            </select>
+          </div>
+        )}
+
         <div>
           <label htmlFor="issueDate" className="block text-sm font-semibold text-gray-900 mb-1">
             {t('quotation.issueDate')}
@@ -517,6 +593,8 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
             onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
             className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             required
+            readOnly={isEditMode}
+            disabled={isEditMode}
           />
         </div>
 
@@ -809,6 +887,57 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           </div>
         </div>
       </div>
+
+      {/* 版本歷史（僅編輯模式） */}
+      {isEditMode && versions.length > 0 && (
+        <div className="border-t border-gray-200 pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900">{t('quotation.versionHistory')}</h3>
+            <button
+              type="button"
+              onClick={() => setShowVersionHistory(!showVersionHistory)}
+              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+            >
+              {showVersionHistory ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                  {t('common.hide')}
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  {t('common.show')} ({versions.length})
+                </>
+              )}
+            </button>
+          </div>
+          {showVersionHistory && (
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3 max-h-96 overflow-y-auto">
+              {versions.map((version) => (
+                <div key={version.id} className="bg-white rounded-lg p-3 border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {t('quotation.version')} {version.version_number}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(version.changed_at).toLocaleString(locale)}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    <pre className="whitespace-pre-wrap break-words">
+                      {JSON.stringify(version.changes, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 合約上傳 */}
       <div>
