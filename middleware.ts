@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import createMiddleware from 'next-intl/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
 import { routing } from '@/i18n/routing'
+import { addSecurityHeaders } from '@/lib/security/headers'
 
 const intlMiddleware = createMiddleware(routing)
 
@@ -66,7 +67,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return response
+  // Step 5: Add security headers
+  const secureResponse = addSecurityHeaders(response)
+
+  return secureResponse
 }
 
 export const config = {

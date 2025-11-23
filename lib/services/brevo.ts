@@ -33,7 +33,7 @@ class BrevoService {
         body: JSON.stringify({
           sender: {
             name: process.env.COMPANY_NAME || 'Quotation System',
-            email: 'noreply@yourdomain.com'
+            email: process.env.EMAIL_FROM || process.env.GMAIL_USER || ''
           },
           to: [{ email: options.to }],
           subject: options.subject,

@@ -123,6 +123,17 @@ export async function POST(request: NextRequest) {
 
         const emailSubject = subject || generateDefaultEmailSubject(quotation.quotation_number, locale as 'zh' | 'en')
 
+        if (!process.env.NEXT_PUBLIC_APP_URL) {
+          results.push({
+            id,
+            quotation_number: quotation.quotation_number,
+            status: 'failed',
+            error: 'NEXT_PUBLIC_APP_URL environment variable is not configured',
+          })
+          failedCount++
+          continue
+        }
+
         const emailHTML = content || generateQuotationEmailHTML({
           locale: locale as 'zh' | 'en',
           quotationNumber: quotation.quotation_number,
@@ -131,8 +142,8 @@ export async function POST(request: NextRequest) {
           validUntil: new Date(quotation.valid_until).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US'),
           currency: quotation.currency,
           total: quotation.total_amount,
-          viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/${locale}/quotations/${quotation.id}`,
-          companyName: process.env.COMPANY_NAME || 'Company',
+          viewUrl: `${process.env.NEXT_PUBLIC_APP_URL}/${locale}/quotations/${quotation.id}`,
+          companyName: process.env.COMPANY_NAME || '',
         })
 
         const emailResult = await emailService.sendEmail({

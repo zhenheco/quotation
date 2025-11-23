@@ -95,13 +95,13 @@ export async function POST(request: NextRequest) {
           : 'This is a test quotation email to verify that the system sending function is working properly.'
       },
       senderInfo: {
-        companyName: process.env.COMPANY_NAME || 'Test Company',
+        companyName: process.env.COMPANY_NAME || '',
         senderName: locale === 'zh' ? '系統管理員' : 'System Administrator',
-        senderEmail: process.env.GMAIL_USER || process.env.EMAIL_FROM || 'test@example.com'
+        senderEmail: process.env.GMAIL_USER || process.env.EMAIL_FROM || ''
       },
       urls: {
-        viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/${locale}/quotations/test`,
-        downloadUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/quotations/test/pdf`
+        viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/${locale}/quotations/test`,
+        downloadUrl: `${process.env.NEXT_PUBLIC_APP_URL || ''}/api/quotations/test/pdf`
       }
     }
 
