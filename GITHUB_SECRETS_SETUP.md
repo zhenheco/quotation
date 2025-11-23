@@ -125,3 +125,4 @@ https://github.com/zhenheco/quotation/actions
 - [ ] 推送 commit 測試自動部署
 - [ ] 確認 GitHub Actions 運行成功
 - [ ] 確認 Cloudflare Worker 已更新
+✅ GitHub Secrets 已自動設定完成 (2025-11-23)
