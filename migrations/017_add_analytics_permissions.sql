@@ -6,18 +6,17 @@
 -- ============================================================================
 
 -- 插入 analytics 權限
-INSERT INTO permissions (id, resource, action, name, description) VALUES
-  ('perm-analytics-read', 'analytics', 'read', 'analytics:read', 'View dashboard analytics and reports')
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO permissions (resource, action, name, description) VALUES
+  ('analytics', 'read', 'analytics:read', 'View dashboard analytics and reports')
+ON CONFLICT (resource, action) DO NOTHING;
 
 -- 授予以下角色 analytics:read 權限：
 -- - super_admin: 總管理員需要查看所有分析數據
 -- - company_owner: 公司負責人需要查看公司營運數據
 -- - sales_manager: 業務主管需要查看團隊績效和營收趨勢
 -- - accountant: 會計需要查看財務統計和收款數據
-INSERT INTO role_permissions (id, role_id, permission_id)
+INSERT INTO role_permissions (role_id, permission_id)
 SELECT
-  'rp-' || roles.name || '-analytics-read',
   roles.id,
   permissions.id
 FROM roles, permissions

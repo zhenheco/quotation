@@ -8,13 +8,13 @@
 -- 1. Create Missing Permissions (Contracts)
 -- ============================================================================
 
-INSERT INTO permissions (name, name_zh, name_en, category, description)
+INSERT INTO permissions (resource, action, name, description)
 VALUES
-  ('view_contracts', '查看合約', 'View Contracts', 'contract_management', 'View contract list and details'),
-  ('create_contracts', '建立合約', 'Create Contracts', 'contract_management', 'Create new contracts'),
-  ('edit_contracts', '編輯合約', 'Edit Contracts', 'contract_management', 'Edit contract information'),
-  ('delete_contracts', '刪除合約', 'Delete Contracts', 'contract_management', 'Delete contracts')
-ON CONFLICT (name) DO NOTHING;
+  ('contracts', 'read', 'contracts:read', 'View contract list and details'),
+  ('contracts', 'write', 'contracts:write', 'Create and edit contracts'),
+  ('contracts', 'delete', 'contracts:delete', 'Delete contracts'),
+  ('contracts', 'approve', 'contracts:approve', 'Approve contracts')
+ON CONFLICT (resource, action) DO NOTHING;
 
 -- ============================================================================
 -- 2. Assign All Permissions to company_owner Role
@@ -33,11 +33,10 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 -- 3. Assign company_owner Role to All Existing Users
 -- ============================================================================
 
-INSERT INTO user_roles (user_id, role_id, is_active)
+INSERT INTO user_roles (user_id, role_id)
 SELECT
   u.id,
-  r.id,
-  true
+  r.id
 FROM auth.users u
 CROSS JOIN roles r
 WHERE r.name = 'company_owner'

@@ -33,10 +33,30 @@ CREATE INDEX IF NOT EXISTS idx_payment_schedules_due_date ON payment_schedules(d
 CREATE INDEX IF NOT EXISTS idx_payment_schedules_status ON payment_schedules(status);
 CREATE INDEX IF NOT EXISTS idx_payment_schedules_user ON payment_schedules(user_id);
 
--- 2. 添加 customer_contracts 缺失的欄位
-ALTER TABLE customer_contracts ADD COLUMN next_collection_date TEXT;
-ALTER TABLE customer_contracts ADD COLUMN next_collection_amount REAL;
-ALTER TABLE customer_contracts ADD COLUMN quotation_id TEXT;
+-- 2. 添加 customer_contracts 缺失的欄位（如果不存在）
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'customer_contracts' AND column_name = 'next_collection_date'
+  ) THEN
+    ALTER TABLE customer_contracts ADD COLUMN next_collection_date TIMESTAMPTZ;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'customer_contracts' AND column_name = 'next_collection_amount'
+  ) THEN
+    ALTER TABLE customer_contracts ADD COLUMN next_collection_amount DECIMAL(15,2);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'customer_contracts' AND column_name = 'quotation_id'
+  ) THEN
+    ALTER TABLE customer_contracts ADD COLUMN quotation_id UUID REFERENCES quotations(id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 -- 3. 創建索引
 CREATE INDEX IF NOT EXISTS idx_customer_contracts_quotation ON customer_contracts(quotation_id);

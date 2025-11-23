@@ -229,7 +229,7 @@ CREATE INDEX idx_company_settings_user_id ON company_settings(user_id);
 ALTER TABLE products
   ADD COLUMN cost_price DECIMAL(12,2), -- Product cost (only visible to owner & accountant)
   ADD COLUMN cost_currency VARCHAR(3) DEFAULT 'TWD',
-  ADD COLUMN profit_margin DECIMAL(5,2), -- Auto-calculated: (base_price - cost_price) / cost_price * 100
+  ADD COLUMN profit_margin DECIMAL(5,2), -- Auto-calculated: (unit_price - cost_price) / cost_price * 100
   ADD COLUMN supplier VARCHAR(255), -- Supplier name
   ADD COLUMN supplier_code VARCHAR(100); -- Supplier product code
 
@@ -522,8 +522,8 @@ EXECUTE FUNCTION check_payment_overdue();
 CREATE OR REPLACE FUNCTION calculate_profit_margin()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.cost_price IS NOT NULL AND NEW.cost_price > 0 AND NEW.base_price IS NOT NULL THEN
-    NEW.profit_margin := ((NEW.base_price - NEW.cost_price) / NEW.cost_price * 100);
+  IF NEW.cost_price IS NOT NULL AND NEW.cost_price > 0 AND NEW.unit_price IS NOT NULL THEN
+    NEW.profit_margin := ((NEW.unit_price - NEW.cost_price) / NEW.cost_price * 100);
   ELSE
     NEW.profit_margin := NULL;
   END IF;
@@ -533,7 +533,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trigger_calculate_profit_margin
-BEFORE INSERT OR UPDATE OF cost_price, base_price ON products
+BEFORE INSERT OR UPDATE OF cost_price, unit_price ON products
 FOR EACH ROW
 EXECUTE FUNCTION calculate_profit_margin();
 
@@ -594,9 +594,9 @@ JOIN permissions p ON rp.permission_id = p.id;
 CREATE OR REPLACE VIEW overdue_payments AS
 SELECT
   ps.*,
-  c.company_name_zh,
-  c.company_name_en,
-  c.contact_person,
+  c.name->>'zh' as company_name_zh,
+  c.name->>'en' as company_name_en,
+  c.contact_person->>'zh' as contact_person,
   CURRENT_DATE - ps.due_date as days_overdue
 FROM payment_schedules ps
 JOIN customers c ON ps.customer_id = c.id
@@ -607,9 +607,9 @@ ORDER BY ps.due_date ASC;
 CREATE OR REPLACE VIEW upcoming_payments AS
 SELECT
   ps.*,
-  c.company_name_zh,
-  c.company_name_en,
-  c.contact_person,
+  c.name->>'zh' as company_name_zh,
+  c.name->>'en' as company_name_en,
+  c.contact_person->>'zh' as contact_person,
   ps.due_date - CURRENT_DATE as days_until_due
 FROM payment_schedules ps
 JOIN customers c ON ps.customer_id = c.id
@@ -622,21 +622,19 @@ CREATE OR REPLACE VIEW product_profitability AS
 SELECT
   p.id,
   p.user_id,
-  p.product_number,
-  p.name_zh,
-  p.name_en,
-  p.base_price,
+  p.sku as product_number,
+  p.name,
+  p.unit_price,
   p.currency,
   p.cost_price,
   p.cost_currency,
   p.profit_margin,
   CASE
     WHEN p.cost_price IS NOT NULL AND p.cost_price > 0
-    THEN p.base_price - p.cost_price
+    THEN p.unit_price - p.cost_price
     ELSE NULL
   END as profit_amount,
-  p.category,
-  p.is_active
+  p.category
 FROM products p
 WHERE p.cost_price IS NOT NULL;
 

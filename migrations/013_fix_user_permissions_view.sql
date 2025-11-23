@@ -13,14 +13,14 @@ SELECT
   ur.user_id,
   r.name as role_name,
   r.level as role_level,
+  p.resource,
+  p.action,
   p.name as permission_name,
-  p.category,
   p.description
 FROM user_roles ur
 JOIN roles r ON ur.role_id = r.id
 JOIN role_permissions rp ON r.id = rp.role_id
-JOIN permissions p ON rp.permission_id = p.id
-WHERE ur.is_active = true;
+JOIN permissions p ON rp.permission_id = p.id;
 
 -- ============================================================================
 -- MIGRATION COMPLETE

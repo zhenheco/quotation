@@ -28,46 +28,60 @@ try {
   console.warn('⚠️  無法讀取 .env.local，使用現有環境變數');
 }
 
-import { query } from '../lib/db/zeabur';
+import { Pool } from 'pg';
+import { readdirSync } from 'fs';
+
+// 使用 Direct URL（支援 DDL migrations）
+const connectionString = process.env.SUPABASE_DB_URL;
+
+console.log('🔗 連接資料庫...');
+console.log(`   使用: Direct URL`);
+
+const pool = new Pool({
+  connectionString,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 async function runMigration() {
+  const client = await pool.connect();
+
   try {
-    console.log('🚀 開始執行 migration...\n');
+    console.log('🚀 開始執行所有 migrations...\n');
 
-    // 讀取 migration 檔案
-    const migrationPath = join(
-      process.cwd(),
-      'migrations',
-      '004_contracts_and_payments_enhancement.sql'
-    );
+    // 獲取所有 migration 檔案（按順序）
+    const migrationFiles = readdirSync(join(process.cwd(), 'migrations'))
+      .filter(f => f.endsWith('.sql'))
+      .sort();
 
-    console.log(`📄 讀取檔案: ${migrationPath}`);
-    const sql = readFileSync(migrationPath, 'utf-8');
+    console.log(`📄 找到 ${migrationFiles.length} 個 migration 檔案\n`);
 
-    // 執行 SQL
-    console.log('⚙️  執行 SQL...');
-    await query(sql);
+    for (const file of migrationFiles) {
+      const migrationPath = join(process.cwd(), 'migrations', file);
+      console.log(`⚙️  執行: ${file}`);
 
-    console.log('\n✅ Migration 執行成功！');
-    console.log('\n📊 已新增/修改的內容：');
-    console.log('  • quotations 表：新增合約和收款欄位');
-    console.log('  • customer_contracts 表：新增下次應收資訊');
-    console.log('  • payments 表：新增付款頻率和逾期追蹤');
-    console.log('  • payment_schedules 表：新增逾期和提醒欄位');
-    console.log('  • 5 個自動化觸發器');
-    console.log('  • 4 個資料庫函式');
-    console.log('  • 3 個實用視圖');
-    console.log('  • 14 個效能索引');
+      const sql = readFileSync(migrationPath, 'utf-8');
 
-    console.log('\n📝 下一步：');
-    console.log('  1. 執行測試: npm run test:migration');
-    console.log('  2. 查看使用指南: docs/PAYMENT_COLLECTION_USAGE.md');
-    console.log('  3. 開始開發 API 端點');
+      try {
+        await client.query(sql);
+        console.log(`   ✅ ${file} 完成`);
+      } catch (err) {
+        console.error(`   ❌ ${file} 失敗:`, err);
+        throw err;
+      }
+    }
+
+    console.log('\n✅ 所有 migrations 執行成功！');
+    console.log(`\n📊 已執行 ${migrationFiles.length} 個 migration 檔案`);
 
   } catch (error) {
     console.error('\n❌ Migration 執行失敗：');
     console.error(error);
     process.exit(1);
+  } finally {
+    client.release();
+    await pool.end();
   }
 }
 

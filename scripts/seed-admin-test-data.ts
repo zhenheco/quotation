@@ -4,7 +4,40 @@
  * 建立測試用的公司、使用者、角色關係
  */
 
-import { query } from '../lib/db/zeabur';
+import { createClient } from '@supabase/supabase-js';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// 載入環境變數
+try {
+  const envFile = readFileSync(join(process.cwd(), '.env.local'), 'utf-8');
+  envFile.split('\n').forEach(line => {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match) {
+      const key = match[1].trim();
+      let value = match[2].trim();
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      process.env[key] = value;
+    }
+  });
+} catch (error) {
+  console.warn('⚠️  無法讀取 .env.local');
+}
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+async function query(sql: string, params?: unknown[]) {
+  // 簡單的 query wrapper
+  const { data, error } = await supabase.rpc('exec_sql', { query: sql });
+  if (error) throw error;
+  return { rows: data };
+}
 
 interface TestUser {
   email: string;

@@ -182,6 +182,27 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     }
   }, [existingQuotation, customers, locale])
 
+  // 載入現有付款條款（編輯模式）
+  useEffect(() => {
+    if (!quotationId || !isEditMode) return
+
+    const fetchPaymentTerms = async () => {
+      try {
+        const response = await fetch(`/api/quotations/${quotationId}/payment-terms`)
+        if (response.ok) {
+          const data: { payment_terms?: PaymentTerm[] } = await response.json()
+          if (data.payment_terms && data.payment_terms.length > 0) {
+            setPaymentTerms(data.payment_terms)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch payment terms:', error)
+      }
+    }
+
+    fetchPaymentTerms()
+  }, [quotationId, isEditMode])
+
   // 合約檔案處理
   const handleContractFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
