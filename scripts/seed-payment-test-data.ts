@@ -60,21 +60,78 @@ async function seedPaymentTestData() {
   console.log('🌱 開始建立收款管理測試資料...\n')
 
   try {
-    // 查詢現有使用者（使用第一個管理員用戶）
-    const { data: users, error: userError } = await supabase
-      .from('user_profiles')
-      .select('user_id')
-      .eq('is_active', true)
-      .limit(1)
+    let userId: string | null = null
 
-    if (userError || !users || users.length === 0) {
-      console.error('❌ 找不到活躍的使用者，請先建立使用者資料')
-      console.error('   提示：執行 pnpm run seed 或 pnpm run seed:admin')
-      process.exit(1)
+    // 方法 1: 使用環境變數指定的 user_id（優先）
+    if (process.env.TEST_USER_ID) {
+      userId = process.env.TEST_USER_ID
+      console.log(`✅ 使用環境變數指定的使用者 ID: ${userId}`)
+      console.log()
+    } else {
+      // 方法 2: 嘗試從 user_profiles 表查詢
+      const { data: users } = await supabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('is_active', true)
+        .limit(1)
+
+      if (users && users.length > 0) {
+        userId = users[0].user_id
+        console.log(`✅ 從 user_profiles 取得使用者 ID: ${userId}`)
+        console.log()
+      } else {
+        // 方法 3: 從 Supabase Auth 查詢所有使用者
+        console.log('⚠️  user_profiles 表中無資料，嘗試從 Auth 查詢...')
+
+        const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers()
+
+        if (authError) {
+          console.error('❌ 無法查詢 Auth 使用者:', authError.message)
+          console.error()
+          console.error('💡 解決方案：')
+          console.error('   1. 使用環境變數指定 user_id：')
+          console.error('      export TEST_USER_ID="your-user-id-here"')
+          console.error('      pnpm run seed:payments')
+          console.error()
+          console.error('   2. 或先登入系統：https://quotation.zhenhe-dm.com')
+          console.error('      系統會自動建立 user_profile 記錄')
+          process.exit(1)
+        }
+
+        if (!authUsers || authUsers.length === 0) {
+          console.error('❌ 找不到任何使用者')
+          console.error()
+          console.error('💡 解決方案：')
+          console.error('   1. 請先登入系統：https://quotation.zhenhe-dm.com')
+          console.error('   2. 或使用環境變數指定測試用 user_id：')
+          console.error('      export TEST_USER_ID="your-user-id-here"')
+          console.error('      pnpm run seed:payments')
+          process.exit(1)
+        }
+
+        // 使用第一個使用者
+        userId = authUsers[0].id
+        console.log(`✅ 從 Auth 取得使用者 ID: ${userId}`)
+        console.log(`   Email: ${authUsers[0].email}`)
+
+        // 自動建立 user_profile（如果不存在）
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .upsert({
+            user_id: userId,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+
+        if (profileError) {
+          console.warn('⚠️  無法建立 user_profile:', profileError.message)
+        } else {
+          console.log('✅ 已自動建立 user_profile')
+        }
+        console.log()
+      }
     }
-
-    const userId = users[0].user_id
-    console.log(`✅ 使用者 ID: ${userId}\n`)
 
     // ========== 1. 建立測試客戶 ==========
     console.log('📦 建立 3 個測試客戶...')
