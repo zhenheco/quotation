@@ -29,11 +29,6 @@
       "binding": "ANALYTICS"
     }
   ],
-  "triggers": {
-    "crons": [
-      "0 0 * * *"
-    ]
-  },
   // Workers Observability - Logs and Traces
   "observability": {
     "enabled": false,
