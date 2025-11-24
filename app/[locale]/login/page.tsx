@@ -2,20 +2,15 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import LoginButton from './LoginButton'
-import EmailLoginForm from './EmailLoginForm'
-import LoginTabs from './LoginTabs'
 
 export const dynamic = 'force-dynamic'
 
 export default async function LoginPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ registered?: string }>
 }) {
   const { locale } = await params
-  const { registered } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -43,21 +38,14 @@ export default async function LoginPage({
           </p>
         </div>
 
-        {/* 註冊成功提示 */}
-        {registered === 'true' && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm text-green-800 text-center">
-              {t('registrationSuccessNotice')}
-            </p>
-          </div>
-        )}
-
         {/* 登入卡片 */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-          <LoginTabs
-            googleTab={<LoginButton locale={locale} />}
-            emailTab={<EmailLoginForm locale={locale} />}
-          />
+          <div className="flex flex-col items-center justify-center">
+            <LoginButton locale={locale} />
+            <p className="mt-6 text-sm text-gray-500 text-center max-w-sm">
+              {t('googleLoginDescription')}
+            </p>
+          </div>
         </div>
 
         {/* 底部信息 */}

@@ -28,7 +28,7 @@ export default async function TermsPage({
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8 md:p-12">
         <div className="mb-8">
           <a
-            href={`/${locale}/register`}
+            href={`/${locale}/login`}
             className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6"
           >
             <svg
@@ -44,7 +44,7 @@ export default async function TermsPage({
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            {t('backToRegister')}
+            {t('backToLogin')}
           </a>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             {t('heading')}
@@ -146,16 +146,10 @@ export default async function TermsPage({
         </div>
 
         <div className="mt-8 pt-8 border-t border-gray-200">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <a
-              href={`/${locale}/register`}
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {t('acceptAndRegister')}
-            </a>
+          <div className="flex justify-center">
             <a
               href={`/${locale}/login`}
-              className="text-gray-600 hover:text-gray-800"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               {t('backToLogin')}
             </a>
