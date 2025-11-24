@@ -1,0 +1,242 @@
+/* 列印專用樣式 - 優化 A4 紙張輸出 */
+@media print {
+  /* 隱藏不需要列印的元素 */
+  .no-print,
+  nav,
+  aside,
+  header,
+  footer,
+  .sidebar,
+  button,
+  .action-buttons,
+  .navigation,
+  [role="navigation"],
+  .print-hide {
+    display: none !important;
+  }
+
+  /* 確保主內容區域占滿全寬 */
+  main {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 頁面設定 */
+  @page {
+    size: A4;
+    margin: 1.5cm 1cm;
+  }
+
+  /* 重設基本樣式 */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    color: black !important;
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+
+  /* 移除背景色和陰影 */
+  .card,
+  .shadow,
+  .bg-white,
+  .bg-gray-50,
+  .bg-blue-50 {
+    background: white !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* 表格樣式 */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: avoid;
+    margin-bottom: 1em;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tbody {
+    display: table-row-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th,
+  td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f5f5f5 !important;
+    font-weight: bold;
+  }
+
+  /* 避免分頁截斷 */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+
+  .quotation-header,
+  .customer-info,
+  .company-info,
+  .quotation-summary {
+    page-break-inside: avoid;
+  }
+
+  /* 項目列表 */
+  .quotation-items {
+    page-break-inside: avoid;
+  }
+
+  /* 總計區塊 */
+  .total-section {
+    page-break-inside: avoid;
+    margin-top: 1em;
+    border-top: 2px solid #000;
+    padding-top: 0.5em;
+  }
+
+  /* 備註區塊 */
+  .notes-section {
+    page-break-inside: avoid;
+    margin-top: 1em;
+    padding: 0.5em;
+    border: 1px solid #ddd;
+  }
+
+  /* 確保圖片不超出頁面 */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
+  }
+
+  /* Logo 和簽章優化 */
+  .company-logo {
+    max-width: 150px !important;
+    height: auto;
+    page-break-inside: avoid;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  .signature {
+    max-width: 120px !important;
+    height: auto;
+    page-break-inside: avoid;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  /* 品牌標題區域不分頁 */
+  .company-branding,
+  .quotation-header {
+    page-break-inside: avoid;
+    page-break-after: avoid;
+  }
+
+  /* 總計和簽章區域不分頁 */
+  .signature-section {
+    page-break-inside: avoid;
+  }
+
+  /* 確保公司資訊清晰可見 */
+  .company-info {
+    color: #000 !important;
+  }
+
+  /* 連結顯示 URL */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* 隱藏不必要的連結 URL */
+  a[href^="#"]:after,
+  a[href^="javascript:"]:after {
+    content: "";
+  }
+
+  /* 頁首頁尾 */
+  .print-header,
+  .print-footer {
+    display: block;
+  }
+
+  /* 強制顯示需要列印的元素 */
+  .print-show {
+    display: block !important;
+  }
+
+  /* 調整字體大小 */
+  .text-sm {
+    font-size: 9pt;
+  }
+
+  .text-base {
+    font-size: 10pt;
+  }
+
+  .text-lg {
+    font-size: 12pt;
+  }
+
+  .text-xl {
+    font-size: 14pt;
+  }
+
+  .text-2xl {
+    font-size: 16pt;
+  }
+
+  /* 保留重要的顏色 */
+  .text-red-600,
+  .text-danger {
+    color: #dc2626 !important;
+  }
+
+  .text-green-600,
+  .text-success {
+    color: #16a34a !important;
+  }
+
+  /* Tailwind 重設 */
+  .container {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  /* 確保內容可見 */
+  .opacity-0 {
+    opacity: 1 !important;
+  }
+
+  .hidden {
+    display: block !important;
+  }
+
+  /* 但保持 no-print 隱藏 */
+  .no-print {
+    display: none !important;
+  }
+}

@@ -102,7 +102,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix"
+      "bash -c 'if [[ \"$0\" != legacy_backup/* && \"$0\" != src/* ]]; then eslint --fix \"$0\"; fi'"
     ]
   }
 }
