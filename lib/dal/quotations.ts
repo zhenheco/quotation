@@ -3,6 +3,8 @@
  */
 
 import { D1Client } from '@/lib/db/d1-client'
+import type { BrandColors } from '@/types/brand.types'
+import { DEFAULT_BRAND_COLORS } from '@/types/brand.types'
 
 interface QuotationRow {
   id: string
@@ -28,10 +30,17 @@ interface QuotationRow {
 interface CompanyBrandingRow {
   company_logo_url: string | null
   company_signature_url: string | null
+  company_passbook_url: string | null
   company_name: string
   company_tax_id: string | null
   company_phone: string | null
   company_email: string | null
+  company_website: string | null
+  company_address: string | null
+  company_bank_name: string | null
+  company_bank_code: string | null
+  company_bank_account: string | null
+  company_brand_colors: string | null
 }
 
 interface QuotationItemRow {
@@ -71,10 +80,17 @@ export interface Quotation {
 export interface QuotationWithCompany extends Quotation {
   company_logo_url: string | null
   company_signature_url: string | null
+  company_passbook_url: string | null
   company_name: { zh: string; en: string }
   company_tax_id: string | null
   company_phone: string | null
   company_email: string | null
+  company_website: string | null
+  company_address: { zh: string; en: string } | null
+  company_bank_name: string | null
+  company_bank_code: string | null
+  company_bank_account: string | null
+  company_brand_colors: BrandColors
 }
 
 export interface QuotationItem {
@@ -167,10 +183,17 @@ export async function getQuotationById(
       q.*,
       c.logo_url as company_logo_url,
       c.signature_url as company_signature_url,
+      c.passbook_url as company_passbook_url,
       c.name as company_name,
       c.tax_id as company_tax_id,
       c.phone as company_phone,
-      c.email as company_email
+      c.email as company_email,
+      c.website as company_website,
+      c.address as company_address,
+      c.bank_name as company_bank_name,
+      c.bank_code as company_bank_code,
+      c.bank_account as company_bank_account,
+      c.brand_colors as company_brand_colors
     FROM quotations q
     LEFT JOIN companies c ON q.company_id = c.id
     WHERE q.id = ? AND q.user_id = ?
@@ -182,14 +205,39 @@ export async function getQuotationById(
 
   const quotation = parseQuotationRow(row)
 
+  let brandColors: BrandColors = DEFAULT_BRAND_COLORS
+  if (row.company_brand_colors) {
+    try {
+      brandColors = JSON.parse(row.company_brand_colors) as BrandColors
+    } catch {
+      console.warn(`Invalid JSON in companies.brand_colors`)
+    }
+  }
+
+  let companyAddress: { zh: string; en: string } | null = null
+  if (row.company_address) {
+    try {
+      companyAddress = JSON.parse(row.company_address) as { zh: string; en: string }
+    } catch {
+      companyAddress = { zh: row.company_address, en: row.company_address }
+    }
+  }
+
   return {
     ...quotation,
     company_logo_url: row.company_logo_url,
     company_signature_url: row.company_signature_url,
+    company_passbook_url: row.company_passbook_url,
     company_name: row.company_name ? JSON.parse(row.company_name) as { zh: string; en: string } : { zh: '', en: '' },
     company_tax_id: row.company_tax_id,
     company_phone: row.company_phone,
     company_email: row.company_email,
+    company_website: row.company_website,
+    company_address: companyAddress,
+    company_bank_name: row.company_bank_name,
+    company_bank_code: row.company_bank_code,
+    company_bank_account: row.company_bank_account,
+    company_brand_colors: brandColors,
   }
 }
 

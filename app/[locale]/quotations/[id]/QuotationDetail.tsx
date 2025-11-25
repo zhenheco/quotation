@@ -11,6 +11,9 @@ import {
 import { toast } from 'sonner'
 import './print.css'
 import { safeToLocaleString } from '@/lib/utils/formatters'
+import { PDFDownloadButton } from '@/components/pdf/PDFDownloadButton'
+import type { PDFCompany, PDFQuotation, PDFCustomer } from '@/lib/pdf/types'
+import { DEFAULT_BRAND_COLORS } from '@/types/brand.types'
 
 interface QuotationDetailProps {
   quotationId: string
@@ -38,6 +41,91 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
   const handlePrint = () => {
     window.print()
   }
+
+  const getPDFData = (): { company: PDFCompany; quotation: PDFQuotation } | null => {
+    if (!quotation) return null
+
+    const q = quotation as {
+      company_logo_url?: string | null
+      company_signature_url?: string | null
+      company_passbook_url?: string | null
+      company_name?: { zh: string; en: string }
+      company_tax_id?: string | null
+      company_phone?: string | null
+      company_email?: string | null
+      company_website?: string | null
+      company_address?: { zh: string; en: string } | null
+      company_bank_name?: string | null
+      company_bank_code?: string | null
+      company_bank_account?: string | null
+      company_brand_colors?: { primary: string; secondary: string; text: string }
+      customer_name?: { zh: string; en: string }
+      payment_method?: string
+      payment_notes?: string
+      items?: Array<{
+        id: string
+        description: { zh: string; en: string }
+        quantity: number
+        unit_price: number
+        discount: number
+        subtotal: number
+      }>
+    }
+
+    const customer: PDFCustomer = {
+      name: q.customer_name?.[locale as 'zh' | 'en'] || quotation.customer_id,
+      email: null,
+      phone: null,
+      address: null,
+      tax_id: null,
+      contact_person: null,
+    }
+
+    const company: PDFCompany = {
+      name: q.company_name || { zh: '', en: '' },
+      logo_url: q.company_logo_url || null,
+      signature_url: q.company_signature_url || null,
+      passbook_url: q.company_passbook_url || null,
+      tax_id: q.company_tax_id || null,
+      bank_name: q.company_bank_name || null,
+      bank_account: q.company_bank_account || null,
+      bank_code: q.company_bank_code || null,
+      address: q.company_address || null,
+      phone: q.company_phone || null,
+      email: q.company_email || null,
+      website: q.company_website || null,
+      brand_colors: q.company_brand_colors || DEFAULT_BRAND_COLORS,
+    }
+
+    const pdfQuotation: PDFQuotation = {
+      quotation_number: quotation.quotation_number,
+      status: quotation.status,
+      issue_date: quotation.issue_date,
+      valid_until: quotation.valid_until,
+      currency: quotation.currency,
+      subtotal: quotation.subtotal,
+      tax_rate: quotation.tax_rate,
+      tax_amount: quotation.tax_amount,
+      total_amount: quotation.total_amount,
+      notes: quotation.notes as { zh: string; en: string } | null,
+      payment_method: q.payment_method || null,
+      payment_notes: q.payment_notes || null,
+      customer,
+      items: (q.items || []).map((item) => ({
+        description: typeof item.description === 'string'
+          ? { zh: item.description, en: item.description }
+          : item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        discount: item.discount,
+        subtotal: item.subtotal,
+      })),
+    }
+
+    return { company, quotation: pdfQuotation }
+  }
+
+  const pdfData = getPDFData()
 
 
   // 載入狀態
@@ -158,6 +246,13 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
               </svg>
               {t('common.edit')}
             </button>
+            {pdfData && (
+              <PDFDownloadButton
+                quotation={pdfData.quotation}
+                company={pdfData.company}
+                variant="default"
+              />
+            )}
             <button
               onClick={handlePrint}
               className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2 cursor-pointer"

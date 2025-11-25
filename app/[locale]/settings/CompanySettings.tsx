@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { BrandColorPicker } from '@/components/ui/BrandColorPicker';
+import type { BrandColors } from '@/types/brand.types';
+import { DEFAULT_BRAND_COLORS } from '@/types/brand.types';
 
 interface Company {
   id: string;
@@ -24,6 +27,7 @@ interface Company {
   phone?: string;
   email?: string;
   website?: string;
+  brand_colors?: BrandColors;
 }
 
 interface CompanySettingsProps {
@@ -93,7 +97,8 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
       setSelectedCompany({
         id: '',
         name: { zh: '', en: '' },
-        address: { zh: '', en: '' }
+        address: { zh: '', en: '' },
+        brand_colors: DEFAULT_BRAND_COLORS
       });
     }
   }, [triggerCreate]);
@@ -116,7 +121,8 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
         website: selectedCompany.website,
         logo_url: selectedCompany.logo_url,
         signature_url: selectedCompany.signature_url,
-        passbook_url: selectedCompany.passbook_url
+        passbook_url: selectedCompany.passbook_url,
+        brand_colors: selectedCompany.brand_colors
       };
 
       let response;
@@ -507,6 +513,23 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                 />
               </div>
             </div>
+          </div>
+
+          {/* Brand Colors */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium mb-4">
+              {locale === 'zh' ? '品牌顏色' : 'Brand Colors'}
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {locale === 'zh'
+                ? '選擇用於報價單 PDF 和電子郵件的品牌顏色'
+                : 'Choose brand colors for quotation PDFs and emails'}
+            </p>
+            <BrandColorPicker
+              value={selectedCompany.brand_colors || DEFAULT_BRAND_COLORS}
+              onChange={(colors) => setSelectedCompany({ ...selectedCompany, brand_colors: colors })}
+              locale={locale}
+            />
           </div>
 
           {/* File Uploads */}

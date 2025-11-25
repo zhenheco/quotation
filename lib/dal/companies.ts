@@ -3,6 +3,8 @@
  */
 
 import { D1Client } from '@/lib/db/d1-client'
+import type { BrandColors } from '@/types/brand.types'
+import { DEFAULT_BRAND_COLORS } from '@/types/brand.types'
 
 export interface Company {
   id: string
@@ -18,6 +20,7 @@ export interface Company {
   phone: string | null
   email: string | null
   website: string | null
+  brand_colors: BrandColors
   created_at: string
   updated_at: string
 }
@@ -36,6 +39,7 @@ interface CompanyRow {
   phone: string | null
   email: string | null
   website: string | null
+  brand_colors: string | null
   created_at: string
   updated_at: string
 }
@@ -44,7 +48,6 @@ function parseCompanyRow(row: CompanyRow): Company {
   let name: { zh: string; en: string }
   try {
     name = JSON.parse(row.name)
-    // 確保 name 有正確的結構
     if (!name || typeof name !== 'object') {
       name = { zh: '', en: '' }
     }
@@ -65,10 +68,27 @@ function parseCompanyRow(row: CompanyRow): Company {
     }
   }
 
+  let brand_colors: BrandColors = DEFAULT_BRAND_COLORS
+  if (row.brand_colors) {
+    try {
+      const parsed = JSON.parse(row.brand_colors)
+      if (parsed && typeof parsed === 'object') {
+        brand_colors = {
+          primary: parsed.primary || DEFAULT_BRAND_COLORS.primary,
+          secondary: parsed.secondary || DEFAULT_BRAND_COLORS.secondary,
+          text: parsed.text || DEFAULT_BRAND_COLORS.text,
+        }
+      }
+    } catch {
+      brand_colors = DEFAULT_BRAND_COLORS
+    }
+  }
+
   return {
     ...row,
     name,
-    address
+    address,
+    brand_colors,
   }
 }
 
@@ -168,6 +188,11 @@ export async function updateCompany(
   if (data.address !== undefined) {
     updates.push('address = ?')
     params.push(data.address ? JSON.stringify(data.address) : null)
+  }
+
+  if (data.brand_colors !== undefined) {
+    updates.push('brand_colors = ?')
+    params.push(data.brand_colors ? JSON.stringify(data.brand_colors) : null)
   }
 
   const simpleFields = [

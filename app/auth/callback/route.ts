@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getD1Client } from '@/lib/db/d1-client'
+import { getUserRoles, assignRoleToUser, getRoleByName } from '@/lib/dal/rbac'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -10,12 +13,27 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      // 獲取用戶資訊
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
-        // 用戶資訊已由 Supabase Auth 管理，不需要額外的資料庫操作
         console.log(`✅ User logged in: ${user.email}`)
+
+        try {
+          const { env } = await getCloudflareContext()
+          const db = getD1Client(env)
+
+          const userRoles = await getUserRoles(db, user.id)
+
+          if (userRoles.length === 0) {
+            const superAdminRole = await getRoleByName(db, 'super_admin')
+            if (superAdminRole) {
+              await assignRoleToUser(db, user.id, superAdminRole.id)
+              console.log(`✅ Assigned super_admin role to user: ${user.email}`)
+            }
+          }
+        } catch (roleError) {
+          console.error('Failed to check/assign user roles:', roleError)
+        }
       }
 
       const forwardedHost = request.headers.get('x-forwarded-host')
