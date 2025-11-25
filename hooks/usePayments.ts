@@ -476,52 +476,61 @@ export function useMarkScheduleAsCollected() {
     mutationFn: ({ scheduleId, input }: { scheduleId: string; input: MarkCollectedInput }) =>
       markScheduleAsCollected(scheduleId, input),
     onMutate: async ({ scheduleId }) => {
-      await queryClient.cancelQueries({ queryKey: ['payments', 'current-month-receivables'] })
+      await queryClient.cancelQueries({ queryKey: ['payments', 'current-month-receivables'], exact: false })
 
-      const previousData = queryClient.getQueryData(['payments', 'current-month-receivables'])
-
-      queryClient.setQueryData<{
+      type QueryData = {
         receivables: CurrentMonthReceivable[]
         summary: CurrentMonthReceivablesSummary
-      }>(['payments', 'current-month-receivables'], (old) => {
-        if (!old) return old
+      }
 
-        const updatedReceivables = old.receivables.map(item =>
-          item.id === scheduleId
-            ? { ...item, status: 'paid' as const, paid_date: new Date().toISOString() }
-            : item
-        )
+      const allQueries = queryClient.getQueriesData<QueryData>({
+        queryKey: ['payments', 'current-month-receivables'],
+        exact: false
+      })
 
-        const paidCount = updatedReceivables.filter(r => r.status === 'paid').length
-        const pendingCount = updatedReceivables.filter(r => r.status === 'pending').length
-        const overdueCount = updatedReceivables.filter(r => r.status === 'overdue').length
-        const paidAmount = updatedReceivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0)
-        const pendingAmount = updatedReceivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0)
-        const overdueAmount = updatedReceivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0)
+      const previousDataMap = new Map<readonly unknown[], QueryData | undefined>()
+      allQueries.forEach(([key, data]) => {
+        previousDataMap.set(key, data)
+        if (data) {
+          const updatedReceivables = data.receivables.map(item =>
+            item.id === scheduleId
+              ? { ...item, status: 'paid' as const, paid_date: new Date().toISOString() }
+              : item
+          )
 
-        return {
-          receivables: updatedReceivables,
-          summary: {
-            ...old.summary,
-            paid_count: paidCount,
-            pending_count: pendingCount,
-            overdue_count: overdueCount,
-            paid_amount: paidAmount,
-            pending_amount: pendingAmount,
-            overdue_amount: overdueAmount,
-          },
+          const paidCount = updatedReceivables.filter(r => r.status === 'paid').length
+          const pendingCount = updatedReceivables.filter(r => r.status === 'pending').length
+          const overdueCount = updatedReceivables.filter(r => r.status === 'overdue').length
+          const paidAmount = updatedReceivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0)
+          const pendingAmount = updatedReceivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0)
+          const overdueAmount = updatedReceivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0)
+
+          queryClient.setQueryData<QueryData>(key, {
+            receivables: updatedReceivables,
+            summary: {
+              ...data.summary,
+              paid_count: paidCount,
+              pending_count: pendingCount,
+              overdue_count: overdueCount,
+              paid_amount: paidAmount,
+              pending_amount: pendingAmount,
+              overdue_amount: overdueAmount,
+            },
+          })
         }
       })
 
-      return { previousData }
+      return { previousDataMap }
     },
     onError: (_err, _variables, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['payments', 'current-month-receivables'], context.previousData)
+      if (context?.previousDataMap) {
+        context.previousDataMap.forEach((data, key) => {
+          if (data) queryClient.setQueryData(key, data)
+        })
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments', 'current-month-receivables'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'current-month-receivables'], exact: false })
       queryClient.invalidateQueries({ queryKey: ['payments', 'statistics'] })
       queryClient.invalidateQueries({ queryKey: ['payments', 'collected'] })
       queryClient.invalidateQueries({ queryKey: ['payments', 'unpaid'] })
@@ -536,55 +545,64 @@ export function useUpdatePaymentSchedule() {
     mutationFn: ({ scheduleId, input }: { scheduleId: string; input: UpdatePaymentScheduleInput }) =>
       updatePaymentSchedule(scheduleId, input),
     onMutate: async ({ scheduleId, input }) => {
-      await queryClient.cancelQueries({ queryKey: ['payments', 'current-month-receivables'] })
+      await queryClient.cancelQueries({ queryKey: ['payments', 'current-month-receivables'], exact: false })
 
-      const previousData = queryClient.getQueryData(['payments', 'current-month-receivables'])
-
-      queryClient.setQueryData<{
+      type QueryData = {
         receivables: CurrentMonthReceivable[]
         summary: CurrentMonthReceivablesSummary
-      }>(['payments', 'current-month-receivables'], (old) => {
-        if (!old) return old
+      }
 
-        const validStatus = input.status === 'cancelled' ? 'pending' : input.status
-        const safeInput = { ...input, status: validStatus } as Partial<CurrentMonthReceivable>
+      const allQueries = queryClient.getQueriesData<QueryData>({
+        queryKey: ['payments', 'current-month-receivables'],
+        exact: false
+      })
 
-        const updatedReceivables = old.receivables.map(item =>
-          item.id === scheduleId
-            ? { ...item, ...safeInput } as CurrentMonthReceivable
-            : item
-        )
+      const previousDataMap = new Map<readonly unknown[], QueryData | undefined>()
+      allQueries.forEach(([key, data]) => {
+        previousDataMap.set(key, data)
+        if (data) {
+          const validStatus = input.status === 'cancelled' ? 'pending' : input.status
+          const safeInput = { ...input, status: validStatus } as Partial<CurrentMonthReceivable>
 
-        const paidCount = updatedReceivables.filter(r => r.status === 'paid').length
-        const pendingCount = updatedReceivables.filter(r => r.status === 'pending').length
-        const overdueCount = updatedReceivables.filter(r => r.status === 'overdue').length
-        const paidAmount = updatedReceivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0)
-        const pendingAmount = updatedReceivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0)
-        const overdueAmount = updatedReceivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0)
+          const updatedReceivables = data.receivables.map(item =>
+            item.id === scheduleId
+              ? { ...item, ...safeInput } as CurrentMonthReceivable
+              : item
+          )
 
-        return {
-          receivables: updatedReceivables,
-          summary: {
-            ...old.summary,
-            paid_count: paidCount,
-            pending_count: pendingCount,
-            overdue_count: overdueCount,
-            paid_amount: paidAmount,
-            pending_amount: pendingAmount,
-            overdue_amount: overdueAmount,
-          },
+          const paidCount = updatedReceivables.filter(r => r.status === 'paid').length
+          const pendingCount = updatedReceivables.filter(r => r.status === 'pending').length
+          const overdueCount = updatedReceivables.filter(r => r.status === 'overdue').length
+          const paidAmount = updatedReceivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0)
+          const pendingAmount = updatedReceivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0)
+          const overdueAmount = updatedReceivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0)
+
+          queryClient.setQueryData<QueryData>(key, {
+            receivables: updatedReceivables,
+            summary: {
+              ...data.summary,
+              paid_count: paidCount,
+              pending_count: pendingCount,
+              overdue_count: overdueCount,
+              paid_amount: paidAmount,
+              pending_amount: pendingAmount,
+              overdue_amount: overdueAmount,
+            },
+          })
         }
       })
 
-      return { previousData }
+      return { previousDataMap }
     },
     onError: (_err, _variables, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['payments', 'current-month-receivables'], context.previousData)
+      if (context?.previousDataMap) {
+        context.previousDataMap.forEach((data, key) => {
+          if (data) queryClient.setQueryData(key, data)
+        })
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments', 'current-month-receivables'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'current-month-receivables'], exact: false })
       queryClient.invalidateQueries({ queryKey: ['payments', 'statistics'] })
       queryClient.invalidateQueries({ queryKey: ['payments', 'collected'] })
       queryClient.invalidateQueries({ queryKey: ['payments', 'unpaid'] })
@@ -598,51 +616,60 @@ export function useDeletePaymentSchedule() {
   return useMutation({
     mutationFn: (scheduleId: string) => deletePaymentSchedule(scheduleId),
     onMutate: async (scheduleId) => {
-      await queryClient.cancelQueries({ queryKey: ['payments', 'current-month-receivables'] })
+      await queryClient.cancelQueries({ queryKey: ['payments', 'current-month-receivables'], exact: false })
 
-      const previousData = queryClient.getQueryData(['payments', 'current-month-receivables'])
-
-      queryClient.setQueryData<{
+      type QueryData = {
         receivables: CurrentMonthReceivable[]
         summary: CurrentMonthReceivablesSummary
-      }>(['payments', 'current-month-receivables'], (old) => {
-        if (!old) return old
+      }
 
-        const updatedReceivables = old.receivables.filter(item => item.id !== scheduleId)
+      const allQueries = queryClient.getQueriesData<QueryData>({
+        queryKey: ['payments', 'current-month-receivables'],
+        exact: false
+      })
 
-        const paidCount = updatedReceivables.filter(r => r.status === 'paid').length
-        const pendingCount = updatedReceivables.filter(r => r.status === 'pending').length
-        const overdueCount = updatedReceivables.filter(r => r.status === 'overdue').length
-        const totalAmount = updatedReceivables.reduce((sum, r) => sum + r.amount, 0)
-        const paidAmount = updatedReceivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0)
-        const pendingAmount = updatedReceivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0)
-        const overdueAmount = updatedReceivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0)
+      const previousDataMap = new Map<readonly unknown[], QueryData | undefined>()
+      allQueries.forEach(([key, data]) => {
+        previousDataMap.set(key, data)
+        if (data) {
+          const updatedReceivables = data.receivables.filter(item => item.id !== scheduleId)
 
-        return {
-          receivables: updatedReceivables,
-          summary: {
-            ...old.summary,
-            total_count: updatedReceivables.length,
-            paid_count: paidCount,
-            pending_count: pendingCount,
-            overdue_count: overdueCount,
-            total_amount: totalAmount,
-            paid_amount: paidAmount,
-            pending_amount: pendingAmount,
-            overdue_amount: overdueAmount,
-          },
+          const paidCount = updatedReceivables.filter(r => r.status === 'paid').length
+          const pendingCount = updatedReceivables.filter(r => r.status === 'pending').length
+          const overdueCount = updatedReceivables.filter(r => r.status === 'overdue').length
+          const totalAmount = updatedReceivables.reduce((sum, r) => sum + r.amount, 0)
+          const paidAmount = updatedReceivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0)
+          const pendingAmount = updatedReceivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0)
+          const overdueAmount = updatedReceivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0)
+
+          queryClient.setQueryData<QueryData>(key, {
+            receivables: updatedReceivables,
+            summary: {
+              ...data.summary,
+              total_count: updatedReceivables.length,
+              paid_count: paidCount,
+              pending_count: pendingCount,
+              overdue_count: overdueCount,
+              total_amount: totalAmount,
+              paid_amount: paidAmount,
+              pending_amount: pendingAmount,
+              overdue_amount: overdueAmount,
+            },
+          })
         }
       })
 
-      return { previousData }
+      return { previousDataMap }
     },
     onError: (_err, _variables, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['payments', 'current-month-receivables'], context.previousData)
+      if (context?.previousDataMap) {
+        context.previousDataMap.forEach((data, key) => {
+          if (data) queryClient.setQueryData(key, data)
+        })
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments', 'current-month-receivables'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'current-month-receivables'], exact: false })
       queryClient.invalidateQueries({ queryKey: ['payments', 'statistics'] })
       queryClient.invalidateQueries({ queryKey: ['payments', 'collected'] })
       queryClient.invalidateQueries({ queryKey: ['payments', 'unpaid'] })
