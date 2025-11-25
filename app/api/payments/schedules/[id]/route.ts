@@ -25,6 +25,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     description?: string
     notes?: string
     status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
+    customer_id?: string
+    quotation_id?: string | null
+    contract_id?: string | null
+    paid_date?: string | null
+    payment_id?: string | null
   }
 
   const { env } = await getCloudflareContext()

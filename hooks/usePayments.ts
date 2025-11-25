@@ -70,9 +70,9 @@ export interface CurrentMonthReceivable {
   customer_name_en: string
   quotation_id: string | null
   quotation_number: string | null
-  contract_id: string
-  contract_number: string
-  contract_title: string
+  contract_id: string | null
+  contract_number: string | null
+  contract_title: string | null
   due_date: string
   amount: number
   currency: string
@@ -81,6 +81,8 @@ export interface CurrentMonthReceivable {
   payment_id: string | null
   days_until_due: number
   is_overdue: boolean
+  description: string | null
+  source_type: 'quotation' | 'manual' | 'contract'
 }
 
 export interface CurrentMonthReceivablesSummary {
@@ -169,6 +171,44 @@ async function fetchCurrentMonthReceivables(month?: string): Promise<{
 
 async function markScheduleAsCollected(scheduleId: string, input: MarkCollectedInput): Promise<void> {
   return apiPost(`/api/payments/schedules/${scheduleId}/mark-collected`, input)
+}
+
+export interface UpdatePaymentScheduleInput {
+  due_date?: string
+  amount?: number
+  currency?: string
+  description?: string
+  notes?: string
+  status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
+  customer_id?: string
+  quotation_id?: string | null
+  contract_id?: string | null
+  paid_date?: string | null
+  payment_id?: string | null
+}
+
+async function updatePaymentSchedule(scheduleId: string, input: UpdatePaymentScheduleInput): Promise<CurrentMonthReceivable> {
+  const response = await fetch(`/api/payments/schedules/${scheduleId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to update schedule' })) as { error?: string }
+    throw new Error(error.error || 'Failed to update schedule')
+  }
+  const data = await response.json() as { schedule: CurrentMonthReceivable }
+  return data.schedule
+}
+
+async function deletePaymentSchedule(scheduleId: string): Promise<void> {
+  const response = await fetch(`/api/payments/schedules/${scheduleId}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to delete schedule' })) as { error?: string }
+    throw new Error(error.error || 'Failed to delete schedule')
+  }
 }
 
 // ============================================================================
@@ -466,6 +506,127 @@ export function useMarkScheduleAsCollected() {
             paid_count: paidCount,
             pending_count: pendingCount,
             overdue_count: overdueCount,
+            paid_amount: paidAmount,
+            pending_amount: pendingAmount,
+            overdue_amount: overdueAmount,
+          },
+        }
+      })
+
+      return { previousData }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['payments', 'current-month-receivables'], context.previousData)
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', 'current-month-receivables'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'statistics'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'collected'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'unpaid'] })
+    },
+  })
+}
+
+export function useUpdatePaymentSchedule() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ scheduleId, input }: { scheduleId: string; input: UpdatePaymentScheduleInput }) =>
+      updatePaymentSchedule(scheduleId, input),
+    onMutate: async ({ scheduleId, input }) => {
+      await queryClient.cancelQueries({ queryKey: ['payments', 'current-month-receivables'] })
+
+      const previousData = queryClient.getQueryData(['payments', 'current-month-receivables'])
+
+      queryClient.setQueryData<{
+        receivables: CurrentMonthReceivable[]
+        summary: CurrentMonthReceivablesSummary
+      }>(['payments', 'current-month-receivables'], (old) => {
+        if (!old) return old
+
+        const validStatus = input.status === 'cancelled' ? 'pending' : input.status
+        const safeInput = { ...input, status: validStatus } as Partial<CurrentMonthReceivable>
+
+        const updatedReceivables = old.receivables.map(item =>
+          item.id === scheduleId
+            ? { ...item, ...safeInput } as CurrentMonthReceivable
+            : item
+        )
+
+        const paidCount = updatedReceivables.filter(r => r.status === 'paid').length
+        const pendingCount = updatedReceivables.filter(r => r.status === 'pending').length
+        const overdueCount = updatedReceivables.filter(r => r.status === 'overdue').length
+        const paidAmount = updatedReceivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0)
+        const pendingAmount = updatedReceivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0)
+        const overdueAmount = updatedReceivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0)
+
+        return {
+          receivables: updatedReceivables,
+          summary: {
+            ...old.summary,
+            paid_count: paidCount,
+            pending_count: pendingCount,
+            overdue_count: overdueCount,
+            paid_amount: paidAmount,
+            pending_amount: pendingAmount,
+            overdue_amount: overdueAmount,
+          },
+        }
+      })
+
+      return { previousData }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['payments', 'current-month-receivables'], context.previousData)
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', 'current-month-receivables'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'statistics'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'collected'] })
+      queryClient.invalidateQueries({ queryKey: ['payments', 'unpaid'] })
+    },
+  })
+}
+
+export function useDeletePaymentSchedule() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (scheduleId: string) => deletePaymentSchedule(scheduleId),
+    onMutate: async (scheduleId) => {
+      await queryClient.cancelQueries({ queryKey: ['payments', 'current-month-receivables'] })
+
+      const previousData = queryClient.getQueryData(['payments', 'current-month-receivables'])
+
+      queryClient.setQueryData<{
+        receivables: CurrentMonthReceivable[]
+        summary: CurrentMonthReceivablesSummary
+      }>(['payments', 'current-month-receivables'], (old) => {
+        if (!old) return old
+
+        const updatedReceivables = old.receivables.filter(item => item.id !== scheduleId)
+
+        const paidCount = updatedReceivables.filter(r => r.status === 'paid').length
+        const pendingCount = updatedReceivables.filter(r => r.status === 'pending').length
+        const overdueCount = updatedReceivables.filter(r => r.status === 'overdue').length
+        const totalAmount = updatedReceivables.reduce((sum, r) => sum + r.amount, 0)
+        const paidAmount = updatedReceivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0)
+        const pendingAmount = updatedReceivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0)
+        const overdueAmount = updatedReceivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0)
+
+        return {
+          receivables: updatedReceivables,
+          summary: {
+            ...old.summary,
+            total_count: updatedReceivables.length,
+            paid_count: paidCount,
+            pending_count: pendingCount,
+            overdue_count: overdueCount,
+            total_amount: totalAmount,
             paid_amount: paidAmount,
             pending_amount: pendingAmount,
             overdue_amount: overdueAmount,

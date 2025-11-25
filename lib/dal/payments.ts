@@ -1210,6 +1210,11 @@ export async function updatePaymentSchedule(
     description?: string
     notes?: string
     status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
+    customer_id?: string
+    quotation_id?: string | null
+    contract_id?: string | null
+    paid_date?: string | null
+    payment_id?: string | null
   }
 ): Promise<PaymentSchedule> {
   const schedule = await db.queryOne<PaymentSchedule>(
@@ -1247,6 +1252,26 @@ export async function updatePaymentSchedule(
   if (data.status !== undefined) {
     updates.push('status = ?')
     params.push(data.status)
+  }
+  if (data.customer_id !== undefined) {
+    updates.push('customer_id = ?')
+    params.push(data.customer_id)
+  }
+  if (data.quotation_id !== undefined) {
+    updates.push('quotation_id = ?')
+    params.push(data.quotation_id)
+  }
+  if (data.contract_id !== undefined) {
+    updates.push('contract_id = ?')
+    params.push(data.contract_id)
+  }
+  if (data.paid_date !== undefined) {
+    updates.push('paid_date = ?')
+    params.push(data.paid_date)
+  }
+  if (data.payment_id !== undefined) {
+    updates.push('payment_id = ?')
+    params.push(data.payment_id)
   }
 
   if (updates.length === 0) {
