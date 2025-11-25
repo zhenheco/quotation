@@ -516,6 +516,7 @@
     "customer_name": "Customer Name",
     "schedule": "Schedule",
     "schedule_info": "{current} of {total}",
+    "collection_status": "Collection Status",
     "status": {
       "pending": "Pending",
       "paid": "Paid",

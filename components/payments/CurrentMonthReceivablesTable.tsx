@@ -113,7 +113,7 @@ export function CurrentMonthReceivablesTable({ locale }: CurrentMonthReceivables
                 {t('payments.due_date')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('payments.status')}
+                {t('payments.collection_status')}
               </th>
             </tr>
           </thead>

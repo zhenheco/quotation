@@ -542,6 +542,7 @@
     "customer_name": "客戶名稱",
     "schedule": "期數",
     "schedule_info": "第 {current} 期/共 {total} 期",
+    "collection_status": "收款狀態",
     "status": {
       "pending": "未收",
       "paid": "已收",
