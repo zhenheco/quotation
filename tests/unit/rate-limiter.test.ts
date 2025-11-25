@@ -12,11 +12,13 @@ import {
   batchRateLimiter,
   emailRateLimiter,
   syncRateLimiter,
+  clearAllRateLimits,
 } from '@/lib/middleware/rate-limiter'
 
 describe('Rate Limiter 測試', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    clearAllRateLimits()
   })
 
   describe('createRateLimiter - 基本功能', () => {
@@ -29,6 +31,7 @@ describe('Rate Limiter 測試', () => {
       const handler = vi.fn(async () => ({
         json: async () => ({ success: true }),
         status: 200,
+        headers: new Headers(),
       }))
 
       const request = new NextRequest('http://localhost:3000/api/test')
@@ -50,6 +53,7 @@ describe('Rate Limiter 測試', () => {
       const handler = vi.fn(async () => ({
         json: async () => ({ success: true }),
         status: 200,
+        headers: new Headers(),
       }))
 
       const request = new NextRequest('http://localhost:3000/api/test')

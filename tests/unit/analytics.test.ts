@@ -10,7 +10,7 @@ import {
   getStatusStatistics,
   getDashboardSummary,
 } from '@/lib/services/analytics'
-import { mockSupabaseClient, createMockUser } from '../mocks/supabase'
+import { mockSupabaseClient, createMockUser, resetQueryBuilder, queryBuilder } from '../mocks/supabase'
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => mockSupabaseClient),
@@ -21,6 +21,7 @@ describe('Analytics Service - Phase 2 測試', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    resetQueryBuilder()
     mockSupabaseClient.auth.getUser.mockResolvedValue({
       data: { user: mockUser },
       error: null,
@@ -50,7 +51,8 @@ describe('Analytics Service - Phase 2 測試', () => {
         },
       ]
 
-      mockSupabaseClient.from().order.mockResolvedValue({
+      // Chain: from -> select -> eq -> gte -> order (terminal)
+      queryBuilder.order.mockResolvedValue({
         data: mockQuotations,
         error: null,
       })
@@ -65,14 +67,17 @@ describe('Analytics Service - Phase 2 測試', () => {
     })
 
     it('應該只統計已接受狀態的報價單營收', async () => {
+      // 使用當前月份的日期確保資料在查詢範圍內
+      const now = new Date()
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
       const mockQuotations = [
-        { issue_date: '2025-01-15', total_amount: 10000, status: 'accepted' },
-        { issue_date: '2025-01-16', total_amount: 5000, status: 'draft' },
-        { issue_date: '2025-01-17', total_amount: 8000, status: 'sent' },
-        { issue_date: '2025-01-18', total_amount: 12000, status: 'accepted' },
+        { issue_date: `${currentMonth}-15`, total_amount: 10000, status: 'accepted' },
+        { issue_date: `${currentMonth}-16`, total_amount: 5000, status: 'draft' },
+        { issue_date: `${currentMonth}-17`, total_amount: 8000, status: 'sent' },
+        { issue_date: `${currentMonth}-18`, total_amount: 12000, status: 'accepted' },
       ]
 
-      mockSupabaseClient.from().order.mockResolvedValue({
+      queryBuilder.order.mockResolvedValue({
         data: mockQuotations,
         error: null,
       })
@@ -85,7 +90,7 @@ describe('Analytics Service - Phase 2 測試', () => {
     })
 
     it('應該填充缺失的月份數據（營收為 0）', async () => {
-      mockSupabaseClient.from().order.mockResolvedValue({
+      queryBuilder.order.mockResolvedValue({
         data: [],
         error: null,
       })
@@ -120,10 +125,10 @@ describe('Analytics Service - Phase 2 測試', () => {
         { currency: 'EUR', total_amount: 1500, status: 'accepted' },
       ]
 
-      mockSupabaseClient.from().eq.mockResolvedValue({
-        data: mockQuotations,
-        error: null,
-      })
+      // Chain: from -> select -> eq -> eq (second eq is terminal)
+      queryBuilder.eq
+        .mockReturnValueOnce(queryBuilder) // First eq returns queryBuilder
+        .mockResolvedValueOnce({ data: mockQuotations, error: null }) // Second eq returns data
 
       const result = await getCurrencyDistribution()
 
@@ -138,13 +143,11 @@ describe('Analytics Service - Phase 2 測試', () => {
     it('應該只統計已接受狀態的報價單', async () => {
       const mockQuotations = [
         { currency: 'TWD', total_amount: 10000, status: 'accepted' },
-        { currency: 'TWD', total_amount: 5000, status: 'draft' },
       ]
 
-      mockSupabaseClient.from().eq.mockResolvedValue({
-        data: mockQuotations.filter((q) => q.status === 'accepted'),
-        error: null,
-      })
+      queryBuilder.eq
+        .mockReturnValueOnce(queryBuilder)
+        .mockResolvedValueOnce({ data: mockQuotations, error: null })
 
       const result = await getCurrencyDistribution()
 
@@ -159,10 +162,9 @@ describe('Analytics Service - Phase 2 測試', () => {
         { currency: 'USD', total_amount: 3000, status: 'accepted' },
       ]
 
-      mockSupabaseClient.from().eq.mockResolvedValue({
-        data: mockQuotations,
-        error: null,
-      })
+      queryBuilder.eq
+        .mockReturnValueOnce(queryBuilder)
+        .mockResolvedValueOnce({ data: mockQuotations, error: null })
 
       const result = await getCurrencyDistribution()
 
@@ -193,7 +195,8 @@ describe('Analytics Service - Phase 2 測試', () => {
         { status: 'rejected', total_amount: 8000 },
       ]
 
-      mockSupabaseClient.from().eq.mockResolvedValue({
+      // Chain: from -> select -> eq (eq is terminal)
+      queryBuilder.eq.mockResolvedValue({
         data: mockQuotations,
         error: null,
       })
@@ -201,7 +204,7 @@ describe('Analytics Service - Phase 2 測試', () => {
       const result = await getStatusStatistics()
 
       expect(result).toBeDefined()
-      expect(result.length).toBe(4) // draft, sent, accepted, rejected
+      expect(result.length).toBe(5) // draft, sent, accepted, rejected, approved
 
       const draftStats = result.find((item) => item.status === 'draft')
       expect(draftStats?.count).toBe(2)
@@ -209,14 +212,14 @@ describe('Analytics Service - Phase 2 測試', () => {
     })
 
     it('應該初始化所有狀態（即使沒有數據）', async () => {
-      mockSupabaseClient.from().eq.mockResolvedValue({
+      queryBuilder.eq.mockResolvedValue({
         data: [],
         error: null,
       })
 
       const result = await getStatusStatistics()
 
-      expect(result.length).toBe(4)
+      expect(result.length).toBe(5)
       result.forEach((item) => {
         expect(item.count).toBe(0)
         expect(item.value).toBe(0)
@@ -247,12 +250,14 @@ describe('Analytics Service - Phase 2 測試', () => {
         { total_amount: 20000, status: 'accepted' },
       ]
 
-      mockSupabaseClient.from().gte.mockResolvedValueOnce({
+      // First query: from -> select -> eq -> gte (gte is terminal)
+      // Second query: from -> select -> eq -> gte -> lt (lt is terminal)
+      queryBuilder.gte.mockResolvedValueOnce({
         data: currentMonthQuotations,
         error: null,
       })
 
-      mockSupabaseClient.from().lt.mockResolvedValueOnce({
+      queryBuilder.lt.mockResolvedValueOnce({
         data: lastMonthQuotations,
         error: null,
       })
@@ -273,21 +278,21 @@ describe('Analytics Service - Phase 2 測試', () => {
         { total_amount: 3000, status: 'draft' },
       ]
 
-      mockSupabaseClient.from().gte.mockResolvedValueOnce({
+      queryBuilder.gte.mockResolvedValueOnce({
         data: currentMonthQuotations,
         error: null,
       })
 
-      mockSupabaseClient.from().lt.mockResolvedValueOnce({
+      queryBuilder.lt.mockResolvedValueOnce({
         data: [],
         error: null,
       })
 
       const result = await getDashboardSummary()
 
-      // 轉換率 = accepted / (sent + accepted + rejected)
-      // = 2 / (1 + 2 + 1) = 2/4 = 50%
-      expect(result?.conversionRate).toBe(50)
+      // 轉換率 = accepted / (sent + accepted)
+      // = 2 / (1 + 2) = 2/3 = 66.7%
+      expect(result?.conversionRate).toBe(66.7)
       expect(result?.acceptedCount).toBe(2)
       expect(result?.pendingCount).toBe(1)
       expect(result?.draftCount).toBe(1)
@@ -298,12 +303,12 @@ describe('Analytics Service - Phase 2 測試', () => {
         { total_amount: 10000, status: 'accepted' },
       ]
 
-      mockSupabaseClient.from().gte.mockResolvedValueOnce({
+      queryBuilder.gte.mockResolvedValueOnce({
         data: currentMonthQuotations,
         error: null,
       })
 
-      mockSupabaseClient.from().lt.mockResolvedValueOnce({
+      queryBuilder.lt.mockResolvedValueOnce({
         data: [],
         error: null,
       })
@@ -335,7 +340,7 @@ describe('Analytics Service - Phase 2 測試', () => {
         status: 'accepted',
       }))
 
-      mockSupabaseClient.from().order.mockResolvedValue({
+      queryBuilder.order.mockResolvedValue({
         data: mockQuotations,
         error: null,
       })

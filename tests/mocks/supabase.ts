@@ -5,20 +5,38 @@
 import { vi } from 'vitest'
 
 // 創建一個可重用的查詢建構器
-// 使用函式讓每個方法可以被 .mockResolvedValue() 覆蓋
-const queryBuilder = {
-  select: vi.fn(function(this: typeof queryBuilder) { return this }),
-  insert: vi.fn(function(this: typeof queryBuilder) { return this }),
-  update: vi.fn(function(this: typeof queryBuilder) { return this }),
-  delete: vi.fn(function(this: typeof queryBuilder) { return this }),
-  eq: vi.fn(function(this: typeof queryBuilder) { return this }),
-  in: vi.fn(function(this: typeof queryBuilder) { return this }),
-  gte: vi.fn(function(this: typeof queryBuilder) { return this }),
-  lt: vi.fn(function(this: typeof queryBuilder) { return this }),
-  order: vi.fn(function(this: typeof queryBuilder) { return this }),
-  limit: vi.fn(function(this: typeof queryBuilder) { return this }),
+export const queryBuilder = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+  eq: vi.fn(),
+  in: vi.fn(),
+  gte: vi.fn(),
+  lt: vi.fn(),
+  order: vi.fn(),
+  limit: vi.fn(),
   single: vi.fn(),
 }
+
+// 重置 queryBuilder 所有方法為返回 this（用於鏈式調用）
+export function resetQueryBuilder() {
+  // 使用 mockImplementation 讓測試可以用 mockResolvedValue 覆蓋
+  queryBuilder.select.mockReset().mockImplementation(() => queryBuilder)
+  queryBuilder.insert.mockReset().mockImplementation(() => queryBuilder)
+  queryBuilder.update.mockReset().mockImplementation(() => queryBuilder)
+  queryBuilder.delete.mockReset().mockImplementation(() => queryBuilder)
+  queryBuilder.eq.mockReset().mockImplementation(() => queryBuilder)
+  queryBuilder.in.mockReset().mockImplementation(() => queryBuilder)
+  queryBuilder.gte.mockReset().mockImplementation(() => queryBuilder)
+  queryBuilder.lt.mockReset().mockImplementation(() => queryBuilder)
+  queryBuilder.order.mockReset().mockImplementation(() => queryBuilder)
+  queryBuilder.limit.mockReset().mockImplementation(() => queryBuilder)
+  queryBuilder.single.mockReset()
+}
+
+// 初始化 queryBuilder
+resetQueryBuilder()
 
 export const mockSupabaseClient = {
   auth: {
