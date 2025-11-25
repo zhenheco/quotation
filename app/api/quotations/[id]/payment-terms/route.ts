@@ -76,13 +76,23 @@ export async function POST(
     const body = await request.json() as PostPaymentTermsBody
     const { terms, total } = body
 
+    console.log('[payment-terms API] Received:', {
+      quotationId: id,
+      userId: user.id,
+      termsCount: terms?.length || 0,
+      terms,
+      total
+    })
+
     // 刪除舊的付款條款
     const oldTerms = await getPaymentTerms(db, user.id, id)
+    console.log('[payment-terms API] Old terms count:', oldTerms.length)
     for (const oldTerm of oldTerms) {
       await deletePaymentTerm(db, user.id, oldTerm.id)
     }
 
     // 建立新的付款條款
+    console.log('[payment-terms API] Creating new terms...')
     const paymentTerms = await batchCreatePaymentTerms(
       db,
       user.id,
@@ -90,6 +100,7 @@ export async function POST(
       terms,
       total
     )
+    console.log('[payment-terms API] Created terms:', paymentTerms.length)
 
     return NextResponse.json({ payment_terms: paymentTerms })
   } catch (error: unknown) {

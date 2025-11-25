@@ -437,6 +437,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
       if (quotationId) {
         await updateQuotation.mutateAsync(quotationData)
+        newQuotationId = quotationId
         toast.success('報價單已更新')
       } else {
         const result = await createQuotation.mutateAsync(quotationData)
@@ -447,7 +448,12 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       // 儲存付款條款
       if (paymentTerms.length > 0 && newQuotationId) {
         try {
-          await fetch(`/api/quotations/${newQuotationId}/payment-terms`, {
+          console.log('[QuotationForm] Saving payment terms:', {
+            quotationId: newQuotationId,
+            termsCount: paymentTerms.length,
+            terms: paymentTerms
+          })
+          const response = await fetch(`/api/quotations/${newQuotationId}/payment-terms`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -455,10 +461,21 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
               total,
             }),
           })
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({})) as { error?: string }
+            throw new Error(errorData.error || `HTTP ${response.status}`)
+          }
+          const result = await response.json() as { payment_terms?: unknown[] }
+          console.log('[QuotationForm] Payment terms saved:', result)
         } catch (paymentTermsError) {
           console.error('Failed to save payment terms:', paymentTermsError)
           toast.error('付款條款儲存失敗')
         }
+      } else {
+        console.log('[QuotationForm] Skipping payment terms:', {
+          termsCount: paymentTerms.length,
+          quotationId: newQuotationId
+        })
       }
 
       // 上傳合約檔案

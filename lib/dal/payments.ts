@@ -614,6 +614,12 @@ export async function markScheduleAsCollected(
     throw new Error('Schedule not found')
   }
 
+  console.log('[markScheduleAsCollected] Schedule state:', {
+    scheduleId,
+    status: schedule.status,
+    paymentId: schedule.payment_id,
+  })
+
   if (schedule.status === 'paid') {
     throw new Error('Schedule already paid')
   }
@@ -647,12 +653,29 @@ export async function markScheduleAsCollected(
   })
 
   const now = new Date().toISOString()
-  await db.execute(
+
+  // 使用條件更新防止競態條件
+  // 只有當 status 仍然不是 'paid' 時才更新
+  const updateResult = await db.execute(
     `UPDATE payment_schedules
      SET status = 'paid', paid_date = ?, paid_amount = ?, payment_id = ?, updated_at = ?
-     WHERE id = ? AND user_id = ?`,
+     WHERE id = ? AND user_id = ? AND status != 'paid'`,
     [data.payment_date, data.amount || schedule.amount, payment.id, now, scheduleId, userId]
   )
+
+  // 如果沒有更新任何行，表示另一個請求已經標記為 paid
+  // 刪除剛建立的 Payment（它是孤立的）
+  if (updateResult.count === 0) {
+    console.log('[markScheduleAsCollected] Race condition detected, deleting orphaned payment:', payment.id)
+    await db.execute('DELETE FROM payments WHERE id = ?', [payment.id])
+    throw new Error('Schedule already paid')
+  }
+
+  console.log('[markScheduleAsCollected] Payment created and linked:', {
+    paymentId: payment.id,
+    scheduleId,
+    updatedRows: updateResult.count
+  })
 
   if (schedule.contract_id) {
     const nextSchedule = await db.queryOne<PaymentSchedule>(
@@ -1224,6 +1247,25 @@ export async function updatePaymentSchedule(
 
   if (!schedule) {
     throw new Error('Payment schedule not found')
+  }
+
+  // 如果從 'paid' 狀態變更為其他狀態，刪除關聯的 Payment 記錄
+  console.log('[updatePaymentSchedule] Schedule state:', {
+    scheduleId,
+    currentStatus: schedule.status,
+    newStatus: data.status,
+    paymentId: schedule.payment_id,
+  })
+
+  if (
+    schedule.status === 'paid' &&
+    data.status !== undefined &&
+    data.status !== 'paid' &&
+    schedule.payment_id
+  ) {
+    console.log('[updatePaymentSchedule] Deleting payment:', schedule.payment_id)
+    const deleteResult = await db.execute('DELETE FROM payments WHERE id = ?', [schedule.payment_id])
+    console.log('[updatePaymentSchedule] Delete result:', deleteResult)
   }
 
   const updates: string[] = []

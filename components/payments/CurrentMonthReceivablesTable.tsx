@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   useCurrentMonthReceivables,
@@ -27,6 +27,22 @@ export function CurrentMonthReceivablesTable({ locale }: CurrentMonthReceivables
   const [editingSchedule, setEditingSchedule] = useState<CurrentMonthReceivable | null>(null)
   const [deletingScheduleId, setDeletingScheduleId] = useState<string | null>(null)
 
+  const { unpaidItems, paidItems } = useMemo(() => {
+    if (!data?.receivables) {
+      return { unpaidItems: [], paidItems: [] }
+    }
+    const unpaid: CurrentMonthReceivable[] = []
+    const paid: CurrentMonthReceivable[] = []
+    data.receivables.forEach((item) => {
+      if (item.status === 'paid') {
+        paid.push(item)
+      } else {
+        unpaid.push(item)
+      }
+    })
+    return { unpaidItems: unpaid, paidItems: paid }
+  }, [data?.receivables])
+
   const handleCheckboxChange = async (item: CurrentMonthReceivable) => {
     if (item.status === 'paid') {
       try {
@@ -39,8 +55,8 @@ export function CurrentMonthReceivablesTable({ locale }: CurrentMonthReceivables
           },
         })
         toast.success(t('payments.uncollect_success'))
-      } catch (error) {
-        toast.error((error as Error).message || t('payments.uncollect_error'))
+      } catch (err) {
+        toast.error((err as Error).message || t('payments.uncollect_error'))
       }
     } else {
       try {
@@ -51,10 +67,10 @@ export function CurrentMonthReceivablesTable({ locale }: CurrentMonthReceivables
           },
         })
         toast.success(t('payments.mark_collected_success'))
-      } catch (error) {
-        const errorMessage = (error as { response?: { status?: number } }).response?.status === 400
+      } catch (err) {
+        const errorMessage = (err as { response?: { status?: number } }).response?.status === 400
           ? t('payments.already_paid')
-          : (error as { response?: { status?: number } }).response?.status === 404
+          : (err as { response?: { status?: number } }).response?.status === 404
           ? t('payments.schedule_not_found')
           : t('payments.mark_collected_error')
         toast.error(errorMessage)
@@ -67,12 +83,185 @@ export function CurrentMonthReceivablesTable({ locale }: CurrentMonthReceivables
       await deleteSchedule.mutateAsync(scheduleId)
       toast.success(t('payments.delete_success'))
       setDeletingScheduleId(null)
-    } catch (error) {
-      toast.error((error as Error).message || t('payments.delete_error'))
+    } catch (err) {
+      toast.error((err as Error).message || t('payments.delete_error'))
     }
   }
 
   const isPending = markAsCollected.isPending || updateSchedule.isPending || deleteSchedule.isPending
+
+  const renderTableRow = (item: CurrentMonthReceivable) => (
+    <tr key={item.id} className="hover:bg-gray-50">
+      <td className="px-4 py-4">
+        <input
+          type="checkbox"
+          checked={item.status === 'paid'}
+          onChange={() => handleCheckboxChange(item)}
+          disabled={isPending}
+          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+          aria-label={item.status === 'paid' ? t('payments.uncollect') : t('payments.mark_as_collected')}
+        />
+      </td>
+      <td className="px-4 py-4 text-sm text-gray-900">
+        {item.quotation_number || '-'}
+      </td>
+      <td className="px-4 py-4 text-sm text-gray-900">
+        {locale === 'zh' ? item.customer_name_zh : item.customer_name_en}
+      </td>
+      <td className="px-4 py-4 text-sm text-gray-600">
+        {t('payments.schedule_info', {
+          current: item.schedule_number,
+          total: item.total_schedules,
+        })}
+      </td>
+      <td className="px-4 py-4 text-sm font-medium text-gray-900">
+        {safeToLocaleString(item.amount)} {item.currency}
+      </td>
+      <td className="px-4 py-4 text-sm text-gray-600">
+        {new Date(item.due_date).toLocaleDateString(locale)}
+      </td>
+      <td className="px-4 py-4">
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded ${
+            item.status === 'paid'
+              ? 'bg-green-100 text-green-800'
+              : item.status === 'overdue'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-yellow-100 text-yellow-800'
+          }`}
+        >
+          {t(`payments.status.${item.status}`)}
+        </span>
+      </td>
+      <td className="px-4 py-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setEditingSchedule(item)}
+            className="text-blue-600 hover:text-blue-800 text-sm"
+            title={t('payments.edit_schedule')}
+          >
+            {t('common.edit')}
+          </button>
+          {item.status !== 'paid' && (
+            <button
+              onClick={() => setDeletingScheduleId(item.id)}
+              className="text-red-600 hover:text-red-800 text-sm"
+              title={t('payments.delete_schedule')}
+            >
+              {t('common.delete')}
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+
+  const renderMobileCard = (item: CurrentMonthReceivable) => (
+    <div key={item.id} className="p-4">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start space-x-3">
+          <div className="mt-1">
+            <input
+              type="checkbox"
+              checked={item.status === 'paid'}
+              onChange={() => handleCheckboxChange(item)}
+              disabled={isPending}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+          </div>
+          <div>
+            <h4 className="font-medium text-gray-900">
+              {locale === 'zh' ? item.customer_name_zh : item.customer_name_en}
+            </h4>
+            {item.quotation_number && (
+              <p className="text-xs text-gray-500 mt-1">{item.quotation_number}</p>
+            )}
+          </div>
+        </div>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded ${
+            item.status === 'paid'
+              ? 'bg-green-100 text-green-800'
+              : item.status === 'overdue'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-yellow-100 text-yellow-800'
+          }`}
+        >
+          {t(`payments.status.${item.status}`)}
+        </span>
+      </div>
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">{t('payments.schedule')}</span>
+          <span className="text-gray-900">
+            {t('payments.schedule_info', {
+              current: item.schedule_number,
+              total: item.total_schedules,
+            })}
+          </span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">{t('payments.amount')}</span>
+          <span className="font-medium text-gray-900">
+            {safeToLocaleString(item.amount)} {item.currency}
+          </span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">{t('payments.due_date')}</span>
+          <span className="text-gray-900">
+            {new Date(item.due_date).toLocaleDateString(locale)}
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 mt-3 pt-3 border-t">
+        <button
+          onClick={() => setEditingSchedule(item)}
+          className="text-blue-600 hover:text-blue-800 text-sm"
+        >
+          {t('common.edit')}
+        </button>
+        {item.status !== 'paid' && (
+          <button
+            onClick={() => setDeletingScheduleId(item.id)}
+            className="text-red-600 hover:text-red-800 text-sm"
+          >
+            {t('common.delete')}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+
+  const renderTableHeader = () => (
+    <thead className="bg-gray-50">
+      <tr>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+          ✓
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {t('payments.quotation_number')}
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {t('payments.customer_name')}
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {t('payments.schedule')}
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {t('payments.amount')}
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {t('payments.due_date')}
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {t('payments.collection_status')}
+        </th>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+          {t('common.actions')}
+        </th>
+      </tr>
+    </thead>
+  )
 
   if (isLoading) {
     return (
@@ -131,183 +320,58 @@ export function CurrentMonthReceivablesTable({ locale }: CurrentMonthReceivables
           </p>
         </div>
 
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
-                  ✓
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('payments.quotation_number')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('payments.customer_name')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('payments.schedule')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('payments.amount')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('payments.due_date')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('payments.collection_status')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                  {t('common.actions')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {data.receivables.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4">
-                    <input
-                      type="checkbox"
-                      checked={item.status === 'paid'}
-                      onChange={() => handleCheckboxChange(item)}
-                      disabled={isPending}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
-                      aria-label={item.status === 'paid' ? t('payments.uncollect') : t('payments.mark_as_collected')}
-                    />
-                  </td>
-                  <td className="px-4 py-4 text-sm text-gray-900">
-                    {item.quotation_number || '-'}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-gray-900">
-                    {locale === 'zh' ? item.customer_name_zh : item.customer_name_en}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-gray-600">
-                    {t('payments.schedule_info', {
-                      current: item.schedule_number,
-                      total: item.total_schedules,
-                    })}
-                  </td>
-                  <td className="px-4 py-4 text-sm font-medium text-gray-900">
-                    {safeToLocaleString(item.amount)} {item.currency}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-gray-600">
-                    {new Date(item.due_date).toLocaleDateString(locale)}
-                  </td>
-                  <td className="px-4 py-4">
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded ${
-                        item.status === 'paid'
-                          ? 'bg-green-100 text-green-800'
-                          : item.status === 'overdue'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
-                    >
-                      {t(`payments.status.${item.status}`)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setEditingSchedule(item)}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                        title={t('payments.edit_schedule')}
-                      >
-                        {t('common.edit')}
-                      </button>
-                      {item.status !== 'paid' && (
-                        <button
-                          onClick={() => setDeletingScheduleId(item.id)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                          title={t('payments.delete_schedule')}
-                        >
-                          {t('common.delete')}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="md:hidden divide-y divide-gray-200">
-          {data.receivables.map((item) => (
-            <div key={item.id} className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-start space-x-3">
-                  <div className="mt-1">
-                    <input
-                      type="checkbox"
-                      checked={item.status === 'paid'}
-                      onChange={() => handleCheckboxChange(item)}
-                      disabled={isPending}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">
-                      {locale === 'zh' ? item.customer_name_zh : item.customer_name_en}
-                    </h4>
-                    {item.quotation_number && (
-                      <p className="text-xs text-gray-500 mt-1">{item.quotation_number}</p>
-                    )}
-                  </div>
-                </div>
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded ${
-                    item.status === 'paid'
-                      ? 'bg-green-100 text-green-800'
-                      : item.status === 'overdue'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}
-                >
-                  {t(`payments.status.${item.status}`)}
-                </span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">{t('payments.schedule')}</span>
-                  <span className="text-gray-900">
-                    {t('payments.schedule_info', {
-                      current: item.schedule_number,
-                      total: item.total_schedules,
-                    })}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">{t('payments.amount')}</span>
-                  <span className="font-medium text-gray-900">
-                    {safeToLocaleString(item.amount)} {item.currency}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">{t('payments.due_date')}</span>
-                  <span className="text-gray-900">
-                    {new Date(item.due_date).toLocaleDateString(locale)}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 mt-3 pt-3 border-t">
-                <button
-                  onClick={() => setEditingSchedule(item)}
-                  className="text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  {t('common.edit')}
-                </button>
-                {item.status !== 'paid' && (
-                  <button
-                    onClick={() => setDeletingScheduleId(item.id)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    {t('common.delete')}
-                  </button>
-                )}
-              </div>
+        {/* 未收款區域 */}
+        {unpaidItems.length > 0 && (
+          <>
+            <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-100">
+              <h4 className="font-medium text-yellow-800 flex items-center gap-2">
+                <span className="text-lg">⏳</span>
+                {t('payments.unpaid_area')} ({unpaidItems.length})
+              </h4>
             </div>
-          ))}
-        </div>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                {renderTableHeader()}
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {unpaidItems.map(renderTableRow)}
+                </tbody>
+              </table>
+            </div>
+            <div className="md:hidden divide-y divide-gray-200">
+              {unpaidItems.map(renderMobileCard)}
+            </div>
+          </>
+        )}
+
+        {/* 已收款區域 */}
+        {paidItems.length > 0 && (
+          <>
+            <div className="px-4 py-3 bg-green-50 border-b border-green-100 border-t">
+              <h4 className="font-medium text-green-800 flex items-center gap-2">
+                <span className="text-lg">✅</span>
+                {t('payments.collected_area')} ({paidItems.length})
+              </h4>
+            </div>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                {renderTableHeader()}
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {paidItems.map(renderTableRow)}
+                </tbody>
+              </table>
+            </div>
+            <div className="md:hidden divide-y divide-gray-200">
+              {paidItems.map(renderMobileCard)}
+            </div>
+          </>
+        )}
+
+        {/* 如果沒有未收款和已收款項目 */}
+        {unpaidItems.length === 0 && paidItems.length === 0 && (
+          <div className="p-8 text-center text-gray-500">
+            {t('payments.no_receivables')}
+          </div>
+        )}
       </div>
 
       {editingSchedule && (
