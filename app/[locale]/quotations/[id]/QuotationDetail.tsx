@@ -230,24 +230,24 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
         )}
 
         {/* Summary - 小計/稅金/總計 */}
-        <div className="p-6">
-          <div className="max-w-md ml-auto space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">{t('quotation.subtotal')}:</span>
+        <div className="p-6 flex justify-end">
+          <div className="space-y-2 text-right">
+            <div className="text-sm">
+              <span className="text-gray-600">{t('quotation.subtotal')}:</span>{' '}
               <span className="text-gray-900 font-medium">
                 {quotation.currency} {formatAmount(quotation.subtotal, quotation.currency)}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="text-sm">
               <span className="text-gray-600">
                 {t('quotation.tax')} ({quotation.tax_rate}%):
-              </span>
+              </span>{' '}
               <span className="text-gray-900 font-medium">
                 {quotation.currency} {formatAmount(quotation.tax_amount, quotation.currency)}
               </span>
             </div>
-            <div className="flex justify-between text-lg font-bold border-t pt-2">
-              <span>{t('quotation.total')}:</span>
+            <div className="text-lg font-bold border-t pt-2">
+              <span>{t('quotation.total')}:</span>{' '}
               <span>{quotation.currency} {formatAmount(quotation.total_amount, quotation.currency)}</span>
             </div>
           </div>
