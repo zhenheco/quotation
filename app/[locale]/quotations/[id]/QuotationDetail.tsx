@@ -6,7 +6,9 @@ import Image from 'next/image'
 import {
   useQuotation,
   useUpdateQuotation,
+  usePaymentTerms,
   type QuotationStatus,
+  type PaymentTerm,
 } from '@/hooks/useQuotations'
 import { toast } from 'sonner'
 import './print.css'
@@ -24,6 +26,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
   // Hooks
   const { data: quotation, isLoading, error } = useQuotation(quotationId)
   const updateQuotation = useUpdateQuotation(quotationId)
+  const { data: paymentTerms } = usePaymentTerms(quotationId)
 
   const handleStatusChange = async (newStatus: QuotationStatus) => {
     try {
@@ -64,18 +67,16 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
     <div className="space-y-6">
       {/* Page Title */}
       <div className="flex items-center gap-3 no-print">
-        <span className="text-lg font-mono text-gray-600">{quotation.quotation_number}</span>
-        <h1 className="text-2xl font-bold text-gray-900">{t('quotation.detail')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {quotation.quotation_number} {t('quotation.detail')}
+        </h1>
       </div>
 
       {/* Quotation Header */}
       <div className="bg-white rounded-lg shadow p-6 quotation-header">
         <div className="flex items-center justify-between mb-6">
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {quotation.quotation_number}
-            </h2>
-            <div className="flex items-center gap-4 mt-2">
+            <div className="flex items-center gap-4">
               <p className="text-gray-600">
                 {t('quotation.issueDate')}: {locale === 'zh'
                   ? new Date(quotation.issue_date).toLocaleDateString('zh-TW', {
@@ -254,6 +255,43 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
             <span>{quotation.currency} {quotation.total_amount?.toLocaleString() || '0'}</span>
           </div>
         </div>
+
+        {/* Payment Terms */}
+        {paymentTerms && paymentTerms.length > 0 && (
+          <div className="mt-6 pt-4 border-t">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">
+              {locale === 'zh' ? '付款條件' : 'Payment Terms'}
+            </h4>
+            <div className="space-y-2">
+              {paymentTerms.map((term: PaymentTerm) => (
+                <div key={term.id} className="flex justify-between text-sm">
+                  <span className="text-gray-600">
+                    {locale === 'zh' ? `第 ${term.term_number} 期` : `Term ${term.term_number}`}
+                    {' '}({term.percentage}%)
+                    {term.due_date && (
+                      <span className="ml-2">
+                        - {locale === 'zh'
+                          ? new Date(term.due_date).toLocaleDateString('zh-TW', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })
+                          : new Date(term.due_date).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-gray-900 font-medium">
+                    {quotation.currency} {safeToLocaleString(term.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Company Signature - Below Total */}
         {(quotation as { company_signature_url?: string | null }).company_signature_url && (

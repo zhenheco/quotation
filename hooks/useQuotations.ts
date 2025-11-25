@@ -431,3 +431,41 @@ export function useQuotationVersions(quotationId: string) {
     enabled: !!quotationId, // 只在有 quotationId 時才執行
   })
 }
+
+// ============================================================================
+// Payment Terms
+// ============================================================================
+
+export interface PaymentTerm {
+  id: string
+  quotation_id: string
+  term_number: number
+  term_name: string | null
+  percentage: number
+  amount: number
+  due_date: string | null
+  paid_amount: number
+  paid_date: string | null
+  payment_status: 'unpaid' | 'partial' | 'paid' | 'overdue'
+  description: { zh: string; en: string } | null
+  created_at: string
+  updated_at: string
+}
+
+interface PaymentTermsResponse {
+  payment_terms: PaymentTerm[]
+}
+
+async function fetchPaymentTerms(quotationId: string): Promise<PaymentTerm[]> {
+  const response = await apiGet<PaymentTermsResponse>(`/api/quotations/${quotationId}/payment-terms`)
+  return response.payment_terms
+}
+
+export function usePaymentTerms(quotationId: string) {
+  return useQuery({
+    queryKey: ['payment-terms', quotationId],
+    queryFn: () => fetchPaymentTerms(quotationId),
+    staleTime: 2 * 60 * 1000,
+    enabled: !!quotationId,
+  })
+}
