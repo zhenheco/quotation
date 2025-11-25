@@ -6,7 +6,6 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getCompanyById, updateCompany, deleteCompany, isCompanyMember } from '@/lib/dal/companies'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import type { BrandColors } from '@/types/brand.types'
 
 // Note: Edge runtime removed for OpenNext compatibility
 
@@ -25,7 +24,6 @@ interface UpdateCompanyRequestBody {
   phone?: string;
   email?: string;
   website?: string;
-  brand_colors?: BrandColors;
   [key: string]: unknown;
 }
 
@@ -138,11 +136,6 @@ export async function PUT(
         zh: body.address_zh || currentAddress.zh,
         en: body.address_en || currentAddress.en
       }
-    }
-
-    // 處理品牌顏色
-    if (body.brand_colors !== undefined) {
-      updateData.brand_colors = body.brand_colors
     }
 
     // 處理其他簡單欄位

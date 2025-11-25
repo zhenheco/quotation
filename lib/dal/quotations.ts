@@ -3,8 +3,6 @@
  */
 
 import { D1Client } from '@/lib/db/d1-client'
-import type { BrandColors } from '@/types/brand.types'
-import { DEFAULT_BRAND_COLORS } from '@/types/brand.types'
 
 interface QuotationRow {
   id: string
@@ -40,7 +38,6 @@ interface CompanyBrandingRow {
   company_bank_name: string | null
   company_bank_code: string | null
   company_bank_account: string | null
-  company_brand_colors: string | null
 }
 
 interface QuotationItemRow {
@@ -90,7 +87,6 @@ export interface QuotationWithCompany extends Quotation {
   company_bank_name: string | null
   company_bank_code: string | null
   company_bank_account: string | null
-  company_brand_colors: BrandColors
 }
 
 export interface QuotationItem {
@@ -192,8 +188,7 @@ export async function getQuotationById(
       c.address as company_address,
       c.bank_name as company_bank_name,
       c.bank_code as company_bank_code,
-      c.bank_account as company_bank_account,
-      c.brand_colors as company_brand_colors
+      c.bank_account as company_bank_account
     FROM quotations q
     LEFT JOIN companies c ON q.company_id = c.id
     WHERE q.id = ? AND q.user_id = ?
@@ -204,15 +199,6 @@ export async function getQuotationById(
   if (!row) return null
 
   const quotation = parseQuotationRow(row)
-
-  let brandColors: BrandColors = DEFAULT_BRAND_COLORS
-  if (row.company_brand_colors) {
-    try {
-      brandColors = JSON.parse(row.company_brand_colors) as BrandColors
-    } catch {
-      console.warn(`Invalid JSON in companies.brand_colors`)
-    }
-  }
 
   let companyAddress: { zh: string; en: string } | null = null
   if (row.company_address) {
@@ -237,7 +223,6 @@ export async function getQuotationById(
     company_bank_name: row.company_bank_name,
     company_bank_code: row.company_bank_code,
     company_bank_account: row.company_bank_account,
-    company_brand_colors: brandColors,
   }
 }
 
