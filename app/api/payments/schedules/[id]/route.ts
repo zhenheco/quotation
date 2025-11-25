@@ -4,8 +4,6 @@ import { getD1Client } from '@/lib/db/d1-client'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { updatePaymentSchedule, deletePaymentSchedule } from '@/lib/dal/payments'
 
-export const runtime = 'edge'
-
 interface RouteContext {
   params: Promise<{ id: string }>
 }

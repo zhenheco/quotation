@@ -8,8 +8,6 @@ import {
   syncQuotationToPaymentSchedules
 } from '@/lib/dal/payments'
 
-export const runtime = 'edge'
-
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
