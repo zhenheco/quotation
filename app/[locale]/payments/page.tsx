@@ -40,18 +40,20 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t('payments.title')}
-        description={t('payments.description')}
-        action={{
-          label: t('payments.addSchedule.button'),
-          onClick: () => setIsAddModalOpen(true)
-        }}
-      />
+    <div className="h-full flex flex-col space-y-4">
+      <div className="flex-shrink-0">
+        <PageHeader
+          title={t('payments.title')}
+          description={t('payments.description')}
+          action={{
+            label: t('payments.addSchedule.button'),
+            onClick: () => setIsAddModalOpen(true)
+          }}
+        />
+      </div>
 
       {reminders && reminders.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex-shrink-0">
           <h3 className="font-semibold text-blue-900 mb-2">
             {t('payments.upcomingReminders')}
           </h3>
@@ -66,7 +68,7 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
       )}
 
       {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-shrink-0">
           <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
             <p className="text-sm text-gray-600 mb-1">{t('payments.statistics.current_month_collected')}</p>
             <p className="text-2xl font-bold text-green-600">
@@ -94,7 +96,7 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="bg-white rounded-lg shadow p-4 flex-shrink-0">
         <input
           type="text"
           placeholder={t('payments.search_customer')}
@@ -104,7 +106,9 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
         />
       </div>
 
-      <CurrentMonthReceivablesTable locale={locale} searchQuery={searchQuery} />
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <CurrentMonthReceivablesTable locale={locale} searchQuery={searchQuery} />
+      </div>
 
       <AddPaymentScheduleModal
         isOpen={isAddModalOpen}

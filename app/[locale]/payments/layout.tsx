@@ -27,11 +27,11 @@ export default async function PaymentsLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="h-screen bg-gray-50 overflow-hidden flex flex-col">
       <Navbar locale={locale} />
-      <div className="flex overflow-x-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar locale={locale} />
-        <main className="flex-1 p-8 overflow-x-hidden">
+        <main className="flex-1 p-8 overflow-y-auto">
           {children}
         </main>
       </div>
