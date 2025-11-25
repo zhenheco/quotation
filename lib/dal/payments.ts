@@ -618,20 +618,23 @@ export async function markScheduleAsCollected(
     throw new Error('Schedule already paid')
   }
 
-  const contract = await db.queryOne<{ customer_id: string; quotation_id: string | null }>(
-    'SELECT customer_id, quotation_id FROM customer_contracts WHERE id = ?',
-    [schedule.contract_id]
-  )
+  let quotationId: string | null = schedule.quotation_id
 
-  if (!contract) {
-    throw new Error('Contract not found')
+  if (schedule.contract_id) {
+    const contract = await db.queryOne<{ quotation_id: string | null }>(
+      'SELECT quotation_id FROM customer_contracts WHERE id = ?',
+      [schedule.contract_id]
+    )
+    if (contract?.quotation_id) {
+      quotationId = contract.quotation_id
+    }
   }
 
   const payment = await createPayment(db, userId, {
     company_id: null,
-    quotation_id: contract.quotation_id,
+    quotation_id: quotationId,
     contract_id: schedule.contract_id,
-    customer_id: contract.customer_id,
+    customer_id: schedule.customer_id,
     payment_type: 'installment',
     payment_date: data.payment_date,
     amount: data.amount || schedule.amount,
@@ -651,28 +654,30 @@ export async function markScheduleAsCollected(
     [data.payment_date, data.amount || schedule.amount, payment.id, now, scheduleId, userId]
   )
 
-  const nextSchedule = await db.queryOne<PaymentSchedule>(
-    `SELECT * FROM payment_schedules
-     WHERE contract_id = ? AND user_id = ? AND status = 'pending'
-     ORDER BY due_date ASC
-     LIMIT 1`,
-    [schedule.contract_id, userId]
-  )
+  if (schedule.contract_id) {
+    const nextSchedule = await db.queryOne<PaymentSchedule>(
+      `SELECT * FROM payment_schedules
+       WHERE contract_id = ? AND user_id = ? AND status = 'pending'
+       ORDER BY due_date ASC
+       LIMIT 1`,
+      [schedule.contract_id, userId]
+    )
 
-  if (nextSchedule) {
-    await db.execute(
-      `UPDATE customer_contracts
-       SET next_collection_date = ?, next_collection_amount = ?, updated_at = ?
-       WHERE id = ?`,
-      [nextSchedule.due_date, nextSchedule.amount, now, schedule.contract_id]
-    )
-  } else {
-    await db.execute(
-      `UPDATE customer_contracts
-       SET next_collection_date = NULL, next_collection_amount = NULL, updated_at = ?
-       WHERE id = ?`,
-      [now, schedule.contract_id]
-    )
+    if (nextSchedule) {
+      await db.execute(
+        `UPDATE customer_contracts
+         SET next_collection_date = ?, next_collection_amount = ?, updated_at = ?
+         WHERE id = ?`,
+        [nextSchedule.due_date, nextSchedule.amount, now, schedule.contract_id]
+      )
+    } else {
+      await db.execute(
+        `UPDATE customer_contracts
+         SET next_collection_date = NULL, next_collection_amount = NULL, updated_at = ?
+         WHERE id = ?`,
+        [now, schedule.contract_id]
+      )
+    }
   }
 
   const updatedSchedule = await db.queryOne<PaymentSchedule>(
