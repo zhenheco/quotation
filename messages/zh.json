@@ -19,7 +19,8 @@
     "noResults": "找不到結果",
     "send": "發送",
     "add": "新增",
-    "optional": "選填"
+    "optional": "選填",
+    "retry": "重試"
   },
   "auth": {
     "signInWithGoogle": "使用 Google 登入",

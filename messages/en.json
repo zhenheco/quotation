@@ -18,7 +18,8 @@
     "noResults": "No results found",
     "send": "Send",
     "add": "Add",
-    "optional": "Optional"
+    "optional": "Optional",
+    "retry": "Retry"
   },
   "auth": {
     "signInWithGoogle": "Sign in with Google",
