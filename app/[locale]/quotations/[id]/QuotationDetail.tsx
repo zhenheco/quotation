@@ -62,53 +62,10 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
 
   return (
     <div className="space-y-6">
-      {/* Company Branding Header */}
-      <div className="bg-white rounded-lg shadow p-6 print:shadow-none print:p-4">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-0">
-          {/* Logo Area - Left */}
-          <div className="flex-shrink-0">
-            {(quotation as { company_logo_url?: string | null }).company_logo_url ? (
-              <Image
-                src={(quotation as { company_logo_url?: string | null }).company_logo_url as string}
-                alt={`${(quotation as { company_name?: { zh: string; en: string } }).company_name?.[locale as 'zh' | 'en'] || 'Company'} Logo`}
-                width={200}
-                height={80}
-                className="max-w-[200px] max-h-[80px] md:max-w-[200px] print:max-w-[150px] object-contain company-logo"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none'
-                }}
-              />
-            ) : (
-              <div className="h-20 flex items-center">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {(quotation as { company_name?: { zh: string; en: string } }).company_name?.[locale as 'zh' | 'en'] || ''}
-                </h1>
-              </div>
-            )}
-          </div>
-
-          {/* Company Info - Right */}
-          <div className="text-left md:text-right company-info">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              {(quotation as { company_name?: { zh: string; en: string } }).company_name?.[locale as 'zh' | 'en'] || ''}
-            </h2>
-            {(quotation as { company_tax_id?: string | null }).company_tax_id && (
-              <p className="text-sm text-gray-600">
-                {locale === 'zh' ? '統一編號' : 'Tax ID'}: {(quotation as { company_tax_id?: string | null }).company_tax_id}
-              </p>
-            )}
-            {(quotation as { company_phone?: string | null }).company_phone && (
-              <p className="text-sm text-gray-600">
-                {locale === 'zh' ? '電話' : 'Phone'}: {(quotation as { company_phone?: string | null }).company_phone}
-              </p>
-            )}
-            {(quotation as { company_email?: string | null }).company_email && (
-              <p className="text-sm text-gray-600">
-                {(quotation as { company_email?: string | null }).company_email}
-              </p>
-            )}
-          </div>
-        </div>
+      {/* Page Title */}
+      <div className="flex items-center gap-3 no-print">
+        <span className="text-lg font-mono text-gray-600">{quotation.quotation_number}</span>
+        <h1 className="text-2xl font-bold text-gray-900">{t('quotation.detail')}</h1>
       </div>
 
       {/* Quotation Header */}
@@ -164,9 +121,9 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
               title={locale === 'zh' ? '點擊後選擇「另存為 PDF」即可儲存檔案' : 'Click and choose "Save as PDF" to save the file'}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {t('quotation.print_or_save_pdf')}
+              {t('quotation.save_pdf')}
             </button>
           </div>
         </div>
