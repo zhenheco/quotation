@@ -15,9 +15,10 @@ import EditPaymentScheduleModal from './EditPaymentScheduleModal'
 
 interface CurrentMonthReceivablesTableProps {
   locale: string
+  searchQuery?: string
 }
 
-export function CurrentMonthReceivablesTable({ locale }: CurrentMonthReceivablesTableProps) {
+export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: CurrentMonthReceivablesTableProps) {
   const t = useTranslations()
   const { data, isLoading, error } = useCurrentMonthReceivables()
   const markAsCollected = useMarkScheduleAsCollected()
@@ -31,9 +32,20 @@ export function CurrentMonthReceivablesTable({ locale }: CurrentMonthReceivables
     if (!data?.receivables) {
       return { unpaidItems: [], paidItems: [] }
     }
+
+    const filteredReceivables = data.receivables.filter((item) => {
+      if (!searchQuery) return true
+      const query = searchQuery.toLowerCase()
+      const customerName = locale === 'zh' ? item.customer_name_zh : item.customer_name_en
+      return (
+        customerName.toLowerCase().includes(query) ||
+        (item.quotation_number?.toLowerCase().includes(query) ?? false)
+      )
+    })
+
     const unpaid: CurrentMonthReceivable[] = []
     const paid: CurrentMonthReceivable[] = []
-    data.receivables.forEach((item) => {
+    filteredReceivables.forEach((item) => {
       if (item.status === 'paid') {
         paid.push(item)
       } else {
@@ -41,7 +53,7 @@ export function CurrentMonthReceivablesTable({ locale }: CurrentMonthReceivables
       }
     })
     return { unpaidItems: unpaid, paidItems: paid }
-  }, [data?.receivables])
+  }, [data?.receivables, searchQuery, locale])
 
   const handleCheckboxChange = async (item: CurrentMonthReceivable) => {
     if (item.status === 'paid') {
