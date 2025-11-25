@@ -49,12 +49,7 @@ export async function POST() {
         description TEXT,
         source_type TEXT DEFAULT 'contract' CHECK (source_type IN ('quotation', 'manual', 'contract')),
         created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (contract_id) REFERENCES customer_contracts(id) ON DELETE CASCADE,
-        FOREIGN KEY (quotation_id) REFERENCES quotations(id) ON DELETE SET NULL,
-        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
-        FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE SET NULL
+        updated_at TEXT DEFAULT (datetime('now'))
       )
     `)
 
