@@ -175,12 +175,16 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
         </div>
       </div>
 
-      {/* Items */}
-      {quotation.items && quotation.items.length > 0 && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.items')}</h3>
-          </div>
+      {/* Quotation Items - 報價項目 */}
+      <div className="bg-white rounded-lg shadow overflow-hidden print:shadow-none total-section">
+        <div className="p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            {locale === 'zh' ? '報價項目' : 'Quotation Items'}
+          </h3>
+        </div>
+
+        {/* Items Table */}
+        {quotation.items && quotation.items.length > 0 && (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -229,20 +233,17 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Summary */}
-      <div className="bg-white rounded-lg shadow p-6 print:shadow-none total-section">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.summary')}</h3>
-        <div className="max-w-md ml-auto space-y-2">
-          <div className="flex justify-between text-sm">
+        {/* Summary - 小計/稅金/總計 */}
+        <div className="p-6 space-y-2">
+          <div className="flex gap-4 text-sm">
             <span className="text-gray-600">{t('quotation.subtotal')}:</span>
             <span className="text-gray-900 font-medium">
               {quotation.currency} {quotation.subtotal?.toLocaleString() || '0'}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
+          <div className="flex gap-4 text-sm">
             <span className="text-gray-600">
               {t('quotation.tax')} ({quotation.tax_rate}%):
             </span>
@@ -250,21 +251,21 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
               {quotation.currency} {quotation.tax_amount?.toLocaleString() || '0'}
             </span>
           </div>
-          <div className="flex justify-between text-lg font-bold border-t pt-2">
+          <div className="flex gap-4 text-lg font-bold border-t pt-2">
             <span>{t('quotation.total')}:</span>
             <span>{quotation.currency} {quotation.total_amount?.toLocaleString() || '0'}</span>
           </div>
         </div>
 
-        {/* Payment Terms */}
+        {/* Payment Terms - 付款條件 */}
         {paymentTerms && paymentTerms.length > 0 && (
-          <div className="mt-6 pt-4 border-t">
+          <div className="px-6 pb-6 pt-2 border-t">
             <h4 className="text-sm font-medium text-gray-700 mb-3">
               {locale === 'zh' ? '付款條件' : 'Payment Terms'}
             </h4>
             <div className="space-y-2">
               {paymentTerms.map((term: PaymentTerm) => (
-                <div key={term.id} className="flex justify-between text-sm">
+                <div key={term.id} className="flex gap-4 text-sm">
                   <span className="text-gray-600">
                     {locale === 'zh' ? `第 ${term.term_number} 期` : `Term ${term.term_number}`}
                     {' '}({term.percentage}%)
@@ -293,9 +294,9 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
           </div>
         )}
 
-        {/* Company Signature - Below Total */}
+        {/* Company Signature */}
         {(quotation as { company_signature_url?: string | null }).company_signature_url && (
-          <div className="flex justify-end mt-6 print:mt-4 signature-section">
+          <div className="flex justify-end px-6 pb-6 signature-section">
             <div className="flex flex-col items-end">
               <Image
                 src={(quotation as { company_signature_url?: string | null }).company_signature_url as string}
