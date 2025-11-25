@@ -179,6 +179,28 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       if ((existingQuotation as { contract_file_url?: string }).contract_file_url) {
         setContractFileUrl((existingQuotation as { contract_file_url?: string }).contract_file_url || '')
       }
+
+      // 載入報價單項目
+      interface QuotationItemResponse {
+        id: string
+        quotation_id: string
+        product_id: string | null
+        description: BilingualText | string
+        quantity: number
+        unit_price: number
+        discount: number
+        subtotal: number
+      }
+      const existingItems = (existingQuotation as { items?: QuotationItemResponse[] }).items
+      if (existingItems && existingItems.length > 0) {
+        setItems(existingItems.map(item => ({
+          product_id: item.product_id || '',
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          discount: item.discount || 0,
+          subtotal: item.subtotal
+        })))
+      }
     }
   }, [existingQuotation, customers, locale])
 

@@ -182,12 +182,24 @@ export async function getPaymentsWithRelations(
   return rows.map(row => {
     const { customer_id_fk, customer_name, quotation_id_fk, quotation_number, quotation_total, contract_id_fk, contract_number, contract_total_amount, ...payment } = row
 
+    let companyNameZh = customer_name
+    let companyNameEn = customer_name
+    try {
+      const parsed = JSON.parse(customer_name)
+      if (typeof parsed === 'object' && parsed !== null) {
+        companyNameZh = parsed.zh || ''
+        companyNameEn = parsed.en || ''
+      }
+    } catch {
+      // name 不是 JSON 格式，保持原值
+    }
+
     return {
       ...payment,
       customer: {
         id: customer_id_fk,
-        company_name_zh: customer_name,
-        company_name_en: customer_name,
+        company_name_zh: companyNameZh,
+        company_name_en: companyNameEn,
       },
       quotation: quotation_id_fk ? {
         id: quotation_id_fk,
@@ -538,10 +550,27 @@ export async function getCurrentMonthReceivables(
     is_overdue: number
   }>(sql, [userId, targetMonth])
 
-  const receivables: CurrentMonthReceivable[] = rows.map(row => ({
-    ...row,
-    is_overdue: row.is_overdue === 1,
-  }))
+  const receivables: CurrentMonthReceivable[] = rows.map(row => {
+    let customerNameZh = row.customer_name_zh
+    let customerNameEn = row.customer_name_en
+
+    try {
+      const parsed = JSON.parse(row.customer_name_zh)
+      if (typeof parsed === 'object' && parsed !== null) {
+        customerNameZh = parsed.zh || ''
+        customerNameEn = parsed.en || ''
+      }
+    } catch {
+      // name 不是 JSON 格式，保持原值
+    }
+
+    return {
+      ...row,
+      customer_name_zh: customerNameZh,
+      customer_name_en: customerNameEn,
+      is_overdue: row.is_overdue === 1,
+    }
+  })
 
   const summary: CurrentMonthReceivablesSummary = {
     total_count: receivables.length,
@@ -709,8 +738,19 @@ export async function getUnpaidPaymentSchedules(
       return null
     }
 
+    let parsedCustomerName = row.customer_name
+    try {
+      const parsed = JSON.parse(row.customer_name)
+      if (typeof parsed === 'object' && parsed !== null) {
+        parsedCustomerName = parsed.zh || parsed.en || ''
+      }
+    } catch {
+      // name 不是 JSON 格式，保持原值
+    }
+
     return {
       ...row,
+      customer_name: parsedCustomerName,
       days_overdue: daysOverdue,
     }
   }).filter((item): item is UnpaidPaymentWithDetails => item !== null)
@@ -846,8 +886,19 @@ export async function getPaymentReminders(
       collectionStatus = 'upcoming'
     }
 
+    let parsedCustomerName = row.customer_name
+    try {
+      const parsed = JSON.parse(row.customer_name)
+      if (typeof parsed === 'object' && parsed !== null) {
+        parsedCustomerName = parsed.zh || parsed.en || ''
+      }
+    } catch {
+      // name 不是 JSON 格式，保持原值
+    }
+
     return {
       ...row,
+      customer_name: parsedCustomerName,
       days_until_collection: daysUntilCollection,
       collection_status: collectionStatus,
     }

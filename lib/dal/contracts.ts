@@ -113,7 +113,23 @@ export async function getContractsWithOverduePayments(
     ORDER BY oldest_overdue_days DESC
   `
 
-  return await db.query<ContractWithOverduePayments>(sql, [userId, today])
+  const rows = await db.query<ContractWithOverduePayments>(sql, [userId, today])
+
+  return rows.map(row => {
+    let parsedCustomerName = row.customer_name
+    try {
+      const parsed = JSON.parse(row.customer_name)
+      if (typeof parsed === 'object' && parsed !== null) {
+        parsedCustomerName = parsed.zh || parsed.en || ''
+      }
+    } catch {
+      // name 不是 JSON 格式，保持原值
+    }
+    return {
+      ...row,
+      customer_name: parsedCustomerName,
+    }
+  })
 }
 
 export interface PaymentProgress {
