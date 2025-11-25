@@ -48,9 +48,10 @@ function validateMarkCollectedInput(body: unknown): { valid: boolean; data?: Mar
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: scheduleId } = await params
     const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
@@ -83,7 +84,7 @@ export async function POST(
     const result = await markScheduleAsCollected(
       db,
       user.id,
-      params.id,
+      scheduleId,
       validation.data
     )
 
