@@ -14,10 +14,13 @@ export async function POST() {
   const { env } = await getCloudflareContext()
   const db = getD1Client(env)
 
+  const steps: string[] = []
+
   try {
     const tableInfo = await db.query<{ name: string }>(
       "PRAGMA table_info(payment_schedules)"
     )
+    steps.push(`Current columns: ${tableInfo.map(c => c.name).join(', ')}`)
 
     const hasSourceType = tableInfo.some(col => col.name === 'source_type')
     const hasQuotationId = tableInfo.some(col => col.name === 'quotation_id')
@@ -30,8 +33,12 @@ export async function POST() {
       })
     }
 
+    steps.push('Step 1: Drop existing payment_schedules_new if exists')
+    await db.execute('DROP TABLE IF EXISTS payment_schedules_new')
+
+    steps.push('Step 2: Create new table structure')
     await db.execute(`
-      CREATE TABLE IF NOT EXISTS payment_schedules_new (
+      CREATE TABLE payment_schedules_new (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         contract_id TEXT,
@@ -53,6 +60,7 @@ export async function POST() {
       )
     `)
 
+    steps.push('Step 3: Copy data from old table')
     await db.execute(`
       INSERT INTO payment_schedules_new (
         id, user_id, contract_id, quotation_id, customer_id, schedule_number,
@@ -66,24 +74,38 @@ export async function POST() {
       FROM payment_schedules
     `)
 
+    steps.push('Step 4: Drop old table')
     await db.execute('DROP TABLE payment_schedules')
+
+    steps.push('Step 5: Rename new table')
     await db.execute('ALTER TABLE payment_schedules_new RENAME TO payment_schedules')
+
+    steps.push('Step 6: Create indexes')
     await db.execute('CREATE INDEX IF NOT EXISTS idx_payment_schedules_quotation ON payment_schedules(quotation_id)')
     await db.execute('CREATE INDEX IF NOT EXISTS idx_payment_schedules_source ON payment_schedules(source_type)')
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_payment_schedules_contract ON payment_schedules(contract_id)')
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_payment_schedules_customer ON payment_schedules(customer_id)')
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_payment_schedules_due_date ON payment_schedules(due_date)')
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_payment_schedules_status ON payment_schedules(status)')
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_payment_schedules_user ON payment_schedules(user_id)')
 
+    steps.push('Step 7: Verify new schema')
     const newTableInfo = await db.query<{ name: string }>(
       "PRAGMA table_info(payment_schedules)"
     )
 
     return NextResponse.json({
       message: 'Migration 011 applied successfully',
-      columns: newTableInfo.map(c => c.name)
+      columns: newTableInfo.map(c => c.name),
+      steps
     })
   } catch (error) {
     console.error('Migration error:', error)
     return NextResponse.json({
       error: 'Migration failed',
-      details: (error as Error).message
+      details: (error as Error).message,
+      steps,
+      failedAt: steps[steps.length - 1]
     }, { status: 500 })
   }
 }

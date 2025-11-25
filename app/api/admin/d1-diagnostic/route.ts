@@ -48,6 +48,22 @@ export async function GET() {
       "SELECT * FROM d1_migrations ORDER BY id"
     ).catch(() => [])
 
+    const paymentSchedulesNewInfo = await db.query<TableInfo>(
+      "PRAGMA table_info(payment_schedules_new)"
+    ).catch(() => [])
+
+    const foreignKeysOld = await db.query<{ table: string; from: string; to: string }>(
+      "PRAGMA foreign_key_list(payment_schedules)"
+    ).catch(() => [])
+
+    const foreignKeysNew = await db.query<{ table: string; from: string; to: string }>(
+      "PRAGMA foreign_key_list(payment_schedules_new)"
+    ).catch(() => [])
+
+    const triggers = await db.query<{ name: string; sql: string }>(
+      "SELECT name, sql FROM sqlite_master WHERE type='trigger'"
+    ).catch(() => [])
+
     return NextResponse.json({
       success: true,
       database: {
@@ -75,6 +91,16 @@ export async function GET() {
         columns: customersInfo.map(c => c.name)
       },
       migrations: migrationsInfo,
+      payment_schedules_new: {
+        exists: paymentSchedulesNewInfo.length > 0,
+        columns: paymentSchedulesNewInfo.map(c => c.name),
+        foreignKeys: foreignKeysNew
+      },
+      foreignKeys: {
+        payment_schedules: foreignKeysOld,
+        payment_schedules_new: foreignKeysNew
+      },
+      triggers: triggers.map(t => ({ name: t.name, sql: t.sql?.substring(0, 200) })),
       env: {
         hasDB: !!env?.DB,
         envKeys: Object.keys(env || {})
