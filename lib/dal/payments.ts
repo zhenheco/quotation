@@ -409,13 +409,15 @@ export async function getPaymentStatistics(
   const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const currentYearStart = new Date(now.getFullYear(), 0, 1)
 
+  const today = new Date().toISOString().split('T')[0]
+
   const [currentMonthSchedules, currentYearSchedules, overdueSchedules] = await Promise.all([
-    db.query<{ status: string; amount: number; currency: string }>(
-      'SELECT status, amount, currency FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
+    db.query<{ status: string; amount: number; currency: string; due_date: string }>(
+      'SELECT status, amount, currency, due_date FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
       [userId, currentMonthStart.toISOString()]
     ),
-    db.query<{ status: string; amount: number; currency: string }>(
-      'SELECT status, amount, currency FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
+    db.query<{ status: string; amount: number; currency: string; due_date: string }>(
+      'SELECT status, amount, currency, due_date FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
       [userId, currentYearStart.toISOString()]
     ),
     db.query<{ amount: number; days_overdue: number }>(
@@ -431,11 +433,11 @@ export async function getPaymentStatistics(
     .reduce((sum, p) => sum + p.amount, 0)
 
   const currentMonthPending = currentMonthSchedules
-    .filter(p => p.status === 'pending')
+    .filter(p => p.status === 'pending' && p.due_date >= today)
     .reduce((sum, p) => sum + p.amount, 0)
 
   const currentMonthOverdue = currentMonthSchedules
-    .filter(p => p.status === 'overdue')
+    .filter(p => p.status === 'overdue' || (p.status === 'pending' && p.due_date < today))
     .reduce((sum, p) => sum + p.amount, 0)
 
   const currentYearCollected = currentYearSchedules
@@ -443,11 +445,11 @@ export async function getPaymentStatistics(
     .reduce((sum, p) => sum + p.amount, 0)
 
   const currentYearPending = currentYearSchedules
-    .filter(p => p.status === 'pending')
+    .filter(p => p.status === 'pending' && p.due_date >= today)
     .reduce((sum, p) => sum + p.amount, 0)
 
   const currentYearOverdue = currentYearSchedules
-    .filter(p => p.status === 'overdue')
+    .filter(p => p.status === 'overdue' || (p.status === 'pending' && p.due_date < today))
     .reduce((sum, p) => sum + p.amount, 0)
 
   const currency = currentMonthSchedules.find(p => p.currency)?.currency || 'TWD'
@@ -574,13 +576,13 @@ export async function getCurrentMonthReceivables(
 
   const summary: CurrentMonthReceivablesSummary = {
     total_count: receivables.length,
-    pending_count: receivables.filter(r => r.status === 'pending').length,
+    pending_count: receivables.filter(r => r.status === 'pending' && !r.is_overdue).length,
     paid_count: receivables.filter(r => r.status === 'paid').length,
-    overdue_count: receivables.filter(r => r.status === 'overdue').length,
+    overdue_count: receivables.filter(r => r.status === 'overdue' || r.is_overdue).length,
     total_amount: receivables.reduce((sum, r) => sum + r.amount, 0),
-    pending_amount: receivables.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0),
+    pending_amount: receivables.filter(r => r.status === 'pending' && !r.is_overdue).reduce((sum, r) => sum + r.amount, 0),
     paid_amount: receivables.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.amount, 0),
-    overdue_amount: receivables.filter(r => r.status === 'overdue').reduce((sum, r) => sum + r.amount, 0),
+    overdue_amount: receivables.filter(r => r.status === 'overdue' || r.is_overdue).reduce((sum, r) => sum + r.amount, 0),
     currency: receivables[0]?.currency || 'TWD',
   }
 
