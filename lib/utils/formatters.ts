@@ -19,6 +19,26 @@ export function safeToLocaleString(
 }
 
 /**
+ * 格式化金額（根據貨幣決定是否顯示小數）
+ * TWD 顯示整數，其他貨幣保留 2 位小數
+ * @param value - 金額（可能為 undefined 或 null）
+ * @param currency - 貨幣代碼
+ * @returns 格式化後的金額字串
+ */
+export function formatAmount(
+  value: number | undefined | null,
+  currency: string = 'TWD'
+): string {
+  const validValue = value ?? 0;
+  if (!isFinite(validValue)) return '0';
+
+  if (currency === 'TWD') {
+    return Math.round(validValue).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+  }
+  return validValue.toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
  * 格式化貨幣金額
  * @param amount - 金額（可能為 undefined 或 null）
  * @param currency - 貨幣代碼（預設為 TWD）

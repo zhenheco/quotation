@@ -12,7 +12,7 @@ import {
 } from '@/hooks/useQuotations'
 import { toast } from 'sonner'
 import './print.css'
-import { safeToLocaleString } from '@/lib/utils/formatters'
+import { formatAmount } from '@/lib/utils/formatters'
 
 interface QuotationDetailProps {
   quotationId: string
@@ -199,10 +199,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                     {t('quotation.item.unitPrice')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('quotation.item.discount')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('quotation.item.subtotal')}
+                    {locale === 'zh' ? '金額' : 'Amount'}
                   </th>
                 </tr>
               </thead>
@@ -220,13 +217,10 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                       {item.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {quotation.currency} {safeToLocaleString(item.unit_price)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.discount > 0 ? `${item.discount}%` : '-'}
+                      {quotation.currency} {formatAmount(item.unit_price, quotation.currency)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {quotation.currency} {safeToLocaleString(item.subtotal)}
+                      {quotation.currency} {formatAmount(item.subtotal, quotation.currency)}
                     </td>
                   </tr>
                 ))}
@@ -236,24 +230,26 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
         )}
 
         {/* Summary - 小計/稅金/總計 */}
-        <div className="p-6 space-y-2">
-          <div className="flex gap-4 text-sm">
-            <span className="text-gray-600">{t('quotation.subtotal')}:</span>
-            <span className="text-gray-900 font-medium">
-              {quotation.currency} {quotation.subtotal?.toLocaleString() || '0'}
-            </span>
-          </div>
-          <div className="flex gap-4 text-sm">
-            <span className="text-gray-600">
-              {t('quotation.tax')} ({quotation.tax_rate}%):
-            </span>
-            <span className="text-gray-900 font-medium">
-              {quotation.currency} {quotation.tax_amount?.toLocaleString() || '0'}
-            </span>
-          </div>
-          <div className="flex gap-4 text-lg font-bold border-t pt-2">
-            <span>{t('quotation.total')}:</span>
-            <span>{quotation.currency} {quotation.total_amount?.toLocaleString() || '0'}</span>
+        <div className="p-6">
+          <div className="max-w-md ml-auto space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">{t('quotation.subtotal')}:</span>
+              <span className="text-gray-900 font-medium">
+                {quotation.currency} {formatAmount(quotation.subtotal, quotation.currency)}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">
+                {t('quotation.tax')} ({quotation.tax_rate}%):
+              </span>
+              <span className="text-gray-900 font-medium">
+                {quotation.currency} {formatAmount(quotation.tax_amount, quotation.currency)}
+              </span>
+            </div>
+            <div className="flex justify-between text-lg font-bold border-t pt-2">
+              <span>{t('quotation.total')}:</span>
+              <span>{quotation.currency} {formatAmount(quotation.total_amount, quotation.currency)}</span>
+            </div>
           </div>
         </div>
 
@@ -265,7 +261,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
             </h4>
             <div className="space-y-2">
               {paymentTerms.map((term: PaymentTerm) => (
-                <div key={term.id} className="flex gap-4 text-sm">
+                <div key={term.id} className="flex justify-between text-sm">
                   <span className="text-gray-600">
                     {locale === 'zh' ? `第 ${term.term_number} 期` : `Term ${term.term_number}`}
                     {' '}({term.percentage}%)
@@ -286,7 +282,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                     )}
                   </span>
                   <span className="text-gray-900 font-medium">
-                    {quotation.currency} {safeToLocaleString(term.amount)}
+                    {quotation.currency} {formatAmount(term.amount, quotation.currency)}
                   </span>
                 </div>
               ))}
