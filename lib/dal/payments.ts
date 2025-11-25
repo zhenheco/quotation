@@ -253,7 +253,8 @@ export interface CollectedPaymentFilters {
 export interface PaymentSchedule {
   id: string
   user_id: string
-  contract_id: string
+  contract_id: string | null
+  quotation_id: string | null
   customer_id: string
   schedule_number: number
   due_date: string
@@ -264,6 +265,24 @@ export interface PaymentSchedule {
   paid_date: string | null
   payment_id: string | null
   notes: string | null
+  description: string | null
+  source_type: 'quotation' | 'manual' | 'contract'
+  created_at: string
+  updated_at: string
+}
+
+export interface PaymentTerm {
+  id: string
+  quotation_id: string
+  term_number: number
+  term_name: string | null
+  percentage: number
+  amount: number
+  due_date: string | null
+  paid_amount: number
+  paid_date: string | null
+  payment_status: 'unpaid' | 'partial' | 'paid' | 'overdue'
+  description: string | null
   created_at: string
   updated_at: string
 }
@@ -310,9 +329,9 @@ export interface CurrentMonthReceivable {
   customer_name_en: string
   quotation_id: string | null
   quotation_number: string | null
-  contract_id: string
-  contract_number: string
-  contract_title: string
+  contract_id: string | null
+  contract_number: string | null
+  contract_title: string | null
   due_date: string
   amount: number
   currency: string
@@ -321,6 +340,8 @@ export interface CurrentMonthReceivable {
   payment_id: string | null
   days_until_due: number
   is_overdue: boolean
+  description: string | null
+  source_type: 'quotation' | 'manual' | 'contract'
 }
 
 export interface CurrentMonthReceivablesSummary {
@@ -461,11 +482,15 @@ export async function getCurrentMonthReceivables(
     SELECT
       ps.id,
       ps.schedule_number,
-      (SELECT COUNT(*) FROM payment_schedules WHERE contract_id = ps.contract_id) as total_schedules,
+      CASE
+        WHEN ps.contract_id IS NOT NULL THEN (SELECT COUNT(*) FROM payment_schedules WHERE contract_id = ps.contract_id)
+        WHEN ps.quotation_id IS NOT NULL THEN (SELECT COUNT(*) FROM payment_schedules WHERE quotation_id = ps.quotation_id)
+        ELSE 1
+      END as total_schedules,
       c.id as customer_id,
       c.name as customer_name_zh,
       c.name as customer_name_en,
-      q.id as quotation_id,
+      COALESCE(ps.quotation_id, ct.quotation_id) as quotation_id,
       q.quotation_number,
       ct.id as contract_id,
       ct.contract_number,
@@ -476,12 +501,14 @@ export async function getCurrentMonthReceivables(
       ps.status,
       ps.paid_date,
       ps.payment_id,
+      ps.description,
+      ps.source_type,
       CAST(julianday(ps.due_date) - julianday('now') AS INTEGER) as days_until_due,
       CASE WHEN ps.due_date < date('now') AND ps.status = 'pending' THEN 1 ELSE 0 END as is_overdue
     FROM payment_schedules ps
     INNER JOIN customers c ON ps.customer_id = c.id
-    INNER JOIN customer_contracts ct ON ps.contract_id = ct.id
-    LEFT JOIN quotations q ON ct.quotation_id = q.id
+    LEFT JOIN customer_contracts ct ON ps.contract_id = ct.id
+    LEFT JOIN quotations q ON COALESCE(ps.quotation_id, ct.quotation_id) = q.id
     WHERE ps.user_id = ?
       AND strftime('%Y-%m', ps.due_date) = ?
     ORDER BY ps.due_date ASC, ps.schedule_number ASC
@@ -496,15 +523,17 @@ export async function getCurrentMonthReceivables(
     customer_name_en: string
     quotation_id: string | null
     quotation_number: string | null
-    contract_id: string
-    contract_number: string
-    contract_title: string
+    contract_id: string | null
+    contract_number: string | null
+    contract_title: string | null
     due_date: string
     amount: number
     currency: string
     status: 'pending' | 'paid' | 'overdue'
     paid_date: string | null
     payment_id: string | null
+    description: string | null
+    source_type: 'quotation' | 'manual' | 'contract'
     days_until_due: number
     is_overdue: number
   }>(sql, [userId, targetMonth])
@@ -918,4 +947,349 @@ export async function recordPayment(
   }
 
   return payment
+}
+
+/**
+ * 從報價單付款條款同步到收款排程
+ */
+export async function syncQuotationToPaymentSchedules(
+  db: D1Client,
+  userId: string,
+  quotationId: string
+): Promise<{ created: number; updated: number; schedules: PaymentSchedule[] }> {
+  const quotation = await db.queryOne<{
+    id: string
+    customer_id: string
+    currency: string
+    quotation_number: string
+  }>(
+    'SELECT id, customer_id, currency, quotation_number FROM quotations WHERE id = ? AND user_id = ?',
+    [quotationId, userId]
+  )
+
+  if (!quotation) {
+    throw new Error('Quotation not found')
+  }
+
+  const paymentTerms = await db.query<PaymentTerm>(
+    'SELECT * FROM payment_terms WHERE quotation_id = ? ORDER BY term_number ASC',
+    [quotationId]
+  )
+
+  if (paymentTerms.length === 0) {
+    return { created: 0, updated: 0, schedules: [] }
+  }
+
+  const existingSchedules = await db.query<PaymentSchedule>(
+    'SELECT * FROM payment_schedules WHERE quotation_id = ? AND user_id = ?',
+    [quotationId, userId]
+  )
+
+  const existingMap = new Map(existingSchedules.map(s => [s.schedule_number, s]))
+  const now = new Date().toISOString()
+
+  let created = 0
+  let updated = 0
+  const schedules: PaymentSchedule[] = []
+
+  for (const term of paymentTerms) {
+    const existing = existingMap.get(term.term_number)
+
+    if (existing) {
+      if (
+        existing.amount !== term.amount ||
+        existing.due_date !== term.due_date ||
+        existing.description !== term.term_name
+      ) {
+        await db.execute(
+          `UPDATE payment_schedules
+           SET amount = ?, due_date = ?, description = ?, updated_at = ?
+           WHERE id = ? AND user_id = ?`,
+          [term.amount, term.due_date, term.term_name, now, existing.id, userId]
+        )
+        updated++
+      }
+
+      const updatedSchedule = await db.queryOne<PaymentSchedule>(
+        'SELECT * FROM payment_schedules WHERE id = ?',
+        [existing.id]
+      )
+      if (updatedSchedule) {
+        schedules.push(updatedSchedule)
+      }
+    } else {
+      const id = crypto.randomUUID()
+      await db.execute(
+        `INSERT INTO payment_schedules (
+          id, user_id, contract_id, quotation_id, customer_id, schedule_number,
+          due_date, amount, currency, status, paid_amount, description, source_type,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id, userId, null, quotationId, quotation.customer_id, term.term_number,
+          term.due_date, term.amount, quotation.currency, 'pending', 0,
+          term.term_name, 'quotation', now, now
+        ]
+      )
+      created++
+
+      const newSchedule = await db.queryOne<PaymentSchedule>(
+        'SELECT * FROM payment_schedules WHERE id = ?',
+        [id]
+      )
+      if (newSchedule) {
+        schedules.push(newSchedule)
+      }
+    }
+  }
+
+  const termNumbers = new Set(paymentTerms.map(t => t.term_number))
+  for (const existing of existingSchedules) {
+    if (!termNumbers.has(existing.schedule_number) && existing.status === 'pending') {
+      await db.execute(
+        'DELETE FROM payment_schedules WHERE id = ? AND user_id = ?',
+        [existing.id, userId]
+      )
+    }
+  }
+
+  return { created, updated, schedules }
+}
+
+/**
+ * 手動建立收款排程
+ */
+export async function createPaymentSchedule(
+  db: D1Client,
+  userId: string,
+  data: {
+    customer_id: string
+    quotation_id?: string
+    due_date: string
+    amount: number
+    currency: string
+    description?: string
+    notes?: string
+  }
+): Promise<PaymentSchedule> {
+  const customer = await db.queryOne<{ id: string }>(
+    'SELECT id FROM customers WHERE id = ? AND user_id = ?',
+    [data.customer_id, userId]
+  )
+
+  if (!customer) {
+    throw new Error('Customer not found')
+  }
+
+  if (data.quotation_id) {
+    const quotation = await db.queryOne<{ id: string }>(
+      'SELECT id FROM quotations WHERE id = ? AND user_id = ?',
+      [data.quotation_id, userId]
+    )
+    if (!quotation) {
+      throw new Error('Quotation not found')
+    }
+  }
+
+  const maxScheduleNumber = await db.queryOne<{ max_number: number }>(
+    `SELECT COALESCE(MAX(schedule_number), 0) as max_number
+     FROM payment_schedules
+     WHERE user_id = ? AND customer_id = ? AND source_type = 'manual'`,
+    [userId, data.customer_id]
+  )
+
+  const scheduleNumber = (maxScheduleNumber?.max_number || 0) + 1
+  const id = crypto.randomUUID()
+  const now = new Date().toISOString()
+
+  await db.execute(
+    `INSERT INTO payment_schedules (
+      id, user_id, contract_id, quotation_id, customer_id, schedule_number,
+      due_date, amount, currency, status, paid_amount, description, notes,
+      source_type, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id, userId, null, data.quotation_id || null, data.customer_id, scheduleNumber,
+      data.due_date, data.amount, data.currency, 'pending', 0,
+      data.description || null, data.notes || null, 'manual', now, now
+    ]
+  )
+
+  const schedule = await db.queryOne<PaymentSchedule>(
+    'SELECT * FROM payment_schedules WHERE id = ?',
+    [id]
+  )
+
+  if (!schedule) {
+    throw new Error('Failed to create payment schedule')
+  }
+
+  return schedule
+}
+
+/**
+ * 取得報價單的付款條款
+ */
+export async function getPaymentTermsByQuotation(
+  db: D1Client,
+  quotationId: string
+): Promise<PaymentTerm[]> {
+  return await db.query<PaymentTerm>(
+    'SELECT * FROM payment_terms WHERE quotation_id = ? ORDER BY term_number ASC',
+    [quotationId]
+  )
+}
+
+/**
+ * 更新收款排程
+ */
+export async function updatePaymentSchedule(
+  db: D1Client,
+  userId: string,
+  scheduleId: string,
+  data: {
+    due_date?: string
+    amount?: number
+    currency?: string
+    description?: string
+    notes?: string
+    status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
+  }
+): Promise<PaymentSchedule> {
+  const schedule = await db.queryOne<PaymentSchedule>(
+    'SELECT * FROM payment_schedules WHERE id = ? AND user_id = ?',
+    [scheduleId, userId]
+  )
+
+  if (!schedule) {
+    throw new Error('Payment schedule not found')
+  }
+
+  const updates: string[] = []
+  const params: unknown[] = []
+
+  if (data.due_date !== undefined) {
+    updates.push('due_date = ?')
+    params.push(data.due_date)
+  }
+  if (data.amount !== undefined) {
+    updates.push('amount = ?')
+    params.push(data.amount)
+  }
+  if (data.currency !== undefined) {
+    updates.push('currency = ?')
+    params.push(data.currency)
+  }
+  if (data.description !== undefined) {
+    updates.push('description = ?')
+    params.push(data.description)
+  }
+  if (data.notes !== undefined) {
+    updates.push('notes = ?')
+    params.push(data.notes)
+  }
+  if (data.status !== undefined) {
+    updates.push('status = ?')
+    params.push(data.status)
+  }
+
+  if (updates.length === 0) {
+    return schedule
+  }
+
+  updates.push('updated_at = ?')
+  params.push(new Date().toISOString())
+  params.push(scheduleId)
+  params.push(userId)
+
+  await db.execute(
+    `UPDATE payment_schedules SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
+    params
+  )
+
+  const updated = await db.queryOne<PaymentSchedule>(
+    'SELECT * FROM payment_schedules WHERE id = ?',
+    [scheduleId]
+  )
+
+  if (!updated) {
+    throw new Error('Failed to update payment schedule')
+  }
+
+  return updated
+}
+
+/**
+ * 刪除收款排程
+ */
+export async function deletePaymentSchedule(
+  db: D1Client,
+  userId: string,
+  scheduleId: string
+): Promise<void> {
+  const schedule = await db.queryOne<PaymentSchedule>(
+    'SELECT * FROM payment_schedules WHERE id = ? AND user_id = ?',
+    [scheduleId, userId]
+  )
+
+  if (!schedule) {
+    throw new Error('Payment schedule not found')
+  }
+
+  if (schedule.status === 'paid') {
+    throw new Error('Cannot delete a paid schedule')
+  }
+
+  await db.execute(
+    'DELETE FROM payment_schedules WHERE id = ? AND user_id = ?',
+    [scheduleId, userId]
+  )
+}
+
+/**
+ * 取得所有收款排程
+ */
+export async function getPaymentSchedules(
+  db: D1Client,
+  userId: string,
+  filters?: {
+    customer_id?: string
+    quotation_id?: string
+    status?: string
+    source_type?: string
+    due_date_from?: string
+    due_date_to?: string
+  }
+): Promise<PaymentSchedule[]> {
+  let sql = 'SELECT * FROM payment_schedules WHERE user_id = ?'
+  const params: unknown[] = [userId]
+
+  if (filters?.customer_id) {
+    sql += ' AND customer_id = ?'
+    params.push(filters.customer_id)
+  }
+  if (filters?.quotation_id) {
+    sql += ' AND quotation_id = ?'
+    params.push(filters.quotation_id)
+  }
+  if (filters?.status) {
+    sql += ' AND status = ?'
+    params.push(filters.status)
+  }
+  if (filters?.source_type) {
+    sql += ' AND source_type = ?'
+    params.push(filters.source_type)
+  }
+  if (filters?.due_date_from) {
+    sql += ' AND due_date >= ?'
+    params.push(filters.due_date_from)
+  }
+  if (filters?.due_date_to) {
+    sql += ' AND due_date <= ?'
+    params.push(filters.due_date_to)
+  }
+
+  sql += ' ORDER BY due_date ASC'
+
+  return await db.query<PaymentSchedule>(sql, params)
 }

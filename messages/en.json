@@ -541,7 +541,29 @@
     "recordSuccess": "Payment recorded successfully",
     "recordFailed": "Failed to record payment",
     "markOverdueSuccess": "Marked as overdue",
-    "reminderSent": "Reminder sent"
+    "reminderSent": "Reminder sent",
+    "addSchedule": {
+      "button": "Add Payment",
+      "title": "Add Payment Schedule",
+      "customer": "Customer",
+      "selectCustomer": "Select a customer",
+      "dueDate": "Due Date",
+      "amount": "Amount",
+      "currency": "Currency",
+      "description": "Description",
+      "descriptionPlaceholder": "e.g., First installment",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional notes",
+      "success": "Payment schedule added",
+      "error": "Failed to add payment schedule",
+      "errors": {
+        "customerRequired": "Please select a customer",
+        "dueDateRequired": "Please enter due date",
+        "amountRequired": "Please enter a valid amount"
+      }
+    },
+    "markedAsOverdue": "Marked as overdue",
+    "markOverdueError": "Failed to mark as overdue"
   },
   "product": {
     "title": "Services/Items",

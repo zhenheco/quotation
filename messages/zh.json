@@ -567,7 +567,29 @@
     "recordSuccess": "收款記錄已成功建立",
     "recordFailed": "記錄收款失敗",
     "markOverdueSuccess": "已標記為逾期",
-    "reminderSent": "提醒已發送"
+    "reminderSent": "提醒已發送",
+    "addSchedule": {
+      "button": "新增收款",
+      "title": "新增收款排程",
+      "customer": "客戶",
+      "selectCustomer": "請選擇客戶",
+      "dueDate": "應收日期",
+      "amount": "金額",
+      "currency": "幣種",
+      "description": "說明",
+      "descriptionPlaceholder": "例如：第一期款項",
+      "notes": "備註",
+      "notesPlaceholder": "其他備註說明",
+      "success": "收款排程已新增",
+      "error": "新增收款排程失敗",
+      "errors": {
+        "customerRequired": "請選擇客戶",
+        "dueDateRequired": "請輸入應收日期",
+        "amountRequired": "請輸入有效金額"
+      }
+    },
+    "markedAsOverdue": "已標記為逾期",
+    "markOverdueError": "標記逾期失敗"
   },
   "product": {
     "title": "服務/品項",

@@ -1,442 +1,282 @@
-#!/usr/bin/env ts-node
 /**
- * 收款管理測試資料種子腳本
+ * 收款管理測試資料建立腳本（使用 API）
  *
- * 建立完整的測試資料以驗證收款管理功能：
- * - 3 個測試客戶
- * - 6 個報價單（不同付款條款組合）
- * - 自動生成付款排程
- * - 模擬部分已收款記錄
- * - 模擬部分逾期記錄
+ * 功能：
+ * 1. 建立測試客戶
+ * 2. 建立測試產品
+ * 3. 建立測試報價單
+ * 4. 將報價單轉換為合約，自動建立付款排程
+ *
+ * 使用方法：
+ *   1. 啟動開發伺服器: pnpm run dev
+ *   2. 在瀏覽器中登入系統
+ *   3. 執行腳本: TEST_USER_ID="your-user-id" pnpm run seed:payments
+ *
+ * 注意：此腳本需要取得使用者的 session cookie 才能呼叫 API
  */
 
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import fs from 'fs'
+import path from 'path'
 
-// 手動載入環境變數
-try {
-  const envFile = readFileSync(join(process.cwd(), '.env.local'), 'utf-8')
-  envFile.split('\n').forEach(line => {
-    const match = line.match(/^([^#=]+)=(.*)$/)
-    if (match) {
-      const key = match[1].trim()
-      let value = match[2].trim()
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1)
-      }
-      process.env[key] = value
+const API_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+// Cookie 檔案路徑
+const COOKIE_FILE = path.join(process.cwd(), '.dev-session-cookie')
+
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  let cookie = ''
+
+  // 嘗試從檔案讀取 cookie
+  if (fs.existsSync(COOKIE_FILE)) {
+    cookie = fs.readFileSync(COOKIE_FILE, 'utf-8').trim()
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(cookie ? { Cookie: cookie } : {}),
+      ...options.headers
     }
   })
-} catch (error) {
-  console.warn('⚠️  無法讀取 .env.local，使用現有環境變數')
-}
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing environment variables')
-  console.error('Required: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY')
-  process.exit(1)
-}
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+  // 如果是 401，提示用戶需要登入
+  if (response.status === 401) {
+    console.error('\n❌ 未授權：請先登入系統')
+    console.error('\n💡 解決方案：')
+    console.error('   1. 啟動開發伺服器: pnpm run dev')
+    console.error('   2. 在瀏覽器中登入: http://localhost:3000')
+    console.error('   3. 在瀏覽器 console 執行以下腳本取得 cookie：')
+    console.error('   ')
+    console.error('      document.cookie.split(";").map(c => c.trim()).filter(c => c.startsWith("next-auth")).join("; ")')
+    console.error('   ')
+    console.error('   4. 將取得的 cookie 內容儲存到檔案：')
+    console.error(`      echo "your-cookie-here" > ${COOKIE_FILE}`)
+    console.error('   5. 重新執行腳本')
+    process.exit(1)
   }
-})
 
-// 計算日期（相對於今天）
-function getRelativeDate(daysOffset: number): string {
-  const date = new Date()
-  date.setDate(date.getDate() + daysOffset)
-  return date.toISOString().split('T')[0]
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({})) as { error?: string; message?: string }
+    throw new Error(`API 錯誤 (${response.status}): ${errorData.error || errorData.message || response.statusText}`)
+  }
+
+  return response
 }
 
 async function seedPaymentTestData() {
-  console.log('🌱 開始建立收款管理測試資料...\n')
+  console.log('🌱 開始建立收款管理測試資料（透過 API）...\n')
 
   try {
-    let userId: string | null = null
-
-    // 方法 1: 使用環境變數指定的 user_id（優先）
-    if (process.env.TEST_USER_ID) {
-      userId = process.env.TEST_USER_ID
-      console.log(`✅ 使用環境變數指定的使用者 ID: ${userId}`)
-      console.log()
-    } else {
-      // 方法 2: 嘗試從 user_profiles 表查詢
-      const { data: users } = await supabase
-        .from('user_profiles')
-        .select('user_id')
-        .eq('is_active', true)
-        .limit(1)
-
-      if (users && users.length > 0) {
-        userId = users[0].user_id
-        console.log(`✅ 從 user_profiles 取得使用者 ID: ${userId}`)
-        console.log()
-      } else {
-        // 方法 3: 從 Supabase Auth 查詢所有使用者
-        console.log('⚠️  user_profiles 表中無資料，嘗試從 Auth 查詢...')
-
-        const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers()
-
-        if (authError) {
-          console.error('❌ 無法查詢 Auth 使用者:', authError.message)
-          console.error()
-          console.error('💡 解決方案：')
-          console.error('   1. 使用環境變數指定 user_id：')
-          console.error('      export TEST_USER_ID="your-user-id-here"')
-          console.error('      pnpm run seed:payments')
-          console.error()
-          console.error('   2. 或先登入系統：https://quotation.zhenhe-dm.com')
-          console.error('      系統會自動建立 user_profile 記錄')
-          process.exit(1)
-        }
-
-        if (!authUsers || authUsers.length === 0) {
-          console.error('❌ 找不到任何使用者')
-          console.error()
-          console.error('💡 解決方案：')
-          console.error('   1. 請先登入系統：https://quotation.zhenhe-dm.com')
-          console.error('   2. 或使用環境變數指定測試用 user_id：')
-          console.error('      export TEST_USER_ID="your-user-id-here"')
-          console.error('      pnpm run seed:payments')
-          process.exit(1)
-        }
-
-        // 使用第一個使用者
-        userId = authUsers[0].id
-        console.log(`✅ 從 Auth 取得使用者 ID: ${userId}`)
-        console.log(`   Email: ${authUsers[0].email}`)
-
-        // 自動建立 user_profile（如果不存在）
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .upsert({
-            user_id: userId,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-
-        if (profileError) {
-          console.warn('⚠️  無法建立 user_profile:', profileError.message)
-        } else {
-          console.log('✅ 已自動建立 user_profile')
-        }
-        console.log()
+    // 步驟 1: 建立測試客戶
+    console.log('👥 建立測試客戶...')
+    const customers = [
+      {
+        name: '台灣科技股份有限公司',
+        email: 'contact@twtech.com.tw',
+        phone: '+886-2-2345-6789',
+        address: '台北市信義區信義路五段7號',
+        tax_id: '12345678',
+        contact_person: '王大明'
+      },
+      {
+        name: '環球貿易有限公司',
+        email: 'info@globaltrading.com',
+        phone: '+886-4-2234-5678',
+        address: '台中市西區公益路123號',
+        tax_id: '23456789',
+        contact_person: '李小華'
+      },
+      {
+        name: '創新軟體開發公司',
+        email: 'hello@innovsoft.com',
+        phone: '+886-7-123-4567',
+        address: '高雄市前金區中正四路56號',
+        tax_id: '34567890',
+        contact_person: '陳志明'
       }
-    }
-
-    // ========== 1. 建立測試客戶 ==========
-    console.log('📦 建立 3 個測試客戶...')
-    const customers = []
-
-    const customerData = [
-      {
-        name: { zh: '華碩電腦股份有限公司', en: 'ASUSTek Computer Inc.' },
-        contact_person: { zh: '張經理', en: 'Manager Chang' },
-        email: 'manager.chang@asus.com',
-        phone: '+886-2-2894-3447',
-        address: { zh: '台北市北投區立德路 150 號', en: '150 Lide Rd., Beitou District, Taipei City' },
-        tax_id: '12345001',
-      },
-      {
-        name: { zh: '台積電股份有限公司', en: 'Taiwan Semiconductor Manufacturing Company' },
-        contact_person: { zh: '李副總', en: 'VP Lee' },
-        email: 'vp.lee@tsmc.com',
-        phone: '+886-3-567-8899',
-        address: { zh: '新竹市力行六路 8 號', en: '8 Li-Hsin Rd. 6, Hsinchu Science Park' },
-        tax_id: '12345002',
-      },
-      {
-        name: { zh: '鴻海精密工業股份有限公司', en: 'Hon Hai Precision Industry Co., Ltd.' },
-        contact_person: { zh: '王協理', en: 'Director Wang' },
-        email: 'director.wang@foxconn.com',
-        phone: '+886-2-2268-3466',
-        address: { zh: '新北市土城區自由街 2 號', en: '2 Ziyou St., Tucheng District, New Taipei City' },
-        tax_id: '12345003',
-      },
     ]
 
-    for (const customer of customerData) {
-      const { data, error } = await supabase
-        .from('customers')
-        .insert({
-          ...customer,
-          user_id: userId,
-        })
-        .select()
-        .single()
+    const createdCustomers = []
+    for (const customerData of customers) {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/customers`, {
+        method: 'POST',
+        body: JSON.stringify(customerData)
+      })
 
-      if (error) {
-        console.error(`❌ 建立客戶失敗: ${customer.name.zh}`, error)
-        continue
-      }
-
-      customers.push(data)
-      console.log(`   ✅ ${data.name.zh} (${data.id})`)
+      const customer = await response.json() as { id: string; name: { zh: string } }
+      createdCustomers.push(customer)
+      console.log(`  ✓ 已建立客戶: ${customer.name.zh}`)
     }
+    console.log(`✅ 成功建立 ${createdCustomers.length} 個客戶`)
+    console.log()
 
-    console.log(`✅ 成功建立 ${customers.length} 個客戶\n`)
-
-    // ========== 2. 建立測試產品 ==========
+    // 步驟 2: 建立測試產品
     console.log('📦 建立測試產品...')
-    const { data: products, error: productsError } = await supabase
-      .from('products')
-      .insert([
-        {
-          name: { zh: '企業網站建置', en: 'Enterprise Website Development' },
-          description: { zh: '完整的企業形象網站', en: 'Complete corporate website' },
-          base_price: 150000,
-          base_currency: 'TWD',
-          category: 'Development',
-          user_id: userId,
-          sku: 'WEB-001'
-        },
-        {
-          name: { zh: '系統整合服務', en: 'System Integration Service' },
-          description: { zh: 'ERP/CRM 系統整合', en: 'ERP/CRM integration' },
-          base_price: 300000,
-          base_currency: 'TWD',
-          category: 'Integration',
-          user_id: userId,
-          sku: 'SYS-001'
-        },
-      ])
-      .select()
-
-    if (productsError) {
-      console.error('❌ 建立產品失敗:', productsError)
-      process.exit(1)
-    }
-
-    console.log(`✅ 成功建立 ${products.length} 個產品\n`)
-
-    // ========== 3. 建立報價單（含付款條款） ==========
-    console.log('📦 建立 6 個報價單...')
-
-    const quotationConfigs = [
+    const products = [
       {
-        customer: customers[0],
-        product: products[0],
-        status: 'accepted',
-        paymentTerms: [
-          { term_number: 1, term_name: '簽約頭款', percentage: 30, due_date: getRelativeDate(-60) },
-          { term_number: 2, term_name: '期中款', percentage: 40, due_date: getRelativeDate(-30) },
-          { term_number: 3, term_name: '驗收尾款', percentage: 30, due_date: getRelativeDate(-5) },
-        ],
-        payments: [
-          { term_number: 1, paid_date: getRelativeDate(-58), amount_percentage: 100 }, // 已全額付款
-          { term_number: 2, paid_date: getRelativeDate(-25), amount_percentage: 100 }, // 已全額付款
-        ] // term 3 未付款（逾期）
+        name: '企業網站設計',
+        description: '專業響應式網站設計與開發',
+        unit_price: 150000,
+        currency: 'TWD',
+        category: 'web_design',
+        base_price: 150000
       },
       {
-        customer: customers[1],
-        product: products[1],
-        status: 'accepted',
-        paymentTerms: [
-          { term_number: 1, term_name: '訂金', percentage: 50, due_date: getRelativeDate(-20) },
-          { term_number: 2, term_name: '尾款', percentage: 50, due_date: getRelativeDate(10) },
-        ],
-        payments: [
-          { term_number: 1, paid_date: getRelativeDate(-18), amount_percentage: 100 }, // 已付款
-        ] // term 2 未到期
-      },
-      {
-        customer: customers[2],
-        product: products[0],
-        status: 'accepted',
-        paymentTerms: [
-          { term_number: 1, term_name: '第一期', percentage: 25, due_date: getRelativeDate(-45) },
-          { term_number: 2, term_name: '第二期', percentage: 25, due_date: getRelativeDate(-15) },
-          { term_number: 3, term_name: '第三期', percentage: 25, due_date: getRelativeDate(15) },
-          { term_number: 4, term_name: '第四期', percentage: 25, due_date: getRelativeDate(45) },
-        ],
-        payments: [
-          { term_number: 1, paid_date: getRelativeDate(-40), amount_percentage: 100 },
-          { term_number: 2, paid_date: getRelativeDate(-10), amount_percentage: 100 },
-        ] // term 3, 4 未付款
-      },
-      {
-        customer: customers[0],
-        product: products[1],
-        status: 'accepted',
-        paymentTerms: [
-          { term_number: 1, term_name: '簽約款', percentage: 40, due_date: getRelativeDate(-10) },
-          { term_number: 2, term_name: '完工款', percentage: 60, due_date: getRelativeDate(20) },
-        ],
-        payments: [] // 全部未付款（term 1 已逾期）
-      },
-      {
-        customer: customers[1],
-        product: products[0],
-        status: 'accepted',
-        paymentTerms: [
-          { term_number: 1, term_name: '頭款', percentage: 30, due_date: getRelativeDate(5) },
-          { term_number: 2, term_name: '尾款', percentage: 70, due_date: getRelativeDate(35) },
-        ],
-        payments: [] // 全部未付款（即將到期）
-      },
-      {
-        customer: customers[2],
-        product: products[1],
-        status: 'accepted',
-        paymentTerms: [
-          { term_number: 1, term_name: '全額付款', percentage: 100, due_date: getRelativeDate(-5) },
-        ],
-        payments: [
-          { term_number: 1, paid_date: getRelativeDate(-3), amount_percentage: 50 }, // 部分付款
-        ] // 仍有 50% 未付款
-      },
+        name: '手機應用程式開發',
+        description: 'iOS/Android 原生應用開發',
+        unit_price: 300000,
+        currency: 'TWD',
+        category: 'mobile_dev',
+        base_price: 300000
+      }
     ]
 
-    for (let i = 0; i < quotationConfigs.length; i++) {
-      const config = quotationConfigs[i]
+    const createdProducts = []
+    for (const productData of products) {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/products`, {
+        method: 'POST',
+        body: JSON.stringify(productData)
+      })
 
-      const subtotal = config.product.base_price
-      const taxAmount = subtotal * (5 / 100)
-      const totalAmount = subtotal + taxAmount
-
-      // 建立報價單
-      const { data: quotation, error: quotationError } = await supabase
-        .from('quotations')
-        .insert({
-          quotation_number: `QT-2025-TEST-${String(i + 1).padStart(3, '0')}`,
-          customer_id: config.customer.id,
-          user_id: userId,
-          issue_date: getRelativeDate(-90 + i * 10),
-          valid_until: getRelativeDate(30),
-          currency: 'TWD',
-          subtotal: subtotal,
-          tax_rate: 5,
-          tax_amount: taxAmount,
-          total_amount: totalAmount,
-          status: config.status,
-          notes: `測試報價單 #${i + 1}`,
-        })
-        .select()
-        .single()
-
-      if (quotationError) {
-        console.error(`❌ 建立報價單失敗:`, quotationError)
-        continue
-      }
-
-      // 建立報價單項目
-      await supabase
-        .from('quotation_items')
-        .insert({
-          quotation_id: quotation.id,
-          product_id: config.product.id,
-          quantity: 1,
-          unit_price: config.product.base_price,
-          discount: 0,
-          tax_rate: 5,
-          user_id: userId,
-        })
-
-      // 建立付款條款
-      for (const term of config.paymentTerms) {
-        const termAmount = Math.round(totalAmount * (term.percentage / 100))
-
-        await supabase
-          .from('payment_terms')
-          .insert({
-            quotation_id: quotation.id,
-            term_number: term.term_number,
-            term_name: term.term_name,
-            percentage: term.percentage,
-            amount: termAmount,
-            due_date: term.due_date,
-            payment_status: 'unpaid',
-            paid_amount: 0,
-          })
-      }
-
-      // 建立付款記錄
-      for (const payment of config.payments) {
-        const term = config.paymentTerms.find(t => t.term_number === payment.term_number)
-        if (!term) continue
-
-        const paidAmount = Math.round(totalAmount * (term.percentage / 100) * (payment.amount_percentage / 100))
-
-        // 建立收款記錄
-        const { data: paymentRecord } = await supabase
-          .from('payments')
-          .insert({
-            user_id: userId,
-            quotation_id: quotation.id,
-            customer_id: config.customer.id,
-            payment_type: payment.term_number === 1 ? 'deposit' :
-                          payment.term_number === config.paymentTerms.length ? 'final' : 'installment',
-            payment_date: payment.paid_date,
-            amount: paidAmount,
-            currency: 'TWD',
-            payment_method: '銀行轉帳',
-            status: 'confirmed',
-            notes: `${term.term_name} - 測試收款`,
-          })
-          .select()
-          .single()
-
-        if (paymentRecord) {
-          // 更新付款條款狀態
-          const newPaidAmount = paidAmount
-          const termTotalAmount = Math.round(totalAmount * (term.percentage / 100))
-          const newStatus = newPaidAmount >= termTotalAmount ? 'paid' : 'partial'
-
-          await supabase
-            .from('payment_terms')
-            .update({
-              paid_amount: newPaidAmount,
-              paid_date: payment.paid_date,
-              payment_status: newStatus,
-            })
-            .eq('quotation_id', quotation.id)
-            .eq('term_number', term.term_number)
-        }
-      }
-
-      console.log(`   ✅ ${quotation.quotation_number} - ${config.customer.name}`)
+      const product = await response.json() as { id: string; name: { zh: string }; unit_price: number; currency: string }
+      createdProducts.push(product)
+      console.log(`  ✓ 已建立產品: ${product.name.zh} (${product.currency} ${product.unit_price.toLocaleString()})`)
     }
+    console.log(`✅ 成功建立 ${createdProducts.length} 個產品`)
+    console.log()
 
-    console.log(`✅ 成功建立 ${quotationConfigs.length} 個報價單\n`)
+    // 步驟 3: 建立測試報價單
+    console.log('📝 建立測試報價單...')
+    const today = new Date()
+    const thirtyDaysLater = new Date(today)
+    thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30)
 
-    // ========== 4. 顯示統計資訊 ==========
-    console.log('\n📊 測試資料統計：\n')
+    const quotations = [
+      {
+        customer_id: createdCustomers[0].id,
+        status: 'draft',
+        issue_date: today.toISOString().split('T')[0],
+        valid_until: thirtyDaysLater.toISOString().split('T')[0],
+        currency: 'TWD',
+        tax_rate: 0.05,
+        items: [
+          {
+            product_id: createdProducts[0].id,
+            description: '企業網站設計',
+            quantity: 1,
+            unit_price: createdProducts[0].unit_price,
+            discount: 0
+          }
+        ]
+      },
+      {
+        customer_id: createdCustomers[1].id,
+        status: 'draft',
+        issue_date: today.toISOString().split('T')[0],
+        valid_until: thirtyDaysLater.toISOString().split('T')[0],
+        currency: 'TWD',
+        tax_rate: 0.05,
+        items: [
+          {
+            product_id: createdProducts[1].id,
+            description: '手機應用程式開發',
+            quantity: 1,
+            unit_price: createdProducts[1].unit_price,
+            discount: 0
+          }
+        ]
+      },
+      {
+        customer_id: createdCustomers[2].id,
+        status: 'draft',
+        issue_date: today.toISOString().split('T')[0],
+        valid_until: thirtyDaysLater.toISOString().split('T')[0],
+        currency: 'TWD',
+        tax_rate: 0.05,
+        items: [
+          {
+            product_id: createdProducts[0].id,
+            description: '企業網站設計',
+            quantity: 2,
+            unit_price: createdProducts[0].unit_price,
+            discount: 0.1
+          },
+          {
+            product_id: createdProducts[1].id,
+            description: '手機應用程式開發',
+            quantity: 1,
+            unit_price: createdProducts[1].unit_price,
+            discount: 0
+          }
+        ]
+      }
+    ]
 
-    const { data: stats } = await supabase
-      .from('payment_terms')
-      .select('payment_status, amount')
+    const createdQuotations = []
+    for (const quotationData of quotations) {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/quotations`, {
+        method: 'POST',
+        body: JSON.stringify(quotationData)
+      })
 
-    const unpaidCount = stats?.filter(s => s.payment_status === 'unpaid').length || 0
-    const partialCount = stats?.filter(s => s.payment_status === 'partial').length || 0
-    const paidCount = stats?.filter(s => s.payment_status === 'paid').length || 0
-    const overdueCount = stats?.filter(s => s.payment_status === 'overdue').length || 0
+      const quotation = await response.json() as { id: string; quotation_number: string; total_amount: number; currency: string }
+      createdQuotations.push(quotation)
+      console.log(`  ✓ 已建立報價單: ${quotation.quotation_number} (${quotation.currency} ${quotation.total_amount.toLocaleString()})`)
+    }
+    console.log(`✅ 成功建立 ${createdQuotations.length} 個報價單`)
+    console.log()
 
-    console.log(`   客戶數: ${customers.length}`)
-    console.log(`   報價單數: ${quotationConfigs.length}`)
-    console.log(`   付款條款總數: ${stats?.length || 0}`)
-    console.log(`   - 未付款: ${unpaidCount}`)
-    console.log(`   - 部分付款: ${partialCount}`)
-    console.log(`   - 已付款: ${paidCount}`)
-    console.log(`   - 逾期: ${overdueCount}`)
+    // 步驟 4: 將報價單轉換為合約
+    console.log('📋 將報價單轉換為合約...')
+    const contracts = []
+    const paymentFrequencies = ['monthly', 'quarterly', 'semi_annual'] as const
 
-    console.log('\n✅ 收款管理測試資料建立完成！')
-    console.log('\n💡 請前往 /payments 頁面查看收款管理功能')
-    console.log('   - 本月應收款明細')
-    console.log('   - 已收款記錄')
-    console.log('   - 未收款記錄（逾期提醒）')
-    console.log('   - 收款統計')
+    for (let i = 0; i < createdQuotations.length; i++) {
+      const quotation = createdQuotations[i]
+      const signedDate = new Date(today)
+      signedDate.setDate(signedDate.getDate() - 30) // 30 天前簽約
+      const expiryDate = new Date(signedDate)
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1) // 一年期合約
+
+      const contractData = {
+        quotation_id: quotation.id,
+        signed_date: signedDate.toISOString().split('T')[0],
+        expiry_date: expiryDate.toISOString().split('T')[0],
+        payment_frequency: paymentFrequencies[i % paymentFrequencies.length],
+        payment_day: 5
+      }
+
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/contracts/from-quotation`, {
+        method: 'POST',
+        body: JSON.stringify(contractData)
+      })
+
+      const result = await response.json() as { data: { contract: { contract_number: string } } }
+      contracts.push(result.data.contract)
+      console.log(`  ✓ 已建立合約: ${result.data.contract.contract_number} (付款頻率: ${contractData.payment_frequency})`)
+    }
+    console.log(`✅ 成功建立 ${contracts.length} 個合約`)
+    console.log()
+
+    console.log('✅ 收款管理測試資料建立完成！')
+    console.log()
+    console.log('📝 測試資料摘要：')
+    console.log(`   • 客戶數: ${createdCustomers.length}`)
+    console.log(`   • 產品數: ${createdProducts.length}`)
+    console.log(`   • 報價單數: ${createdQuotations.length}`)
+    console.log(`   • 合約數: ${contracts.length}`)
+    console.log()
+    console.log('💡 下一步：')
+    console.log('   1. 重新整理瀏覽器頁面')
+    console.log('   2. 查看儀表板統計是否顯示正確數據')
+    console.log('   3. 檢查收款管理頁面')
 
   } catch (error) {
-    console.error('❌ 發生錯誤:', error)
+    console.error('\n❌ 發生錯誤:', error)
+    if (error instanceof Error) {
+      console.error('錯誤訊息:', error.message)
+    }
     process.exit(1)
   }
 }

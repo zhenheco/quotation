@@ -2,7 +2,6 @@
 
 import { use, useState } from 'react'
 
-// Force dynamic rendering to avoid build-time prerendering
 export const dynamic = 'force-dynamic'
 import { useTranslations } from 'next-intl'
 import PageHeader from '@/components/ui/PageHeader'
@@ -10,12 +9,14 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { CollectedPaymentCard, UnpaidPaymentCard } from '@/components/payments/PaymentCard'
 import { CurrentMonthReceivablesTable } from '@/components/payments/CurrentMonthReceivablesTable'
+import AddPaymentScheduleModal from '@/components/payments/AddPaymentScheduleModal'
 import {
   useCollectedPayments,
   useUnpaidPayments,
   usePaymentStatistics,
   usePaymentReminders,
   useMarkPaymentAsOverdue,
+  useCurrentMonthReceivables,
 } from '@/hooks/usePayments'
 import { toast } from 'sonner'
 import { safeToLocaleString } from '@/lib/utils/formatters'
@@ -26,12 +27,14 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
 
   const { data: collectedPayments, isLoading: loadingCollected, error: errorCollected } = useCollectedPayments()
   const { data: unpaidPayments, isLoading: loadingUnpaid, error: errorUnpaid } = useUnpaidPayments()
-  const { data: statistics, isLoading: loadingStats } = usePaymentStatistics()
+  const { data: statistics, isLoading: loadingStats, refetch: refetchStatistics } = usePaymentStatistics()
   const { data: reminders } = usePaymentReminders()
+  const { refetch: refetchReceivables } = useCurrentMonthReceivables()
   const markAsOverdue = useMarkPaymentAsOverdue()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<'all' | 'deposit' | 'installment' | 'final' | 'recurring'>('all')
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   const filteredCollected = (collectedPayments || []).filter((payment) => {
     if (selectedType !== 'all' && payment.payment_type !== selectedType) return false
@@ -66,6 +69,11 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
     }
   }
 
+  const handleAddScheduleSuccess = () => {
+    refetchStatistics()
+    refetchReceivables()
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -79,6 +87,10 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
       <PageHeader
         title={t('payments.title')}
         description={t('payments.description')}
+        action={{
+          label: t('payments.addSchedule.button'),
+          onClick: () => setIsAddModalOpen(true)
+        }}
       />
 
       {reminders && reminders.length > 0 && (
@@ -236,6 +248,13 @@ export default function PaymentsPage({ params }: { params: Promise<{ locale: str
           )}
         </div>
       </div>
+
+      <AddPaymentScheduleModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={handleAddScheduleSuccess}
+        locale={locale}
+      />
     </div>
   )
 }

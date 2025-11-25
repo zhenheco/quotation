@@ -12,6 +12,7 @@ import {
   deleteQuotationItem,
   validateCustomerOwnership
 } from '@/lib/dal/quotations'
+import { syncQuotationToPaymentSchedules } from '@/lib/dal/payments'
 import { getCustomerById } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
@@ -250,6 +251,23 @@ export async function PATCH(
 
     // 更新報價單狀態
     const quotation = await updateQuotation(db, user.id, id, { status })
+
+    // 當狀態變更為 sent 或 accepted 時，自動同步付款條款到收款排程
+    if (status === 'sent' || status === 'accepted') {
+      try {
+        const syncResult = await syncQuotationToPaymentSchedules(db, user.id, id)
+        return NextResponse.json({
+          ...quotation,
+          payment_sync: {
+            created: syncResult.created,
+            updated: syncResult.updated,
+          }
+        })
+      } catch (syncError) {
+        console.error('Error syncing payment schedules:', syncError)
+        // 同步失敗不影響狀態更新的成功回應
+      }
+    }
 
     return NextResponse.json(quotation)
   } catch (error: unknown) {
