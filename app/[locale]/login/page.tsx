@@ -50,7 +50,16 @@ export default async function LoginPage({
 
         {/* 底部信息 */}
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>{t('poweredBy')}</p>
+          <p>
+            {t('byUsing')}{' '}
+            <a href={`/${locale}/privacy`} className="text-blue-600 hover:underline">
+              {t('privacyPolicy')}
+            </a>
+            {' '}{t('and')}{' '}
+            <a href={`/${locale}/terms`} className="text-blue-600 hover:underline">
+              {t('termsOfService')}
+            </a>
+          </p>
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@
     "edit": "Edit",
     "view": "View",
     "create": "Create",
+    "update": "Update",
     "search": "Search",
     "loading": "Loading...",
     "downloading": "Downloading...",
@@ -19,7 +20,13 @@
     "send": "Send",
     "add": "Add",
     "optional": "Optional",
-    "retry": "Retry"
+    "retry": "Retry",
+    "remove": "Remove",
+    "listView": "List View",
+    "cardView": "Card View",
+    "notLoggedIn": "Not logged in",
+    "show": "Show",
+    "hide": "Hide"
   },
   "auth": {
     "signInWithGoogle": "Sign in with Google",
@@ -30,7 +37,10 @@
     "subtitle": "Sign in to manage your quotations",
     "googleSignIn": "Sign in with Google",
     "emailSignIn": "Sign in with Email",
-    "poweredBy": "Powered by Supabase & Next.js",
+    "byUsing": "By using, you agree to our",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "and": "and",
     "email": "Email",
     "password": "Password",
     "emailPlaceholder": "example@company.com",
@@ -272,7 +282,28 @@
       "unitPrice": "Unit Price",
       "discount": "Discount",
       "subtotal": "Subtotal"
-    }
+    },
+    "fileSizeError": "File size cannot exceed 10MB",
+    "uploadContractFailed": "Failed to upload contract",
+    "selectCustomerRequired": "Please select a customer",
+    "atLeastOneProduct": "Please add at least one product",
+    "updateSuccess": "Quotation updated",
+    "createSuccess": "Quotation created",
+    "paymentTermsSaveFailed": "Failed to save payment terms",
+    "contractUploaded": "Contract uploaded",
+    "saveFailed": "Failed to save quotation",
+    "contractFile": "Contract File",
+    "uploadedContract": "Uploaded Contract",
+    "deleteContractConfirm": "Are you sure you want to delete this contract file?",
+    "contractDeleted": "Contract deleted",
+    "deleteContractFailed": "Failed to delete contract",
+    "fileUploadHint": "All file formats supported, max file size 10MB",
+    "statusUpdated": "Status updated",
+    "updateStatusFailed": "Failed to update status",
+    "deleteSuccess": "Quotation deleted",
+    "deleteFailed": "Failed to delete",
+    "sendSuccessTo": "Quotation sent to {email}",
+    "loadFailed": "Failed to load quotations"
   },
   "customer": {
     "title": "Customers",
@@ -389,7 +420,11 @@
       "title": "Confirm Batch Delete",
       "description": "Are you sure you want to delete {count} selected quotations? This action cannot be undone."
     },
-    "updateStatusDescription": "Update the status of {count} quotations to:"
+    "updateStatusDescription": "Update the status of {count} quotations to:",
+    "deleteSuccessCount": "Deleted {count} quotations",
+    "deleteFailed": "Batch delete failed",
+    "updateStatusSuccess": "Updated {count} quotation status",
+    "updateStatusFailed": "Batch status update failed"
   },
   "share": {
     "share": "Share",
@@ -702,7 +737,79 @@
     },
     "section8": {
       "title": "8. Contact Information",
-      "content": "If you have any questions about these terms, please contact us through the customer service function within the System or via email."
+      "content": "If you have any questions about these terms, please contact us via email at service@quote24.cc."
+    }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "description": "Quotation System Privacy Policy",
+    "heading": "Privacy Policy",
+    "lastUpdated": "Last Updated: November 2025",
+    "backToLogin": "Back to Login",
+    "intro": "The Quotation System (\"the System\") is committed to protecting your personal information. This Privacy Policy explains how we collect, use, and protect your data. By using this System, you agree to the terms of this policy.",
+    "section1": {
+      "title": "1. Data Collection",
+      "content": "We collect the following types of data:",
+      "list": {
+        "item1": "Registration information: email address, username",
+        "item2": "Third-party login information: basic profile data when signing in via Google",
+        "item3": "Business data: customer information, quotation content, product/service data",
+        "item4": "Usage records: IP address, browser type, visit history, operation logs"
+      }
+    },
+    "section2": {
+      "title": "2. Data Usage",
+      "content": "The data we collect is used for the following purposes:",
+      "list": {
+        "item1": "User identification and account management",
+        "item2": "Providing quotation management services",
+        "item3": "System notifications and important update alerts",
+        "item4": "Service improvement and internal analysis"
+      }
+    },
+    "section3": {
+      "title": "3. User Rights",
+      "content": "You have the following rights regarding your personal data:",
+      "list": {
+        "item1": "Access: You can request to view the personal data we hold about you at any time",
+        "item2": "Correction: You can request correction of inaccurate or incomplete data",
+        "item3": "Deletion: You can request deletion of your account and related data, but you will no longer be able to use the service after deletion"
+      }
+    },
+    "section4": {
+      "title": "4. Security Measures",
+      "content": "We take the following measures to protect your data:",
+      "list": {
+        "item1": "SSL/TLS encrypted transmission",
+        "item2": "Regular security audits and updates",
+        "item3": "Access control and permission management"
+      }
+    },
+    "section5": {
+      "title": "5. Third-Party Services",
+      "content": "This System uses the following third-party service providers:",
+      "list": {
+        "item1": "Supabase: User authentication and partial data storage",
+        "item2": "Cloudflare: Website hosting, CDN, and database services",
+        "item3": "Google: OAuth login service"
+      }
+    },
+    "section6": {
+      "title": "6. Cookie Usage",
+      "content": "We use cookies to provide the following functions:",
+      "list": {
+        "item1": "Maintaining login status",
+        "item2": "Remembering user preferences",
+        "item3": "Basic traffic analysis"
+      }
+    },
+    "section7": {
+      "title": "7. Policy Updates",
+      "content": "We reserve the right to update this Privacy Policy at any time. Any significant changes will be announced on this page. Continued use of this System constitutes acceptance of the revised policy."
+    },
+    "section8": {
+      "title": "8. Contact Information",
+      "content": "If you have any questions about this Privacy Policy, please contact us via email at service@quote24.cc."
     }
   }
 }
