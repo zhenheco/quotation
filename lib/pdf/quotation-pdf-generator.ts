@@ -24,7 +24,7 @@ export async function generateQuotationPDF(
   const pdfDoc = await PDFDocument.create()
   pdfDoc.registerFontkit(fontkit)
 
-  const font = await pdfDoc.embedFont(fontBytes, { subset: true })
+  const font = await pdfDoc.embedFont(fontBytes, { subset: false })
 
   const page = pdfDoc.addPage([A4_WIDTH, A4_HEIGHT])
 
