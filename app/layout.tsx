@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quotation System | 報價單系統",
-  description: "Multi-currency quotation system with bilingual support",
+  title: "報價單系統",
+  description: "多幣別報價單系統，支援中英文雙語",
 };
 
 export default function RootLayout({
