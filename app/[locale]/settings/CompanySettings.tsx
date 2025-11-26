@@ -183,8 +183,8 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
           if (!user) throw new Error('Not authenticated');
 
           const fileExt = file.name.split('.').pop();
-          const fileName = `${type}.${fileExt}`;
-          const filePath = `${companyId}/${fileName}`;
+          const fileName = `${companyId}_${type}.${fileExt}`;
+          const filePath = `${user.id}/${fileName}`;
 
           const { error } = await supabase.storage
             .from('company-files')
@@ -227,8 +227,8 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
       if (!user) throw new Error('Not authenticated');
 
       const fileExt = file.name.split('.').pop();
-      const fileName = `${type}.${fileExt}`;
-      const filePath = `${selectedCompany.id}/${fileName}`;
+      const fileName = `${selectedCompany.id}_${type}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
 
       const { error } = await supabase.storage
         .from('company-files')
