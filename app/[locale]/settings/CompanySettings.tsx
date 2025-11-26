@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
 
 interface Company {
   id: string;
@@ -39,8 +38,6 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState({ logo: false, signature: false, passbook: false });
   const [pendingFiles, setPendingFiles] = useState<{ logo?: File; signature?: File; passbook?: File }>({});
-
-  const supabase = createClient();
 
   const fetchCompanies = useCallback(async () => {
     try {
@@ -179,28 +176,28 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
       if (file) {
         try {
           setUploading(prev => ({ ...prev, [type]: true }));
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error('Not authenticated');
 
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${companyId}_${type}.${fileExt}`;
-          const filePath = `${user.id}/${fileName}`;
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('companyId', companyId);
+          formData.append('type', type);
 
-          const { error } = await supabase.storage
-            .from('company-files')
-            .upload(filePath, file, { upsert: true, contentType: file.type });
+          const uploadResponse = await fetch('/api/upload/company-files', {
+            method: 'POST',
+            body: formData
+          });
 
-          if (error) throw error;
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json().catch(() => ({})) as { error?: string };
+            throw new Error(errorData.error || 'Upload failed');
+          }
 
-          const { data: { publicUrl } } = supabase.storage
-            .from('company-files')
-            .getPublicUrl(filePath);
+          const { url } = await uploadResponse.json() as { url: string };
 
-          // Update company with file URL
           const updateData: Record<string, string> = {};
-          if (type === 'logo') updateData.logo_url = publicUrl;
-          if (type === 'signature') updateData.signature_url = publicUrl;
-          if (type === 'passbook') updateData.passbook_url = publicUrl;
+          if (type === 'logo') updateData.logo_url = url;
+          if (type === 'signature') updateData.signature_url = url;
+          if (type === 'passbook') updateData.passbook_url = url;
 
           await fetch(`/api/companies/${companyId}`, {
             method: 'PUT',
@@ -223,28 +220,28 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
     try {
       setUploading(prev => ({ ...prev, [type]: true }));
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${selectedCompany.id}_${type}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('companyId', selectedCompany.id);
+      formData.append('type', type);
 
-      const { error } = await supabase.storage
-        .from('company-files')
-        .upload(filePath, file, { upsert: true, contentType: file.type });
+      const uploadResponse = await fetch('/api/upload/company-files', {
+        method: 'POST',
+        body: formData
+      });
 
-      if (error) throw error;
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({})) as { error?: string };
+        throw new Error(errorData.error || 'Upload failed');
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('company-files')
-        .getPublicUrl(filePath);
+      const { url } = await uploadResponse.json() as { url: string };
 
-      // Update company with file URL
       const updateData: Record<string, string> = {};
-      if (type === 'logo') updateData.logo_url = publicUrl;
-      if (type === 'signature') updateData.signature_url = publicUrl;
-      if (type === 'passbook') updateData.passbook_url = publicUrl;
+      if (type === 'logo') updateData.logo_url = url;
+      if (type === 'signature') updateData.signature_url = url;
+      if (type === 'passbook') updateData.passbook_url = url;
 
       const response = await fetch(`/api/companies/${selectedCompany.id}`, {
         method: 'PUT',
