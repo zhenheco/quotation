@@ -3,6 +3,11 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2025-03-25",
   "compatibility_flags": ["nodejs_compat"],
+  // 自訂域名路由配置
+  "routes": [
+    { "pattern": "quote24.cc/*", "zone_name": "quote24.cc" },
+    { "pattern": "www.quote24.cc/*", "zone_name": "quote24.cc" }
+  ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

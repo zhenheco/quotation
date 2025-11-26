@@ -11,6 +11,8 @@
 const ALLOWED_REDIRECT_DOMAINS = [
   'localhost',
   '127.0.0.1',
+  'quote24.cc',
+  'quotation-system.acejou27.workers.dev',
   process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : null,
   process.env.VERCEL_URL || null,
 ].filter(Boolean) as string[]

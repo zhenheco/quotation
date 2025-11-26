@@ -29,13 +29,13 @@
     "hide": "Hide"
   },
   "auth": {
-    "signInWithGoogle": "Sign in with Google",
-    "signInDescription": "Sign in to access your quotations"
+    "signInWithGoogle": "Sign in / Sign up with Google",
+    "signInDescription": "Sign in or register to access your quotations"
   },
   "login": {
     "title": "Quotation System",
-    "subtitle": "Sign in to manage your quotations",
-    "googleSignIn": "Sign in with Google",
+    "subtitle": "Sign in or register to manage your quotations",
+    "googleSignIn": "Sign in / Sign up with Google",
     "emailSignIn": "Sign in with Email",
     "byUsing": "By using, you agree to our",
     "privacyPolicy": "Privacy Policy",

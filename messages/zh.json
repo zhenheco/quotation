@@ -29,13 +29,13 @@
     "hide": "隱藏"
   },
   "auth": {
-    "signInWithGoogle": "使用 Google 登入",
-    "signInDescription": "登入以存取您的報價單"
+    "signInWithGoogle": "使用 Google 登入/註冊",
+    "signInDescription": "登入或註冊以存取您的報價單"
   },
   "login": {
     "title": "報價單系統",
-    "subtitle": "登入以管理您的報價單",
-    "googleSignIn": "使用 Google 帳號登入",
+    "subtitle": "登入或註冊以管理您的報價單",
+    "googleSignIn": "使用 Google 帳號登入/註冊",
     "emailSignIn": "使用電子郵件登入",
     "byUsing": "使用即代表同意我們的",
     "privacyPolicy": "隱私權政策",
