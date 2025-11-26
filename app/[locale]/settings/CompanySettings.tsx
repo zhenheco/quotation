@@ -3,6 +3,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
+function getImageUrl(url: string | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith('/api/')) return url;
+  if (url.includes('supabase.co/storage')) {
+    const match = url.match(/company-files\/(.+)$/);
+    if (match) {
+      return `/api/storage/company-files?path=${encodeURIComponent(match[1])}`;
+    }
+  }
+  return url;
+}
+
 interface Company {
   id: string;
   name: {
@@ -304,13 +316,14 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                 `}
               >
                 <div className="flex items-start gap-3">
-                  {company.logo_url ? (
+                  {getImageUrl(company.logo_url) ? (
                     <Image
-                      src={company.logo_url}
+                      src={getImageUrl(company.logo_url)!}
                       alt=""
                       width={48}
                       height={48}
                       className="rounded-full object-cover flex-shrink-0"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
@@ -517,13 +530,14 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {locale === 'zh' ? '公司 Logo' : 'Company Logo'}
                   </label>
-                  {(selectedCompany.logo_url || pendingFiles.logo) && (
+                  {(getImageUrl(selectedCompany.logo_url) || pendingFiles.logo) && (
                     <Image
-                      src={pendingFiles.logo ? URL.createObjectURL(pendingFiles.logo) : selectedCompany.logo_url!}
+                      src={pendingFiles.logo ? URL.createObjectURL(pendingFiles.logo) : getImageUrl(selectedCompany.logo_url)!}
                       alt="Logo"
                       width={128}
                       height={128}
                       className="object-cover mb-2 rounded"
+                      unoptimized
                     />
                   )}
                   <input
@@ -549,13 +563,14 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {locale === 'zh' ? '負責人簽名' : 'Signature'}
                   </label>
-                  {(selectedCompany.signature_url || pendingFiles.signature) && (
+                  {(getImageUrl(selectedCompany.signature_url) || pendingFiles.signature) && (
                     <Image
-                      src={pendingFiles.signature ? URL.createObjectURL(pendingFiles.signature) : selectedCompany.signature_url!}
+                      src={pendingFiles.signature ? URL.createObjectURL(pendingFiles.signature) : getImageUrl(selectedCompany.signature_url)!}
                       alt="Signature"
                       width={128}
                       height={128}
                       className="object-cover mb-2 rounded"
+                      unoptimized
                     />
                   )}
                   <input
@@ -581,13 +596,14 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {locale === 'zh' ? '存摺封面' : 'Passbook'}
                   </label>
-                  {(selectedCompany.passbook_url || pendingFiles.passbook) && (
+                  {(getImageUrl(selectedCompany.passbook_url) || pendingFiles.passbook) && (
                     <Image
-                      src={pendingFiles.passbook ? URL.createObjectURL(pendingFiles.passbook) : selectedCompany.passbook_url!}
+                      src={pendingFiles.passbook ? URL.createObjectURL(pendingFiles.passbook) : getImageUrl(selectedCompany.passbook_url)!}
                       alt="Passbook"
                       width={128}
                       height={128}
                       className="object-cover mb-2 rounded"
+                      unoptimized
                     />
                   )}
                   <input

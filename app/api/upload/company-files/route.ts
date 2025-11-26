@@ -61,11 +61,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 })
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('company-files')
-      .getPublicUrl(filePath)
+    const apiUrl = `/api/storage/company-files?path=${encodeURIComponent(filePath)}`
 
-    return NextResponse.json({ url: publicUrl })
+    return NextResponse.json({ url: apiUrl, path: filePath })
   } catch (error: unknown) {
     console.error('Error uploading file:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
