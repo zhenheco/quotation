@@ -10,9 +10,11 @@ import {
   type QuotationStatus,
   type PaymentTerm,
 } from '@/hooks/useQuotations'
+import { usePDFGenerator } from '@/hooks/usePDFGenerator'
 import { toast } from 'sonner'
 import './print.css'
 import { formatAmount } from '@/lib/utils/formatters'
+import type { PDFLocale } from '@/lib/pdf/pdf-translations'
 
 interface QuotationDetailProps {
   quotationId: string
@@ -27,6 +29,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
   const { data: quotation, isLoading, error } = useQuotation(quotationId)
   const updateQuotation = useUpdateQuotation(quotationId)
   const { data: paymentTerms } = usePaymentTerms(quotationId)
+  const { generatePDF, isGenerating, progress } = usePDFGenerator()
 
   const handleStatusChange = async (newStatus: QuotationStatus) => {
     try {
@@ -42,6 +45,15 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
     window.print()
   }
 
+  const handleDownloadPDF = async () => {
+    if (!quotation) return
+    try {
+      await generatePDF(quotation, paymentTerms, locale as PDFLocale)
+      toast.success(locale === 'zh' ? 'PDF 下載成功' : 'PDF downloaded successfully')
+    } catch {
+      toast.error(locale === 'zh' ? 'PDF 生成失敗' : 'PDF generation failed')
+    }
+  }
 
   // 載入狀態
   if (isLoading) {
@@ -117,14 +129,35 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
               {t('common.edit')}
             </button>
             <button
+              onClick={handleDownloadPDF}
+              disabled={isGenerating}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGenerating ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {progress}%
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {locale === 'zh' ? '下載 PDF' : 'Download PDF'}
+                </>
+              )}
+            </button>
+            <button
               onClick={handlePrint}
               className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2 cursor-pointer"
               title={locale === 'zh' ? '點擊後選擇「另存為 PDF」即可儲存檔案' : 'Click and choose "Save as PDF" to save the file'}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
-              {t('quotation.save_pdf')}
+              {locale === 'zh' ? '列印' : 'Print'}
             </button>
           </div>
         </div>
