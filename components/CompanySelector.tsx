@@ -17,6 +17,18 @@ interface CompanySelectorProps {
   locale: string;
 }
 
+function getImageUrl(url: string | undefined | null): string | null {
+  if (!url) return null;
+  if (url.startsWith('/api/')) return url;
+  if (url.includes('supabase.co/storage')) {
+    const match = url.match(/company-files\/(.+)$/);
+    if (match) {
+      return `/api/storage/company-files?path=${encodeURIComponent(match[1])}`;
+    }
+  }
+  return url;
+}
+
 export default function CompanySelector({ locale }: CompanySelectorProps) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
@@ -104,13 +116,14 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
 
       {/* Company logo or icon */}
       <div className="absolute left-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-        {selectedCompany?.logo_url ? (
+        {getImageUrl(selectedCompany?.logo_url) ? (
           <Image
-            src={selectedCompany.logo_url}
+            src={getImageUrl(selectedCompany?.logo_url)!}
             alt="Company logo"
             width={24}
             height={24}
             className="rounded-full object-cover"
+            unoptimized
           />
         ) : (
           <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">

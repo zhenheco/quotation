@@ -14,6 +14,18 @@ interface UserProfile {
   avatar_url?: string
 }
 
+function getImageUrl(url: string | undefined): string | null {
+  if (!url) return null;
+  if (url.startsWith('/api/')) return url;
+  if (url.includes('supabase.co/storage')) {
+    const match = url.match(/company-files\/(.+)$/);
+    if (match) {
+      return `/api/storage/company-files?path=${encodeURIComponent(match[1])}`;
+    }
+  }
+  return url;
+}
+
 export default function Navbar({ locale }: { locale: string }) {
   const supabase = createClient()
   const router = useRouter()
@@ -97,13 +109,14 @@ export default function Navbar({ locale }: { locale: string }) {
           <Menu as="div" className="relative">
             <Menu.Button className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
               {/* Avatar */}
-              {userProfile?.avatar_url ? (
+              {getImageUrl(userProfile?.avatar_url) ? (
                 <Image
-                  src={userProfile.avatar_url}
+                  src={getImageUrl(userProfile?.avatar_url)!}
                   alt={displayName}
                   width={32}
                   height={32}
                   className="rounded-full object-cover"
+                  unoptimized
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
