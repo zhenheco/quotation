@@ -9,6 +9,7 @@ import {
   drawFinancialSummary,
   drawPaymentTerms,
   drawNotes,
+  drawBankInfo,
   drawCompanySignature,
   A4_WIDTH,
   A4_HEIGHT,
@@ -28,7 +29,7 @@ export async function generateQuotationPDF(
 
   const page = pdfDoc.addPage([A4_WIDTH, A4_HEIGHT])
 
-  let y = drawHeader(page, data, locale, font)
+  let y = await drawHeader(pdfDoc, page, data, locale, font)
 
   y = drawCustomerInfo(page, data, y, locale, font)
 
@@ -43,6 +44,8 @@ export async function generateQuotationPDF(
   if (data.notes) {
     y = drawNotes(page, data.notes, y, locale, font)
   }
+
+  y = await drawBankInfo(pdfDoc, page, data, y, locale, font)
 
   if (data.companySignatureUrl) {
     await drawCompanySignature(pdfDoc, page, data.companySignatureUrl, y, locale, font)

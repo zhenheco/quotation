@@ -132,5 +132,9 @@ function mapQuotationToPDFData(
       : null,
     companyLogoUrl: quotation.company_logo_url,
     companySignatureUrl: quotation.company_signature_url,
+    bankName: quotation.company_bank_name || null,
+    bankAccount: quotation.company_bank_account || null,
+    bankCode: quotation.company_bank_code || null,
+    passbookUrl: quotation.company_passbook_url || null,
   }
 }

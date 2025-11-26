@@ -37,6 +37,10 @@ export interface QuotationPDFData {
   companyName?: { zh: string; en: string } | null
   companyLogoUrl?: string | null
   companySignatureUrl?: string | null
+  bankName?: string | null
+  bankAccount?: string | null
+  bankCode?: string | null
+  passbookUrl?: string | null
 }
 
 function formatDate(dateStr: string, locale: PDFLocale): string {
@@ -55,21 +59,58 @@ function formatDate(dateStr: string, locale: PDFLocale): string {
   })
 }
 
-export function drawHeader(
+export async function drawHeader(
+  pdfDoc: PDFDocument,
   page: PDFPage,
   data: QuotationPDFData,
   locale: PDFLocale,
   font: PDFFont
-): number {
+): Promise<number> {
   const t = pdfTranslations[locale]
   let y = A4_HEIGHT - MARGIN_TOP
 
+  if (data.companyLogoUrl) {
+    try {
+      const response = await fetch(data.companyLogoUrl)
+      const imageBytes = await response.arrayBuffer()
+
+      let image
+      if (data.companyLogoUrl.toLowerCase().includes('.png')) {
+        image = await pdfDoc.embedPng(imageBytes)
+      } else {
+        image = await pdfDoc.embedJpg(imageBytes)
+      }
+
+      const maxWidth = 120
+      const maxHeight = 60
+      const scale = Math.min(maxWidth / image.width, maxHeight / image.height)
+      const width = image.width * scale
+      const height = image.height * scale
+
+      const logoX = (A4_WIDTH - width) / 2
+
+      page.drawImage(image, {
+        x: logoX,
+        y: y - height,
+        width,
+        height,
+      })
+
+      y -= height + 15
+    } catch (error) {
+      console.error('Failed to load logo image:', error)
+    }
+  }
+
+  const titleWidth = font.widthOfTextAtSize(t.title, 24)
+  const titleX = (A4_WIDTH - titleWidth) / 2
+
   page.drawText(t.title, {
-    x: MARGIN_LEFT,
+    x: titleX,
     y,
     size: 24,
     font,
-    color: rgb(0.1, 0.1, 0.1),
+    color: rgb(0, 0, 0),
   })
   y -= 35
 
@@ -78,7 +119,7 @@ export function drawHeader(
     y,
     size: 11,
     font,
-    color: rgb(0.3, 0.3, 0.3),
+    color: rgb(0, 0, 0),
   })
   y -= 18
 
@@ -87,7 +128,7 @@ export function drawHeader(
     y,
     size: 11,
     font,
-    color: rgb(0.3, 0.3, 0.3),
+    color: rgb(0, 0, 0),
   })
 
   page.drawText(`${t.validUntil}: ${formatDate(data.validUntil, locale)}`, {
@@ -95,7 +136,7 @@ export function drawHeader(
     y,
     size: 11,
     font,
-    color: rgb(0.3, 0.3, 0.3),
+    color: rgb(0, 0, 0),
   })
   y -= 30
 
@@ -117,7 +158,7 @@ export function drawCustomerInfo(
     y,
     size: 12,
     font,
-    color: rgb(0.4, 0.4, 0.4),
+    color: rgb(0, 0, 0),
   })
   y -= 18
 
@@ -132,7 +173,7 @@ export function drawCustomerInfo(
     y,
     size: 14,
     font,
-    color: rgb(0.1, 0.1, 0.1),
+    color: rgb(0, 0, 0),
   })
   y -= 30
 
@@ -154,7 +195,7 @@ export function drawItemsTable(
     y,
     size: 12,
     font,
-    color: rgb(0.4, 0.4, 0.4),
+    color: rgb(0, 0, 0),
   })
   y -= 25
 
@@ -181,7 +222,7 @@ export function drawItemsTable(
       y: y + 3,
       size: 10,
       font,
-      color: rgb(0.3, 0.3, 0.3),
+      color: rgb(0, 0, 0),
     })
   })
   y -= 25
@@ -197,7 +238,7 @@ export function drawItemsTable(
       start: { x: MARGIN_LEFT, y: y + 3 },
       end: { x: MARGIN_LEFT + CONTENT_WIDTH, y: y + 3 },
       thickness: 0.5,
-      color: rgb(0.9, 0.9, 0.9),
+      color: rgb(0.5, 0.5, 0.5),
     })
 
     descLines.forEach((line, lineIndex) => {
@@ -206,7 +247,7 @@ export function drawItemsTable(
         y: y - 10 - lineIndex * 14,
         size: 10,
         font,
-        color: rgb(0.1, 0.1, 0.1),
+        color: rgb(0, 0, 0),
       })
     })
 
@@ -215,7 +256,7 @@ export function drawItemsTable(
       y: y - 10,
       size: 10,
       font,
-      color: rgb(0.1, 0.1, 0.1),
+      color: rgb(0, 0, 0),
     })
 
     page.drawText(formatAmount(item.unitPrice, data.currency), {
@@ -223,7 +264,7 @@ export function drawItemsTable(
       y: y - 10,
       size: 10,
       font,
-      color: rgb(0.1, 0.1, 0.1),
+      color: rgb(0, 0, 0),
     })
 
     page.drawText(formatAmount(item.subtotal, data.currency), {
@@ -231,7 +272,7 @@ export function drawItemsTable(
       y: y - 10,
       size: 10,
       font,
-      color: rgb(0.1, 0.1, 0.1),
+      color: rgb(0, 0, 0),
     })
 
     y -= rowHeight
@@ -256,14 +297,14 @@ export function drawFinancialSummary(
     y,
     size: 10,
     font,
-    color: rgb(0.4, 0.4, 0.4),
+    color: rgb(0, 0, 0),
   })
   page.drawText(`${data.currency} ${formatAmount(data.subtotal, data.currency)}`, {
     x: rightX + 80,
     y,
     size: 10,
     font,
-    color: rgb(0.1, 0.1, 0.1),
+    color: rgb(0, 0, 0),
   })
   y -= 18
 
@@ -272,14 +313,14 @@ export function drawFinancialSummary(
     y,
     size: 10,
     font,
-    color: rgb(0.4, 0.4, 0.4),
+    color: rgb(0, 0, 0),
   })
   page.drawText(`${data.currency} ${formatAmount(data.taxAmount, data.currency)}`, {
     x: rightX + 80,
     y,
     size: 10,
     font,
-    color: rgb(0.1, 0.1, 0.1),
+    color: rgb(0, 0, 0),
   })
   y -= 22
 
@@ -287,7 +328,7 @@ export function drawFinancialSummary(
     start: { x: rightX, y: y + 8 },
     end: { x: MARGIN_LEFT + CONTENT_WIDTH, y: y + 8 },
     thickness: 1,
-    color: rgb(0.8, 0.8, 0.8),
+    color: rgb(0.5, 0.5, 0.5),
   })
 
   page.drawText(`${t.total}:`, {
@@ -295,14 +336,14 @@ export function drawFinancialSummary(
     y,
     size: 12,
     font,
-    color: rgb(0.1, 0.1, 0.1),
+    color: rgb(0, 0, 0),
   })
   page.drawText(`${data.currency} ${formatAmount(data.totalAmount, data.currency)}`, {
     x: rightX + 80,
     y,
     size: 12,
     font,
-    color: rgb(0.1, 0.1, 0.1),
+    color: rgb(0, 0, 0),
   })
   y -= 30
 
@@ -327,7 +368,7 @@ export function drawPaymentTerms(
     y,
     size: 12,
     font,
-    color: rgb(0.4, 0.4, 0.4),
+    color: rgb(0, 0, 0),
   })
   y -= 25
 
@@ -354,7 +395,7 @@ export function drawPaymentTerms(
       y: y + 2,
       size: 9,
       font,
-      color: rgb(0.3, 0.3, 0.3),
+      color: rgb(0, 0, 0),
     })
   })
   y -= 22
@@ -364,7 +405,7 @@ export function drawPaymentTerms(
       start: { x: MARGIN_LEFT, y: y + 3 },
       end: { x: MARGIN_LEFT + 480, y: y + 3 },
       thickness: 0.5,
-      color: rgb(0.9, 0.9, 0.9),
+      color: rgb(0.5, 0.5, 0.5),
     })
 
     page.drawText(`${locale === 'zh' ? '第' : ''}${term.termNumber}${locale === 'zh' ? '期' : ''}`, {
@@ -372,7 +413,7 @@ export function drawPaymentTerms(
       y: y - 10,
       size: 9,
       font,
-      color: rgb(0.1, 0.1, 0.1),
+      color: rgb(0, 0, 0),
     })
 
     page.drawText(`${term.percentage}%`, {
@@ -380,7 +421,7 @@ export function drawPaymentTerms(
       y: y - 10,
       size: 9,
       font,
-      color: rgb(0.1, 0.1, 0.1),
+      color: rgb(0, 0, 0),
     })
 
     page.drawText(term.dueDate ? formatDate(term.dueDate, locale) : '-', {
@@ -388,7 +429,7 @@ export function drawPaymentTerms(
       y: y - 10,
       size: 9,
       font,
-      color: rgb(0.1, 0.1, 0.1),
+      color: rgb(0, 0, 0),
     })
 
     page.drawText(`${currency} ${formatAmount(term.amount, currency)}`, {
@@ -396,7 +437,7 @@ export function drawPaymentTerms(
       y: y - 10,
       size: 9,
       font,
-      color: rgb(0.1, 0.1, 0.1),
+      color: rgb(0, 0, 0),
     })
 
     y -= 20
@@ -422,7 +463,7 @@ export function drawNotes(
     y,
     size: 12,
     font,
-    color: rgb(0.4, 0.4, 0.4),
+    color: rgb(0, 0, 0),
   })
   y -= 18
 
@@ -435,9 +476,103 @@ export function drawNotes(
         y,
         size: 10,
         font,
-        color: rgb(0.3, 0.3, 0.3),
+        color: rgb(0, 0, 0),
       })
       y -= 14
+    }
+  }
+
+  return y - 10
+}
+
+export async function drawBankInfo(
+  pdfDoc: PDFDocument,
+  page: PDFPage,
+  data: QuotationPDFData,
+  startY: number,
+  locale: PDFLocale,
+  font: PDFFont
+): Promise<number> {
+  const hasBankInfo = data.bankName || data.bankAccount || data.bankCode
+  const hasPassbook = data.passbookUrl
+
+  if (!hasBankInfo && !hasPassbook) return startY
+
+  const t = pdfTranslations[locale]
+  let y = startY
+
+  page.drawText(t.bankInfo, {
+    x: MARGIN_LEFT,
+    y,
+    size: 12,
+    font,
+    color: rgb(0, 0, 0),
+  })
+  y -= 20
+
+  if (data.bankName) {
+    page.drawText(`${t.bankName}: ${data.bankName}`, {
+      x: MARGIN_LEFT,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    y -= 16
+  }
+
+  if (data.bankAccount) {
+    page.drawText(`${t.bankAccount}: ${data.bankAccount}`, {
+      x: MARGIN_LEFT,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    y -= 16
+  }
+
+  if (data.bankCode) {
+    page.drawText(`${t.bankCode}: ${data.bankCode}`, {
+      x: MARGIN_LEFT,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    y -= 16
+  }
+
+  if (hasPassbook) {
+    y -= 10
+
+    try {
+      const response = await fetch(data.passbookUrl!)
+      const imageBytes = await response.arrayBuffer()
+
+      let image
+      if (data.passbookUrl!.toLowerCase().includes('.png')) {
+        image = await pdfDoc.embedPng(imageBytes)
+      } else {
+        image = await pdfDoc.embedJpg(imageBytes)
+      }
+
+      const maxWidth = 200
+      const maxHeight = 120
+      const scale = Math.min(maxWidth / image.width, maxHeight / image.height)
+      const width = image.width * scale
+      const height = image.height * scale
+
+      page.drawImage(image, {
+        x: MARGIN_LEFT,
+        y: y - height,
+        width,
+        height,
+      })
+
+      y -= height + 10
+    } catch (error) {
+      console.error('Failed to load passbook image:', error)
     }
   }
 
@@ -462,7 +597,7 @@ export async function drawCompanySignature(
     y,
     size: 12,
     font,
-    color: rgb(0.4, 0.4, 0.4),
+    color: rgb(0, 0, 0),
   })
   y -= 20
 
