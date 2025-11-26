@@ -47,7 +47,6 @@ export async function middleware(request: NextRequest) {
               ...options,
               sameSite: 'lax',
               secure: true,
-              httpOnly: true,
               path: '/',
             })
           )
