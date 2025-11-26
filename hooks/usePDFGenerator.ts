@@ -14,7 +14,7 @@ export function usePDFGenerator() {
 
   useEffect(() => {
     if (!fontLoadingRef.current) {
-      fontLoadingRef.current = fetch('/fonts/NotoSansTC-Subset.ttf')
+      fontLoadingRef.current = fetch('/fonts/NotoSansTC-Regular.ttf')
         .then((res) => res.arrayBuffer())
         .then((bytes) => {
           fontBytesRef.current = bytes
@@ -45,7 +45,7 @@ export function usePDFGenerator() {
           if (fontLoadingRef.current) {
             await fontLoadingRef.current
           } else {
-            const res = await fetch('/fonts/NotoSansTC-Subset.ttf')
+            const res = await fetch('/fonts/NotoSansTC-Regular.ttf')
             fontBytesRef.current = await res.arrayBuffer()
           }
         }

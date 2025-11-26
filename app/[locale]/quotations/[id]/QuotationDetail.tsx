@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
@@ -12,7 +13,6 @@ import {
 } from '@/hooks/useQuotations'
 import { usePDFGenerator } from '@/hooks/usePDFGenerator'
 import { toast } from 'sonner'
-import './print.css'
 import { formatAmount } from '@/lib/utils/formatters'
 import type { PDFLocale } from '@/lib/pdf/pdf-translations'
 
@@ -24,6 +24,7 @@ interface QuotationDetailProps {
 export default function QuotationDetail({ quotationId, locale }: QuotationDetailProps) {
   const t = useTranslations()
   const router = useRouter()
+  const [pdfLocale, setPdfLocale] = useState<PDFLocale>(locale as PDFLocale)
 
   // Hooks
   const { data: quotation, isLoading, error } = useQuotation(quotationId)
@@ -41,17 +42,13 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
     }
   }
 
-  const handlePrint = () => {
-    window.print()
-  }
-
   const handleDownloadPDF = async () => {
     if (!quotation) return
     try {
-      await generatePDF(quotation, paymentTerms, locale as PDFLocale)
-      toast.success(locale === 'zh' ? 'PDF 下載成功' : 'PDF downloaded successfully')
+      await generatePDF(quotation, paymentTerms, pdfLocale)
+      toast.success(pdfLocale === 'zh' ? 'PDF 下載成功' : 'PDF downloaded successfully')
     } catch {
-      toast.error(locale === 'zh' ? 'PDF 生成失敗' : 'PDF generation failed')
+      toast.error(pdfLocale === 'zh' ? 'PDF 生成失敗' : 'PDF generation failed')
     }
   }
 
@@ -128,6 +125,14 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
               </svg>
               {t('common.edit')}
             </button>
+            <select
+              value={pdfLocale}
+              onChange={(e) => setPdfLocale(e.target.value as PDFLocale)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+            >
+              <option value="zh">中文</option>
+              <option value="en">English</option>
+            </select>
             <button
               onClick={handleDownloadPDF}
               disabled={isGenerating}
@@ -148,16 +153,6 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                   {locale === 'zh' ? '下載 PDF' : 'Download PDF'}
                 </>
               )}
-            </button>
-            <button
-              onClick={handlePrint}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2 cursor-pointer"
-              title={locale === 'zh' ? '點擊後選擇「另存為 PDF」即可儲存檔案' : 'Click and choose "Save as PDF" to save the file'}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              {locale === 'zh' ? '列印' : 'Print'}
             </button>
           </div>
         </div>
