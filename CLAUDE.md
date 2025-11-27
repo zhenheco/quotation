@@ -478,3 +478,100 @@ console.log('Customer count:', result[0]?.count)
 NEXT_PUBLIC_SUPABASE_URL=https://oubsycwrxzkuviakzahi.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
+
+---
+
+## 🔐 OAuth 登入重導向問題排查指南
+
+### 問題現象
+
+用戶從 `quote24.cc` 點擊 Google 登入後，被重導向到錯誤的 URL（如 `quotation-system.acejou27.workers.dev/?code=xxx`），而不是正確的 `quote24.cc/auth/callback`。
+
+### 根本原因分析
+
+這個問題通常由以下原因造成：
+
+#### 1. GitHub Secrets 指向錯誤的 Supabase 專案（最常見！）
+
+**症狀**：
+- 本地開發正常，但生產環境 OAuth 失敗
+- 重導向到 Cloudflare Workers 預設域名而非自訂域名
+
+**診斷方法**：
+```bash
+# 檢查生產環境的 Supabase URL
+curl -s "https://quote24.cc/_next/static/chunks/app/%5Blocale%5D/login/page-*.js" | grep -o '[a-z]*\.supabase\.co'
+```
+
+**解決方案**：
+1. 到 GitHub Repository > Settings > Secrets and variables > Actions
+2. 確認 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 指向正確的 Supabase 專案
+3. 重新觸發部署
+
+#### 2. `NEXT_PUBLIC_*` 環境變數未在 build 時設定
+
+**重要**：`NEXT_PUBLIC_*` 變數是在 **build time** 嵌入 JavaScript 的，不是 runtime！
+
+**症狀**：
+- 生產環境的 JavaScript 包含 `localhost:3333` 或其他本地 URL
+
+**診斷方法**：
+```bash
+# 檢查生產環境的 redirect URL
+curl -s "https://quote24.cc/_next/static/chunks/app/%5Blocale%5D/login/page-*.js" | grep -o 'redirectTo[^}]*'
+```
+
+**解決方案**：
+確保 `.github/workflows/cloudflare-deploy.yml` 包含所有必要的環境變數：
+```yaml
+- name: Build application
+  env:
+    NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+    NEXT_PUBLIC_APP_URL: https://quote24.cc
+  run: pnpm run build
+```
+
+#### 3. Supabase Dashboard 設定不正確
+
+**必須確認**：
+1. **Site URL**：設為 `https://quote24.cc`
+2. **Redirect URLs**：加入 `https://quote24.cc/**`（使用 wildcard）
+
+### 排查流程
+
+```
+1. 檢查 Supabase Dashboard 設定
+   ├─ Site URL = https://quote24.cc
+   └─ Redirect URLs 包含 https://quote24.cc/**
+
+2. 檢查 GitHub Secrets
+   ├─ NEXT_PUBLIC_SUPABASE_URL 指向正確的 Supabase 專案
+   └─ NEXT_PUBLIC_SUPABASE_ANON_KEY 對應正確的專案
+
+3. 檢查 GitHub Actions workflow
+   └─ Build 步驟包含所有 NEXT_PUBLIC_* 環境變數
+
+4. 驗證部署結果
+   └─ 檢查生產環境 JS bundle 中的 Supabase URL 和 redirect URL
+```
+
+### 快速驗證命令
+
+```bash
+# 1. 取得登入頁面的 JS bundle 檔名
+curl -s "https://quote24.cc/zh/login" | grep -o 'login/page-[^"]*\.js'
+
+# 2. 檢查該 JS 中的 Supabase URL（應該是你的專案 ID）
+curl -s "https://quote24.cc/_next/static/chunks/app/%5Blocale%5D/login/page-XXX.js" | grep -o '[a-z]*\.supabase\.co'
+
+# 3. 檢查 redirect URL（應該是 https://quote24.cc）
+curl -s "https://quote24.cc/_next/static/chunks/app/%5Blocale%5D/login/page-XXX.js" | grep -o 'https://quote24\.cc'
+```
+
+### 經驗教訓
+
+1. **本地與生產環境使用不同的 Supabase 專案時要特別注意**
+2. **`NEXT_PUBLIC_*` 變數必須在 CI/CD build 時設定，不能只在 runtime**
+3. **每次部署後都應該驗證生產環境的 JS bundle 內容**
+4. **Supabase 的 Redirect URLs 建議使用 wildcard（`/**`）以支援 query parameters**
