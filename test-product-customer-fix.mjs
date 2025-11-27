@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 
-const BASE_URL = 'https://quotation.zhenhe-dm.com';
+const BASE_URL = 'https://quote24.cc';
 
 async function testProductAndCustomerFix() {
   console.log('=== 測試產品和客戶修復 ===\n');

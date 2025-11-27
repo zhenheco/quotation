@@ -142,14 +142,14 @@ export async function POST(request: NextRequest) {
 ### Cloudflare Workers
 - **Version ID**: b6832a44-2d5c-428b-a67c-e02399d1aeed
 - **部署時間**: 2025-11-02 12:45 UTC (20:45 UTC+8)
-- **URL**: https://quotation.zhenhe-dm.com
+- **URL**: https://quote24.cc
 - **狀態**: ✅ 部署成功
 
 ### 驗證測試結果
 
 #### 測試 1: Products API（未登入）
 ```bash
-$ curl -X GET https://quotation.zhenhe-dm.com/api/products -i
+$ curl -X GET https://quote24.cc/api/products -i
 
 HTTP/2 401
 content-type: application/json
@@ -159,7 +159,7 @@ content-type: application/json
 
 #### 測試 2: Customers API（未登入）
 ```bash
-$ curl -X GET https://quotation.zhenhe-dm.com/api/customers -i
+$ curl -X GET https://quote24.cc/api/customers -i
 
 HTTP/2 401
 content-type: application/json
@@ -169,7 +169,7 @@ content-type: application/json
 
 #### 測試 3: POST Products（未登入）
 ```bash
-$ curl -X POST https://quotation.zhenhe-dm.com/api/products \
+$ curl -X POST https://quote24.cc/api/products \
   -H "Content-Type: application/json" \
   -d '{"name":"Test","unit_price":100,"currency":"TWD"}' -i
 
@@ -181,7 +181,7 @@ content-type: application/json
 
 #### 測試 4: POST Customers（未登入）
 ```bash
-$ curl -X POST https://quotation.zhenhe-dm.com/api/customers \
+$ curl -X POST https://quote24.cc/api/customers \
   -H "Content-Type: application/json" \
   -d '{"name":"Test","email":"test@example.com"}' -i
 
@@ -217,10 +217,10 @@ content-type: application/json
 ### 建立產品
 
 **步驟 1**: 登入系統
-- 前往 https://quotation.zhenhe-dm.com/zh/login
+- 前往 https://quote24.cc/zh/login
 
 **步驟 2**: 前往產品頁面
-- https://quotation.zhenhe-dm.com/zh/products
+- https://quote24.cc/zh/products
 
 **步驟 3**: 點擊「新增產品」
 - 填寫產品名稱、單價、幣別等資訊
@@ -237,7 +237,7 @@ content-type: application/json
 **步驟 1**: 登入系統
 
 **步驟 2**: 前往客戶頁面
-- https://quotation.zhenhe-dm.com/zh/customers
+- https://quote24.cc/zh/customers
 
 **步驟 3**: 點擊「新增客戶」
 - 填寫客戶名稱、郵件地址等資訊

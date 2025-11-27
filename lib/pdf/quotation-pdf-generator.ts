@@ -39,13 +39,14 @@ export async function generateQuotationPDF(
 
   if (data.paymentTerms && data.paymentTerms.length > 0) {
     y = drawPaymentTerms(page, data.paymentTerms, y, locale, font, data.currency)
+    y = await drawBankInfo(pdfDoc, page, data, y, locale, font)
+  } else {
+    y = await drawBankInfo(pdfDoc, page, data, y, locale, font)
   }
 
   if (data.notes) {
     y = drawNotes(page, data.notes, y, locale, font)
   }
-
-  y = await drawBankInfo(pdfDoc, page, data, y, locale, font)
 
   if (data.companySignatureUrl) {
     await drawCompanySignature(pdfDoc, page, data.companySignatureUrl, y, locale, font)

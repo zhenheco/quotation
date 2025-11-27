@@ -362,7 +362,7 @@ const customers = await db.query('SELECT * FROM customers WHERE user_id = ?', [u
 #### 錯誤 2：本地腳本無法存取生產資料
 
 **現象**：
-- 使用者在生產環境（https://quotation.zhenhe-dm.com）有資料
+- 使用者在生產環境（https://quote24.cc）有資料
 - 但本地測試腳本查詢不到
 
 **原因**：

@@ -484,7 +484,7 @@ const nextConfig: NextConfig = {
 
 ### 結果
 
-✅ 部署成功：https://quotation-system.acejou27.workers.dev
+✅ 部署成功：https://quote24.cc
 - 首頁: 307 重定向到 `/zh/login`
 - 登入頁: 200 狀態碼
 
@@ -655,7 +655,7 @@ Error: Failed to load chunk server/chunks/ssr/[root-of-the-server]__9285a355._.j
 ### 發生位置
 
 - 環境: Cloudflare Workers (Production)
-- URL: https://quotation-system.acejou27.workers.dev
+- URL: https://quote24.cc
 - 所有路徑都受影響
 
 ### 根本原因分析
@@ -735,10 +735,10 @@ pnpm run deploy:cf
 部署後執行以下檢查：
 ```bash
 # 檢查首頁
-curl -I https://quotation-system.acejou27.workers.dev
+curl -I https://quote24.cc
 
 # 檢查登入頁
-curl -I https://quotation-system.acejou27.workers.dev/zh/login
+curl -I https://quote24.cc/zh/login
 
 # 查看實時日誌
 pnpm exec wrangler tail quotation-system

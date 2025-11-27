@@ -49,7 +49,7 @@ const supabase = createApiClient(request)  // ✅ Workers 環境正常
 
 **驗證結果**:
 ```bash
-$ curl -s https://quotation.zhenhe-dm.com/api/quotations/[id]
+$ curl -s https://quote24.cc/api/quotations/[id]
 {"error":"Unauthorized"}
 # ✅ 返回 JSON，Content-Type 正確
 ```
@@ -107,13 +107,13 @@ export async function POST(request: NextRequest, ...) {
 ### Cloudflare Workers
 - **部署 ID**: 301f051c-7a51-4d03-b78a-1af180191e22
 - **部署時間**: 2025-11-02 07:23:32 UTC
-- **URL**: https://quotation.zhenhe-dm.com
+- **URL**: https://quote24.cc
 - **狀態**: ✅ 部署成功
 
 ### API 端點測試
 ```bash
 # 測試 GET /api/quotations/[id] (未登入)
-$ curl -s https://quotation.zhenhe-dm.com/api/quotations/3d9ea7c9-11f1-436e-88c8-4f80515c69bb
+$ curl -s https://quote24.cc/api/quotations/3d9ea7c9-11f1-436e-88c8-4f80515c69bb
 {"error":"Unauthorized"}
 
 # ✅ 回應狀態: 401 (預期)
@@ -123,7 +123,7 @@ $ curl -s https://quotation.zhenhe-dm.com/api/quotations/3d9ea7c9-11f1-436e-88c8
 
 ## 預期功能行為
 
-### 報價單列表頁面 (https://quotation.zhenhe-dm.com/zh/quotations)
+### 報價單列表頁面 (https://quote24.cc/zh/quotations)
 1. **如果客戶有 email**:
    - ✅ 綠色寄送按鈕可點擊
    - ✅ 沒有禁止符號
@@ -161,8 +161,8 @@ $ curl -s https://quotation.zhenhe-dm.com/api/quotations/3d9ea7c9-11f1-436e-88c8
 ## 測試建議
 
 ### 手動測試步驟
-1. 登入系統: https://quotation.zhenhe-dm.com/zh/login
-2. 前往報價單列表: https://quotation.zhenhe-dm.com/zh/quotations
+1. 登入系統: https://quote24.cc/zh/login
+2. 前往報價單列表: https://quote24.cc/zh/quotations
 3. 檢查綠色寄送按鈕狀態:
    - 如果可點擊 → customer_email 存在 ✅
    - 如果禁用 → customer_email 不存在（需要更新客戶資料）⚠️

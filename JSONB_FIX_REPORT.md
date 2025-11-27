@@ -173,7 +173,7 @@ pnpm exec opennextjs-cloudflare build
 pnpm exec wrangler deploy --compatibility-date=2025-03-25
 # ✅ Deployed quotation-system triggers
 # ✅ Version ID: 9ee6d858-6c33-4d52-b6b1-d47f1e8c8316
-# ✅ URL: https://quotation-system.acejou27.workers.dev
+# ✅ URL: https://quote24.cc
 ```
 
 ## 預期結果
@@ -226,8 +226,8 @@ pnpm exec wrangler deploy --compatibility-date=2025-03-25
 
 - **部署時間**: 2025-11-02 21:45 (UTC+8)
 - **Version ID**: `9ee6d858-6c33-4d52-b6b1-d47f1e8c8316`
-- **URL**: https://quotation-system.acejou27.workers.dev
-- **Cloudflare URL**: https://quotation.zhenhe-dm.com
+- **URL**: https://quote24.cc
+- **Cloudflare URL**: https://quote24.cc
 
 ## 測試建議
 

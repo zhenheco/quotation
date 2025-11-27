@@ -4,7 +4,7 @@
 驗證產品和客戶編輯 API 在 Cloudflare Workers 環境中正常運作
 
 ## 部署資訊
-- URL: https://quotation-system.acejou27.workers.dev
+- URL: https://quote24.cc
 - 版本: 08866e7a-0fdb-44d5-9b5f-f27c931938d9
 - 部署時間: 2025-10-31T05:14:21.257Z
 
@@ -18,13 +18,13 @@
 5. 勾選 **Preserve log**（保留日誌）
 
 ### 2. 登入系統
-1. 前往 https://quotation-system.acejou27.workers.dev/zh/login
+1. 前往 https://quote24.cc/zh/login
 2. 使用您的帳號登入（acejou27@gmail.com）
 3. **檢查 Console**：應該沒有錯誤
 4. **檢查 Network**：確認登入請求成功（200 OK）
 
 ### 3. 測試產品編輯功能
-1. 前往產品列表頁面：https://quotation-system.acejou27.workers.dev/zh/products
+1. 前往產品列表頁面：https://quote24.cc/zh/products
 2. 找到任一產品（例如 ID: c5f3ae6a-2d2f-4b9a-9f9e-dd25e66ccfc3）
 3. 點擊「編輯」按鈕
 4. **關鍵檢查點**：
@@ -35,7 +35,7 @@
    - ✅ 編輯表單應該正確顯示產品資料
 
 ### 4. 測試客戶編輯功能
-1. 前往客戶列表頁面：https://quotation-system.acejou27.workers.dev/zh/customers
+1. 前往客戶列表頁面：https://quote24.cc/zh/customers
 2. 找到任一客戶
 3. 點擊「編輯」按鈕
 4. **關鍵檢查點**：

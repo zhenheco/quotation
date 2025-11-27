@@ -84,14 +84,14 @@ return response
 ### Cloudflare Workers
 - **Version ID**: 525b2e25-b72b-427d-8cb2-1453ec4edc49
 - **部署時間**: 2025-11-02 12:24 UTC (20:24 UTC+8)
-- **URL**: https://quotation.zhenhe-dm.com
+- **URL**: https://quote24.cc
 - **狀態**: ✅ 部署成功
 
 ## 驗證測試
 
 ### 測試 1: 未登入用戶（預期 401 JSON）
 ```bash
-$ curl -X POST https://quotation.zhenhe-dm.com/api/quotations/3d9ea7c9-11f1-436e-88c8-4f80515c69bb/send \
+$ curl -X POST https://quote24.cc/api/quotations/3d9ea7c9-11f1-436e-88c8-4f80515c69bb/send \
   -H "Content-Type: application/json" -i
 
 HTTP/2 401
@@ -179,8 +179,8 @@ POST /api/quotations/[id]/send
 ## 測試建議
 
 ### 手動測試步驟（需要用戶協助）
-1. 登入系統: https://quotation.zhenhe-dm.com/zh/login
-2. 前往報價單列表: https://quotation.zhenhe-dm.com/zh/quotations
+1. 登入系統: https://quote24.cc/zh/login
+2. 前往報價單列表: https://quote24.cc/zh/quotations
 3. 點擊「檢視報價單」進入詳情頁
 4. 點擊「寄送報價單」按鈕
 5. 確認對話框顯示正確的客戶郵件地址

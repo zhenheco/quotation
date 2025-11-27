@@ -100,7 +100,7 @@ export interface Quotation {
 ### 測試 1: GET `/api/quotations/[id]`
 ```bash
 curl -H "Cookie: $(pbpaste)" \
-  https://quotation.zhenhe-dm.com/api/quotations/3d9ea7c9-11f1-436e-88c8-4f80515c69bb
+  https://quote24.cc/api/quotations/3d9ea7c9-11f1-436e-88c8-4f80515c69bb
 ```
 
 **預期結果**:
@@ -117,7 +117,7 @@ curl -H "Cookie: $(pbpaste)" \
 ```bash
 curl -X POST \
   -H "Cookie: $(pbpaste)" \
-  https://quotation.zhenhe-dm.com/api/quotations/3d9ea7c9-11f1-436e-88c8-4f80515c69bb/send
+  https://quote24.cc/api/quotations/3d9ea7c9-11f1-436e-88c8-4f80515c69bb/send
 ```
 
 **預期結果**:
@@ -135,14 +135,14 @@ curl -X POST \
 ```
 
 ### 測試 3: 列表頁寄送按鈕
-1. 開啟 https://quotation.zhenhe-dm.com/zh/quotations
+1. 開啟 https://quote24.cc/zh/quotations
 2. 找到有客戶 email 的報價單
 3. 點擊綠色寄送按鈕
 4. **預期**: 按鈕可點擊（不顯示禁止符號）
 5. **預期**: 寄送成功，狀態變為「已寄送」
 
 ### 測試 4: 檢視報價單頁面寄送
-1. 開啟 https://quotation.zhenhe-dm.com/zh/quotations/[id]
+1. 開啟 https://quote24.cc/zh/quotations/[id]
 2. 點擊寄送按鈕
 3. **預期**: Console 無 500 錯誤
 4. **預期**: 顯示成功訊息

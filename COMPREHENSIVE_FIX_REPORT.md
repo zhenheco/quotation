@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
 ### Cloudflare Workers 部署
 - **Version ID**: b4be3a30-e90f-4913-9617-96b956ccd134
 - **部署時間**: 2025-11-02 12:48 UTC (20:48 UTC+8)
-- **URL**: https://quotation.zhenhe-dm.com
+- **URL**: https://quote24.cc
 - **狀態**: ✅ 部署成功
 
 ### 建置統計
@@ -245,15 +245,15 @@ Worker Startup Time: 29 ms
 
 ```bash
 # 產品 API
-$ curl https://quotation.zhenhe-dm.com/api/products
+$ curl https://quote24.cc/api/products
 → 401 Unauthorized (JSON) ✅
 
 # 客戶 API
-$ curl https://quotation.zhenhe-dm.com/api/customers
+$ curl https://quote24.cc/api/customers
 → 401 Unauthorized (JSON) ✅
 
 # 報價單 API
-$ curl https://quotation.zhenhe-dm.com/api/quotations
+$ curl https://quote24.cc/api/quotations
 → 401 Unauthorized (JSON) ✅
 ```
 

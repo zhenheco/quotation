@@ -79,11 +79,11 @@ eb: MISSING_MESSAGE: product.supplierCodePlaceholder (zh)
 ### 產品頁面測試流程
 
 1. **登入系統**
-   - URL: https://quotation-system.acejou27.workers.dev/zh/login
+   - URL: https://quote24.cc/zh/login
    - 使用您的帳號登入
 
 2. **測試產品列表頁面**
-   - 前往: https://quotation-system.acejou27.workers.dev/zh/products
+   - 前往: https://quote24.cc/zh/products
    - 檢查: 所有文字應為中文
    - 檢查 Console: 應無 MISSING_MESSAGE 錯誤
 
@@ -117,7 +117,7 @@ eb: MISSING_MESSAGE: product.supplierCodePlaceholder (zh)
 ### 報價單頁面測試流程
 
 1. **測試報價單列表**
-   - 前往: https://quotation-system.acejou27.workers.dev/zh/quotations
+   - 前往: https://quote24.cc/zh/quotations
    - 檢查: 所有文字應為中文
 
 2. **測試報價單編輯**
@@ -131,7 +131,7 @@ eb: MISSING_MESSAGE: product.supplierCodePlaceholder (zh)
 ### 客戶頁面測試流程
 
 1. **測試客戶列表**
-   - 前往: https://quotation-system.acejou27.workers.dev/zh/customers
+   - 前往: https://quote24.cc/zh/customers
 
 2. **測試客戶編輯和刪除**
    - 確認編輯功能正常

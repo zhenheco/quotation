@@ -2,6 +2,24 @@ import { PDFPage, PDFFont, rgb, PDFDocument } from 'pdf-lib'
 import { pdfTranslations, type PDFLocale } from './pdf-translations'
 import { formatAmount } from '@/lib/utils/formatters'
 
+function toFullWidthNumbers(str: string): string {
+  const halfToFull: Record<string, string> = {
+    '0': '０', '1': '１', '2': '２', '3': '３', '4': '４',
+    '5': '５', '6': '６', '7': '７', '8': '８', '9': '９',
+    ',': '，', '.': '．', ' ': '　'
+  }
+  return str.split('').map(char => halfToFull[char] || char).join('')
+}
+
+function formatPDFNumber(value: number | undefined | null, currency: string): string {
+  const amount = formatAmount(value, currency)
+  return toFullWidthNumbers(amount)
+}
+
+function formatPDFAmount(value: number | undefined | null, currency: string): string {
+  return `${currency}　${formatPDFNumber(value, currency)}`
+}
+
 const A4_WIDTH = 595.28
 const A4_HEIGHT = 841.89
 const MARGIN_LEFT = 50
@@ -259,7 +277,7 @@ export function drawItemsTable(
       color: rgb(0, 0, 0),
     })
 
-    page.drawText(formatAmount(item.unitPrice, data.currency), {
+    page.drawText(formatPDFNumber(item.unitPrice, data.currency), {
       x: colX[2] + 5,
       y: y - 10,
       size: 10,
@@ -267,7 +285,7 @@ export function drawItemsTable(
       color: rgb(0, 0, 0),
     })
 
-    page.drawText(formatAmount(item.subtotal, data.currency), {
+    page.drawText(formatPDFNumber(item.subtotal, data.currency), {
       x: colX[3] + 5,
       y: y - 10,
       size: 10,
@@ -299,7 +317,7 @@ export function drawFinancialSummary(
     font,
     color: rgb(0, 0, 0),
   })
-  page.drawText(`${data.currency} ${formatAmount(data.subtotal, data.currency)}`, {
+  page.drawText(formatPDFAmount(data.subtotal, data.currency), {
     x: rightX + 80,
     y,
     size: 10,
@@ -315,7 +333,7 @@ export function drawFinancialSummary(
     font,
     color: rgb(0, 0, 0),
   })
-  page.drawText(`${data.currency} ${formatAmount(data.taxAmount, data.currency)}`, {
+  page.drawText(formatPDFAmount(data.taxAmount, data.currency), {
     x: rightX + 80,
     y,
     size: 10,
@@ -338,7 +356,7 @@ export function drawFinancialSummary(
     font,
     color: rgb(0, 0, 0),
   })
-  page.drawText(`${data.currency} ${formatAmount(data.totalAmount, data.currency)}`, {
+  page.drawText(formatPDFAmount(data.totalAmount, data.currency), {
     x: rightX + 80,
     y,
     size: 12,
@@ -432,7 +450,7 @@ export function drawPaymentTerms(
       color: rgb(0, 0, 0),
     })
 
-    page.drawText(`${currency} ${formatAmount(term.amount, currency)}`, {
+    page.drawText(formatPDFAmount(term.amount, currency), {
       x: colX[3] + 5,
       y: y - 10,
       size: 9,

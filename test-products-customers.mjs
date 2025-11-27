@@ -1,4 +1,4 @@
-const API_BASE = 'https://quotation.zhenhe-dm.com';
+const API_BASE = 'https://quote24.cc';
 
 async function testAPIs() {
   console.log('=== 測試產品和客戶 API ===\n');

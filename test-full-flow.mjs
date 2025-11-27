@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 
-const BASE_URL = 'https://quotation.zhenhe-dm.com';
+const BASE_URL = 'https://quote24.cc';
 const EMAIL = 'acejou27@gmail.com';
 const PASSWORD = 'Aa090116';
 

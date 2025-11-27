@@ -22,7 +22,7 @@
 - [ ] 任何 authentication 相關警告？
 
 ### 3. Application 標籤檢查
-開啟 Chrome DevTools (F12) → Application 標籤 → Cookies → `https://quotation-system.acejou27.workers.dev`
+開啟 Chrome DevTools (F12) → Application 標籤 → Cookies → `https://quote24.cc`
 
 **請檢查是否有以下 cookies：**
 - [ ] `sb-access-token` 或類似名稱的 Supabase token

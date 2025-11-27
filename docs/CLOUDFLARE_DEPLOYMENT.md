@@ -2,7 +2,7 @@
 
 ## 🌐 網址資訊
 
-**正式環境：** https://quotation-system.acejou27.workers.dev
+**正式環境：** https://quote24.cc
 
 - 帳號：Acejou27@gmail.com's Account
 - Account ID: `f9916b95d011e8ad2a3fe10883053b0f`
@@ -156,7 +156,7 @@ pnpm exec wrangler tail quotation-system --format pretty
 
 在另一個終端測試：
 ```bash
-curl https://quotation-system.acejou27.workers.dev/
+curl https://quote24.cc/
 ```
 
 ### 2. 本地預覽
@@ -215,7 +215,7 @@ pnpm exec wrangler secret list --name quotation-system
 1. 保留 Cloudflare Workers（不刪除）
 2. 在 Vercel 重新部署
 3. 使用不同的網域區分：
-   - Cloudflare: `quotation-system.acejou27.workers.dev`
+   - Cloudflare: `quote24.cc`
    - Vercel: `your-project.vercel.app`
 
 ---

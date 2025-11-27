@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 
-const SITE_URL = 'https://quotation.zhenhe-dm.com';
+const SITE_URL = 'https://quote24.cc';
 const TEST_EMAIL = 'test@example.com';
 const TEST_PASSWORD = 'password123';
 const TEST_QUOTATION_ID = '3d9ea7c9-11f1-436e-88c8-4f80515c69bb';

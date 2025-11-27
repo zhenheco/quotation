@@ -76,12 +76,12 @@ export default function QuotationList({ locale }: QuotationListProps) {
   const handleBatchDelete = async () => {
     try {
       const result = await batchDelete.mutateAsync({ ids: Array.from(selectedIds) })
-      toast.success(`已刪除 ${result.deleted} 個報價單`)
+      toast.success(t('batch.deleteSuccessCount', { count: result.deleted }))
       setBatchDeleteModal(false)
       setSelectedIds(new Set())
       setIsBatchOperation(false)
     } catch (error) {
-      toast.error('批次刪除失敗')
+      toast.error(t('batch.deleteFailed'))
       console.error('Batch delete error:', error)
     }
   }
@@ -92,12 +92,12 @@ export default function QuotationList({ locale }: QuotationListProps) {
         ids: Array.from(selectedIds),
         status: newBatchStatus,
       })
-      toast.success(`已更新 ${result.updated} 個報價單狀態`)
+      toast.success(t('batch.updateStatusSuccess', { count: result.updated }))
       setBatchStatusModal(false)
       setSelectedIds(new Set())
       setIsBatchOperation(false)
     } catch (error) {
-      toast.error('批次更新狀態失敗')
+      toast.error(t('batch.updateStatusFailed'))
       console.error('Batch status update error:', error)
     }
   }
@@ -116,10 +116,10 @@ export default function QuotationList({ locale }: QuotationListProps) {
         throw new Error('Failed to update status')
       }
 
-      toast.success(`狀態已更新為 ${t(`status.${newStatus}`)}`)
+      toast.success(t('quotation.statusUpdated'))
       window.location.reload()
     } catch (error) {
-      toast.error('更新狀態失敗')
+      toast.error(t('quotation.updateStatusFailed'))
       console.error('Error updating status:', error)
     }
   }
@@ -130,10 +130,10 @@ export default function QuotationList({ locale }: QuotationListProps) {
 
     try {
       await deleteQuotation.mutateAsync(deleteModal.quotation.id)
-      toast.success('報價單已刪除')
+      toast.success(t('quotation.deleteSuccess'))
       setDeleteModal({ isOpen: false, quotation: null })
     } catch (error) {
-      toast.error('刪除失敗')
+      toast.error(t('quotation.deleteFailed'))
       console.error('Error deleting quotation:', error)
     }
   }
@@ -148,9 +148,9 @@ export default function QuotationList({ locale }: QuotationListProps) {
           locale: locale as 'zh' | 'en',
         })
         if (result.data.failed > 0) {
-          toast.warning(`已成功寄送 ${result.data.sent} 個報價單，${result.data.failed} 個失敗`)
+          toast.warning(t('batch.sendPartialSuccess', { sent: result.data.sent, failed: result.data.failed }))
         } else {
-          toast.success(`已成功寄送 ${result.data.sent} 個報價單`)
+          toast.success(t('batch.sendSuccess', { sent: result.data.sent }))
         }
         setSelectedIds(new Set())
         setIsBatchOperation(false)
@@ -161,11 +161,11 @@ export default function QuotationList({ locale }: QuotationListProps) {
           content: data.content,
           locale: locale as 'zh' | 'en',
         })
-        toast.success(`報價單已成功寄送至 ${sendModal.quotation.customer_email}`)
+        toast.success(t('quotation.sendSuccessTo', { email: sendModal.quotation.customer_email }))
       }
       setSendModal({ isOpen: false, quotation: null, isBatch: false })
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '寄送失敗'
+      const errorMessage = error instanceof Error ? error.message : t('quotation.sendFailed')
       toast.error(errorMessage)
       console.error('Error sending quotation:', error)
     }
@@ -186,7 +186,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">載入報價單失敗：{error.message}</p>
+          <p className="text-red-800">{t('quotation.loadFailed')}: {error.message}</p>
         </div>
       </div>
     )

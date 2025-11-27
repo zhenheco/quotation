@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 
-const CF_URL = 'https://quotation-system.acejou27.workers.dev';
+const CF_URL = 'https://quote24.cc';
 
 async function testSendQuotation() {
   console.log('🚀 啟動 Chrome DevTools 測試...\n');

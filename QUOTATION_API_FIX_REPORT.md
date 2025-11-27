@@ -13,7 +13,7 @@ Error saving quotation: Error: Failed to create quotation
 ```
 
 **截圖顯示**:
-- 新建報價單頁面 (https://quotation.zhenhe-dm.com/zh/quotations/new)
+- 新建報價單頁面 (https://quote24.cc/zh/quotations/new)
 - Console 錯誤: "Error saving quotation: Error: Failed to create quotation"
 - Network 面板顯示 POST /api/quotations 返回 500
 
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 ### Cloudflare Workers
 - **Version ID**: e2a4f294-fd96-4e8c-bb77-970dcbe29957
 - **部署時間**: 2025-11-02 12:30 UTC (20:30 UTC+8)
-- **URL**: https://quotation.zhenhe-dm.com
+- **URL**: https://quote24.cc
 - **狀態**: ✅ 部署成功
 
 ## 相關修復歷史
@@ -165,7 +165,7 @@ grep -r "createClient" app/api/
 
 ### 新建報價單
 
-**步驟 1**: 前往 https://quotation.zhenhe-dm.com/zh/quotations/new
+**步驟 1**: 前往 https://quote24.cc/zh/quotations/new
 
 **步驟 2**: 填寫表單
 - 選擇客戶
@@ -206,7 +206,7 @@ grep -r "createClient" app/api/
 
 ### 手動測試步驟
 
-1. **登入系統**: https://quotation.zhenhe-dm.com/zh/login
+1. **登入系統**: https://quote24.cc/zh/login
 
 2. **測試新建報價單**:
    - 前往「新增報價單」頁面

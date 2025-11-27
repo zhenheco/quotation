@@ -72,7 +72,7 @@
 
 - Version: 5f18943f-3aba-41cd-9abd-a84acc9e2562
 - Deployed: 2025-11-01T02:13:41.449Z
-- URL: https://quotation-system.acejou27.workers.dev
+- URL: https://quote24.cc
 - Build: 成功（無 TypeScript 錯誤）
 
 ---

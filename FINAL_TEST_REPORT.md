@@ -3,7 +3,7 @@
 **測試日期**: 2025-11-01  
 **測試版本**: 5f18943f-3aba-41cd-9abd-a84acc9e2562  
 **測試方法**: 使用 Supabase MCP 工具進行資料庫層面的實際測試  
-**部署 URL**: https://quotation-system.acejou27.workers.dev
+**部署 URL**: https://quote24.cc
 
 ---
 
@@ -358,7 +358,7 @@ WHERE id = '42d5e9b0-5e02-44f2-9e69-74688c1fc887'
 - **部署時間**: 2025-11-01T02:13:41.449Z
 - **部署狀態**: ✅ 成功
 - **建置狀態**: ✅ 無錯誤
-- **URL**: https://quotation-system.acejou27.workers.dev
+- **URL**: https://quote24.cc
 
 ---
 

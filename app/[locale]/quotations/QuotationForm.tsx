@@ -232,7 +232,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
     // 驗證檔案大小 (10MB)
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('檔案大小不能超過 10MB')
+      toast.error(t('quotation.fileSizeError'))
       return
     }
 
@@ -244,7 +244,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('未登入')
+      if (!user) throw new Error(t('common.notLoggedIn'))
 
       const timestamp = Date.now()
       const safeFileName = contractFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -267,8 +267,8 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
       return publicUrl
     } catch (error) {
-      console.error('上傳合約失敗:', error)
-      toast.error('上傳合約失敗')
+      console.error('Upload contract failed:', error)
+      toast.error(t('quotation.uploadContractFailed'))
       return null
     }
   }
@@ -392,12 +392,12 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
     try {
       if (!formData.customerId) {
-        toast.error('請選擇客戶')
+        toast.error(t('quotation.selectCustomerRequired'))
         return
       }
 
       if (items.length === 0 || items.some(item => !item.product_id)) {
-        toast.error('請至少新增一個產品')
+        toast.error(t('quotation.atLeastOneProduct'))
         return
       }
 
@@ -438,11 +438,11 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       if (quotationId) {
         await updateQuotation.mutateAsync(quotationData)
         newQuotationId = quotationId
-        toast.success('報價單已更新')
+        toast.success(t('quotation.updateSuccess'))
       } else {
         const result = await createQuotation.mutateAsync(quotationData)
         newQuotationId = (result as { id?: string }).id
-        toast.success('報價單已建立')
+        toast.success(t('quotation.createSuccess'))
       }
 
       // 儲存付款條款
@@ -469,7 +469,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           console.log('[QuotationForm] Payment terms saved:', result)
         } catch (paymentTermsError) {
           console.error('Failed to save payment terms:', paymentTermsError)
-          toast.error('付款條款儲存失敗')
+          toast.error(t('quotation.paymentTermsSaveFailed'))
         }
       } else {
         console.log('[QuotationForm] Skipping payment terms:', {
@@ -491,14 +491,14 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
               contract_file_name: contractFile?.name || null
             }),
           })
-          toast.success('合約已上傳')
+          toast.success(t('quotation.contractUploaded'))
         }
       }
 
       router.push(`/${locale}/quotations`)
     } catch (err) {
       console.error('Error saving quotation:', err)
-      const errorMessage = err instanceof Error ? err.message : '儲存報價單失敗'
+      const errorMessage = err instanceof Error ? err.message : t('quotation.saveFailed')
       setError(errorMessage)
       toast.error(errorMessage)
     }
@@ -1002,7 +1002,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       {/* 合約上傳 */}
       <div>
         <label htmlFor="contract" className="block text-sm font-medium text-gray-700 mb-1">
-          合約檔案
+          {t('quotation.contractFile')}
         </label>
         <div className="mt-1">
           {contractFileUrl && !contractFile && (
@@ -1012,7 +1012,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span className="text-sm text-gray-700">
-                  {decodeURIComponent(contractFileUrl.split('/').pop() || '已上傳合約')}
+                  {decodeURIComponent(contractFileUrl.split('/').pop() || t('quotation.uploadedContract'))}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -1022,13 +1022,13 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                   rel="noopener noreferrer"
                   className="text-sm text-indigo-600 hover:text-indigo-700"
                 >
-                  查看
+                  {t('common.view')}
                 </a>
                 {quotationId && (
                   <button
                     type="button"
                     onClick={async () => {
-                      if (confirm('確定要刪除合約檔案嗎？')) {
+                      if (confirm(t('quotation.deleteContractConfirm'))) {
                         try {
                           const response = await fetch(`/api/quotations/${quotationId}`, {
                             method: 'PATCH',
@@ -1037,18 +1037,18 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                           })
                           if (response.ok) {
                             setContractFileUrl('')
-                            toast.success('合約已刪除')
+                            toast.success(t('quotation.contractDeleted'))
                           } else {
-                            throw new Error('刪除失敗')
+                            throw new Error(t('quotation.deleteFailed'))
                           }
                         } catch {
-                          toast.error('刪除合約失敗')
+                          toast.error(t('quotation.deleteContractFailed'))
                         }
                       }
                     }}
                     className="text-sm text-red-600 hover:text-red-700 cursor-pointer"
                   >
-                    刪除
+                    {t('common.delete')}
                   </button>
                 )}
               </div>
@@ -1070,7 +1070,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                 onClick={() => setContractFile(null)}
                 className="text-sm text-red-600 hover:text-red-700"
               >
-                移除
+                {t('common.remove')}
               </button>
             </div>
           )}
@@ -1082,7 +1082,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
             className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
           />
           <p className="mt-1 text-xs text-gray-500">
-            支援所有檔案格式，檔案大小上限 10MB
+            {t('quotation.fileUploadHint')}
           </p>
         </div>
       </div>

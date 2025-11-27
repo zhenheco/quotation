@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {  // ✅ 統一使用 request
    ```
    - ✅ 部署成功
    - **Version ID**: `c9e8da20-bbcc-4dec-95ea-5fd5963e88e9`
-   - **URL**: https://quotation.zhenhe-dm.com
+   - **URL**: https://quote24.cc
 
 ### 第四階段：驗證修復 (13:02 UTC)
 
@@ -192,17 +192,17 @@ export async function GET(request: NextRequest) {  // ✅ 統一使用 request
 
 ```bash
 # Test 1: currency-distribution
-curl https://quotation.zhenhe-dm.com/api/analytics/currency-distribution
+curl https://quote24.cc/api/analytics/currency-distribution
 HTTP/2 401
 {"error":"Unauthorized"}  # ✅ 正確返回 JSON
 
 # Test 2: payments/statistics
-curl https://quotation.zhenhe-dm.com/api/payments/statistics
+curl https://quote24.cc/api/payments/statistics
 HTTP/2 401
 {"error":"Unauthorized"}  # ✅ 正確返回 JSON
 
 # Test 3: dashboard-stats
-curl https://quotation.zhenhe-dm.com/api/analytics/dashboard-stats
+curl https://quote24.cc/api/analytics/dashboard-stats
 HTTP/2 401
 {"error":"Unauthorized"}  # ✅ 正確返回 JSON
 ```
@@ -374,15 +374,15 @@ pnpm test
 **最終成功版本**：
 - **Version ID**: `c9e8da20-bbcc-4dec-95ea-5fd5963e88e9`
 - **部署時間**: 2025-11-02 13:02 UTC (21:02 UTC+8)
-- **URL**: https://quotation.zhenhe-dm.com
+- **URL**: https://quote24.cc
 - **狀態**: ✅ 所有 API 正常運作
 
 **驗證方式**：
 ```bash
 # 所有 API 都返回正確的 401 Unauthorized (JSON)
-curl https://quotation.zhenhe-dm.com/api/analytics/currency-distribution
-curl https://quotation.zhenhe-dm.com/api/analytics/dashboard-stats
-curl https://quotation.zhenhe-dm.com/api/payments/statistics
+curl https://quote24.cc/api/analytics/currency-distribution
+curl https://quote24.cc/api/analytics/dashboard-stats
+curl https://quote24.cc/api/payments/statistics
 # ...等等
 ```
 
