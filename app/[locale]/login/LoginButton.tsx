@@ -8,10 +8,11 @@ export default function LoginButton({ locale }: { locale: string }) {
   const t = useTranslations('login')
 
   const handleGoogleLogin = async () => {
+    const redirectBase = process.env.NEXT_PUBLIC_APP_URL || 'https://quote24.cc'
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/${locale}/dashboard`,
+        redirectTo: `${redirectBase}/auth/callback?next=/${locale}/dashboard`,
       },
     })
   }
