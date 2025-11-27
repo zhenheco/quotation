@@ -72,6 +72,7 @@ jobs:
           # 使用 GitHub Secrets 中的真實環境變數進行建置
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_APP_URL: https://quote24.cc
         run: pnpm run build
 
       - name: Build OpenNext for Cloudflare Workers
@@ -79,6 +80,7 @@ jobs:
           # OpenNext 內部會再次執行 next build，需要相同的環境變數
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_APP_URL: https://quote24.cc
         run: pnpm exec opennextjs-cloudflare build
 
       - name: Run D1 Migrations (Production)
