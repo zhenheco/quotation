@@ -57,21 +57,19 @@ export default function Sidebar({ locale }: { locale: string }) {
     <aside className="w-64 bg-white border-r border-gray-200 h-full min-h-screen p-4 flex flex-col overflow-y-auto overflow-x-hidden">
       {/* Header */}
       <div className="mb-8">
-        <div>
-          <Link href={`/${locale}/dashboard`} className="flex items-center justify-center pb-4 border-b border-gray-200 group cursor-pointer">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:shadow-lg transition-shadow">
-              Q
-            </div>
-          </Link>
-          <div className="mt-3 text-center">
-            <div className="text-lg font-bold text-gray-900">
+        <Link href={`/${locale}/dashboard`} className="flex items-center gap-3 pb-4 border-b border-gray-200 group cursor-pointer">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:shadow-lg transition-shadow flex-shrink-0">
+            Q
+          </div>
+          <div>
+            <div className="text-lg font-bold text-gray-900 leading-tight">
               {locale === 'zh' ? '報價系統' : 'Quotation'}
             </div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-500">
               {locale === 'zh' ? '管理平台' : 'Management'}
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       <nav className="space-y-2 flex-1">
