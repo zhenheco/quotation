@@ -229,6 +229,40 @@ export async function deleteCustomer(
 }
 
 /**
+ * 批量獲取客戶（解決 N+1 查詢問題）
+ *
+ * 用於一次獲取多個客戶資料，避免在迴圈中多次查詢資料庫
+ */
+export async function getCustomersByIds(
+  db: D1Client,
+  userId: string,
+  customerIds: string[]
+): Promise<Map<string, Customer>> {
+  if (customerIds.length === 0) {
+    return new Map()
+  }
+
+  // 移除重複的 ID
+  const uniqueIds = [...new Set(customerIds)]
+
+  // 建立佔位符
+  const placeholders = uniqueIds.map(() => '?').join(',')
+
+  const rows = await db.query<CustomerRow>(
+    `SELECT * FROM customers WHERE user_id = ? AND id IN (${placeholders})`,
+    [userId, ...uniqueIds]
+  )
+
+  // 轉換為 Map 方便查詢
+  const customerMap = new Map<string, Customer>()
+  for (const row of rows) {
+    customerMap.set(row.id, parseCustomerRow(row))
+  }
+
+  return customerMap
+}
+
+/**
  * 搜尋客戶（依名稱或 Email）
  */
 export async function searchCustomers(

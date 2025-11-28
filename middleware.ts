@@ -3,6 +3,7 @@ import createMiddleware from 'next-intl/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
 import { routing } from '@/i18n/routing'
 import { addSecurityHeaders } from '@/lib/security/headers'
+import { csrfProtection } from '@/lib/security/csrf'
 
 const intlMiddleware = createMiddleware(routing)
 
@@ -69,6 +70,28 @@ export async function middleware(request: NextRequest) {
 
   // Step 5: Add security headers
   const secureResponse = addSecurityHeaders(response)
+
+  // Step 6: CSRF Protection
+  // 對於 API 路由的 POST/PUT/DELETE/PATCH 請求，驗證 CSRF token
+  if (pathname.startsWith('/api/')) {
+    const csrfResult = await csrfProtection(request)
+    // 如果 CSRF 驗證失敗，返回錯誤響應
+    if (csrfResult.status === 403) {
+      return csrfResult
+    }
+    // 如果是 GET 請求，CSRF middleware 會設定 token cookie
+    // 我們需要將這些 cookies 複製到最終響應
+    const csrfCookies = csrfResult.cookies.getAll()
+    csrfCookies.forEach(cookie => {
+      secureResponse.cookies.set(cookie.name, cookie.value, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 60 * 60 * 24
+      })
+    })
+  }
 
   return secureResponse
 }

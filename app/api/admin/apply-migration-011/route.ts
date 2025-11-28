@@ -3,7 +3,17 @@ import { createClient } from '@/lib/supabase/server'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getD1Client } from '@/lib/db/d1-client'
 
+/**
+ * ⚠️ 此 API 僅供開發環境使用，生產環境會返回 403
+ */
 export async function POST() {
+  // 生產環境保護
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'This API is only available in development mode' },
+      { status: 403 }
+    )
+  }
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 

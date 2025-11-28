@@ -2,11 +2,24 @@
  * Email 測試 API
  * GET /api/test-email - 測試 Email 連線
  * POST /api/test-email - 發送測試 Email
+ *
+ * ⚠️ 此 API 僅供開發環境使用，生產環境會返回 403
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 // Note: Edge runtime removed for OpenNext compatibility;
+
+// 生產環境保護
+function checkDevOnly(): NextResponse | null {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'This API is only available in development mode' },
+      { status: 403 }
+    )
+  }
+  return null
+}
 
 interface TestEmailBody {
   to: string;
@@ -15,6 +28,9 @@ interface TestEmailBody {
 
 // GET - 測試連線
 export async function GET() {
+  const devCheck = checkDevOnly()
+  if (devCheck) return devCheck
+
   try {
     return NextResponse.json({
       success: true,
@@ -44,6 +60,9 @@ export async function GET() {
 
 // POST - 發送測試 Email
 export async function POST(request: NextRequest) {
+  const devCheck = checkDevOnly()
+  if (devCheck) return devCheck
+
   try {
     const body = await request.json() as TestEmailBody
     const { to, locale = 'zh' } = body

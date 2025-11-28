@@ -167,7 +167,7 @@ export default function CompanySettingsForm() {
                 name="company_name_zh"
                 defaultValue={companyName.zh || ''}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="振禾有限公司"
+                placeholder={t('company_name_zh_placeholder')}
               />
             </div>
 
@@ -359,7 +359,7 @@ export default function CompanySettingsForm() {
                 name="account_name"
                 defaultValue={settings?.account_name || ''}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="振禾有限公司"
+                placeholder={t('company_name_zh_placeholder')}
               />
             </div>
           </div>

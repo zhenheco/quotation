@@ -10,7 +10,7 @@ import {
   generateQuotationNumber,
   validateCustomerOwnership
 } from '@/lib/dal/quotations'
-import { getCustomerById } from '@/lib/dal/customers'
+import { getCustomersByIds } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 // Note: Edge runtime removed for OpenNext compatibility;
@@ -43,17 +43,19 @@ export async function GET(request: NextRequest) {
     // 取得報價單資料
     const quotations = await getQuotations(db, user.id)
 
-    // 載入客戶名稱和 Email（D1 不支援 JOIN，需要手動查詢）
-    const formattedQuotations = await Promise.all(
-      quotations.map(async (q) => {
-        const customer = await getCustomerById(db, user.id, q.customer_id)
-        return {
-          ...q,
-          customer_name: customer?.name || null,
-          customer_email: customer?.email || null
-        }
-      })
-    )
+    // 批量載入客戶名稱和 Email（解決 N+1 查詢問題）
+    const customerIds = quotations.map(q => q.customer_id).filter(Boolean)
+    const customersMap = await getCustomersByIds(db, user.id, customerIds)
+
+    // 合併客戶資料
+    const formattedQuotations = quotations.map(q => {
+      const customer = customersMap.get(q.customer_id)
+      return {
+        ...q,
+        customer_name: customer?.name || null,
+        customer_email: customer?.email || null
+      }
+    })
 
     return NextResponse.json(formattedQuotations)
   } catch (error: unknown) {

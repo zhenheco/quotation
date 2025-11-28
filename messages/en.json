@@ -670,6 +670,7 @@
     "saving": "Saving...",
     "saveSuccess": "Settings saved",
     "saveError": "Save failed",
+    "company_name_zh_placeholder": "Enter company name in Chinese",
     "upload_logo": "Upload Logo",
     "upload_signature": "Upload Signature",
     "upload_passbook": "Upload Passbook"

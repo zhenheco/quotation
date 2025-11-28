@@ -4,9 +4,12 @@
  * 提供一致的 fetch 封裝，自動處理：
  * - Credentials (cookies)
  * - Content-Type headers
+ * - CSRF Token（自動從 cookie 讀取並添加到 header）
  * - 錯誤處理
  * - 請求/回應日誌
  */
+
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/lib/security/csrf'
 
 interface FetchOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
@@ -18,19 +21,50 @@ interface ApiError {
 }
 
 /**
+ * 從 cookie 中獲取 CSRF token
+ */
+function getCsrfToken(): string | null {
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  const cookies = document.cookie.split(';')
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=')
+    if (name === CSRF_COOKIE_NAME) {
+      return value
+    }
+  }
+
+  return null
+}
+
+// HTTP 方法白名單（不需要 CSRF token）
+const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
+
+/**
  * 統一的 fetch 函式
- * 自動包含 credentials 和正確的 headers
+ * 自動包含 credentials、CSRF token 和正確的 headers
  */
 async function apiFetch<T = unknown>(
   url: string,
   options: FetchOptions = {}
 ): Promise<T> {
   const { body, headers = {}, ...restOptions } = options
+  const method = (options.method || 'GET').toUpperCase()
 
   // 準備 headers
   const finalHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     ...headers,
+  }
+
+  // 對於非安全方法，添加 CSRF token
+  if (!SAFE_METHODS.includes(method)) {
+    const csrfToken = getCsrfToken()
+    if (csrfToken) {
+      (finalHeaders as Record<string, string>)[CSRF_HEADER_NAME] = csrfToken
+    }
   }
 
   // 準備 body

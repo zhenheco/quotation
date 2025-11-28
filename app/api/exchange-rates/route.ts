@@ -45,12 +45,17 @@ export async function GET(request: NextRequest) {
       rates[rate.target_currency] = rate.rate
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       base_currency: baseCurrency,
       rates,
       timestamp: new Date().toISOString()
     })
+
+    // 匯率資料快取 5 分鐘（不常變動）
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+
+    return response
   } catch (error: unknown) {
     console.error('Error fetching exchange rates:', error)
     return NextResponse.json(

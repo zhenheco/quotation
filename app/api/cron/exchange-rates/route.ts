@@ -77,8 +77,16 @@ export async function GET() {
     const authHeader = headersList.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    // 如果設定了 CRON_SECRET，則進行驗證
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    // 強制要求 CRON_SECRET（生產環境必須設定）
+    if (!cronSecret) {
+      console.error('[CRON] CRON_SECRET not configured')
+      return NextResponse.json(
+        { error: 'CRON_SECRET not configured' },
+        { status: 500 }
+      )
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

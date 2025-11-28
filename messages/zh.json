@@ -461,6 +461,7 @@
     "saving": "儲存中...",
     "saveSuccess": "設定已儲存",
     "saveError": "儲存失敗",
+    "company_name_zh_placeholder": "請輸入公司中文名稱",
     "upload_logo": "上傳商標",
     "upload_signature": "上傳簽章",
     "upload_passbook": "上傳存摺影本"

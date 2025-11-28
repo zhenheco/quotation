@@ -38,7 +38,12 @@ export async function GET(request: NextRequest) {
 
     const data = await getDashboardStats(db, user.id)
 
-    return NextResponse.json({ data })
+    const response = NextResponse.json({ data })
+
+    // 分析資料快取 2 分鐘
+    response.headers.set('Cache-Control', 'private, s-maxage=120, stale-while-revalidate=300')
+
+    return response
   } catch (error: unknown) {
     console.error('Failed to fetch dashboard stats:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })

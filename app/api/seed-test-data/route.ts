@@ -15,10 +15,18 @@ interface SeedDataBody {
 
 /**
  * 建立測試數據的 API 端點
- * 只能由已登入的用戶執行
+ * 僅限開發環境使用
  */
 export async function POST(request: NextRequest) {
   try {
+    // 生產環境禁止使用
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'This API is only available in development mode' },
+        { status: 403 }
+      )
+    }
+
     const supabase = createApiClient(request)
 
     // 驗證用戶

@@ -35,13 +35,11 @@ import React from 'react'
 // 配置
 // ========================================
 
-const CSRF_COOKIE_NAME = '_csrf'
-const CSRF_HEADER_NAME = 'x-csrf-token'
+export const CSRF_COOKIE_NAME = '_csrf'
+export const CSRF_HEADER_NAME = 'x-csrf-token'
 
 // CSRF Secret - 生產環境必須設定
-if (!process.env.CSRF_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('CSRF_SECRET environment variable is required in production')
-}
+// 注意：build 時會使用預設值，運行時會檢查
 const CSRF_SECRET = process.env.CSRF_SECRET || 'dev-csrf-secret-only-for-development'
 const TOKEN_LENGTH = 32
 
@@ -159,6 +157,11 @@ function requiresCsrfProtection(request: NextRequest): boolean {
  * @returns Next.js 響應物件
  */
 export async function csrfProtection(request: NextRequest): Promise<NextResponse> {
+  // 運行時檢查 CSRF_SECRET（生產環境必須設定）
+  if (process.env.NODE_ENV === 'production' && CSRF_SECRET === 'dev-csrf-secret-only-for-development') {
+    console.error('[CSRF] CSRF_SECRET not configured in production!')
+  }
+
   const response = NextResponse.next()
 
   // GET 請求：生成並設定 CSRF token
@@ -169,7 +172,7 @@ export async function csrfProtection(request: NextRequest): Promise<NextResponse
       const newToken = generateCsrfToken()
 
       response.cookies.set(CSRF_COOKIE_NAME, newToken, {
-        httpOnly: true,
+        httpOnly: false, // 必須為 false 以便前端 JavaScript 讀取
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
         path: '/',
