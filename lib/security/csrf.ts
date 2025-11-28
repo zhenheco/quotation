@@ -28,8 +28,37 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { randomBytes, createHmac } from 'crypto'
 import React from 'react'
+
+// Web Crypto API compatible functions for Edge Runtime
+async function generateRandomBytes(length: number): Promise<Uint8Array> {
+  const array = new Uint8Array(length)
+  crypto.getRandomValues(array)
+  return array
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+async function createHmacSha256(key: string, data: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const keyData = encoder.encode(key)
+  const dataBytes = encoder.encode(data)
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, dataBytes)
+  return bytesToHex(new Uint8Array(signature))
+}
 
 // ========================================
 // 配置
@@ -62,11 +91,9 @@ const CSRF_EXEMPT_PATHS = [
  * Token 格式: {randomValue}.{signature}
  * signature = HMAC-SHA256(randomValue, CSRF_SECRET)
  */
-export function generateCsrfToken(): string {
-  const randomValue = randomBytes(TOKEN_LENGTH).toString('hex')
-  const signature = createHmac('sha256', CSRF_SECRET)
-    .update(randomValue)
-    .digest('hex')
+export async function generateCsrfToken(): Promise<string> {
+  const randomValue = bytesToHex(await generateRandomBytes(TOKEN_LENGTH))
+  const signature = await createHmacSha256(CSRF_SECRET, randomValue)
 
   return `${randomValue}.${signature}`
 }
@@ -77,7 +104,7 @@ export function generateCsrfToken(): string {
  * @param token - 要驗證的 token
  * @returns 是否有效
  */
-export function verifyCsrfToken(token: string): boolean {
+export async function verifyCsrfToken(token: string): Promise<boolean> {
   if (!token || typeof token !== 'string') {
     return false
   }
@@ -90,9 +117,7 @@ export function verifyCsrfToken(token: string): boolean {
   const [randomValue, signature] = parts
 
   // 重新計算簽名
-  const expectedSignature = createHmac('sha256', CSRF_SECRET)
-    .update(randomValue)
-    .digest('hex')
+  const expectedSignature = await createHmacSha256(CSRF_SECRET, randomValue)
 
   // 時間常數比較，防止時序攻擊
   return timingSafeEqual(signature, expectedSignature)
@@ -167,9 +192,10 @@ export async function csrfProtection(request: NextRequest): Promise<NextResponse
   // GET 請求：生成並設定 CSRF token
   if (request.method === 'GET') {
     const existingToken = request.cookies.get(CSRF_COOKIE_NAME)?.value
+    const isTokenValid = existingToken ? await verifyCsrfToken(existingToken) : false
 
-    if (!existingToken || !verifyCsrfToken(existingToken)) {
-      const newToken = generateCsrfToken()
+    if (!existingToken || !isTokenValid) {
+      const newToken = await generateCsrfToken()
 
       response.cookies.set(CSRF_COOKIE_NAME, newToken, {
         httpOnly: false, // 必須為 false 以便前端 JavaScript 讀取
@@ -215,7 +241,8 @@ export async function csrfProtection(request: NextRequest): Promise<NextResponse
   }
 
   // Token 必須有效
-  if (!verifyCsrfToken(cookieToken)) {
+  const isValid = await verifyCsrfToken(cookieToken)
+  if (!isValid) {
     return NextResponse.json(
       {
         error: 'CSRF_TOKEN_INVALID',

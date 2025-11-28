@@ -20,7 +20,18 @@
  * ```
  */
 
-import { randomUUID } from 'crypto'
+// Use globalThis.crypto for Edge Runtime compatibility
+const generateUUID = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  // Fallback for environments without crypto.randomUUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
 
 // ========================================
 // 日誌級別定義
@@ -110,7 +121,7 @@ class Logger {
    * 獲取當前請求 ID
    */
   getRequestId(): string {
-    return this.requestIdStore.get('current') || randomUUID()
+    return this.requestIdStore.get('current') || generateUUID()
   }
 
   /**
@@ -348,7 +359,7 @@ export const logger = new Logger()
  * 為 Next.js API route 創建請求日誌
  */
 export function createRequestLogger(requestId?: string) {
-  const id = requestId || randomUUID()
+  const id = requestId || generateUUID()
   logger.setRequestId(id)
 
   return {
