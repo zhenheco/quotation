@@ -12,21 +12,16 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // 環境變數（非敏感資料）
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://oubsycwrxzkuviakzahi.supabase.co"
+  },
   // Cloudflare KV - 快取層
   "kv_namespaces": [
     {
       "binding": "KV",
       "id": "ae9ae82472024c009a0513d9e007c4b9",
       "preview_id": "d503cad51c1f404baafc7fdee2943ddc"
-    }
-  ],
-  // Cloudflare D1 - 主資料庫
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "quotation-system-db",
-      "database_id": "de903a85-2741-4179-8bd0-34631cc64b08",
-      "migrations_dir": "migrations/d1"
     }
   ],
   "analytics_engine_datasets": [
