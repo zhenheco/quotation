@@ -18,6 +18,7 @@ import {
 } from '@/hooks/useQuotations'
 import SendQuotationModal from '@/components/quotations/SendQuotationModal'
 import { toast } from 'sonner'
+import { apiPatch } from '@/lib/api-client'
 
 interface QuotationListProps {
   locale: string
@@ -104,18 +105,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
 
   const handleStatusChange = async (quotationId: string, newStatus: QuotationStatus) => {
     try {
-      const response = await fetch(`/api/quotations/${quotationId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update status')
-      }
-
+      await apiPatch(`/api/quotations/${quotationId}`, { status: newStatus })
       toast.success(t('quotation.statusUpdated'))
       window.location.reload()
     } catch (error) {

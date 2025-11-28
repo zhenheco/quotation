@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiDelete } from '@/lib/api-client'
 
 export default function ResetDataPage() {
   const router = useRouter()
@@ -19,11 +20,7 @@ export default function ResetDataPage() {
     setResult(null)
 
     try {
-      const response = await fetch('/api/user/reset-data', {
-        method: 'DELETE',
-      })
-
-      const data = await response.json() as { success?: boolean; message?: string; error?: string }
+      const data = await apiDelete<{ success?: boolean; message?: string; error?: string }>('/api/user/reset-data')
       setResult(data)
 
       if (data.success) {

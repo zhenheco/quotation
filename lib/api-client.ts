@@ -151,6 +151,36 @@ export async function apiPatch<T = unknown>(
 }
 
 /**
+ * POST FormData 請求（用於檔案上傳）
+ * 注意：不設定 Content-Type，讓瀏覽器自動設定 multipart/form-data
+ */
+export async function apiPostFormData<T = unknown>(
+  url: string,
+  formData: FormData
+): Promise<T> {
+  const csrfToken = getCsrfToken()
+  const headers: HeadersInit = {}
+
+  if (csrfToken) {
+    headers[CSRF_HEADER_NAME] = csrfToken
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: formData,
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({})) as ApiError
+    throw new Error(errorData.error || `Request failed with status ${response.status}`)
+  }
+
+  return response.json() as Promise<T>
+}
+
+/**
  * 通用的 API 客戶端（向後兼容）
  */
 export const apiClient = {
@@ -159,4 +189,5 @@ export const apiClient = {
   put: apiPut,
   delete: apiDelete,
   patch: apiPatch,
+  postFormData: apiPostFormData,
 }

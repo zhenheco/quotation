@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useCustomers } from '@/hooks/useCustomers'
 import { toast } from 'sonner'
+import { apiPost } from '@/lib/api-client'
 
 interface AddPaymentScheduleModalProps {
   isOpen: boolean
@@ -63,23 +64,14 @@ export default function AddPaymentScheduleModal({
     setIsSubmitting(true)
 
     try {
-      const response = await fetch('/api/payments/schedules', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_id: formData.customer_id,
-          due_date: formData.due_date,
-          amount: parseFloat(formData.amount),
-          currency: formData.currency,
-          description: formData.description || undefined,
-          notes: formData.notes || undefined,
-        }),
+      await apiPost('/api/payments/schedules', {
+        customer_id: formData.customer_id,
+        due_date: formData.due_date,
+        amount: parseFloat(formData.amount),
+        currency: formData.currency,
+        description: formData.description || undefined,
+        notes: formData.notes || undefined,
       })
-
-      if (!response.ok) {
-        const data = await response.json() as { error?: string }
-        throw new Error(data.error || 'Failed to create schedule')
-      }
 
       toast.success(t('payments.addSchedule.success'))
       onSuccess()

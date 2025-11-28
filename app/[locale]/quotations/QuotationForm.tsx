@@ -20,6 +20,7 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { PaymentTermsEditor } from '@/components/payment-terms'
 import { safeToLocaleString } from '@/lib/utils/formatters'
+import { apiPost, apiPatch, apiGet } from '@/lib/api-client'
 
 interface PaymentTerm {
   id: string
@@ -100,8 +101,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
     const fetchExchangeRates = async () => {
       try {
-        const response = await fetch(`/api/exchange-rates?base=${formData.currency}`)
-        const data: { success?: boolean; rates?: Record<string, number> } = await response.json()
+        const data = await apiGet<{ success?: boolean; rates?: Record<string, number> }>(`/api/exchange-rates?base=${formData.currency}`)
         if (data.success && data.rates) {
           setExchangeRates(data.rates)
         }
@@ -210,12 +210,9 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
     const fetchPaymentTerms = async () => {
       try {
-        const response = await fetch(`/api/quotations/${quotationId}/payment-terms`)
-        if (response.ok) {
-          const data: { payment_terms?: PaymentTerm[] } = await response.json()
-          if (data.payment_terms && data.payment_terms.length > 0) {
-            setPaymentTerms(data.payment_terms)
-          }
+        const data = await apiGet<{ payment_terms?: PaymentTerm[] }>(`/api/quotations/${quotationId}/payment-terms`)
+        if (data.payment_terms && data.payment_terms.length > 0) {
+          setPaymentTerms(data.payment_terms)
         }
       } catch (error) {
         console.error('Failed to fetch payment terms:', error)
@@ -453,19 +450,10 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
             termsCount: paymentTerms.length,
             terms: paymentTerms
           })
-          const response = await fetch(`/api/quotations/${newQuotationId}/payment-terms`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              terms: paymentTerms,
-              total,
-            }),
+          const result = await apiPost<{ payment_terms?: unknown[] }>(`/api/quotations/${newQuotationId}/payment-terms`, {
+            terms: paymentTerms,
+            total,
           })
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({})) as { error?: string }
-            throw new Error(errorData.error || `HTTP ${response.status}`)
-          }
-          const result = await response.json() as { payment_terms?: unknown[] }
           console.log('[QuotationForm] Payment terms saved:', result)
         } catch (paymentTermsError) {
           console.error('Failed to save payment terms:', paymentTermsError)
@@ -483,13 +471,9 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         const contractUrl = await uploadContractFile(newQuotationId)
         if (contractUrl) {
           // 更新報價單的合約 URL
-          await fetch(`/api/quotations/${newQuotationId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contract_file_url: contractUrl,
-              contract_file_name: contractFile?.name || null
-            }),
+          await apiPatch(`/api/quotations/${newQuotationId}`, {
+            contract_file_url: contractUrl,
+            contract_file_name: contractFile?.name || null
           })
           toast.success(t('quotation.contractUploaded'))
         }
@@ -1030,17 +1014,9 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                     onClick={async () => {
                       if (confirm(t('quotation.deleteContractConfirm'))) {
                         try {
-                          const response = await fetch(`/api/quotations/${quotationId}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contract_file_url: null }),
-                          })
-                          if (response.ok) {
-                            setContractFileUrl('')
-                            toast.success(t('quotation.contractDeleted'))
-                          } else {
-                            throw new Error(t('quotation.deleteFailed'))
-                          }
+                          await apiPatch(`/api/quotations/${quotationId}`, { contract_file_url: null })
+                          setContractFileUrl('')
+                          toast.success(t('quotation.contractDeleted'))
                         } catch {
                           toast.error(t('quotation.deleteContractFailed'))
                         }

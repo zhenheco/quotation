@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { apiGet, apiPost, apiPut, apiPostFormData } from '@/lib/api-client';
 
 function getImageUrl(url: string | undefined): string | null {
   if (!url) return null;
@@ -53,24 +54,21 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
   const fetchCompanies = useCallback(async () => {
     try {
-      const response = await fetch('/api/companies');
-      if (response.ok) {
-        const data = await response.json() as Company[];
-        setCompanies(data);
+      const data = await apiGet<Company[]>('/api/companies');
+      setCompanies(data);
 
-        // Select the first company or the one from localStorage
-        const storedCompanyId = localStorage.getItem('selectedCompanyId');
-        // Verify that storedCompanyId exists in current user's companies
-        const isValidCompanyId = storedCompanyId && data.some((c) => c.id === storedCompanyId);
+      // Select the first company or the one from localStorage
+      const storedCompanyId = localStorage.getItem('selectedCompanyId');
+      // Verify that storedCompanyId exists in current user's companies
+      const isValidCompanyId = storedCompanyId && data.some((c) => c.id === storedCompanyId);
 
-        if (isValidCompanyId) {
-          loadCompany(storedCompanyId);
-        } else if (data.length > 0) {
-          // Clear invalid stored company ID
-          localStorage.removeItem('selectedCompanyId');
-          loadCompany(data[0].id);
-          localStorage.setItem('selectedCompanyId', data[0].id);
-        }
+      if (isValidCompanyId) {
+        loadCompany(storedCompanyId);
+      } else if (data.length > 0) {
+        // Clear invalid stored company ID
+        localStorage.removeItem('selectedCompanyId');
+        loadCompany(data[0].id);
+        localStorage.setItem('selectedCompanyId', data[0].id);
       }
     } catch (error) {
       console.error('Error fetching companies:', error);
@@ -85,12 +83,9 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
   const loadCompany = async (companyId: string) => {
     try {
-      const response = await fetch(`/api/companies/${companyId}`);
-      if (response.ok) {
-        const data: Company = await response.json();
-        setSelectedCompany(data);
-        setIsCreating(false);
-      }
+      const data = await apiGet<Company>(`/api/companies/${companyId}`);
+      setSelectedCompany(data);
+      setIsCreating(false);
     } catch (error) {
       console.error('Error loading company:', error);
     }
@@ -128,41 +123,23 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
         passbook_url: selectedCompany.passbook_url
       };
 
-      let response;
-      if (isCreating) {
-        response = await fetch('/api/companies', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      } else {
-        response = await fetch(`/api/companies/${selectedCompany.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+      const data = isCreating
+        ? await apiPost<Company>('/api/companies', payload)
+        : await apiPut<Company>(`/api/companies/${selectedCompany.id}`, payload);
+
+      // 如果是新增且有暫存檔案，立即上傳
+      if (isCreating && Object.keys(pendingFiles).length > 0) {
+        await uploadPendingFiles(data.id);
       }
 
-      if (response.ok) {
-        const data: Company = await response.json();
-
-        // 如果是新增且有暫存檔案，立即上傳
-        if (isCreating && Object.keys(pendingFiles).length > 0) {
-          await uploadPendingFiles(data.id);
-        }
-
-        alert(locale === 'zh' ? '保存成功！' : 'Saved successfully!');
-        await fetchCompanies();
-        loadCompany(data.id);
-        setIsCreating(false);
-        setPendingFiles({});
-      } else {
-        const error: { error?: string } = await response.json();
-        alert(error.error || 'Failed to save');
-      }
+      alert(locale === 'zh' ? '保存成功！' : 'Saved successfully!');
+      await fetchCompanies();
+      loadCompany(data.id);
+      setIsCreating(false);
+      setPendingFiles({});
     } catch (error) {
       console.error('Error saving company:', error);
-      alert('Failed to save company');
+      alert(error instanceof Error ? error.message : 'Failed to save company');
     } finally {
       setSaving(false);
     }
@@ -194,28 +171,14 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
           formData.append('companyId', companyId);
           formData.append('type', type);
 
-          const uploadResponse = await fetch('/api/upload/company-files', {
-            method: 'POST',
-            body: formData
-          });
-
-          if (!uploadResponse.ok) {
-            const errorData = await uploadResponse.json().catch(() => ({})) as { error?: string };
-            throw new Error(errorData.error || 'Upload failed');
-          }
-
-          const { url } = await uploadResponse.json() as { url: string };
+          const { url } = await apiPostFormData<{ url: string }>('/api/upload/company-files', formData);
 
           const updateData: Record<string, string> = {};
           if (type === 'logo') updateData.logo_url = url;
           if (type === 'signature') updateData.signature_url = url;
           if (type === 'passbook') updateData.passbook_url = url;
 
-          await fetch(`/api/companies/${companyId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updateData)
-          });
+          await apiPut(`/api/companies/${companyId}`, updateData);
         } catch (error) {
           console.error(`Upload error for ${type}:`, error);
         } finally {
@@ -238,33 +201,16 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
       formData.append('companyId', selectedCompany.id);
       formData.append('type', type);
 
-      const uploadResponse = await fetch('/api/upload/company-files', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({})) as { error?: string };
-        throw new Error(errorData.error || 'Upload failed');
-      }
-
-      const { url } = await uploadResponse.json() as { url: string };
+      const { url } = await apiPostFormData<{ url: string }>('/api/upload/company-files', formData);
 
       const updateData: Record<string, string> = {};
       if (type === 'logo') updateData.logo_url = url;
       if (type === 'signature') updateData.signature_url = url;
       if (type === 'passbook') updateData.passbook_url = url;
 
-      const response = await fetch(`/api/companies/${selectedCompany.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData)
-      });
-
-      if (response.ok) {
-        await loadCompany(selectedCompany.id);
-        alert(locale === 'zh' ? '上傳成功！' : 'Uploaded successfully!');
-      }
+      await apiPut(`/api/companies/${selectedCompany.id}`, updateData);
+      await loadCompany(selectedCompany.id);
+      alert(locale === 'zh' ? '上傳成功！' : 'Uploaded successfully!');
     } catch (error) {
       console.error('Upload error:', error);
       alert(locale === 'zh' ? '上傳失敗' : 'Upload failed');

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Menu } from '@headlessui/react'
 import CompanySelector from './CompanySelector'
+import { apiGet, apiPost } from '@/lib/api-client'
 
 interface UserProfile {
   full_name?: string
@@ -41,10 +42,11 @@ export default function Navbar({ locale }: { locale: string }) {
         setUserEmail(user.email || '')
 
         // Fetch user profile from our database
-        const response = await fetch('/api/rbac/user-profile')
-        if (response.ok) {
-          const profile = await response.json()
+        try {
+          const profile = await apiGet<UserProfile>('/api/rbac/user-profile')
           setUserProfile(profile)
+        } catch {
+          // Profile fetch failed, user might not have a profile yet
         }
       }
     } catch (error) {
@@ -60,10 +62,7 @@ export default function Navbar({ locale }: { locale: string }) {
     try {
       localStorage.clear()
 
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      })
+      await apiPost('/api/auth/logout')
 
       window.location.href = `/${locale}/login`
     } catch (error) {

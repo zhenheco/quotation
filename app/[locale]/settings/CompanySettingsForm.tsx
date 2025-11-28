@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import PageHeader from '@/components/ui/PageHeader';
 import { createClient } from '@/lib/supabase/client';
+import { apiGet, apiPut, apiPost } from '@/lib/api-client';
 
 export default function CompanySettingsForm() {
   const t = useTranslations('settings');
@@ -29,23 +30,20 @@ export default function CompanySettingsForm() {
     passbook?: boolean;
   }>({});
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  async function loadSettings() {
+  const loadSettings = useCallback(async () => {
     try {
-      const res = await fetch('/api/company-settings');
-      if (res.ok) {
-        const data = await res.json();
-        setSettings(data);
-      }
+      const data = await apiGet<typeof settings>('/api/company-settings');
+      setSettings(data);
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   async function uploadFile(file: File, type: 'logo' | 'signature' | 'passbook') {
     try {
@@ -79,17 +77,9 @@ export default function CompanySettingsForm() {
       if (type === 'signature') updateData.signature_url = publicUrl;
       if (type === 'passbook') updateData.passbook_url = publicUrl;
 
-      const res = await fetch('/api/company-settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setSettings(updated);
-        alert(`${type === 'logo' ? 'Logo' : type === 'signature' ? '簽章' : '存摺影本'}上傳成功`);
-      }
+      const updated = await apiPut<typeof settings>('/api/company-settings', updateData);
+      setSettings(updated);
+      alert(`${type === 'logo' ? 'Logo' : type === 'signature' ? '簽章' : '存摺影本'}上傳成功`);
     } catch (error) {
       console.error(`Failed to upload ${type}:`, error);
       alert(`上傳失敗：${error instanceof Error ? error.message : '未知錯誤'}`);
@@ -103,34 +93,26 @@ export default function CompanySettingsForm() {
     setSaving(true);
 
     try {
-      const formData = new FormData(e.currentTarget);
+      const formDataObj = new FormData(e.currentTarget);
       const data = {
         company_name: {
-          zh: formData.get('company_name_zh'),
-          en: formData.get('company_name_en'),
+          zh: formDataObj.get('company_name_zh'),
+          en: formDataObj.get('company_name_en'),
         },
-        tax_id: formData.get('tax_id'),
-        phone: formData.get('phone'),
-        email: formData.get('email'),
-        bank_name: formData.get('bank_name'),
-        account_number: formData.get('account_number'),
-        account_name: formData.get('account_name'),
+        tax_id: formDataObj.get('tax_id'),
+        phone: formDataObj.get('phone'),
+        email: formDataObj.get('email'),
+        bank_name: formDataObj.get('bank_name'),
+        account_number: formDataObj.get('account_number'),
+        account_name: formDataObj.get('account_name'),
       };
 
-      const method = settings ? 'PUT' : 'POST';
-      const res = await fetch('/api/company-settings', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const updated = settings
+        ? await apiPut<typeof settings>('/api/company-settings', data)
+        : await apiPost<typeof settings>('/api/company-settings', data);
 
-      if (res.ok) {
-        const updated = await res.json();
-        setSettings(updated);
-        alert(t('saveSuccess'));
-      } else {
-        alert(t('saveError'));
-      }
+      setSettings(updated);
+      alert(t('saveSuccess'));
     } catch (error) {
       console.error('Failed to save:', error);
       alert(t('saveError'));
