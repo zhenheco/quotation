@@ -84,7 +84,11 @@ export async function POST(request: NextRequest) {
       phone: phone || undefined,
       address: address ? (typeof address === 'string' ? { zh: address, en: address } : address) : undefined,
       tax_id: tax_id || undefined,
-      contact_person: contact_person ? (typeof contact_person === 'string' ? { zh: contact_person, en: contact_person } : contact_person) : undefined,
+      contact_person: contact_person
+        ? (typeof contact_person === 'string'
+          ? { name: contact_person, phone: '', email: '' }
+          : { name: (contact_person as { zh?: string; en?: string }).zh || '', phone: '', email: '' })
+        : undefined,
       company_id: company_id || undefined
     })
 

@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       start_date: body.start_date as string,
       end_date: body.end_date as string,
       signed_date: (body.signed_date as string | null) || null,
-      status: (body.status as 'draft' | 'active' | 'expired' | 'terminated') || 'draft',
+      status: (body.status as 'draft' | 'active' | 'expired' | 'completed' | 'cancelled') || 'draft',
       total_amount: body.total_amount as number,
       currency: (body.currency as string) || 'TWD',
       payment_terms: (body.payment_terms as string | null) || null,

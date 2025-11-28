@@ -99,20 +99,23 @@ export async function POST(request: NextRequest) {
       companyName = { zh: '', en: '' }
     }
 
-    // 建立公司
+    // 建立公司 - 將額外欄位存入 settings
+    const settings: Record<string, unknown> = {}
+    if (body.signature_url) settings.signature_url = body.signature_url
+    if (body.passbook_url) settings.passbook_url = body.passbook_url
+    if (body.bank_name) settings.bank_name = body.bank_name
+    if (body.bank_account) settings.bank_account = body.bank_account
+    if (body.bank_code) settings.bank_code = body.bank_code
+
     const company = await createCompany(db, {
       name: companyName,
       logo_url: body.logo_url || undefined,
-      signature_url: body.signature_url || undefined,
-      passbook_url: body.passbook_url || undefined,
       tax_id: body.tax_id || undefined,
-      bank_name: body.bank_name || undefined,
-      bank_account: body.bank_account || undefined,
-      bank_code: body.bank_code || undefined,
       address: typeof body.address === 'string' ? { zh: body.address, en: body.address } : body.address || undefined,
       phone: body.phone || undefined,
       email: body.email || undefined,
-      website: body.website || undefined
+      website: body.website || undefined,
+      settings: Object.keys(settings).length > 0 ? settings : undefined
     })
 
     // 將建立者加入為公司成員（owner）

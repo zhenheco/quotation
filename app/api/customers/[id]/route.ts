@@ -92,7 +92,8 @@ export async function PUT(
       phone: string
       address: { zh: string; en: string }
       tax_id: string
-      contact_person: { zh: string; en: string }
+      contact_person: { name: string; phone: string; email: string }
+      notes: string
       company_id: string
     }> = {}
 
@@ -112,7 +113,16 @@ export async function PUT(
       updateData.tax_id = body.tax_id
     }
     if (body.contact_person !== undefined && body.contact_person !== null) {
-      updateData.contact_person = typeof body.contact_person === 'string' ? { zh: body.contact_person, en: body.contact_person } : body.contact_person as { zh: string; en: string }
+      if (typeof body.contact_person === 'string') {
+        updateData.contact_person = { name: body.contact_person, phone: '', email: '' }
+      } else {
+        const cp = body.contact_person as { zh?: string; en?: string; name?: string; phone?: string; email?: string }
+        updateData.contact_person = {
+          name: cp.name || cp.zh || '',
+          phone: cp.phone || '',
+          email: cp.email || ''
+        }
+      }
     }
     if (body.company_id !== undefined && body.company_id !== null) {
       updateData.company_id = body.company_id

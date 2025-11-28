@@ -132,7 +132,7 @@ export async function POST(
     const isAdmin = await isSuperAdmin(db, user.id);
     const member = await getCompanyMember(db, companyId, user.id);
 
-    if (!isAdmin && (!member || member.is_owner !== 1)) {
+    if (!isAdmin && (!member || !member.is_owner)) {
       return NextResponse.json(
         { error: 'Forbidden: Only company owner or super admin can add members' },
         { status: 403 }

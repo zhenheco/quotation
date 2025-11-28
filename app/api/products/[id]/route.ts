@@ -59,14 +59,7 @@ export async function GET(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
 
-    // 映射欄位以維持向後相容
-    const result = {
-      ...product,
-      unit_price: product.base_price,
-      currency: product.base_currency
-    }
-
-    return NextResponse.json(result)
+    return NextResponse.json(product)
   } catch (error: unknown) {
     console.error('Error fetching product:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
@@ -183,14 +176,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
 
-    // 映射欄位以維持向後相容
-    const result = {
-      ...product,
-      unit_price: product.base_price,
-      currency: product.base_currency
-    }
-
-    return NextResponse.json(result)
+    return NextResponse.json(product)
   } catch (error: unknown) {
     console.error('Error updating product:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })

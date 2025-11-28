@@ -93,7 +93,6 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await convertQuotationToContract(
-      db,
       user.id,
       body.quotation_id,
       {
