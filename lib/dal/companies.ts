@@ -342,7 +342,7 @@ export async function getManageableCompanies(
     .eq('user_id', userId)
 
   const isSuperAdmin = userRoles?.some(
-    ur => (ur.roles as { name: string } | null)?.name === 'super_admin'
+    ur => ((ur.roles as unknown) as { name: string } | null)?.name === 'super_admin'
   )
 
   if (isSuperAdmin) {

@@ -72,17 +72,16 @@ export async function POST(request: NextRequest) {
     const contract = await createContract(db, user.id, {
       company_id: body.company_id as string | null,
       customer_id: body.customer_id as string,
+      quotation_id: (body.quotation_id as string | null) || null,
       contract_number: body.contract_number as string,
       title: body.title as string,
+      description: (body.description as string | null) || null,
       start_date: body.start_date as string,
       end_date: body.end_date as string,
-      signed_date: (body.signed_date as string | null) || null,
       status: (body.status as 'draft' | 'active' | 'expired' | 'completed' | 'cancelled') || 'draft',
       total_amount: body.total_amount as number,
       currency: (body.currency as string) || 'TWD',
-      payment_terms: (body.payment_terms as string | null) || null,
-      contract_file_url: null,
-      notes: (body.notes as string | null) || null,
+      payment_collected: 0,
     })
 
     return NextResponse.json(contract, { status: 201 })

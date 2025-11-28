@@ -65,7 +65,8 @@ export async function getUserPermissions(
   const seenIds = new Set<string>()
 
   for (const row of data || []) {
-    const roles = row.roles as { role_permissions: Array<{ permissions: Permission }> } | null
+    const rolesRaw = row.roles as unknown
+    const roles = rolesRaw as { role_permissions: Array<{ permissions: Permission }> } | null
     if (!roles?.role_permissions) continue
 
     for (const rp of roles.role_permissions) {
@@ -225,7 +226,8 @@ export async function canAssignRole(
     return false
   }
 
-  const roleLevel = (memberResult.roles as { level: number } | null)?.level || 0
+  const rolesData = memberResult.roles as unknown
+  const roleLevel = (rolesData as { level: number } | null)?.level || 0
 
   if (memberResult.is_owner) {
     return roleLevel < targetRole.level

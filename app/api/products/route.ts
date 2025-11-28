@@ -50,14 +50,7 @@ export async function GET(request: NextRequest) {
     // 取得產品資料
     const products = await getProducts(db, user.id)
 
-    // 映射欄位以維持向後相容
-    const mappedProducts = products.map(product => ({
-      ...product,
-      unit_price: product.base_price,
-      currency: product.base_currency
-    }))
-
-    return NextResponse.json(mappedProducts)
+    return NextResponse.json(products)
   } catch (error: unknown) {
     console.error('Error fetching products:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
@@ -131,13 +124,11 @@ export async function POST(request: NextRequest) {
       description: body.description ? (typeof body.description === 'string' ? { zh: body.description, en: body.description } : body.description) : undefined,
       unit_price: price,
       currency: body.base_currency,
-      category: body.category,
       sku: body.sku,
       cost_price: costPrice,
       cost_currency: body.cost_currency,
       profit_margin: profitMargin,
-      supplier: body.supplier,
-      base_price: price
+      supplier: body.supplier
     })
 
     return NextResponse.json(product, { status: 201 })

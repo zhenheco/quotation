@@ -893,7 +893,7 @@ export async function getPaymentReminders(
   }
 
   return (data || []).map(row => {
-    const customer = row.customers as { name: { zh: string; en: string } } | null
+    const customer = (row.customers as unknown) as { name: { zh: string; en: string } } | null
     const schedules = row.payment_schedules as Array<{ due_date: string; amount: number; currency: string }> | null
     const schedule = schedules?.[0]
 

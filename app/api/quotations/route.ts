@@ -108,8 +108,7 @@ export async function POST(request: NextRequest) {
       tax_amount: string | number;
       total_amount: string | number;
       notes?: { zh: string; en: string };
-      payment_method?: string;
-      payment_notes?: string;
+      terms?: { zh: string; en: string };
       items: QuotationItemInput[];
     }
 
@@ -124,8 +123,7 @@ export async function POST(request: NextRequest) {
       tax_amount,
       total_amount,
       notes,
-      payment_method,
-      payment_notes,
+      terms,
       items
     } = body
 
@@ -159,8 +157,7 @@ export async function POST(request: NextRequest) {
       tax_amount: parseFloat(String(tax_amount)),
       total_amount: parseFloat(String(total_amount)),
       notes,
-      payment_method,
-      payment_notes
+      terms
     })
 
     // 建立報價單項目
