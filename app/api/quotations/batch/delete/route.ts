@@ -51,20 +51,27 @@ export async function POST(request: NextRequest) {
 
       for (const id of ids) {
         try {
-          const existingQuotation = await db.queryOne<{ id: string }>(
-            'SELECT id FROM quotations WHERE id = ? AND user_id = ?',
-            [id, user.id]
-          )
+          const { data: existingQuotation, error: fetchError } = await db
+            .from('quotations')
+            .select('id')
+            .eq('id', id)
+            .eq('user_id', user.id)
+            .single()
 
-          if (!existingQuotation) {
+          if (fetchError || !existingQuotation) {
             errors.push(`Quotation ${id} not found or unauthorized`)
             continue
           }
 
-          await db.execute(
-            'DELETE FROM quotations WHERE id = ? AND user_id = ?',
-            [id, user.id]
-          )
+          const { error: deleteError } = await db
+            .from('quotations')
+            .delete()
+            .eq('id', id)
+            .eq('user_id', user.id)
+
+          if (deleteError) {
+            throw deleteError
+          }
 
           deletedCount++
         } catch (error: unknown) {

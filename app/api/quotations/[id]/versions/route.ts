@@ -37,27 +37,17 @@ export async function GET(
     }
 
     // 查詢版本歷史
-    const rows = await db.query<{
-      id: string
-      quotation_id: string
-      version_number: number
-      data: string
-      created_by: string
-      created_at: string
-    }>(`
-      SELECT
-        id,
-        quotation_id,
-        version_number,
-        data,
-        created_by,
-        created_at
-      FROM quotation_versions
-      WHERE quotation_id = ?
-      ORDER BY version_number DESC
-    `, [id])
+    const { data: rows, error: queryError } = await db
+      .from('quotation_versions')
+      .select('id, quotation_id, version_number, data, created_by, created_at')
+      .eq('quotation_id', id)
+      .order('version_number', { ascending: false })
 
-    const versions: QuotationVersion[] = rows.map((row) => {
+    if (queryError) {
+      throw queryError
+    }
+
+    const versions: QuotationVersion[] = (rows ?? []).map((row) => {
       const changes = typeof row.data === 'string' ? JSON.parse(row.data) : row.data
 
       return {
