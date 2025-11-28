@@ -1,7 +1,7 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getD1Client } from '@/lib/db/d1-client'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { upsertExchangeRate, SUPPORTED_CURRENCIES, Currency } from '@/lib/dal/exchange-rates'
 import { checkPermission } from '@/lib/cache/services'
@@ -41,7 +41,7 @@ async function fetchLatestRatesFromAPI(
 }
 
 async function syncRatesToD1(
-  db: ReturnType<typeof getD1Client>,
+  db: ReturnType<typeof getSupabaseClient>,
   baseCurrency: Currency,
   apiKey: string
 ): Promise<boolean> {
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     // 檢查權限
     const kv = getKVCache(env)
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'exchange_rates:write')
     if (!hasPermission) {

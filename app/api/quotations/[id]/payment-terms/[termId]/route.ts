@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updatePaymentTerm, deletePaymentTerm } from '@/lib/dal/payment-terms';
 import { createApiClient } from '@/lib/supabase/api';
-import { getD1Client } from '@/lib/db/d1-client';
+import { getSupabaseClient } from '@/lib/db/supabase-client';
 import { getKVCache } from '@/lib/cache/kv-cache';
 import { checkPermission } from '@/lib/cache/services';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
@@ -37,7 +37,7 @@ export async function PUT(
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
     const kv = getKVCache(env);
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write');
@@ -83,7 +83,7 @@ export async function DELETE(
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
     const kv = getKVCache(env);
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:delete');

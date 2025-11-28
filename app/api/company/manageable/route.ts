@@ -1,8 +1,7 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getManageableCompanies } from '@/lib/dal/companies';
-import { getD1Client } from '@/lib/db/d1-client';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getSupabaseClient } from '@/lib/db/supabase-client';
 
 // Note: Edge runtime removed for OpenNext compatibility;
 
@@ -13,8 +12,6 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
  * 一般使用者：所屬公司（且為 owner 才能管理成員）
  */
 export async function GET(request: NextRequest) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
 
@@ -27,7 +24,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
 
     // 取得可管理的公司列表
     const companies = await getManageableCompanies(db, user.id);

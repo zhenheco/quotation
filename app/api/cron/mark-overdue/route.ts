@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { batchMarkOverduePaymentSchedules } from '@/lib/dal/payments'
-import { getD1Client } from '@/lib/db/d1-client'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { headers } from 'next/headers'
 
-// 錯誤通知函數
 async function sendErrorNotification(error: Error) {
   const webhookUrl = process.env.ERROR_WEBHOOK_URL || process.env.SLACK_WEBHOOK_URL
 
@@ -45,9 +43,7 @@ async function sendErrorNotification(error: Error) {
   }
 }
 
-// 成功通知函數
 async function sendSuccessNotification(totalUpdated: number, userCount: number) {
-  // 只在設定了通知 URL 且為生產環境時發送成功通知
   if (process.env.NODE_ENV !== 'production') return
 
   const webhookUrl = process.env.SUCCESS_WEBHOOK_URL
@@ -67,15 +63,11 @@ async function sendSuccessNotification(totalUpdated: number, userCount: number) 
 }
 
 export async function GET() {
-  const { env } = await getCloudflareContext()
-
   try {
-    // 驗證請求來源 (Vercel Cron 會帶上特殊的 header)
     const headersList = await headers()
     const authHeader = headersList.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    // 強制要求 CRON_SECRET（生產環境必須設定）
     if (!cronSecret) {
       console.error('[CRON] CRON_SECRET not configured')
       return NextResponse.json(
@@ -94,26 +86,29 @@ export async function GET() {
     console.log('🕒 Starting scheduled mark overdue payments job...')
     const startTime = Date.now()
 
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
 
-    // 查詢所有活躍使用者
-    const users = await db.query<{ user_id: string }>(
-      'SELECT DISTINCT user_id FROM payment_schedules WHERE status = ?',
-      ['pending']
-    )
+    const { data: usersData, error: usersError } = await db
+      .from('payment_schedules')
+      .select('user_id')
+      .eq('status', 'pending')
 
-    console.log(`📊 Found ${users.length} users with pending payment schedules`)
+    if (usersError) {
+      throw new Error(`Failed to get users: ${usersError.message}`)
+    }
 
-    // 為每個使用者標記逾期付款
+    const uniqueUserIds = [...new Set((usersData || []).map(u => u.user_id))]
+    console.log(`📊 Found ${uniqueUserIds.length} users with pending payment schedules`)
+
     const results = []
     let totalUpdated = 0
 
-    for (const user of users) {
+    for (const userId of uniqueUserIds) {
       try {
-        const result = await batchMarkOverduePaymentSchedules(db, user.user_id)
+        const result = await batchMarkOverduePaymentSchedules(db, userId)
 
         results.push({
-          user_id: user.user_id,
+          user_id: userId,
           updated_count: result.updated_count,
           schedule_ids: result.schedule_ids,
           success: true
@@ -122,12 +117,12 @@ export async function GET() {
         totalUpdated += result.updated_count
 
         if (result.updated_count > 0) {
-          console.log(`✅ Marked ${result.updated_count} overdue schedules for user ${user.user_id}`)
+          console.log(`✅ Marked ${result.updated_count} overdue schedules for user ${userId}`)
         }
       } catch (error) {
-        console.error(`❌ Failed to process user ${user.user_id}:`, error)
+        console.error(`❌ Failed to process user ${userId}:`, error)
         results.push({
-          user_id: user.user_id,
+          user_id: userId,
           updated_count: 0,
           schedule_ids: [],
           success: false,
@@ -139,8 +134,7 @@ export async function GET() {
     const duration = Date.now() - startTime
     const successCount = results.filter(r => r.success).length
 
-    // 如果有任何失敗，發送錯誤通知
-    if (successCount < users.length) {
+    if (successCount < uniqueUserIds.length) {
       const failedUsers = results
         .filter(r => !r.success)
         .map(r => r.user_id)
@@ -150,14 +144,12 @@ export async function GET() {
         new Error(`Failed to mark overdue for users: ${failedUsers}`)
       )
     } else if (totalUpdated > 0) {
-      // 全部成功且有更新，發送成功通知（僅生產環境）
-      await sendSuccessNotification(totalUpdated, users.length)
+      await sendSuccessNotification(totalUpdated, uniqueUserIds.length)
     }
 
-    // 返回詳細結果
     return NextResponse.json({
-      success: successCount === users.length,
-      message: `Marked ${totalUpdated} overdue payments for ${successCount}/${users.length} users`,
+      success: successCount === uniqueUserIds.length,
+      message: `Marked ${totalUpdated} overdue payments for ${successCount}/${uniqueUserIds.length} users`,
       duration: `${duration}ms`,
       results,
       nextRun: getNextRunTime()
@@ -165,7 +157,6 @@ export async function GET() {
   } catch (error) {
     console.error('❌ Cron job failed:', error)
 
-    // 發送錯誤通知
     await sendErrorNotification(error as Error)
 
     return NextResponse.json(
@@ -178,12 +169,8 @@ export async function GET() {
   }
 }
 
-// 手動觸發端點（用於測試）
 export async function POST(request: Request) {
-  const { env } = await getCloudflareContext()
-
   try {
-    // 驗證請求（可以用 API key 或其他方式）
     const body = await request.json() as Record<string, unknown>
     const apiKey = body.apiKey || request.headers.get('x-api-key')
 
@@ -196,22 +183,26 @@ export async function POST(request: Request) {
 
     console.log('🔧 Manual mark overdue triggered')
 
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
 
-    // 查詢所有活躍使用者
-    const users = await db.query<{ user_id: string }>(
-      'SELECT DISTINCT user_id FROM payment_schedules WHERE status = ?',
-      ['pending']
-    )
+    const { data: usersData, error: usersError } = await db
+      .from('payment_schedules')
+      .select('user_id')
+      .eq('status', 'pending')
 
-    // 執行標記
+    if (usersError) {
+      throw new Error(`Failed to get users: ${usersError.message}`)
+    }
+
+    const uniqueUserIds = [...new Set((usersData || []).map(u => u.user_id))]
+
     const results = []
     let totalUpdated = 0
 
-    for (const user of users) {
-      const result = await batchMarkOverduePaymentSchedules(db, user.user_id)
+    for (const userId of uniqueUserIds) {
+      const result = await batchMarkOverduePaymentSchedules(db, userId)
       results.push({
-        user_id: user.user_id,
+        user_id: userId,
         updated_count: result.updated_count
       })
       totalUpdated += result.updated_count
@@ -231,7 +222,6 @@ export async function POST(request: Request) {
   }
 }
 
-// 計算下次執行時間（每日 00:00 UTC）
 function getNextRunTime(): string {
   const now = new Date()
   const tomorrow = new Date(now)

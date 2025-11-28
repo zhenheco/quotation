@@ -4,8 +4,7 @@ import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getCompanyMembers, addCompanyMember, getCompanyMember, isCompanyMember } from '@/lib/dal/companies';
 import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/dal/rbac';
 import { RoleName } from '@/types/rbac.types';
-import { getD1Client } from '@/lib/db/d1-client';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getSupabaseClient } from '@/lib/db/supabase-client';
 import type { User } from '@supabase/supabase-js';
 
 // Note: Edge runtime removed for OpenNext compatibility;
@@ -26,8 +25,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
 
@@ -40,7 +37,7 @@ export async function GET(
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
     const { id: companyId } = await params;
 
     // 檢查是否為公司成員
@@ -106,8 +103,6 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
 
@@ -120,7 +115,7 @@ export async function POST(
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
     const { id: companyId } = await params;
     const body = await request.json() as AddMemberBody;
     const { user_id, role_name, full_name, display_name, phone } = body;

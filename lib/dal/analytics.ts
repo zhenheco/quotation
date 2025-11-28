@@ -9,7 +9,7 @@
  * 5. 所有函式強制 userId 參數（多租戶隔離）
  */
 
-import { D1Client } from '@/lib/db/d1-client'
+import { SupabaseClient } from '@/lib/db/supabase-client'
 
 export interface DashboardSummary {
   currentMonthRevenue: number
@@ -55,7 +55,7 @@ export interface StatusStatistics {
  * 取得儀表板摘要統計
  */
 export async function getDashboardSummary(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string
 ): Promise<DashboardSummary> {
   const currentMonth = new Date()
@@ -65,23 +65,27 @@ export async function getDashboardSummary(
   const lastMonth = new Date(currentMonth)
   lastMonth.setMonth(lastMonth.getMonth() - 1)
 
-  const currentMonthQuotations = await db.query<{
-    total_amount: number
-    status: string
-  }>(
-    `SELECT total_amount, status FROM quotations
-     WHERE user_id = ? AND issue_date >= ?`,
-    [userId, currentMonth.toISOString()]
-  )
+  const [currentMonthResult, lastMonthResult] = await Promise.all([
+    db.from('quotations')
+      .select('total_amount, status')
+      .eq('user_id', userId)
+      .gte('issue_date', currentMonth.toISOString()),
+    db.from('quotations')
+      .select('total_amount, status')
+      .eq('user_id', userId)
+      .gte('issue_date', lastMonth.toISOString())
+      .lt('issue_date', currentMonth.toISOString()),
+  ])
 
-  const lastMonthQuotations = await db.query<{
-    total_amount: number
-    status: string
-  }>(
-    `SELECT total_amount, status FROM quotations
-     WHERE user_id = ? AND issue_date >= ? AND issue_date < ?`,
-    [userId, lastMonth.toISOString(), currentMonth.toISOString()]
-  )
+  if (currentMonthResult.error) {
+    throw new Error(`Failed to get current month quotations: ${currentMonthResult.error.message}`)
+  }
+  if (lastMonthResult.error) {
+    throw new Error(`Failed to get last month quotations: ${lastMonthResult.error.message}`)
+  }
+
+  const currentMonthQuotations = currentMonthResult.data || []
+  const lastMonthQuotations = lastMonthResult.data || []
 
   const currentRevenue = currentMonthQuotations
     .filter((q) => q.status === 'accepted')
@@ -161,7 +165,7 @@ export interface DashboardStatsResult {
  * 取得儀表板統計資料
  */
 export async function getDashboardStats(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string
 ): Promise<DashboardStatsResult> {
   const now = new Date()
@@ -170,44 +174,56 @@ export async function getDashboardStats(
   const currentYearStart = new Date(now.getFullYear(), 0, 1)
 
   const [
-    quotations,
-    contracts,
-    customers,
-    products,
-    overdueContracts,
-    currentMonthPayments,
-    currentYearPayments,
+    quotationsResult,
+    contractsResult,
+    customersResult,
+    productsResult,
+    overdueContractsResult,
+    currentMonthPaymentsResult,
+    currentYearPaymentsResult,
   ] = await Promise.all([
-    db.query<{ status: string; total_amount: number }>(
-      'SELECT status, total_amount FROM quotations WHERE user_id = ?',
-      [userId]
-    ),
-    db.query<{ status: string; end_date: string; next_collection_date: string }>(
-      'SELECT status, end_date, next_collection_date FROM customer_contracts WHERE user_id = ?',
-      [userId]
-    ),
-    db.query<{ id: string }>(
-      'SELECT id FROM customers WHERE user_id = ?',
-      [userId]
-    ),
-    db.query<{ id: string }>(
-      'SELECT id FROM products WHERE user_id = ?',
-      [userId]
-    ),
-    db.query<{ id: string }>(
-      `SELECT id FROM customer_contracts
-       WHERE user_id = ? AND status = 'active' AND next_collection_date < ?`,
-      [userId, now.toISOString()]
-    ),
-    db.query<{ status: string; amount: number; currency: string }>(
-      'SELECT status, amount, currency FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
-      [userId, currentMonthStart.toISOString()]
-    ),
-    db.query<{ status: string; amount: number; currency: string }>(
-      'SELECT status, amount, currency FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
-      [userId, currentYearStart.toISOString()]
-    ),
+    db.from('quotations')
+      .select('status, total_amount')
+      .eq('user_id', userId),
+    db.from('customer_contracts')
+      .select('status, end_date, next_collection_date')
+      .eq('user_id', userId),
+    db.from('customers')
+      .select('id')
+      .eq('user_id', userId),
+    db.from('products')
+      .select('id')
+      .eq('user_id', userId),
+    db.from('customer_contracts')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .lt('next_collection_date', now.toISOString()),
+    db.from('payment_schedules')
+      .select('status, amount, currency')
+      .eq('user_id', userId)
+      .gte('due_date', currentMonthStart.toISOString()),
+    db.from('payment_schedules')
+      .select('status, amount, currency')
+      .eq('user_id', userId)
+      .gte('due_date', currentYearStart.toISOString()),
   ])
+
+  if (quotationsResult.error) throw new Error(`Failed to get quotations: ${quotationsResult.error.message}`)
+  if (contractsResult.error) throw new Error(`Failed to get contracts: ${contractsResult.error.message}`)
+  if (customersResult.error) throw new Error(`Failed to get customers: ${customersResult.error.message}`)
+  if (productsResult.error) throw new Error(`Failed to get products: ${productsResult.error.message}`)
+  if (overdueContractsResult.error) throw new Error(`Failed to get overdue contracts: ${overdueContractsResult.error.message}`)
+  if (currentMonthPaymentsResult.error) throw new Error(`Failed to get current month payments: ${currentMonthPaymentsResult.error.message}`)
+  if (currentYearPaymentsResult.error) throw new Error(`Failed to get current year payments: ${currentYearPaymentsResult.error.message}`)
+
+  const quotations = quotationsResult.data || []
+  const contracts = contractsResult.data || []
+  const customers = customersResult.data || []
+  const products = productsResult.data || []
+  const overdueContracts = overdueContractsResult.data || []
+  const currentMonthPayments = currentMonthPaymentsResult.data || []
+  const currentYearPayments = currentYearPaymentsResult.data || []
 
   const quotationStats: QuotationStats = {
     draft: quotations.filter((q) => q.status === 'draft').length,
@@ -256,7 +272,7 @@ export async function getDashboardStats(
 
   const customerStats: CustomerStats = {
     total: customers.length,
-    active: customers.length, // 暫時假設所有客戶都是活躍的，因為 D1 schema 尚未包含 is_active 欄位
+    active: customers.length,
   }
 
   const productStats: ProductStats = {
@@ -276,7 +292,7 @@ export async function getDashboardStats(
  * 取得營收趨勢（過去 N 個月）
  */
 export async function getRevenueTrend(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   months: number = 6
 ): Promise<RevenueTrendItem[]> {
@@ -287,13 +303,19 @@ export async function getRevenueTrend(
     const monthStart = new Date(today.getFullYear(), today.getMonth() - i, 1)
     const monthEnd = new Date(today.getFullYear(), today.getMonth() - i + 1, 1)
 
-    const quotations = await db.query<{ total_amount: number }>(
-      `SELECT total_amount FROM quotations
-       WHERE user_id = ? AND status = 'accepted'
-       AND issue_date >= ? AND issue_date < ?`,
-      [userId, monthStart.toISOString(), monthEnd.toISOString()]
-    )
+    const { data, error } = await db
+      .from('quotations')
+      .select('total_amount')
+      .eq('user_id', userId)
+      .eq('status', 'accepted')
+      .gte('issue_date', monthStart.toISOString())
+      .lt('issue_date', monthEnd.toISOString())
 
+    if (error) {
+      throw new Error(`Failed to get revenue trend: ${error.message}`)
+    }
+
+    const quotations = data || []
     const revenue = quotations.reduce((sum, q) => sum + q.total_amount, 0)
 
     result.push({
@@ -310,64 +332,79 @@ export async function getRevenueTrend(
  * 取得貨幣分布統計
  */
 export async function getCurrencyDistribution(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string
 ): Promise<CurrencyDistribution[]> {
-  const rows = await db.query<{
-    currency: string
-    amount: number
-    count: number
-  }>(
-    `SELECT
+  const { data, error } = await db
+    .from('quotations')
+    .select('currency, total_amount')
+    .eq('user_id', userId)
+    .eq('status', 'accepted')
+
+  if (error) {
+    throw new Error(`Failed to get currency distribution: ${error.message}`)
+  }
+
+  const quotations = data || []
+
+  const currencyMap = new Map<string, { amount: number; count: number }>()
+
+  for (const q of quotations) {
+    const existing = currencyMap.get(q.currency) || { amount: 0, count: 0 }
+    currencyMap.set(q.currency, {
+      amount: existing.amount + q.total_amount,
+      count: existing.count + 1,
+    })
+  }
+
+  const totalAmount = Array.from(currencyMap.values()).reduce((sum, v) => sum + v.amount, 0)
+
+  return Array.from(currencyMap.entries())
+    .map(([currency, { amount, count }]) => ({
       currency,
-      SUM(total_amount) as amount,
-      COUNT(*) as count
-     FROM quotations
-     WHERE user_id = ? AND status = 'accepted'
-     GROUP BY currency
-     ORDER BY amount DESC`,
-    [userId]
-  )
-
-  const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0)
-
-  return rows.map((row) => ({
-    currency: row.currency,
-    amount: row.amount,
-    count: row.count,
-    percentage: totalAmount > 0 ? (row.amount / totalAmount) * 100 : 0,
-  }))
+      amount,
+      count,
+      percentage: totalAmount > 0 ? (amount / totalAmount) * 100 : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount)
 }
 
 /**
  * 取得狀態統計資料
  */
 export async function getStatusStatistics(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string
 ): Promise<StatusStatistics[]> {
-  const rows = await db.query<{
-    status: string
-    count: number
-    totalAmount: number
-  }>(
-    `SELECT
+  const { data, error } = await db
+    .from('quotations')
+    .select('status, total_amount')
+    .eq('user_id', userId)
+
+  if (error) {
+    throw new Error(`Failed to get status statistics: ${error.message}`)
+  }
+
+  const quotations = data || []
+
+  const statusMap = new Map<string, { count: number; totalAmount: number }>()
+
+  for (const q of quotations) {
+    const existing = statusMap.get(q.status) || { count: 0, totalAmount: 0 }
+    statusMap.set(q.status, {
+      count: existing.count + 1,
+      totalAmount: existing.totalAmount + q.total_amount,
+    })
+  }
+
+  const totalCount = quotations.length
+
+  return Array.from(statusMap.entries())
+    .map(([status, { count, totalAmount }]) => ({
       status,
-      COUNT(*) as count,
-      SUM(total_amount) as totalAmount
-     FROM quotations
-     WHERE user_id = ?
-     GROUP BY status
-     ORDER BY count DESC`,
-    [userId]
-  )
-
-  const totalCount = rows.reduce((sum, row) => sum + row.count, 0)
-
-  return rows.map((row) => ({
-    status: row.status,
-    count: row.count,
-    totalAmount: row.totalAmount,
-    percentage: totalCount > 0 ? (row.count / totalCount) * 100 : 0,
-  }))
+      count,
+      totalAmount,
+      percentage: totalCount > 0 ? (count / totalCount) * 100 : 0,
+    }))
+    .sort((a, b) => b.count - a.count)
 }

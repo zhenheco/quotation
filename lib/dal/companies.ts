@@ -2,419 +2,379 @@
  * 公司資料存取層 (DAL)
  */
 
-import { D1Client } from '@/lib/db/d1-client'
+import { SupabaseClient } from '@/lib/db/supabase-client'
 
 export interface Company {
   id: string
   name: { zh: string; en: string }
   logo_url: string | null
-  signature_url: string | null
-  passbook_url: string | null
   tax_id: string | null
-  bank_name: string | null
-  bank_account: string | null
-  bank_code: string | null
   address: { zh: string; en: string } | null
   phone: string | null
   email: string | null
   website: string | null
+  settings: Record<string, unknown>
   created_at: string
   updated_at: string
-}
-
-interface CompanyRow {
-  id: string
-  name: string
-  logo_url: string | null
-  signature_url: string | null
-  passbook_url: string | null
-  tax_id: string | null
-  bank_name: string | null
-  bank_account: string | null
-  bank_code: string | null
-  address: string | null
-  phone: string | null
-  email: string | null
-  website: string | null
-  created_at: string
-  updated_at: string
-}
-
-function parseCompanyRow(row: CompanyRow): Company {
-  let name: { zh: string; en: string }
-  try {
-    name = JSON.parse(row.name)
-    if (!name || typeof name !== 'object') {
-      name = { zh: '', en: '' }
-    }
-    name = {
-      zh: name.zh || '',
-      en: name.en || ''
-    }
-  } catch {
-    name = { zh: '', en: '' }
-  }
-
-  let address: { zh: string; en: string } | null = null
-  if (row.address) {
-    try {
-      address = JSON.parse(row.address)
-    } catch {
-      address = null
-    }
-  }
-
-  return {
-    ...row,
-    name,
-    address,
-  }
 }
 
 export async function getUserCompanies(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string
 ): Promise<Company[]> {
-  const sql = `
-    SELECT c.* FROM companies c
-    INNER JOIN company_members cm ON c.id = cm.company_id
-    WHERE cm.user_id = ? AND cm.is_active = 1
-    ORDER BY c.created_at DESC
-  `
+  const { data, error } = await db
+    .from('companies')
+    .select(`
+      *,
+      company_members!inner (user_id, is_active)
+    `)
+    .eq('company_members.user_id', userId)
+    .eq('company_members.is_active', true)
+    .order('created_at', { ascending: false })
 
-  const rows = await db.query<CompanyRow>(sql, [userId])
-  return rows.map(parseCompanyRow)
+  if (error) {
+    throw new Error(`Failed to get companies: ${error.message}`)
+  }
+
+  return (data || []).map(company => ({
+    ...company,
+    company_members: undefined,
+  }))
 }
 
 export async function getCompanyById(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string
 ): Promise<Company | null> {
-  const row = await db.queryOne<CompanyRow>(
-    'SELECT * FROM companies WHERE id = ?',
-    [companyId]
-  )
+  const { data, error } = await db
+    .from('companies')
+    .select('*')
+    .eq('id', companyId)
+    .single()
 
-  return row ? parseCompanyRow(row) : null
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(`Failed to get company: ${error.message}`)
+  }
+
+  return data
 }
 
 export async function createCompany(
-  db: D1Client,
+  db: SupabaseClient,
   data: {
     id?: string
     name: { zh: string; en: string }
     logo_url?: string
-    signature_url?: string
-    passbook_url?: string
     tax_id?: string
-    bank_name?: string
-    bank_account?: string
-    bank_code?: string
     address?: { zh: string; en: string }
     phone?: string
     email?: string
     website?: string
+    settings?: Record<string, unknown>
   }
 ): Promise<Company> {
-  const id = data.id || crypto.randomUUID()
   const now = new Date().toISOString()
 
-  await db.execute(
-    `INSERT INTO companies (
-      id, name, logo_url, signature_url, passbook_url, tax_id,
-      bank_name, bank_account, bank_code, address, phone, email, website,
-      created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id,
-      JSON.stringify(data.name),
-      data.logo_url || null,
-      data.signature_url || null,
-      data.passbook_url || null,
-      data.tax_id || null,
-      data.bank_name || null,
-      data.bank_account || null,
-      data.bank_code || null,
-      data.address ? JSON.stringify(data.address) : null,
-      data.phone || null,
-      data.email || null,
-      data.website || null,
-      now,
-      now
-    ]
-  )
+  const { data: company, error } = await db
+    .from('companies')
+    .insert({
+      id: data.id || crypto.randomUUID(),
+      name: data.name,
+      logo_url: data.logo_url || null,
+      tax_id: data.tax_id || null,
+      address: data.address || null,
+      phone: data.phone || null,
+      email: data.email || null,
+      website: data.website || null,
+      settings: data.settings || {},
+      created_at: now,
+      updated_at: now
+    })
+    .select()
+    .single()
 
-  const company = await getCompanyById(db, id)
-  if (!company) {
-    throw new Error('Failed to create company')
+  if (error) {
+    throw new Error(`Failed to create company: ${error.message}`)
   }
 
   return company
 }
 
 export async function updateCompany(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string,
   data: Partial<Omit<Company, 'id' | 'created_at' | 'updated_at'>>
 ): Promise<Company> {
-  const updates: string[] = []
-  const params: unknown[] = []
+  const { data: company, error } = await db
+    .from('companies')
+    .update({
+      ...data,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', companyId)
+    .select()
+    .single()
 
-  if (data.name) {
-    updates.push('name = ?')
-    params.push(JSON.stringify(data.name))
-  }
-  if (data.address !== undefined) {
-    updates.push('address = ?')
-    params.push(data.address ? JSON.stringify(data.address) : null)
-  }
-
-  const simpleFields = [
-    'logo_url', 'signature_url', 'passbook_url', 'tax_id',
-    'bank_name', 'bank_account', 'bank_code', 'phone', 'email', 'website'
-  ]
-
-  for (const field of simpleFields) {
-    if (data[field as keyof typeof data] !== undefined) {
-      updates.push(`${field} = ?`)
-      params.push(data[field as keyof typeof data])
-    }
-  }
-
-  if (updates.length === 0) {
-    const company = await getCompanyById(db, companyId)
-    if (!company) {
-      throw new Error('Company not found')
-    }
-    return company
-  }
-
-  updates.push('updated_at = ?')
-  params.push(new Date().toISOString())
-  params.push(companyId)
-
-  await db.execute(
-    `UPDATE companies SET ${updates.join(', ')} WHERE id = ?`,
-    params
-  )
-
-  const company = await getCompanyById(db, companyId)
-  if (!company) {
-    throw new Error('Company not found after update')
+  if (error) {
+    throw new Error(`Failed to update company: ${error.message}`)
   }
 
   return company
 }
 
 export async function deleteCompany(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string
 ): Promise<void> {
-  const result = await db.execute(
-    'DELETE FROM companies WHERE id = ?',
-    [companyId]
-  )
+  const { error, count } = await db
+    .from('companies')
+    .delete()
+    .eq('id', companyId)
 
-  if (result.count === 0) {
+  if (error) {
+    throw new Error(`Failed to delete company: ${error.message}`)
+  }
+
+  if (count === 0) {
     throw new Error('Company not found or already deleted')
   }
 }
-
-// Company Members
 
 export interface CompanyMember {
   id: string
   company_id: string
   user_id: string
-  role_id: string
+  role_id: string | null
   role_name?: string
-  is_owner: number
-  is_active: number
-  joined_at: string
+  is_owner: boolean
+  is_active: boolean
+  created_at: string
   updated_at: string
 }
 
 export async function getCompanyMembers(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string
 ): Promise<CompanyMember[]> {
-  const sql = `
-    SELECT
-      cm.*,
-      r.name as role_name
-    FROM company_members cm
-    LEFT JOIN roles r ON cm.role_id = r.id
-    WHERE cm.company_id = ?
-    ORDER BY cm.is_owner DESC, cm.joined_at ASC
-  `
+  const { data, error } = await db
+    .from('company_members')
+    .select(`
+      *,
+      roles (name)
+    `)
+    .eq('company_id', companyId)
+    .order('is_owner', { ascending: false })
+    .order('created_at')
 
-  return await db.query<CompanyMember>(sql, [companyId])
+  if (error) {
+    throw new Error(`Failed to get company members: ${error.message}`)
+  }
+
+  return (data || []).map(member => ({
+    ...member,
+    role_name: (member.roles as { name: string } | null)?.name,
+    roles: undefined,
+  }))
 }
 
 export async function getCompanyMember(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string,
   userId: string
 ): Promise<CompanyMember | null> {
-  const sql = `
-    SELECT
-      cm.*,
-      r.name as role_name
-    FROM company_members cm
-    LEFT JOIN roles r ON cm.role_id = r.id
-    WHERE cm.company_id = ? AND cm.user_id = ?
-  `
+  const { data, error } = await db
+    .from('company_members')
+    .select(`
+      *,
+      roles (name)
+    `)
+    .eq('company_id', companyId)
+    .eq('user_id', userId)
+    .single()
 
-  return await db.queryOne<CompanyMember>(sql, [companyId, userId])
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(`Failed to get company member: ${error.message}`)
+  }
+
+  if (!data) return null
+
+  return {
+    ...data,
+    role_name: (data.roles as { name: string } | null)?.name,
+    roles: undefined,
+  }
 }
 
 export async function addCompanyMember(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string,
   userId: string,
-  roleIdOrName: string = 'owner'
+  roleId?: string,
+  isOwner = false
 ): Promise<void> {
-  let roleId = roleIdOrName
-
-  if (roleIdOrName === 'owner' || roleIdOrName === 'member') {
-    const role = await db.queryOne<{ id: string }>(
-      'SELECT id FROM roles WHERE name = ?',
-      [roleIdOrName === 'owner' ? 'company_owner' : 'salesperson']
-    )
-    if (role) {
-      roleId = role.id
-    }
-  }
-
-  const id = crypto.randomUUID()
   const now = new Date().toISOString()
 
-  await db.execute(
-    `INSERT INTO company_members (id, company_id, user_id, role_id, is_owner, is_active, joined_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
-    [id, companyId, userId, roleId, roleIdOrName === 'owner' ? 1 : 0, now, now]
-  )
+  const { error } = await db
+    .from('company_members')
+    .insert({
+      id: crypto.randomUUID(),
+      company_id: companyId,
+      user_id: userId,
+      role_id: roleId || null,
+      is_owner: isOwner,
+      is_active: true,
+      created_at: now,
+      updated_at: now
+    })
+
+  if (error) {
+    throw new Error(`Failed to add company member: ${error.message}`)
+  }
 }
 
 export async function updateCompanyMemberRole(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string,
   userId: string,
   newRoleId: string
 ): Promise<CompanyMember> {
-  const now = new Date().toISOString()
+  const { data, error } = await db
+    .from('company_members')
+    .update({
+      role_id: newRoleId,
+      updated_at: new Date().toISOString()
+    })
+    .eq('company_id', companyId)
+    .eq('user_id', userId)
+    .select()
+    .single()
 
-  await db.execute(
-    `UPDATE company_members
-     SET role_id = ?, updated_at = ?
-     WHERE company_id = ? AND user_id = ?`,
-    [newRoleId, now, companyId, userId]
-  )
-
-  const member = await getCompanyMember(db, companyId, userId)
-  if (!member) {
-    throw new Error('Member not found after update')
+  if (error) {
+    throw new Error(`Failed to update company member role: ${error.message}`)
   }
 
-  return member
+  return data
 }
 
 export async function removeCompanyMember(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string,
   userId: string
 ): Promise<void> {
-  const now = new Date().toISOString()
+  const { error } = await db
+    .from('company_members')
+    .update({
+      is_active: false,
+      updated_at: new Date().toISOString()
+    })
+    .eq('company_id', companyId)
+    .eq('user_id', userId)
 
-  await db.execute(
-    `UPDATE company_members
-     SET is_active = 0, updated_at = ?
-     WHERE company_id = ? AND user_id = ?`,
-    [now, companyId, userId]
-  )
+  if (error) {
+    throw new Error(`Failed to remove company member: ${error.message}`)
+  }
 }
 
 export async function isCompanyMember(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string,
   userId: string
 ): Promise<boolean> {
-  const member = await db.queryOne<{ id: string }>(
-    'SELECT id FROM company_members WHERE company_id = ? AND user_id = ? AND is_active = 1',
-    [companyId, userId]
-  )
+  const { data } = await db
+    .from('company_members')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .single()
 
-  return member !== null
+  return data !== null
 }
 
 export async function isCompanyOwner(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string,
   userId: string
 ): Promise<boolean> {
-  const member = await db.queryOne<{ is_owner: number }>(
-    'SELECT is_owner FROM company_members WHERE company_id = ? AND user_id = ? AND is_active = 1',
-    [companyId, userId]
-  )
+  const { data } = await db
+    .from('company_members')
+    .select('is_owner')
+    .eq('company_id', companyId)
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .single()
 
-  return member?.is_owner === 1
+  return data?.is_owner === true
 }
 
 export interface CompanyStats {
   active_members: number
   total_customers: number
   total_quotations: number
-  total_contracts?: number
-  total_revenue?: number
 }
 
 export async function getCompanyStats(
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string
 ): Promise<CompanyStats> {
-  const statsResult = await db.query<{
-    active_members: number
-    total_customers: number
-    total_quotations: number
-  }>(`
-    SELECT
-      (SELECT COUNT(*) FROM company_members WHERE company_id = ? AND is_active = 1) as active_members,
-      (SELECT COUNT(*) FROM customers WHERE company_id = ?) as total_customers,
-      (SELECT COUNT(*) FROM quotations WHERE company_id = ?) as total_quotations
-  `, [companyId, companyId, companyId])
+  const [membersResult, customersResult, quotationsResult] = await Promise.all([
+    db.from('company_members').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('is_active', true),
+    db.from('customers').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+    db.from('quotations').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
+  ])
 
-  return statsResult[0] || {
-    active_members: 0,
-    total_customers: 0,
-    total_quotations: 0
+  return {
+    active_members: membersResult.count || 0,
+    total_customers: customersResult.count || 0,
+    total_quotations: quotationsResult.count || 0,
   }
 }
 
 export async function getManageableCompanies(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string
 ): Promise<Company[]> {
-  const isSuperAdminResult = await db.queryOne<{ count: number }>(`
-    SELECT COUNT(*) as count FROM user_roles ur
-    INNER JOIN roles r ON ur.role_id = r.id
-    WHERE ur.user_id = ? AND r.name = 'super_admin'
-  `, [userId])
+  const { data: userRoles } = await db
+    .from('user_roles')
+    .select(`
+      roles (name)
+    `)
+    .eq('user_id', userId)
 
-  const isSuperAdmin = isSuperAdminResult && isSuperAdminResult.count > 0
-
-  let rows: CompanyRow[]
+  const isSuperAdmin = userRoles?.some(
+    ur => (ur.roles as { name: string } | null)?.name === 'super_admin'
+  )
 
   if (isSuperAdmin) {
-    rows = await db.query<CompanyRow>('SELECT * FROM companies ORDER BY created_at DESC')
-  } else {
-    const sql = `
-      SELECT c.* FROM companies c
-      INNER JOIN company_members cm ON c.id = cm.company_id
-      WHERE cm.user_id = ? AND cm.is_active = 1 AND cm.is_owner = 1
-      ORDER BY c.created_at DESC
-    `
-    rows = await db.query<CompanyRow>(sql, [userId])
+    const { data, error } = await db
+      .from('companies')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to get companies: ${error.message}`)
+    }
+
+    return data || []
   }
 
-  return rows.map(parseCompanyRow)
+  const { data, error } = await db
+    .from('companies')
+    .select(`
+      *,
+      company_members!inner (user_id, is_owner, is_active)
+    `)
+    .eq('company_members.user_id', userId)
+    .eq('company_members.is_active', true)
+    .eq('company_members.is_owner', true)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw new Error(`Failed to get manageable companies: ${error.message}`)
+  }
+
+  return (data || []).map(company => ({
+    ...company,
+    company_members: undefined,
+  }))
 }

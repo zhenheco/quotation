@@ -2,8 +2,7 @@ import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { isSuperAdmin } from '@/lib/dal/rbac';
-import { getD1Client } from '@/lib/db/d1-client';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getSupabaseClient } from '@/lib/db/supabase-client';
 
 // Note: Edge runtime removed for OpenNext compatibility;
 
@@ -12,8 +11,6 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
  * 取得所有公司列表（僅超級管理員）
  */
 export async function GET(request: NextRequest) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
 
@@ -26,7 +23,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
 
     // 檢查是否為超管
     const isAdmin = await isSuperAdmin(db, user.id);
@@ -38,36 +35,33 @@ export async function GET(request: NextRequest) {
     }
 
     // 取得所有公司
-    const companies = await db.query<{
-      id: string;
-      name: string;
-      logo_url: string | null;
-      created_at: string;
-    }>(`
-      SELECT id, name, logo_url, created_at
-      FROM companies
-      ORDER BY created_at DESC
-    `);
+    const { data: companies, error: companiesError } = await db
+      .from('companies')
+      .select('id, name, logo_url, created_at')
+      .order('created_at', { ascending: false });
+
+    if (companiesError) {
+      throw new Error(`Failed to fetch companies: ${companiesError.message}`);
+    }
 
     // 為每個公司取得額外統計資訊
     const companiesWithStats = await Promise.all(
-      companies.map(async (company) => {
-        // 取得公司統計資料 - SQLite 語法
-        const statsResult = await db.query<{
-          active_members: number;
-          total_customers: number;
-          total_quotations: number;
-        }>(`
-          SELECT
-            (SELECT COUNT(*) FROM company_members WHERE company_id = ? AND is_active = 1) as active_members,
-            (SELECT COUNT(*) FROM customers WHERE company_id = ?) as total_customers,
-            (SELECT COUNT(*) FROM quotations WHERE company_id = ?) as total_quotations
-        `, [company.id, company.id, company.id]);
+      (companies || []).map(async (company) => {
+        // 取得公司統計資料
+        const [
+          { count: activeMembers = 0 } = {},
+          { count: totalCustomers = 0 } = {},
+          { count: totalQuotations = 0 } = {}
+        ] = await Promise.all([
+          db.from('company_members').select('*', { count: 'exact', head: true }).eq('company_id', company.id).eq('is_active', true),
+          db.from('customers').select('*', { count: 'exact', head: true }).eq('company_id', company.id),
+          db.from('quotations').select('*', { count: 'exact', head: true }).eq('company_id', company.id)
+        ]).then(results => results.map(r => ({ count: r.count || 0 })));
 
-        const stats = statsResult[0] || {
-          active_members: 0,
-          total_customers: 0,
-          total_quotations: 0
+        const stats = {
+          active_members: activeMembers,
+          total_customers: totalCustomers,
+          total_quotations: totalQuotations
         };
 
         // 解析 JSON 格式的 name 欄位
@@ -81,11 +75,7 @@ export async function GET(request: NextRequest) {
           logo_url: company.logo_url,
           member_count: stats.active_members,
           created_at: company.created_at,
-          stats: {
-            active_members: stats.active_members,
-            total_customers: stats.total_customers,
-            total_quotations: stats.total_quotations
-          }
+          stats
         };
       })
     );

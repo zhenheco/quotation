@@ -1,8 +1,7 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserCompanies } from '@/lib/dal/companies';
-import { getD1Client } from '@/lib/db/d1-client';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getSupabaseClient } from '@/lib/db/supabase-client';
 
 // Note: Edge runtime removed for OpenNext compatibility;
 
@@ -11,8 +10,6 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
  * 取得使用者所屬的公司列表
  */
 export async function GET(request: NextRequest) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
 
@@ -25,7 +22,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
 
     // 取得使用者所屬公司
     const companies = await getUserCompanies(db, user.id);

@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { isSuperAdmin } from '@/lib/dal/rbac';
 import { getCompanyById, getCompanyMembers, getCompanyStats } from '@/lib/dal/companies';
-import { getD1Client } from '@/lib/db/d1-client';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getSupabaseClient } from '@/lib/db/supabase-client';
 import type { User } from '@supabase/supabase-js';
 
 // Note: Edge runtime removed for OpenNext compatibility;
@@ -17,8 +16,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
 
@@ -31,7 +28,7 @@ export async function GET(
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
 
     // 檢查是否為超管
     const isAdmin = await isSuperAdmin(db, user.id);

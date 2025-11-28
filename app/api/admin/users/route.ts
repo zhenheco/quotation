@@ -1,8 +1,7 @@
 import { createApiClient } from '@/lib/supabase/api';
 import { NextRequest, NextResponse } from 'next/server';
 import { isSuperAdmin } from '@/lib/dal/rbac';
-import { getD1Client } from '@/lib/db/d1-client';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getSupabaseClient } from '@/lib/db/supabase-client';
 import type { User } from '@supabase/supabase-js';
 
 // Note: Edge runtime removed for OpenNext compatibility;
@@ -12,8 +11,6 @@ import type { User } from '@supabase/supabase-js';
  * 取得所有使用者列表（僅超級管理員）
  */
 export async function GET(request: NextRequest) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
 
@@ -26,7 +23,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
 
     // 檢查是否為超管
     const isAdmin = await isSuperAdmin(db, user.id);
@@ -38,13 +35,12 @@ export async function GET(request: NextRequest) {
     }
 
     // 取得所有使用者 ID（從 user_roles 獲取唯一的 user_id）
-    const userIdsResult = await db.query<{ user_id: string }>(`
-      SELECT DISTINCT user_id
-      FROM user_roles
-      ORDER BY user_id ASC
-    `);
+    const { data: userRolesData } = await db
+      .from('user_roles')
+      .select('user_id')
+      .order('user_id', { ascending: true });
 
-    const userIds = userIdsResult.map(row => row.user_id);
+    const userIds = Array.from(new Set(userRolesData?.map(r => r.user_id) || []));
 
     // 從 Supabase Auth 取得使用者資訊
     const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
@@ -68,51 +64,62 @@ export async function GET(request: NextRequest) {
         const authUser = authUserMap.get(userId);
 
         // 取得使用者的公司
-        const companiesResult = await db.query<{
-          company_id: string;
-          company_name: string;
-          role_name: string;
-          is_owner: number;
-        }>(`
-          SELECT
-            cm.company_id,
-            c.name as company_name,
-            r.name as role_name,
-            cm.is_owner
-          FROM company_members cm
-          JOIN companies c ON cm.company_id = c.id
-          JOIN roles r ON cm.role_id = r.id
-          WHERE cm.user_id = ? AND cm.is_active = 1
-        `, [userId]);
+        const { data: companyMemberships } = await db
+          .from('company_members')
+          .select(`
+            company_id,
+            is_owner,
+            companies (
+              id,
+              name
+            ),
+            roles (
+              name
+            )
+          `)
+          .eq('user_id', userId)
+          .eq('is_active', true);
 
-        const companies = companiesResult.map(row => ({
-          company_id: row.company_id,
-          company_name: typeof row.company_name === 'string'
-            ? JSON.parse(row.company_name)
-            : row.company_name,
-          role: row.role_name,
-          is_owner: row.is_owner === 1
-        }));
+        const companies = (companyMemberships || []).map((cm: {
+          company_id: string;
+          is_owner: boolean;
+          companies: { id: string; name: string }[] | null;
+          roles: { name: string }[] | null;
+        }) => {
+          const company = Array.isArray(cm.companies) ? cm.companies[0] : null;
+          const role = Array.isArray(cm.roles) ? cm.roles[0] : null;
+
+          return {
+            company_id: cm.company_id,
+            company_name: company?.name
+              ? (typeof company.name === 'string' ? JSON.parse(company.name) : company.name)
+              : null,
+            role: role?.name || '',
+            is_owner: cm.is_owner
+          };
+        });
 
         // 取得使用者的全域角色
-        const rolesResult = await db.query<{
-          role_name: string;
-          name_zh: string;
-          name_en: string;
-        }>(`
-          SELECT
-            r.name as role_name,
-            r.name_zh,
-            r.name_en
-          FROM user_roles ur
-          JOIN roles r ON ur.role_id = r.id
-          WHERE ur.user_id = ?
-        `, [userId]);
+        const { data: userRolesWithRoles } = await db
+          .from('user_roles')
+          .select(`
+            roles (
+              name,
+              name_zh,
+              name_en
+            )
+          `)
+          .eq('user_id', userId);
 
-        const globalRoles = rolesResult.map(row => ({
-          name: row.role_name,
-          display_name: row.name_zh
-        }));
+        const globalRoles = (userRolesWithRoles || []).map((ur: {
+          roles: { name: string; name_zh: string; name_en: string }[] | null;
+        }) => {
+          const role = Array.isArray(ur.roles) ? ur.roles[0] : null;
+          return {
+            name: role?.name || '',
+            display_name: role?.name_zh || ''
+          };
+        }).filter(r => r.name);
 
         return {
           user_id: userId,

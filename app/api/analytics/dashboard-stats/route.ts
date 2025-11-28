@@ -2,7 +2,7 @@ import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { getD1Client } from '@/lib/db/d1-client'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getDashboardStats } from '@/lib/dal/analytics'
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
     const kv = getKVCache(env)
 
     const hasPermission = await checkPermission(kv, db, user.id, 'analytics:read')

@@ -8,8 +8,7 @@ import {
 } from '@/lib/dal/companies';
 import { canAssignRole, getRoleByName, isSuperAdmin } from '@/lib/dal/rbac';
 import { RoleName } from '@/types/rbac.types';
-import { getD1Client } from '@/lib/db/d1-client';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getSupabaseClient } from '@/lib/db/supabase-client';
 
 // Note: Edge runtime removed for OpenNext compatibility;
 
@@ -25,8 +24,6 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
 
@@ -39,7 +36,7 @@ export async function PATCH(
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
     const { id: companyId, userId: targetUserId } = await params;
     const body = await request.json() as UpdateMemberRoleBody;
     const { role_name } = body;
@@ -132,8 +129,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
 
@@ -146,7 +141,7 @@ export async function DELETE(
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
     const { id: companyId, userId: targetUserId } = await params;
 
     // 檢查是否為超管或公司 owner

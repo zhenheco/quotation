@@ -2,8 +2,7 @@ import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { hasPermission } from '@/lib/dal/rbac'
-import { getD1Client } from '@/lib/db/d1-client'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 
 // Note: Edge runtime removed for OpenNext compatibility
 
@@ -12,8 +11,6 @@ import { getCloudflareContext } from '@opennextjs/cloudflare'
  * Check if user has permission for a specific action on a resource
  */
 export async function POST(request: NextRequest) {
-  const { env } = await getCloudflareContext()
-
   try {
     const supabase = createApiClient(request)
 
@@ -32,7 +29,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
 
     // 使用 DAL 的 hasPermission 函數進行權限檢查
     const permissionName = `${resource}:${action}`

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getD1Client } from '@/lib/db/d1-client'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import {
   createPaymentSchedule,
   getPaymentSchedules,
@@ -24,8 +23,7 @@ export async function GET(request: NextRequest) {
   const dueDateFrom = searchParams.get('due_date_from') || undefined
   const dueDateTo = searchParams.get('due_date_to') || undefined
 
-  const { env } = await getCloudflareContext()
-  const db = getD1Client(env)
+  const db = getSupabaseClient()
 
   const schedules = await getPaymentSchedules(db, user.id, {
     customer_id: customerId,
@@ -58,8 +56,7 @@ export async function POST(request: NextRequest) {
     action?: 'create' | 'sync'
   }
 
-  const { env } = await getCloudflareContext()
-  const db = getD1Client(env)
+  const db = getSupabaseClient()
 
   if (body.action === 'sync') {
     if (!body.quotation_id) {

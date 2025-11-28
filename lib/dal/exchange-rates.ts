@@ -2,7 +2,7 @@
  * 匯率資料存取層 (DAL)
  */
 
-import { D1Client } from '@/lib/db/d1-client'
+import { SupabaseClient } from '@/lib/db/supabase-client'
 
 export interface ExchangeRate {
   id: string
@@ -16,60 +16,95 @@ export const SUPPORTED_CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'CNY'] as const
 export type Currency = typeof SUPPORTED_CURRENCIES[number]
 
 export async function getExchangeRate(
-  db: D1Client,
+  db: SupabaseClient,
   baseCurrency: string,
   targetCurrency: string
 ): Promise<ExchangeRate | null> {
-  return await db.queryOne<ExchangeRate>(
-    'SELECT * FROM exchange_rates WHERE base_currency = ? AND target_currency = ?',
-    [baseCurrency, targetCurrency]
-  )
+  const { data, error } = await db
+    .from('exchange_rates')
+    .select('*')
+    .eq('base_currency', baseCurrency)
+    .eq('target_currency', targetCurrency)
+    .single()
+
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(`Failed to get exchange rate: ${error.message}`)
+  }
+
+  return data
 }
 
-export async function getAllExchangeRates(db: D1Client): Promise<ExchangeRate[]> {
-  return await db.query<ExchangeRate>('SELECT * FROM exchange_rates ORDER BY base_currency, target_currency')
+export async function getAllExchangeRates(db: SupabaseClient): Promise<ExchangeRate[]> {
+  const { data, error } = await db
+    .from('exchange_rates')
+    .select('*')
+    .order('base_currency')
+    .order('target_currency')
+
+  if (error) {
+    throw new Error(`Failed to get exchange rates: ${error.message}`)
+  }
+
+  return data || []
 }
 
 export async function getExchangeRatesByBase(
-  db: D1Client,
+  db: SupabaseClient,
   baseCurrency: string
 ): Promise<ExchangeRate[]> {
-  return await db.query<ExchangeRate>(
-    'SELECT * FROM exchange_rates WHERE base_currency = ? ORDER BY target_currency',
-    [baseCurrency]
-  )
+  const { data, error } = await db
+    .from('exchange_rates')
+    .select('*')
+    .eq('base_currency', baseCurrency)
+    .order('target_currency')
+
+  if (error) {
+    throw new Error(`Failed to get exchange rates: ${error.message}`)
+  }
+
+  return data || []
 }
 
 export async function upsertExchangeRate(
-  db: D1Client,
+  db: SupabaseClient,
   baseCurrency: string,
   targetCurrency: string,
   rate: number
 ): Promise<void> {
-  const existing = await getExchangeRate(db, baseCurrency, targetCurrency)
-  const now = new Date().toISOString()
+  const { error } = await db
+    .from('exchange_rates')
+    .upsert(
+      {
+        base_currency: baseCurrency,
+        target_currency: targetCurrency,
+        rate,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'base_currency,target_currency' }
+    )
 
-  if (existing) {
-    await db.execute(
-      'UPDATE exchange_rates SET rate = ?, updated_at = ? WHERE base_currency = ? AND target_currency = ?',
-      [rate, now, baseCurrency, targetCurrency]
-    )
-  } else {
-    const id = crypto.randomUUID()
-    await db.execute(
-      'INSERT INTO exchange_rates (id, base_currency, target_currency, rate, updated_at) VALUES (?, ?, ?, ?, ?)',
-      [id, baseCurrency, targetCurrency, rate, now]
-    )
+  if (error) {
+    throw new Error(`Failed to upsert exchange rate: ${error.message}`)
   }
 }
 
 export async function batchUpsertExchangeRates(
-  db: D1Client,
+  db: SupabaseClient,
   rates: Array<{ baseCurrency: string; targetCurrency: string; rate: number }>
 ): Promise<void> {
-  // const _now = new Date().toISOString()
+  const now = new Date().toISOString()
+  const records = rates.map(({ baseCurrency, targetCurrency, rate }) => ({
+    base_currency: baseCurrency,
+    target_currency: targetCurrency,
+    rate,
+    updated_at: now
+  }))
 
-  for (const { baseCurrency, targetCurrency, rate } of rates) {
-    await upsertExchangeRate(db, baseCurrency, targetCurrency, rate)
+  const { error } = await db
+    .from('exchange_rates')
+    .upsert(records, { onConflict: 'base_currency,target_currency' })
+
+  if (error) {
+    throw new Error(`Failed to batch upsert exchange rates: ${error.message}`)
   }
 }

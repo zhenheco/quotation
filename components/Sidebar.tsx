@@ -92,7 +92,7 @@ export default function Sidebar({ locale }: { locale: string }) {
                         : [...prev, item.href]
                     )
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors select-none ${
                     isActive
                       ? 'bg-indigo-50 text-indigo-700 font-medium'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -114,7 +114,7 @@ export default function Sidebar({ locale }: { locale: string }) {
               ) : (
                 <Link
                   href={href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors select-none ${
                     isActive
                       ? 'bg-indigo-50 text-indigo-700 font-medium'
                       : 'text-gray-700 hover:bg-gray-100'

@@ -2,7 +2,7 @@
  * 付款資料存取層 (DAL)
  */
 
-import { D1Client } from '@/lib/db/d1-client'
+import { SupabaseClient } from '@/lib/db/supabase-client'
 
 export interface Payment {
   id: string
@@ -52,204 +52,180 @@ export interface PaymentWithRelations extends Payment {
 }
 
 export async function getPayments(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   companyId?: string
 ): Promise<Payment[]> {
-  let sql = 'SELECT * FROM payments WHERE user_id = ?'
-  const params: unknown[] = [userId]
+  let query = db
+    .from('payments')
+    .select('*')
+    .eq('user_id', userId)
+    .order('payment_date', { ascending: false })
 
   if (companyId) {
-    sql += ' AND company_id = ?'
-    params.push(companyId)
+    query = query.eq('company_id', companyId)
   }
 
-  sql += ' ORDER BY payment_date DESC'
+  const { data, error } = await query
 
-  return await db.query<Payment>(sql, params)
+  if (error) {
+    throw new Error(`Failed to get payments: ${error.message}`)
+  }
+
+  return data || []
 }
 
 export async function getPaymentsWithFilters(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   filters: PaymentFilters = {}
 ): Promise<Payment[]> {
-  let sql = 'SELECT * FROM payments WHERE user_id = ?'
-  const params: unknown[] = [userId]
+  let query = db
+    .from('payments')
+    .select('*')
+    .eq('user_id', userId)
 
   if (filters.customer_id) {
-    sql += ' AND customer_id = ?'
-    params.push(filters.customer_id)
+    query = query.eq('customer_id', filters.customer_id)
   }
-
   if (filters.quotation_id) {
-    sql += ' AND quotation_id = ?'
-    params.push(filters.quotation_id)
+    query = query.eq('quotation_id', filters.quotation_id)
   }
-
   if (filters.contract_id) {
-    sql += ' AND contract_id = ?'
-    params.push(filters.contract_id)
+    query = query.eq('contract_id', filters.contract_id)
   }
-
   if (filters.status) {
-    sql += ' AND status = ?'
-    params.push(filters.status)
+    query = query.eq('status', filters.status)
   }
-
   if (filters.payment_type) {
-    sql += ' AND payment_type = ?'
-    params.push(filters.payment_type)
+    query = query.eq('payment_type', filters.payment_type)
   }
-
   if (filters.company_id) {
-    sql += ' AND company_id = ?'
-    params.push(filters.company_id)
+    query = query.eq('company_id', filters.company_id)
   }
 
-  sql += ' ORDER BY payment_date DESC'
+  query = query.order('payment_date', { ascending: false })
 
-  return await db.query<Payment>(sql, params)
+  const { data, error } = await query
+
+  if (error) {
+    throw new Error(`Failed to get payments: ${error.message}`)
+  }
+
+  return data || []
 }
 
 export async function getPaymentsWithRelations(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   filters: PaymentFilters = {}
 ): Promise<PaymentWithRelations[]> {
-  let sql = `
-    SELECT
-      p.*,
-      c.id as customer_id_fk,
-      c.name as customer_name,
-      q.id as quotation_id_fk,
-      q.quotation_number,
-      q.total as quotation_total,
-      ct.id as contract_id_fk,
-      ct.contract_number,
-      ct.total_amount as contract_total_amount
-    FROM payments p
-    INNER JOIN customers c ON p.customer_id = c.id
-    LEFT JOIN quotations q ON p.quotation_id = q.id
-    LEFT JOIN customer_contracts ct ON p.contract_id = ct.id
-    WHERE p.user_id = ?
-  `
-  const params: unknown[] = [userId]
+  let query = db
+    .from('payments')
+    .select(`
+      *,
+      customers!inner (id, name),
+      quotations (id, quotation_number, total_amount),
+      customer_contracts (id, contract_number, total_amount)
+    `)
+    .eq('user_id', userId)
 
   if (filters.customer_id) {
-    sql += ' AND p.customer_id = ?'
-    params.push(filters.customer_id)
+    query = query.eq('customer_id', filters.customer_id)
   }
-
   if (filters.quotation_id) {
-    sql += ' AND p.quotation_id = ?'
-    params.push(filters.quotation_id)
+    query = query.eq('quotation_id', filters.quotation_id)
   }
-
   if (filters.contract_id) {
-    sql += ' AND p.contract_id = ?'
-    params.push(filters.contract_id)
+    query = query.eq('contract_id', filters.contract_id)
   }
-
   if (filters.status) {
-    sql += ' AND p.status = ?'
-    params.push(filters.status)
+    query = query.eq('status', filters.status)
   }
-
   if (filters.payment_type) {
-    sql += ' AND p.payment_type = ?'
-    params.push(filters.payment_type)
+    query = query.eq('payment_type', filters.payment_type)
   }
-
   if (filters.company_id) {
-    sql += ' AND p.company_id = ?'
-    params.push(filters.company_id)
+    query = query.eq('company_id', filters.company_id)
   }
 
-  sql += ' ORDER BY p.payment_date DESC'
+  query = query.order('payment_date', { ascending: false })
 
-  const rows = await db.query<Payment & {
-    customer_id_fk: string
-    customer_name: string
-    quotation_id_fk: string | null
-    quotation_number: string | null
-    quotation_total: number | null
-    contract_id_fk: string | null
-    contract_number: string | null
-    contract_total_amount: number | null
-  }>(sql, params)
+  const { data, error } = await query
 
-  return rows.map(row => {
-    const { customer_id_fk, customer_name, quotation_id_fk, quotation_number, quotation_total, contract_id_fk, contract_number, contract_total_amount, ...payment } = row
+  if (error) {
+    throw new Error(`Failed to get payments with relations: ${error.message}`)
+  }
 
-    let companyNameZh = customer_name
-    let companyNameEn = customer_name
-    try {
-      const parsed = JSON.parse(customer_name)
-      if (typeof parsed === 'object' && parsed !== null) {
-        companyNameZh = parsed.zh || ''
-        companyNameEn = parsed.en || ''
-      }
-    } catch {
-      // name 不是 JSON 格式，保持原值
-    }
+  return (data || []).map(row => {
+    const customer = row.customers as { id: string; name: { zh: string; en: string } } | null
+    const quotation = row.quotations as { id: string; quotation_number: string; total_amount: number } | null
+    const contract = row.customer_contracts as { id: string; contract_number: string; total_amount: number } | null
 
     return {
-      ...payment,
-      customer: {
-        id: customer_id_fk,
-        company_name_zh: companyNameZh,
-        company_name_en: companyNameEn,
-      },
-      quotation: quotation_id_fk ? {
-        id: quotation_id_fk,
-        quotation_number: quotation_number || '',
-        total: quotation_total || 0,
+      ...row,
+      customers: undefined,
+      quotations: undefined,
+      customer_contracts: undefined,
+      customer: customer ? {
+        id: customer.id,
+        company_name_zh: customer.name?.zh || '',
+        company_name_en: customer.name?.en || '',
       } : undefined,
-      contract: contract_id_fk ? {
-        id: contract_id_fk,
-        contract_number: contract_number || '',
-        total_amount: contract_total_amount || 0,
+      quotation: quotation ? {
+        id: quotation.id,
+        quotation_number: quotation.quotation_number,
+        total: quotation.total_amount,
+      } : undefined,
+      contract: contract ? {
+        id: contract.id,
+        contract_number: contract.contract_number,
+        total_amount: contract.total_amount,
       } : undefined,
     }
   })
 }
 
 export async function getPaymentById(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   paymentId: string
 ): Promise<Payment | null> {
-  return await db.queryOne<Payment>(
-    'SELECT * FROM payments WHERE id = ? AND user_id = ?',
-    [paymentId, userId]
-  )
+  const { data, error } = await db
+    .from('payments')
+    .select('*')
+    .eq('id', paymentId)
+    .eq('user_id', userId)
+    .single()
+
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(`Failed to get payment: ${error.message}`)
+  }
+
+  return data
 }
 
 export async function createPayment(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   data: Omit<Payment, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 ): Promise<Payment> {
-  const id = crypto.randomUUID()
   const now = new Date().toISOString()
 
-  await db.execute(
-    `INSERT INTO payments (
-      id, user_id, company_id, quotation_id, contract_id, customer_id,
-      payment_type, payment_date, amount, currency, payment_method,
-      reference_number, receipt_url, status, notes, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id, userId, data.company_id, data.quotation_id, data.contract_id, data.customer_id,
-      data.payment_type, data.payment_date, data.amount, data.currency, data.payment_method,
-      data.reference_number, data.receipt_url, data.status, data.notes, now, now
-    ]
-  )
+  const { data: payment, error } = await db
+    .from('payments')
+    .insert({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      ...data,
+      created_at: now,
+      updated_at: now
+    })
+    .select()
+    .single()
 
-  const payment = await getPaymentById(db, userId, id)
-  if (!payment) {
-    throw new Error('Failed to create payment')
+  if (error) {
+    throw new Error(`Failed to create payment: ${error.message}`)
   }
 
   return payment
@@ -369,64 +345,77 @@ export interface CurrentMonthReceivablesSummary {
 }
 
 export async function getCollectedPayments(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   filters: CollectedPaymentFilters = {}
 ): Promise<Payment[]> {
-  let sql = 'SELECT * FROM payments WHERE user_id = ? AND status = ?'
-  const params: unknown[] = [userId, 'confirmed']
+  let query = db
+    .from('payments')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'confirmed')
 
   if (filters.customer_id) {
-    sql += ' AND customer_id = ?'
-    params.push(filters.customer_id)
+    query = query.eq('customer_id', filters.customer_id)
   }
-
   if (filters.start_date) {
-    sql += ' AND payment_date >= ?'
-    params.push(filters.start_date)
+    query = query.gte('payment_date', filters.start_date)
   }
-
   if (filters.end_date) {
-    sql += ' AND payment_date <= ?'
-    params.push(filters.end_date)
+    query = query.lte('payment_date', filters.end_date)
   }
-
   if (filters.payment_type) {
-    sql += ' AND payment_type = ?'
-    params.push(filters.payment_type)
+    query = query.eq('payment_type', filters.payment_type)
   }
 
-  sql += ' ORDER BY payment_date DESC'
+  query = query.order('payment_date', { ascending: false })
 
-  return await db.query<Payment>(sql, params)
+  const { data, error } = await query
+
+  if (error) {
+    throw new Error(`Failed to get collected payments: ${error.message}`)
+  }
+
+  return data || []
 }
 
 export async function getPaymentStatistics(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string
 ): Promise<PaymentStatistics> {
   const now = new Date()
   const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const currentYearStart = new Date(now.getFullYear(), 0, 1)
-
   const today = new Date().toISOString().split('T')[0]
 
-  const [currentMonthSchedules, currentYearSchedules, overdueSchedules] = await Promise.all([
-    db.query<{ status: string; amount: number; currency: string; due_date: string }>(
-      'SELECT status, amount, currency, due_date FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
-      [userId, currentMonthStart.toISOString()]
-    ),
-    db.query<{ status: string; amount: number; currency: string; due_date: string }>(
-      'SELECT status, amount, currency, due_date FROM payment_schedules WHERE user_id = ? AND due_date >= ?',
-      [userId, currentYearStart.toISOString()]
-    ),
-    db.query<{ amount: number; days_overdue: number }>(
-      `SELECT amount, CAST(julianday('now') - julianday(due_date) AS INTEGER) as days_overdue
-       FROM payment_schedules
-       WHERE user_id = ? AND status = 'overdue'`,
-      [userId]
-    ),
+  const [currentMonthResult, currentYearResult, overdueResult] = await Promise.all([
+    db.from('payment_schedules')
+      .select('status, amount, currency, due_date')
+      .eq('user_id', userId)
+      .gte('due_date', currentMonthStart.toISOString()),
+    db.from('payment_schedules')
+      .select('status, amount, currency, due_date')
+      .eq('user_id', userId)
+      .gte('due_date', currentYearStart.toISOString()),
+    db.from('payment_schedules')
+      .select('amount, due_date')
+      .eq('user_id', userId)
+      .eq('status', 'overdue'),
   ])
+
+  if (currentMonthResult.error) {
+    throw new Error(`Failed to get current month schedules: ${currentMonthResult.error.message}`)
+  }
+  if (currentYearResult.error) {
+    throw new Error(`Failed to get current year schedules: ${currentYearResult.error.message}`)
+  }
+  if (overdueResult.error) {
+    throw new Error(`Failed to get overdue schedules: ${overdueResult.error.message}`)
+  }
+
+  const currentMonthSchedules = currentMonthResult.data || []
+  const currentYearSchedules = currentYearResult.data || []
+  const overdueSchedules = overdueResult.data || []
 
   const currentMonthCollected = currentMonthSchedules
     .filter(p => p.status === 'paid')
@@ -456,8 +445,13 @@ export async function getPaymentStatistics(
 
   const overdueCount = overdueSchedules.length
   const overdueTotalAmount = overdueSchedules.reduce((sum, p) => sum + p.amount, 0)
+
+  const todayDate = new Date()
   const overdueAverageDays = overdueCount > 0
-    ? Math.floor(overdueSchedules.reduce((sum, p) => sum + p.days_overdue, 0) / overdueCount)
+    ? Math.floor(overdueSchedules.reduce((sum, p) => {
+        const dueDate = new Date(p.due_date)
+        return sum + Math.floor((todayDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+      }, 0) / overdueCount)
     : 0
 
   return {
@@ -483,7 +477,7 @@ export async function getPaymentStatistics(
 }
 
 export async function getCurrentMonthReceivables(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   month?: string
 ): Promise<{
@@ -491,86 +485,63 @@ export async function getCurrentMonthReceivables(
   summary: CurrentMonthReceivablesSummary
 }> {
   const targetMonth = month || new Date().toISOString().slice(0, 7)
+  const monthStart = `${targetMonth}-01`
+  const nextMonth = new Date(`${targetMonth}-01`)
+  nextMonth.setMonth(nextMonth.getMonth() + 1)
+  const monthEnd = nextMonth.toISOString().split('T')[0]
 
-  const sql = `
-    SELECT
-      ps.id,
-      ps.schedule_number,
-      CASE
-        WHEN ps.contract_id IS NOT NULL THEN (SELECT COUNT(*) FROM payment_schedules WHERE contract_id = ps.contract_id)
-        WHEN ps.quotation_id IS NOT NULL THEN (SELECT COUNT(*) FROM payment_schedules WHERE quotation_id = ps.quotation_id)
-        ELSE 1
-      END as total_schedules,
-      c.id as customer_id,
-      c.name as customer_name_zh,
-      c.name as customer_name_en,
-      COALESCE(ps.quotation_id, ct.quotation_id) as quotation_id,
-      q.quotation_number,
-      ct.id as contract_id,
-      ct.contract_number,
-      ct.title as contract_title,
-      ps.due_date,
-      ps.amount,
-      ps.currency,
-      ps.status,
-      ps.paid_date,
-      ps.payment_id,
-      ps.description,
-      ps.source_type,
-      CAST(julianday(ps.due_date) - julianday('now') AS INTEGER) as days_until_due,
-      CASE WHEN ps.due_date < date('now') AND ps.status = 'pending' THEN 1 ELSE 0 END as is_overdue
-    FROM payment_schedules ps
-    INNER JOIN customers c ON ps.customer_id = c.id
-    LEFT JOIN customer_contracts ct ON ps.contract_id = ct.id
-    LEFT JOIN quotations q ON COALESCE(ps.quotation_id, ct.quotation_id) = q.id
-    WHERE ps.user_id = ?
-      AND strftime('%Y-%m', ps.due_date) = ?
-    ORDER BY ps.due_date ASC, ps.schedule_number ASC
-  `
+  const { data, error } = await db
+    .from('payment_schedules')
+    .select(`
+      *,
+      customers (id, name),
+      customer_contracts (id, contract_number, title, quotation_id),
+      quotations (id, quotation_number)
+    `)
+    .eq('user_id', userId)
+    .gte('due_date', monthStart)
+    .lt('due_date', monthEnd)
+    .order('due_date')
+    .order('schedule_number')
 
-  const rows = await db.query<{
-    id: string
-    schedule_number: number
-    total_schedules: number
-    customer_id: string
-    customer_name_zh: string
-    customer_name_en: string
-    quotation_id: string | null
-    quotation_number: string | null
-    contract_id: string | null
-    contract_number: string | null
-    contract_title: string | null
-    due_date: string
-    amount: number
-    currency: string
-    status: 'pending' | 'paid' | 'overdue'
-    paid_date: string | null
-    payment_id: string | null
-    description: string | null
-    source_type: 'quotation' | 'manual' | 'contract'
-    days_until_due: number
-    is_overdue: number
-  }>(sql, [userId, targetMonth])
+  if (error) {
+    throw new Error(`Failed to get current month receivables: ${error.message}`)
+  }
 
-  const receivables: CurrentMonthReceivable[] = rows.map(row => {
-    let customerNameZh = row.customer_name_zh
-    let customerNameEn = row.customer_name_en
+  const today = new Date()
+  const todayStr = today.toISOString().split('T')[0]
 
-    try {
-      const parsed = JSON.parse(row.customer_name_zh)
-      if (typeof parsed === 'object' && parsed !== null) {
-        customerNameZh = parsed.zh || ''
-        customerNameEn = parsed.en || ''
-      }
-    } catch {
-      // name 不是 JSON 格式，保持原值
-    }
+  const receivables: CurrentMonthReceivable[] = (data || []).map(row => {
+    const customer = row.customers as { id: string; name: { zh: string; en: string } } | null
+    const contract = row.customer_contracts as { id: string; contract_number: string; title: string; quotation_id: string | null } | null
+    const quotation = row.quotations as { id: string; quotation_number: string } | null
+
+    const dueDate = new Date(row.due_date)
+    const daysUntilDue = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    const isOverdue = row.due_date < todayStr && row.status === 'pending'
 
     return {
-      ...row,
-      customer_name_zh: customerNameZh,
-      customer_name_en: customerNameEn,
-      is_overdue: row.is_overdue === 1,
+      id: row.id,
+      schedule_number: row.schedule_number,
+      total_schedules: 1,
+      customer_id: row.customer_id,
+      customer_name_zh: customer?.name?.zh || '',
+      customer_name_en: customer?.name?.en || '',
+      quotation_id: row.quotation_id || contract?.quotation_id || null,
+      quotation_number: quotation?.quotation_number || null,
+      contract_id: contract?.id || null,
+      contract_number: contract?.contract_number || null,
+      contract_title: contract?.title || null,
+      due_date: row.due_date,
+      amount: row.amount,
+      currency: row.currency,
+      status: row.status,
+      paid_date: row.paid_date,
+      payment_id: row.payment_id,
+      days_until_due: daysUntilDue,
+      is_overdue: isOverdue,
+      description: row.description,
+      source_type: row.source_type,
     }
   })
 
@@ -586,14 +557,11 @@ export async function getCurrentMonthReceivables(
     currency: receivables[0]?.currency || 'TWD',
   }
 
-  return {
-    receivables,
-    summary,
-  }
+  return { receivables, summary }
 }
 
 export async function markScheduleAsCollected(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   scheduleId: string,
   data: {
@@ -607,10 +575,16 @@ export async function markScheduleAsCollected(
   payment_schedule: PaymentSchedule
   payment: Payment
 }> {
-  const schedule = await db.queryOne<PaymentSchedule>(
-    'SELECT * FROM payment_schedules WHERE id = ? AND user_id = ?',
-    [scheduleId, userId]
-  )
+  const { data: schedule, error: scheduleError } = await db
+    .from('payment_schedules')
+    .select('*')
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .single()
+
+  if (scheduleError && scheduleError.code !== 'PGRST116') {
+    throw new Error(`Failed to get schedule: ${scheduleError.message}`)
+  }
 
   if (!schedule) {
     throw new Error('Schedule not found')
@@ -629,10 +603,12 @@ export async function markScheduleAsCollected(
   let quotationId: string | null = schedule.quotation_id
 
   if (schedule.contract_id) {
-    const contract = await db.queryOne<{ quotation_id: string | null }>(
-      'SELECT quotation_id FROM customer_contracts WHERE id = ?',
-      [schedule.contract_id]
-    )
+    const { data: contract } = await db
+      .from('customer_contracts')
+      .select('quotation_id')
+      .eq('id', schedule.contract_id)
+      .single()
+
     if (contract?.quotation_id) {
       quotationId = contract.quotation_id
     }
@@ -656,61 +632,75 @@ export async function markScheduleAsCollected(
 
   const now = new Date().toISOString()
 
-  // 使用條件更新防止競態條件
-  // 只有當 status 仍然不是 'paid' 時才更新
-  const updateResult = await db.execute(
-    `UPDATE payment_schedules
-     SET status = 'paid', paid_date = ?, paid_amount = ?, payment_id = ?, updated_at = ?
-     WHERE id = ? AND user_id = ? AND status != 'paid'`,
-    [data.payment_date, data.amount || schedule.amount, payment.id, now, scheduleId, userId]
-  )
+  const { error: updateError, count } = await db
+    .from('payment_schedules')
+    .update({
+      status: 'paid',
+      paid_date: data.payment_date,
+      paid_amount: data.amount || schedule.amount,
+      payment_id: payment.id,
+      updated_at: now
+    })
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .neq('status', 'paid')
 
-  // 如果沒有更新任何行，表示另一個請求已經標記為 paid
-  // 刪除剛建立的 Payment（它是孤立的）
-  if (updateResult.count === 0) {
+  if (updateError) {
+    throw new Error(`Failed to update schedule: ${updateError.message}`)
+  }
+
+  if (count === 0) {
     console.log('[markScheduleAsCollected] Race condition detected, deleting orphaned payment:', payment.id)
-    await db.execute('DELETE FROM payments WHERE id = ?', [payment.id])
+    await db.from('payments').delete().eq('id', payment.id)
     throw new Error('Schedule already paid')
   }
 
   console.log('[markScheduleAsCollected] Payment created and linked:', {
     paymentId: payment.id,
     scheduleId,
-    updatedRows: updateResult.count
+    updatedRows: count
   })
 
   if (schedule.contract_id) {
-    const nextSchedule = await db.queryOne<PaymentSchedule>(
-      `SELECT * FROM payment_schedules
-       WHERE contract_id = ? AND user_id = ? AND status = 'pending'
-       ORDER BY due_date ASC
-       LIMIT 1`,
-      [schedule.contract_id, userId]
-    )
+    const { data: nextSchedule } = await db
+      .from('payment_schedules')
+      .select('*')
+      .eq('contract_id', schedule.contract_id)
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .order('due_date')
+      .limit(1)
+      .single()
 
     if (nextSchedule) {
-      await db.execute(
-        `UPDATE customer_contracts
-         SET next_collection_date = ?, next_collection_amount = ?, updated_at = ?
-         WHERE id = ?`,
-        [nextSchedule.due_date, nextSchedule.amount, now, schedule.contract_id]
-      )
+      await db
+        .from('customer_contracts')
+        .update({
+          next_collection_date: nextSchedule.due_date,
+          next_collection_amount: nextSchedule.amount,
+          updated_at: now
+        })
+        .eq('id', schedule.contract_id)
     } else {
-      await db.execute(
-        `UPDATE customer_contracts
-         SET next_collection_date = NULL, next_collection_amount = NULL, updated_at = ?
-         WHERE id = ?`,
-        [now, schedule.contract_id]
-      )
+      await db
+        .from('customer_contracts')
+        .update({
+          next_collection_date: null,
+          next_collection_amount: null,
+          updated_at: now
+        })
+        .eq('id', schedule.contract_id)
     }
   }
 
-  const updatedSchedule = await db.queryOne<PaymentSchedule>(
-    'SELECT * FROM payment_schedules WHERE id = ? AND user_id = ?',
-    [scheduleId, userId]
-  )
+  const { data: updatedSchedule, error: fetchError } = await db
+    .from('payment_schedules')
+    .select('*')
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .single()
 
-  if (!updatedSchedule) {
+  if (fetchError || !updatedSchedule) {
     throw new Error('Failed to update schedule')
   }
 
@@ -720,11 +710,8 @@ export async function markScheduleAsCollected(
   }
 }
 
-/**
- * 取得未付款的排程（超過 30 天逾期）
- */
 export async function getUnpaidPaymentSchedules(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   filters: UnpaidPaymentFilters = {}
 ): Promise<UnpaidPaymentWithDetails[]> {
@@ -732,35 +719,33 @@ export async function getUnpaidPaymentSchedules(
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(today.getDate() - 30)
 
-  let sql = `
-    SELECT
-      ps.*,
-      c.name as customer_name,
-      ct.contract_number,
-      ct.title as contract_title
-    FROM payment_schedules ps
-    INNER JOIN customers c ON ps.customer_id = c.id
-    INNER JOIN customer_contracts ct ON ps.contract_id = ct.id
-    WHERE ct.user_id = ?
-      AND ps.status = 'overdue'
-      AND ps.due_date < ?
-  `
-  const params: unknown[] = [userId, thirtyDaysAgo.toISOString().split('T')[0]]
+  let query = db
+    .from('payment_schedules')
+    .select(`
+      *,
+      customers (name),
+      customer_contracts!inner (contract_number, title, user_id)
+    `)
+    .eq('customer_contracts.user_id', userId)
+    .eq('status', 'overdue')
+    .lt('due_date', thirtyDaysAgo.toISOString().split('T')[0])
 
   if (filters.customer_id) {
-    sql += ' AND ps.customer_id = ?'
-    params.push(filters.customer_id)
+    query = query.eq('customer_id', filters.customer_id)
   }
 
-  sql += ' ORDER BY ps.due_date ASC'
+  query = query.order('due_date')
 
-  const rows = await db.query<PaymentSchedule & {
-    customer_name: string
-    contract_number: string
-    contract_title: string
-  }>(sql, params)
+  const { data, error } = await query
 
-  return rows.map(row => {
+  if (error) {
+    throw new Error(`Failed to get unpaid payment schedules: ${error.message}`)
+  }
+
+  return (data || []).map(row => {
+    const customer = row.customers as { name: { zh: string; en: string } } | null
+    const contract = row.customer_contracts as { contract_number: string; title: string } | null
+
     const dueDate = new Date(row.due_date)
     const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
 
@@ -768,78 +753,98 @@ export async function getUnpaidPaymentSchedules(
       return null
     }
 
-    let parsedCustomerName = row.customer_name
-    try {
-      const parsed = JSON.parse(row.customer_name)
-      if (typeof parsed === 'object' && parsed !== null) {
-        parsedCustomerName = parsed.zh || parsed.en || ''
-      }
-    } catch {
-      // name 不是 JSON 格式，保持原值
-    }
-
     return {
       ...row,
-      customer_name: parsedCustomerName,
+      customers: undefined,
+      customer_contracts: undefined,
+      customer_name: customer?.name?.zh || customer?.name?.en || '',
+      contract_number: contract?.contract_number || '',
+      contract_title: contract?.title || '',
       days_overdue: daysOverdue,
     }
   }).filter((item): item is UnpaidPaymentWithDetails => item !== null)
 }
 
-/**
- * 標記付款排程為逾期
- */
 export async function markPaymentScheduleAsOverdue(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   scheduleId: string
 ): Promise<PaymentSchedule | null> {
-  const schedule = await db.queryOne<PaymentSchedule>(
-    'SELECT * FROM payment_schedules WHERE id = ? AND user_id = ?',
-    [scheduleId, userId]
-  )
+  const { data: schedule, error: fetchError } = await db
+    .from('payment_schedules')
+    .select('*')
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .single()
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    throw new Error(`Failed to get schedule: ${fetchError.message}`)
+  }
 
   if (!schedule) {
     return null
   }
 
-  await db.execute(
-    'UPDATE payment_schedules SET status = ?, updated_at = ? WHERE id = ? AND user_id = ? AND status = ?',
-    ['overdue', new Date().toISOString(), scheduleId, userId, 'pending']
-  )
+  const { error: updateError } = await db
+    .from('payment_schedules')
+    .update({
+      status: 'overdue',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .eq('status', 'pending')
 
-  return await db.queryOne<PaymentSchedule>(
-    'SELECT * FROM payment_schedules WHERE id = ? AND user_id = ?',
-    [scheduleId, userId]
-  )
+  if (updateError) {
+    throw new Error(`Failed to mark schedule as overdue: ${updateError.message}`)
+  }
+
+  const { data: updated } = await db
+    .from('payment_schedules')
+    .select('*')
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .single()
+
+  return updated
 }
 
-/**
- * 批量標記逾期的付款排程
- */
 export async function batchMarkOverduePaymentSchedules(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string
 ): Promise<{ updated_count: number; schedule_ids: string[] }> {
   const today = new Date().toISOString().split('T')[0]
 
-  const overdueSchedules = await db.query<PaymentSchedule>(
-    'SELECT id FROM payment_schedules WHERE user_id = ? AND status = ? AND due_date < ?',
-    [userId, 'pending', today]
-  )
+  const { data: overdueSchedules, error: fetchError } = await db
+    .from('payment_schedules')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .lt('due_date', today)
 
-  if (overdueSchedules.length === 0) {
+  if (fetchError) {
+    throw new Error(`Failed to get overdue schedules: ${fetchError.message}`)
+  }
+
+  if (!overdueSchedules || overdueSchedules.length === 0) {
     return { updated_count: 0, schedule_ids: [] }
   }
 
   const scheduleIds = overdueSchedules.map(s => s.id)
 
-  await db.execute(
-    `UPDATE payment_schedules
-     SET status = 'overdue', updated_at = ?
-     WHERE user_id = ? AND status = 'pending' AND due_date < ?`,
-    [new Date().toISOString(), userId, today]
-  )
+  const { error: updateError } = await db
+    .from('payment_schedules')
+    .update({
+      status: 'overdue',
+      updated_at: new Date().toISOString()
+    })
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .lt('due_date', today)
+
+  if (updateError) {
+    throw new Error(`Failed to batch update schedules: ${updateError.message}`)
+  }
 
   return {
     updated_count: overdueSchedules.length,
@@ -847,11 +852,8 @@ export async function batchMarkOverduePaymentSchedules(
   }
 }
 
-/**
- * 取得即將到期的收款提醒
- */
 export async function getPaymentReminders(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   daysAhead: number = 30
 ): Promise<Array<{
@@ -870,39 +872,34 @@ export async function getPaymentReminders(
   const futureDate = new Date()
   futureDate.setDate(today.getDate() + daysAhead)
 
-  const sql = `
-    SELECT
-      ct.id as contract_id,
-      ct.contract_number,
-      ct.title as contract_title,
-      ct.customer_id,
-      c.name as customer_name,
-      ps.due_date as next_collection_date,
-      ps.amount as next_collection_amount,
-      ps.currency
-    FROM customer_contracts ct
-    INNER JOIN customers c ON ct.customer_id = c.id
-    INNER JOIN payment_schedules ps ON ct.id = ps.contract_id
-    WHERE ct.user_id = ?
-      AND ct.status = 'active'
-      AND ps.status = 'pending'
-      AND ps.due_date <= ?
-    ORDER BY ps.due_date ASC
-  `
+  const { data, error } = await db
+    .from('customer_contracts')
+    .select(`
+      id,
+      contract_number,
+      title,
+      customer_id,
+      customers (name),
+      payment_schedules!inner (due_date, amount, currency, status)
+    `)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .eq('payment_schedules.status', 'pending')
+    .lte('payment_schedules.due_date', futureDate.toISOString().split('T')[0])
+    .order('payment_schedules(due_date)')
 
-  const rows = await db.query<{
-    contract_id: string
-    contract_number: string
-    contract_title: string
-    customer_id: string
-    customer_name: string
-    next_collection_date: string
-    next_collection_amount: number
-    currency: string
-  }>(sql, [userId, futureDate.toISOString().split('T')[0]])
+  if (error) {
+    throw new Error(`Failed to get payment reminders: ${error.message}`)
+  }
 
-  return rows.map(row => {
-    const collectionDate = new Date(row.next_collection_date)
+  return (data || []).map(row => {
+    const customer = row.customers as { name: { zh: string; en: string } } | null
+    const schedules = row.payment_schedules as Array<{ due_date: string; amount: number; currency: string }> | null
+    const schedule = schedules?.[0]
+
+    if (!schedule) return null
+
+    const collectionDate = new Date(schedule.due_date)
     const daysUntilCollection = Math.floor((collectionDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
     let collectionStatus: 'overdue' | 'due_today' | 'due_soon' | 'upcoming'
@@ -916,30 +913,23 @@ export async function getPaymentReminders(
       collectionStatus = 'upcoming'
     }
 
-    let parsedCustomerName = row.customer_name
-    try {
-      const parsed = JSON.parse(row.customer_name)
-      if (typeof parsed === 'object' && parsed !== null) {
-        parsedCustomerName = parsed.zh || parsed.en || ''
-      }
-    } catch {
-      // name 不是 JSON 格式，保持原值
-    }
-
     return {
-      ...row,
-      customer_name: parsedCustomerName,
+      contract_id: row.id,
+      contract_number: row.contract_number,
+      contract_title: row.title,
+      customer_id: row.customer_id,
+      customer_name: customer?.name?.zh || customer?.name?.en || '',
+      next_collection_date: schedule.due_date,
+      next_collection_amount: schedule.amount,
+      currency: schedule.currency,
       days_until_collection: daysUntilCollection,
       collection_status: collectionStatus,
     }
-  })
+  }).filter((item): item is NonNullable<typeof item> => item !== null)
 }
 
-/**
- * 記錄付款並更新相關的排程和合約
- */
 export async function recordPayment(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   data: {
     customer_id: string
@@ -975,98 +965,128 @@ export async function recordPayment(
     notes: data.notes || null,
   })
 
+  const now = new Date().toISOString()
+
   if (data.schedule_id) {
-    await db.execute(
-      `UPDATE payment_schedules
-       SET status = 'paid', paid_date = ?, payment_id = ?, paid_amount = ?, updated_at = ?
-       WHERE id = ? AND user_id = ?`,
-      [data.payment_date, payment.id, data.amount, new Date().toISOString(), data.schedule_id, userId]
-    )
+    await db
+      .from('payment_schedules')
+      .update({
+        status: 'paid',
+        paid_date: data.payment_date,
+        payment_id: payment.id,
+        paid_amount: data.amount,
+        updated_at: now
+      })
+      .eq('id', data.schedule_id)
+      .eq('user_id', userId)
   } else if (data.contract_id) {
-    const nextSchedule = await db.queryOne<PaymentSchedule>(
-      `SELECT * FROM payment_schedules
-       WHERE contract_id = ? AND user_id = ? AND status = 'pending'
-       ORDER BY due_date ASC
-       LIMIT 1`,
-      [data.contract_id, userId]
-    )
+    const { data: nextSchedule } = await db
+      .from('payment_schedules')
+      .select('*')
+      .eq('contract_id', data.contract_id)
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .order('due_date')
+      .limit(1)
+      .single()
 
     if (nextSchedule) {
-      await db.execute(
-        `UPDATE payment_schedules
-         SET status = 'paid', paid_date = ?, payment_id = ?, paid_amount = ?, updated_at = ?
-         WHERE id = ? AND user_id = ?`,
-        [data.payment_date, payment.id, data.amount, new Date().toISOString(), nextSchedule.id, userId]
-      )
+      await db
+        .from('payment_schedules')
+        .update({
+          status: 'paid',
+          paid_date: data.payment_date,
+          payment_id: payment.id,
+          paid_amount: data.amount,
+          updated_at: now
+        })
+        .eq('id', nextSchedule.id)
+        .eq('user_id', userId)
     }
   }
 
   if (data.contract_id) {
-    const nextUnpaid = await db.queryOne<PaymentSchedule>(
-      `SELECT * FROM payment_schedules
-       WHERE contract_id = ? AND user_id = ? AND status = 'pending'
-       ORDER BY due_date ASC
-       LIMIT 1`,
-      [data.contract_id, userId]
-    )
+    const { data: nextUnpaid } = await db
+      .from('payment_schedules')
+      .select('*')
+      .eq('contract_id', data.contract_id)
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .order('due_date')
+      .limit(1)
+      .single()
 
     if (nextUnpaid) {
-      await db.execute(
-        `UPDATE customer_contracts
-         SET next_collection_date = ?, next_collection_amount = ?, updated_at = ?
-         WHERE id = ? AND user_id = ?`,
-        [nextUnpaid.due_date, nextUnpaid.amount, new Date().toISOString(), data.contract_id, userId]
-      )
+      await db
+        .from('customer_contracts')
+        .update({
+          next_collection_date: nextUnpaid.due_date,
+          next_collection_amount: nextUnpaid.amount,
+          updated_at: now
+        })
+        .eq('id', data.contract_id)
+        .eq('user_id', userId)
     } else {
-      await db.execute(
-        `UPDATE customer_contracts
-         SET next_collection_date = NULL, next_collection_amount = NULL, updated_at = ?
-         WHERE id = ? AND user_id = ?`,
-        [new Date().toISOString(), data.contract_id, userId]
-      )
+      await db
+        .from('customer_contracts')
+        .update({
+          next_collection_date: null,
+          next_collection_amount: null,
+          updated_at: now
+        })
+        .eq('id', data.contract_id)
+        .eq('user_id', userId)
     }
   }
 
   return payment
 }
 
-/**
- * 從報價單付款條款同步到收款排程
- */
 export async function syncQuotationToPaymentSchedules(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   quotationId: string
 ): Promise<{ created: number; updated: number; schedules: PaymentSchedule[] }> {
-  const quotation = await db.queryOne<{
-    id: string
-    customer_id: string
-    currency: string
-    quotation_number: string
-  }>(
-    'SELECT id, customer_id, currency, quotation_number FROM quotations WHERE id = ? AND user_id = ?',
-    [quotationId, userId]
-  )
+  const { data: quotation, error: quotationError } = await db
+    .from('quotations')
+    .select('id, customer_id, currency, quotation_number')
+    .eq('id', quotationId)
+    .eq('user_id', userId)
+    .single()
+
+  if (quotationError && quotationError.code !== 'PGRST116') {
+    throw new Error(`Failed to get quotation: ${quotationError.message}`)
+  }
 
   if (!quotation) {
     throw new Error('Quotation not found')
   }
 
-  const paymentTerms = await db.query<PaymentTerm>(
-    'SELECT * FROM payment_terms WHERE quotation_id = ? ORDER BY term_number ASC',
-    [quotationId]
-  )
+  const { data: paymentTerms, error: termsError } = await db
+    .from('payment_terms')
+    .select('*')
+    .eq('quotation_id', quotationId)
+    .order('term_number')
 
-  if (paymentTerms.length === 0) {
+  if (termsError) {
+    throw new Error(`Failed to get payment terms: ${termsError.message}`)
+  }
+
+  if (!paymentTerms || paymentTerms.length === 0) {
     return { created: 0, updated: 0, schedules: [] }
   }
 
-  const existingSchedules = await db.query<PaymentSchedule>(
-    'SELECT * FROM payment_schedules WHERE quotation_id = ? AND user_id = ?',
-    [quotationId, userId]
-  )
+  const { data: existingSchedules, error: schedulesError } = await db
+    .from('payment_schedules')
+    .select('*')
+    .eq('quotation_id', quotationId)
+    .eq('user_id', userId)
 
-  const existingMap = new Map(existingSchedules.map(s => [s.schedule_number, s]))
+  if (schedulesError) {
+    throw new Error(`Failed to get existing schedules: ${schedulesError.message}`)
+  }
+
+  const existingMap = new Map((existingSchedules || []).map(s => [s.schedule_number, s]))
   const now = new Date().toISOString()
 
   let created = 0
@@ -1082,42 +1102,65 @@ export async function syncQuotationToPaymentSchedules(
         existing.due_date !== term.due_date ||
         existing.description !== term.term_name
       ) {
-        await db.execute(
-          `UPDATE payment_schedules
-           SET amount = ?, due_date = ?, description = ?, updated_at = ?
-           WHERE id = ? AND user_id = ?`,
-          [term.amount, term.due_date, term.term_name, now, existing.id, userId]
-        )
+        const { error: updateError } = await db
+          .from('payment_schedules')
+          .update({
+            amount: term.amount,
+            due_date: term.due_date,
+            description: term.term_name,
+            updated_at: now
+          })
+          .eq('id', existing.id)
+          .eq('user_id', userId)
+
+        if (updateError) {
+          throw new Error(`Failed to update schedule: ${updateError.message}`)
+        }
         updated++
       }
 
-      const updatedSchedule = await db.queryOne<PaymentSchedule>(
-        'SELECT * FROM payment_schedules WHERE id = ?',
-        [existing.id]
-      )
+      const { data: updatedSchedule } = await db
+        .from('payment_schedules')
+        .select('*')
+        .eq('id', existing.id)
+        .single()
+
       if (updatedSchedule) {
         schedules.push(updatedSchedule)
       }
     } else {
       const id = crypto.randomUUID()
-      await db.execute(
-        `INSERT INTO payment_schedules (
-          id, user_id, contract_id, quotation_id, customer_id, schedule_number,
-          due_date, amount, currency, status, paid_amount, description, source_type,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          id, userId, null, quotationId, quotation.customer_id, term.term_number,
-          term.due_date, term.amount, quotation.currency, 'pending', 0,
-          term.term_name, 'quotation', now, now
-        ]
-      )
+      const { error: insertError } = await db
+        .from('payment_schedules')
+        .insert({
+          id,
+          user_id: userId,
+          contract_id: null,
+          quotation_id: quotationId,
+          customer_id: quotation.customer_id,
+          schedule_number: term.term_number,
+          due_date: term.due_date,
+          amount: term.amount,
+          currency: quotation.currency,
+          status: 'pending',
+          paid_amount: 0,
+          description: term.term_name,
+          source_type: 'quotation',
+          created_at: now,
+          updated_at: now
+        })
+
+      if (insertError) {
+        throw new Error(`Failed to insert schedule: ${insertError.message}`)
+      }
       created++
 
-      const newSchedule = await db.queryOne<PaymentSchedule>(
-        'SELECT * FROM payment_schedules WHERE id = ?',
-        [id]
-      )
+      const { data: newSchedule } = await db
+        .from('payment_schedules')
+        .select('*')
+        .eq('id', id)
+        .single()
+
       if (newSchedule) {
         schedules.push(newSchedule)
       }
@@ -1125,23 +1168,21 @@ export async function syncQuotationToPaymentSchedules(
   }
 
   const termNumbers = new Set(paymentTerms.map(t => t.term_number))
-  for (const existing of existingSchedules) {
+  for (const existing of existingSchedules || []) {
     if (!termNumbers.has(existing.schedule_number) && existing.status === 'pending') {
-      await db.execute(
-        'DELETE FROM payment_schedules WHERE id = ? AND user_id = ?',
-        [existing.id, userId]
-      )
+      await db
+        .from('payment_schedules')
+        .delete()
+        .eq('id', existing.id)
+        .eq('user_id', userId)
     }
   }
 
   return { created, updated, schedules }
 }
 
-/**
- * 手動建立收款排程
- */
 export async function createPaymentSchedule(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   data: {
     customer_id: string
@@ -1153,79 +1194,109 @@ export async function createPaymentSchedule(
     notes?: string
   }
 ): Promise<PaymentSchedule> {
-  const customer = await db.queryOne<{ id: string }>(
-    'SELECT id FROM customers WHERE id = ? AND user_id = ?',
-    [data.customer_id, userId]
-  )
+  const { data: customer, error: customerError } = await db
+    .from('customers')
+    .select('id')
+    .eq('id', data.customer_id)
+    .eq('user_id', userId)
+    .single()
+
+  if (customerError && customerError.code !== 'PGRST116') {
+    throw new Error(`Failed to verify customer: ${customerError.message}`)
+  }
 
   if (!customer) {
     throw new Error('Customer not found')
   }
 
   if (data.quotation_id) {
-    const quotation = await db.queryOne<{ id: string }>(
-      'SELECT id FROM quotations WHERE id = ? AND user_id = ?',
-      [data.quotation_id, userId]
-    )
+    const { data: quotation, error: quotationError } = await db
+      .from('quotations')
+      .select('id')
+      .eq('id', data.quotation_id)
+      .eq('user_id', userId)
+      .single()
+
+    if (quotationError && quotationError.code !== 'PGRST116') {
+      throw new Error(`Failed to verify quotation: ${quotationError.message}`)
+    }
+
     if (!quotation) {
       throw new Error('Quotation not found')
     }
   }
 
-  const maxScheduleNumber = await db.queryOne<{ max_number: number }>(
-    `SELECT COALESCE(MAX(schedule_number), 0) as max_number
-     FROM payment_schedules
-     WHERE user_id = ? AND customer_id = ? AND source_type = 'manual'`,
-    [userId, data.customer_id]
-  )
+  const { data: maxResult } = await db
+    .from('payment_schedules')
+    .select('schedule_number')
+    .eq('user_id', userId)
+    .eq('customer_id', data.customer_id)
+    .eq('source_type', 'manual')
+    .order('schedule_number', { ascending: false })
+    .limit(1)
+    .single()
 
-  const scheduleNumber = (maxScheduleNumber?.max_number || 0) + 1
+  const scheduleNumber = (maxResult?.schedule_number || 0) + 1
   const id = crypto.randomUUID()
   const now = new Date().toISOString()
 
-  await db.execute(
-    `INSERT INTO payment_schedules (
-      id, user_id, contract_id, quotation_id, customer_id, schedule_number,
-      due_date, amount, currency, status, paid_amount, description, notes,
-      source_type, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id, userId, null, data.quotation_id || null, data.customer_id, scheduleNumber,
-      data.due_date, data.amount, data.currency, 'pending', 0,
-      data.description || null, data.notes || null, 'manual', now, now
-    ]
-  )
+  const { error: insertError } = await db
+    .from('payment_schedules')
+    .insert({
+      id,
+      user_id: userId,
+      contract_id: null,
+      quotation_id: data.quotation_id || null,
+      customer_id: data.customer_id,
+      schedule_number: scheduleNumber,
+      due_date: data.due_date,
+      amount: data.amount,
+      currency: data.currency,
+      status: 'pending',
+      paid_amount: 0,
+      description: data.description || null,
+      notes: data.notes || null,
+      source_type: 'manual',
+      created_at: now,
+      updated_at: now
+    })
 
-  const schedule = await db.queryOne<PaymentSchedule>(
-    'SELECT * FROM payment_schedules WHERE id = ?',
-    [id]
-  )
+  if (insertError) {
+    throw new Error(`Failed to create payment schedule: ${insertError.message}`)
+  }
 
-  if (!schedule) {
+  const { data: schedule, error: fetchError } = await db
+    .from('payment_schedules')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !schedule) {
     throw new Error('Failed to create payment schedule')
   }
 
   return schedule
 }
 
-/**
- * 取得報價單的付款條款
- */
 export async function getPaymentTermsByQuotation(
-  db: D1Client,
+  db: SupabaseClient,
   quotationId: string
 ): Promise<PaymentTerm[]> {
-  return await db.query<PaymentTerm>(
-    'SELECT * FROM payment_terms WHERE quotation_id = ? ORDER BY term_number ASC',
-    [quotationId]
-  )
+  const { data, error } = await db
+    .from('payment_terms')
+    .select('*')
+    .eq('quotation_id', quotationId)
+    .order('term_number')
+
+  if (error) {
+    throw new Error(`Failed to get payment terms: ${error.message}`)
+  }
+
+  return data || []
 }
 
-/**
- * 更新收款排程
- */
 export async function updatePaymentSchedule(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   scheduleId: string,
   data: {
@@ -1242,16 +1313,21 @@ export async function updatePaymentSchedule(
     payment_id?: string | null
   }
 ): Promise<PaymentSchedule> {
-  const schedule = await db.queryOne<PaymentSchedule>(
-    'SELECT * FROM payment_schedules WHERE id = ? AND user_id = ?',
-    [scheduleId, userId]
-  )
+  const { data: schedule, error: fetchError } = await db
+    .from('payment_schedules')
+    .select('*')
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .single()
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    throw new Error(`Failed to get schedule: ${fetchError.message}`)
+  }
 
   if (!schedule) {
     throw new Error('Payment schedule not found')
   }
 
-  // 如果從 'paid' 狀態變更為其他狀態，刪除關聯的 Payment 記錄
   console.log('[updatePaymentSchedule] Schedule state:', {
     scheduleId,
     currentStatus: schedule.status,
@@ -1266,96 +1342,67 @@ export async function updatePaymentSchedule(
     schedule.payment_id
   ) {
     console.log('[updatePaymentSchedule] Deleting payment:', schedule.payment_id)
-    const deleteResult = await db.execute('DELETE FROM payments WHERE id = ?', [schedule.payment_id])
-    console.log('[updatePaymentSchedule] Delete result:', deleteResult)
+    const { error: deleteError } = await db
+      .from('payments')
+      .delete()
+      .eq('id', schedule.payment_id)
+    console.log('[updatePaymentSchedule] Delete result:', { error: deleteError })
   }
 
-  const updates: string[] = []
-  const params: unknown[] = []
-
-  if (data.due_date !== undefined) {
-    updates.push('due_date = ?')
-    params.push(data.due_date)
-  }
-  if (data.amount !== undefined) {
-    updates.push('amount = ?')
-    params.push(data.amount)
-  }
-  if (data.currency !== undefined) {
-    updates.push('currency = ?')
-    params.push(data.currency)
-  }
-  if (data.description !== undefined) {
-    updates.push('description = ?')
-    params.push(data.description)
-  }
-  if (data.notes !== undefined) {
-    updates.push('notes = ?')
-    params.push(data.notes)
-  }
-  if (data.status !== undefined) {
-    updates.push('status = ?')
-    params.push(data.status)
-  }
-  if (data.customer_id !== undefined) {
-    updates.push('customer_id = ?')
-    params.push(data.customer_id)
-  }
-  if (data.quotation_id !== undefined) {
-    updates.push('quotation_id = ?')
-    params.push(data.quotation_id)
-  }
-  if (data.contract_id !== undefined) {
-    updates.push('contract_id = ?')
-    params.push(data.contract_id)
-  }
-  if (data.paid_date !== undefined) {
-    updates.push('paid_date = ?')
-    params.push(data.paid_date)
-  }
-  if (data.payment_id !== undefined) {
-    updates.push('payment_id = ?')
-    params.push(data.payment_id)
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString()
   }
 
-  if (updates.length === 0) {
-    return schedule
+  if (data.due_date !== undefined) updateData.due_date = data.due_date
+  if (data.amount !== undefined) updateData.amount = data.amount
+  if (data.currency !== undefined) updateData.currency = data.currency
+  if (data.description !== undefined) updateData.description = data.description
+  if (data.notes !== undefined) updateData.notes = data.notes
+  if (data.status !== undefined) updateData.status = data.status
+  if (data.customer_id !== undefined) updateData.customer_id = data.customer_id
+  if (data.quotation_id !== undefined) updateData.quotation_id = data.quotation_id
+  if (data.contract_id !== undefined) updateData.contract_id = data.contract_id
+  if (data.paid_date !== undefined) updateData.paid_date = data.paid_date
+  if (data.payment_id !== undefined) updateData.payment_id = data.payment_id
+
+  const { error: updateError } = await db
+    .from('payment_schedules')
+    .update(updateData)
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+
+  if (updateError) {
+    throw new Error(`Failed to update payment schedule: ${updateError.message}`)
   }
 
-  updates.push('updated_at = ?')
-  params.push(new Date().toISOString())
-  params.push(scheduleId)
-  params.push(userId)
+  const { data: updated, error: refetchError } = await db
+    .from('payment_schedules')
+    .select('*')
+    .eq('id', scheduleId)
+    .single()
 
-  await db.execute(
-    `UPDATE payment_schedules SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
-    params
-  )
-
-  const updated = await db.queryOne<PaymentSchedule>(
-    'SELECT * FROM payment_schedules WHERE id = ?',
-    [scheduleId]
-  )
-
-  if (!updated) {
+  if (refetchError || !updated) {
     throw new Error('Failed to update payment schedule')
   }
 
   return updated
 }
 
-/**
- * 刪除收款排程
- */
 export async function deletePaymentSchedule(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   scheduleId: string
 ): Promise<void> {
-  const schedule = await db.queryOne<PaymentSchedule>(
-    'SELECT * FROM payment_schedules WHERE id = ? AND user_id = ?',
-    [scheduleId, userId]
-  )
+  const { data: schedule, error: fetchError } = await db
+    .from('payment_schedules')
+    .select('*')
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+    .single()
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    throw new Error(`Failed to get schedule: ${fetchError.message}`)
+  }
 
   if (!schedule) {
     throw new Error('Payment schedule not found')
@@ -1365,17 +1412,19 @@ export async function deletePaymentSchedule(
     throw new Error('Cannot delete a paid schedule')
   }
 
-  await db.execute(
-    'DELETE FROM payment_schedules WHERE id = ? AND user_id = ?',
-    [scheduleId, userId]
-  )
+  const { error: deleteError } = await db
+    .from('payment_schedules')
+    .delete()
+    .eq('id', scheduleId)
+    .eq('user_id', userId)
+
+  if (deleteError) {
+    throw new Error(`Failed to delete payment schedule: ${deleteError.message}`)
+  }
 }
 
-/**
- * 取得所有收款排程
- */
 export async function getPaymentSchedules(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   filters?: {
     customer_id?: string
@@ -1386,35 +1435,37 @@ export async function getPaymentSchedules(
     due_date_to?: string
   }
 ): Promise<PaymentSchedule[]> {
-  let sql = 'SELECT * FROM payment_schedules WHERE user_id = ?'
-  const params: unknown[] = [userId]
+  let query = db
+    .from('payment_schedules')
+    .select('*')
+    .eq('user_id', userId)
 
   if (filters?.customer_id) {
-    sql += ' AND customer_id = ?'
-    params.push(filters.customer_id)
+    query = query.eq('customer_id', filters.customer_id)
   }
   if (filters?.quotation_id) {
-    sql += ' AND quotation_id = ?'
-    params.push(filters.quotation_id)
+    query = query.eq('quotation_id', filters.quotation_id)
   }
   if (filters?.status) {
-    sql += ' AND status = ?'
-    params.push(filters.status)
+    query = query.eq('status', filters.status)
   }
   if (filters?.source_type) {
-    sql += ' AND source_type = ?'
-    params.push(filters.source_type)
+    query = query.eq('source_type', filters.source_type)
   }
   if (filters?.due_date_from) {
-    sql += ' AND due_date >= ?'
-    params.push(filters.due_date_from)
+    query = query.gte('due_date', filters.due_date_from)
   }
   if (filters?.due_date_to) {
-    sql += ' AND due_date <= ?'
-    params.push(filters.due_date_to)
+    query = query.lte('due_date', filters.due_date_to)
   }
 
-  sql += ' ORDER BY due_date ASC'
+  query = query.order('due_date')
 
-  return await db.query<PaymentSchedule>(sql, params)
+  const { data, error } = await query
+
+  if (error) {
+    throw new Error(`Failed to get payment schedules: ${error.message}`)
+  }
+
+  return data || []
 }

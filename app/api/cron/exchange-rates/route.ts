@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { syncRatesToDatabase, SUPPORTED_CURRENCIES } from '@/lib/services/exchange-rate-d1'
-import { getD1Client } from '@/lib/db/d1-client'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { syncRatesToDatabase, SUPPORTED_CURRENCIES } from '@/lib/services/exchange-rate'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { headers } from 'next/headers'
 
 // Note: Edge runtime removed for OpenNext compatibility
@@ -69,8 +68,6 @@ async function sendSuccessNotification(syncedCount: number) {
 }
 
 export async function GET() {
-  const { env } = await getCloudflareContext()
-
   try {
     // 驗證請求來源 (Vercel Cron 會帶上特殊的 header)
     const headersList = await headers()
@@ -96,7 +93,7 @@ export async function GET() {
     console.log('🕒 Starting scheduled exchange rate sync...')
     const startTime = Date.now()
 
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
 
     // 同步所有支援的基準貨幣
     const results = []
@@ -161,8 +158,6 @@ export async function GET() {
 
 // 手動觸發端點（用於測試）
 export async function POST(request: Request) {
-  const { env } = await getCloudflareContext()
-
   try {
     // 驗證請求（可以用 API key 或其他方式）
     const body = await request.json() as Record<string, unknown>
@@ -177,7 +172,7 @@ export async function POST(request: Request) {
 
     console.log('🔧 Manual exchange rate sync triggered')
 
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
 
     // 執行同步
     const results = []

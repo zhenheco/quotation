@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getPaymentReminders } from '@/lib/dal/payments'
-import { getD1Client, type D1Client } from '@/lib/db/d1-client'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getSupabaseClient, type SupabaseClient } from '@/lib/db/supabase-client'
 import { headers } from 'next/headers'
 import { emailService } from '@/lib/services/email'
 import {
@@ -11,7 +10,6 @@ import {
   type PaymentReminderEmailData
 } from '@/lib/templates/payment-reminder-email'
 
-// 錯誤通知函數
 async function sendErrorNotification(error: Error) {
   const webhookUrl = process.env.ERROR_WEBHOOK_URL || process.env.SLACK_WEBHOOK_URL
 
@@ -51,9 +49,7 @@ async function sendErrorNotification(error: Error) {
   }
 }
 
-// 成功通知函數
 async function sendSuccessNotification(totalSent: number, userCount: number) {
-  // 只在設定了通知 URL 且為生產環境時發送成功通知
   if (process.env.NODE_ENV !== 'production') return
 
   const webhookUrl = process.env.SUCCESS_WEBHOOK_URL
@@ -72,29 +68,29 @@ async function sendSuccessNotification(totalSent: number, userCount: number) {
   }
 }
 
-// 查詢客戶 email 地址
 async function getCustomerEmail(
-  db: D1Client,
+  db: SupabaseClient,
   customerId: string
 ): Promise<string | null> {
-  const customers = await db.query<{ email: string }>(
-    'SELECT email FROM customers WHERE id = ? LIMIT 1',
-    [customerId]
-  )
+  const { data, error } = await db
+    .from('customers')
+    .select('email')
+    .eq('id', customerId)
+    .single()
 
-  return customers.length > 0 ? customers[0].email : null
+  if (error || !data) {
+    return null
+  }
+
+  return data.email
 }
 
 export async function GET() {
-  const { env } = await getCloudflareContext()
-
   try {
-    // 驗證請求來源 (Vercel Cron 會帶上特殊的 header)
     const headersList = await headers()
     const authHeader = headersList.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    // 強制要求 CRON_SECRET（生產環境必須設定）
     if (!cronSecret) {
       console.error('[CRON] CRON_SECRET not configured')
       return NextResponse.json(
@@ -113,18 +109,20 @@ export async function GET() {
     console.log('🕒 Starting scheduled payment reminders job...')
     const startTime = Date.now()
 
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
 
-    // 查詢所有有活躍合約的使用者
-    const users = await db.query<{ user_id: string }>(
-      `SELECT DISTINCT user_id
-       FROM customer_contracts
-       WHERE status = 'active'`
-    )
+    const { data: usersData, error: usersError } = await db
+      .from('customer_contracts')
+      .select('user_id')
+      .eq('status', 'active')
 
-    console.log(`📊 Found ${users.length} users with active contracts`)
+    if (usersError) {
+      throw new Error(`Failed to get users: ${usersError.message}`)
+    }
 
-    // 為每個使用者查詢並發送提醒
+    const uniqueUserIds = [...new Set((usersData || []).map(u => u.user_id))]
+    console.log(`📊 Found ${uniqueUserIds.length} users with active contracts`)
+
     const results = []
     let totalSent = 0
     let totalFailed = 0
@@ -132,12 +130,10 @@ export async function GET() {
     const companyName = process.env.COMPANY_NAME || 'Your Company'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
 
-    for (const user of users) {
+    for (const userId of uniqueUserIds) {
       try {
-        // 取得即將到期和逾期的收款提醒（30天內）
-        const reminders = await getPaymentReminders(db, user.user_id, 30)
+        const reminders = await getPaymentReminders(db, userId, 30)
 
-        // 只發送逾期、今日到期和即將到期（7天內）的提醒
         const urgentReminders = reminders.filter(
           r => r.collection_status === 'overdue' ||
                r.collection_status === 'due_today' ||
@@ -146,7 +142,7 @@ export async function GET() {
 
         if (urgentReminders.length === 0) {
           results.push({
-            user_id: user.user_id,
+            user_id: userId,
             reminders_sent: 0,
             message: 'No urgent reminders'
           })
@@ -154,14 +150,12 @@ export async function GET() {
         }
 
         console.log(
-          `📧 Sending ${urgentReminders.length} reminders for user ${user.user_id}`
+          `📧 Sending ${urgentReminders.length} reminders for user ${userId}`
         )
 
-        // 為每個提醒發送 email
         const emailResults = []
         for (const reminder of urgentReminders) {
           try {
-            // 查詢客戶 email
             const customerEmail = await getCustomerEmail(db, reminder.customer_id)
 
             if (!customerEmail) {
@@ -176,9 +170,8 @@ export async function GET() {
               continue
             }
 
-            // 準備 email 資料
             const emailData: PaymentReminderEmailData = {
-              locale: 'zh', // 可以從使用者設定讀取
+              locale: 'zh',
               customerName: reminder.customer_name,
               contractNumber: reminder.contract_number,
               contractTitle: reminder.contract_title,
@@ -191,7 +184,6 @@ export async function GET() {
               viewUrl: appUrl ? `${appUrl}/zh/contracts/${reminder.contract_id}` : undefined
             }
 
-            // 生成 email HTML
             const emailHTML = generatePaymentReminderEmailHTML(emailData)
             const subject = generatePaymentReminderSubject(
               reminder.contract_number,
@@ -199,7 +191,6 @@ export async function GET() {
               'zh'
             )
 
-            // 發送 email
             const emailResult = await emailService.sendEmail({
               to: customerEmail,
               subject,
@@ -226,7 +217,6 @@ export async function GET() {
               error: emailResult.error
             })
 
-            // 延遲 100ms 避免發送過快
             await new Promise(resolve => setTimeout(resolve, 100))
           } catch (emailError) {
             totalFailed++
@@ -243,16 +233,16 @@ export async function GET() {
         }
 
         results.push({
-          user_id: user.user_id,
+          user_id: userId,
           reminders_sent: emailResults.filter(r => r.success).length,
           reminders_failed: emailResults.filter(r => !r.success).length,
           details: emailResults
         })
       } catch (error) {
         totalFailed++
-        console.error(`❌ Failed to process user ${user.user_id}:`, error)
+        console.error(`❌ Failed to process user ${userId}:`, error)
         results.push({
-          user_id: user.user_id,
+          user_id: userId,
           reminders_sent: 0,
           reminders_failed: 0,
           error: getErrorMessage(error)
@@ -262,23 +252,20 @@ export async function GET() {
 
     const duration = Date.now() - startTime
 
-    // 如果有任何失敗，發送錯誤通知
     if (totalFailed > 0) {
       await sendErrorNotification(
         new Error(`Failed to send ${totalFailed} payment reminders`)
       )
     } else if (totalSent > 0) {
-      // 全部成功且有發送，發送成功通知（僅生產環境）
-      await sendSuccessNotification(totalSent, users.length)
+      await sendSuccessNotification(totalSent, uniqueUserIds.length)
     }
 
-    // 返回詳細結果
     return NextResponse.json({
       success: totalFailed === 0,
       message: `Sent ${totalSent} reminders, ${totalFailed} failed`,
       duration: `${duration}ms`,
       statistics: {
-        total_users: users.length,
+        total_users: uniqueUserIds.length,
         total_sent: totalSent,
         total_failed: totalFailed
       },
@@ -288,7 +275,6 @@ export async function GET() {
   } catch (error) {
     console.error('❌ Cron job failed:', error)
 
-    // 發送錯誤通知
     await sendErrorNotification(error as Error)
 
     return NextResponse.json(
@@ -301,12 +287,8 @@ export async function GET() {
   }
 }
 
-// 手動觸發端點（用於測試）
 export async function POST(request: Request) {
-  const { env } = await getCloudflareContext()
-
   try {
-    // 驗證請求（可以用 API key 或其他方式）
     const body = await request.json() as Record<string, unknown>
     const apiKey = body.apiKey || request.headers.get('x-api-key')
 
@@ -319,24 +301,32 @@ export async function POST(request: Request) {
 
     console.log('🔧 Manual payment reminders triggered')
 
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
 
-    // 查詢指定使用者（如果提供）或所有使用者
     const userId = body.userId as string | undefined
-    const users = userId
-      ? [{ user_id: userId }]
-      : await db.query<{ user_id: string }>(
-          `SELECT DISTINCT user_id
-           FROM customer_contracts
-           WHERE status = 'active'`
-        )
+    let userIds: string[] = []
+
+    if (userId) {
+      userIds = [userId]
+    } else {
+      const { data: usersData, error: usersError } = await db
+        .from('customer_contracts')
+        .select('user_id')
+        .eq('status', 'active')
+
+      if (usersError) {
+        throw new Error(`Failed to get users: ${usersError.message}`)
+      }
+
+      userIds = [...new Set((usersData || []).map(u => u.user_id))]
+    }
 
     let totalSent = 0
     const companyName = process.env.COMPANY_NAME || 'Your Company'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
 
-    for (const user of users) {
-      const reminders = await getPaymentReminders(db, user.user_id, 30)
+    for (const uid of userIds) {
+      const reminders = await getPaymentReminders(db, uid, 30)
       const urgentReminders = reminders.filter(
         r => r.collection_status === 'overdue' ||
              r.collection_status === 'due_today' ||
@@ -396,11 +386,10 @@ export async function POST(request: Request) {
   }
 }
 
-// 計算下次執行時間（每日 09:00 UTC = 17:00 台北時間）
 function getNextRunTime(): string {
   const now = new Date()
   const tomorrow = new Date(now)
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
-  tomorrow.setUTCHours(1, 0, 0, 0) // 01:00 UTC = 09:00 台北時間
+  tomorrow.setUTCHours(1, 0, 0, 0)
   return tomorrow.toISOString()
 }

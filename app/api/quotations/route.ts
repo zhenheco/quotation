@@ -1,7 +1,7 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getD1Client } from '@/lib/db/d1-client'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import {
   getQuotations,
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // 檢查權限
     const kv = getKVCache(env)
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:read')
     if (!hasPermission) {
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     // 檢查權限
     const kv = getKVCache(env)
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')
     if (!hasPermission) {

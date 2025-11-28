@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createApiClient } from '@/lib/supabase/api'
-import { getD1Client } from '@/lib/db/d1-client'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 
 // Note: Edge runtime removed for OpenNext compatibility
@@ -32,8 +31,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { env } = await getCloudflareContext()
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
     const userId = user.id
 
     // 開始交易式刪除所有相關資料

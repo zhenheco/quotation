@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { getD1Client } from '@/lib/db/d1-client'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getUserRoles, assignRoleToUser, getRoleByName } from '@/lib/dal/rbac'
 import { validateUrlSafety } from '@/lib/security/url-validator'
 
@@ -22,8 +21,7 @@ export async function GET(request: Request) {
       console.log(`✅ User ${isNewUser ? 'registered' : 'logged in'}: ${user.email}`)
 
       try {
-        const { env } = await getCloudflareContext()
-        const db = getD1Client(env)
+        const db = getSupabaseClient()
 
         const userRoles = await getUserRoles(db, user.id)
 

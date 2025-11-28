@@ -2,7 +2,7 @@ import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import { getD1Client } from '@/lib/db/d1-client'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
     const kv = getKVCache(env)
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')

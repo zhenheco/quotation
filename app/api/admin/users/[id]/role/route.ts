@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isSuperAdmin, canAssignRole, assignRoleToUser, getRoleByName } from '@/lib/dal/rbac';
 import { AssignRoleRequest } from '@/app/api/types';
 import { RoleName } from '@/types/rbac.types';
-import { getD1Client } from '@/lib/db/d1-client';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getSupabaseClient } from '@/lib/db/supabase-client';
 
 // Note: Edge runtime removed for OpenNext compatibility;
 
@@ -16,8 +15,6 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
 
@@ -30,7 +27,7 @@ export async function PATCH(
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
 
     // 檢查是否為超管
     const isAdmin = await isSuperAdmin(db, user.id);

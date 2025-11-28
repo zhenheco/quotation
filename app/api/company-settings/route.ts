@@ -3,8 +3,7 @@ import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { createApiClient } from '@/lib/supabase/api';
 import { getUserCompanies, getCompanyById, createCompany, updateCompany, type Company } from '@/lib/dal/companies';
 import { hasPermission } from '@/lib/dal/rbac';
-import { getD1Client } from '@/lib/db/d1-client';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getSupabaseClient } from '@/lib/db/supabase-client';
 
 // Note: Edge runtime removed for OpenNext compatibility;
 
@@ -20,8 +19,6 @@ interface UpdateCompanySettingsBody {
  * 取得當前用戶的公司設定
  */
 export async function GET(request: NextRequest) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -33,7 +30,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
     const companies = await getUserCompanies(db, user.id);
 
     if (!companies || companies.length === 0) {
@@ -54,8 +51,6 @@ export async function GET(request: NextRequest) {
  * 建立新公司
  */
 export async function POST(request: NextRequest) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -67,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
 
     // 檢查權限
     const hasAccess = await hasPermission(db, user.id, 'company_settings:write');
@@ -92,8 +87,6 @@ export async function POST(request: NextRequest) {
  * 更新公司設定
  */
 export async function PUT(request: NextRequest) {
-  const { env } = await getCloudflareContext();
-
   try {
     const supabase = createApiClient(request);
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -105,7 +98,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const db = getD1Client(env);
+    const db = getSupabaseClient();
 
     // 檢查權限
     const hasAccess = await hasPermission(db, user.id, 'company_settings:write');

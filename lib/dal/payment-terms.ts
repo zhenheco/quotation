@@ -2,7 +2,7 @@
  * 付款條款資料存取層 (DAL)
  */
 
-import { D1Client } from '@/lib/db/d1-client'
+import { SupabaseClient } from '@/lib/db/supabase-client'
 
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overdue'
 
@@ -20,29 +20,6 @@ export interface PaymentTerm {
   description: { zh: string; en: string } | null
   created_at: string
   updated_at: string
-}
-
-interface PaymentTermRow {
-  id: string
-  quotation_id: string
-  term_number: number
-  term_name: string | null
-  percentage: number
-  amount: number
-  due_date: string | null
-  paid_amount: number
-  paid_date: string | null
-  payment_status: PaymentStatus
-  description: string | null
-  created_at: string
-  updated_at: string
-}
-
-function parsePaymentTermRow(row: PaymentTermRow): PaymentTerm {
-  return {
-    ...row,
-    description: row.description ? JSON.parse(row.description) : null
-  }
 }
 
 /**
@@ -112,44 +89,65 @@ export function determinePaymentStatus(
  * 取得報價單的所有付款條款
  */
 export async function getPaymentTerms(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   quotationId: string
 ): Promise<PaymentTerm[]> {
-  const sql = `
-    SELECT pt.* FROM payment_terms pt
-    INNER JOIN quotations q ON pt.quotation_id = q.id
-    WHERE pt.quotation_id = ? AND q.user_id = ?
-    ORDER BY pt.term_number
-  `
+  const { data, error } = await db
+    .from('payment_terms')
+    .select(`
+      *,
+      quotations!inner (user_id)
+    `)
+    .eq('quotation_id', quotationId)
+    .eq('quotations.user_id', userId)
+    .order('term_number')
 
-  const rows = await db.query<PaymentTermRow>(sql, [quotationId, userId])
-  return rows.map(parsePaymentTermRow)
+  if (error) {
+    throw new Error(`Failed to get payment terms: ${error.message}`)
+  }
+
+  return (data || []).map(row => ({
+    ...row,
+    quotations: undefined,
+  }))
 }
 
 /**
  * 根據 ID 取得付款條款
  */
 export async function getPaymentTermById(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   termId: string
 ): Promise<PaymentTerm | null> {
-  const sql = `
-    SELECT pt.* FROM payment_terms pt
-    INNER JOIN quotations q ON pt.quotation_id = q.id
-    WHERE pt.id = ? AND q.user_id = ?
-  `
+  const { data, error } = await db
+    .from('payment_terms')
+    .select(`
+      *,
+      quotations!inner (user_id)
+    `)
+    .eq('id', termId)
+    .eq('quotations.user_id', userId)
+    .single()
 
-  const row = await db.queryOne<PaymentTermRow>(sql, [termId, userId])
-  return row ? parsePaymentTermRow(row) : null
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(`Failed to get payment term: ${error.message}`)
+  }
+
+  if (!data) return null
+
+  return {
+    ...data,
+    quotations: undefined,
+  }
 }
 
 /**
  * 批次建立付款條款
  */
 export async function batchCreatePaymentTerms(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   quotationId: string,
   terms: Array<{
@@ -165,41 +163,43 @@ export async function batchCreatePaymentTerms(
     console.warn(validation.warning)
   }
 
-  const sql = `
-    SELECT id FROM quotations
-    WHERE id = ? AND user_id = ?
-  `
-  const quotation = await db.queryOne<{ id: string }>(sql, [quotationId, userId])
+  const { data: quotation, error: quotationError } = await db
+    .from('quotations')
+    .select('id')
+    .eq('id', quotationId)
+    .eq('user_id', userId)
+    .single()
+
+  if (quotationError && quotationError.code !== 'PGRST116') {
+    throw new Error(`Failed to verify quotation: ${quotationError.message}`)
+  }
+
   if (!quotation) {
     throw new Error('Quotation not found or access denied')
   }
 
   const now = new Date().toISOString()
-  const insertPromises = terms.map((term) => {
-    const id = crypto.randomUUID()
-    const amount = calculateTermAmount(term.percentage, total)
+  const insertData = terms.map((term) => ({
+    id: crypto.randomUUID(),
+    quotation_id: quotationId,
+    term_number: term.term_number,
+    percentage: term.percentage,
+    amount: calculateTermAmount(term.percentage, total),
+    due_date: term.due_date || null,
+    description: term.description || null,
+    paid_amount: 0,
+    payment_status: 'unpaid' as const,
+    created_at: now,
+    updated_at: now,
+  }))
 
-    return db.execute(
-      `INSERT INTO payment_terms (
-        id, quotation_id, term_number, percentage, amount,
-        due_date, description, paid_amount, payment_status,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'unpaid', ?, ?)`,
-      [
-        id,
-        quotationId,
-        term.term_number,
-        term.percentage,
-        amount,
-        term.due_date || null,
-        term.description ? JSON.stringify(term.description) : null,
-        now,
-        now
-      ]
-    )
-  })
+  const { error: insertError } = await db
+    .from('payment_terms')
+    .insert(insertData)
 
-  await Promise.all(insertPromises)
+  if (insertError) {
+    throw new Error(`Failed to create payment terms: ${insertError.message}`)
+  }
 
   return getPaymentTerms(db, userId, quotationId)
 }
@@ -208,7 +208,7 @@ export async function batchCreatePaymentTerms(
  * 更新付款條款
  */
 export async function updatePaymentTerm(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   termId: string,
   updates: {
@@ -218,49 +218,32 @@ export async function updatePaymentTerm(
     due_date?: string | null
   }
 ): Promise<PaymentTerm> {
-  const updateFields: string[] = []
-  const params: unknown[] = []
-
-  if (updates.term_name !== undefined) {
-    updateFields.push('term_name = ?')
-    params.push(updates.term_name)
-  }
-  if (updates.percentage !== undefined) {
-    updateFields.push('percentage = ?')
-    params.push(updates.percentage)
-  }
-  if (updates.amount !== undefined) {
-    updateFields.push('amount = ?')
-    params.push(updates.amount)
-  }
-  if (updates.due_date !== undefined) {
-    updateFields.push('due_date = ?')
-    params.push(updates.due_date)
+  const existing = await getPaymentTermById(db, userId, termId)
+  if (!existing) {
+    throw new Error('Payment term not found')
   }
 
-  if (updateFields.length === 0) {
-    const term = await getPaymentTermById(db, userId, termId)
-    if (!term) {
-      throw new Error('Payment term not found')
-    }
-    return term
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
   }
 
-  updateFields.push('updated_at = ?')
-  params.push(new Date().toISOString())
+  if (updates.term_name !== undefined) updateData.term_name = updates.term_name
+  if (updates.percentage !== undefined) updateData.percentage = updates.percentage
+  if (updates.amount !== undefined) updateData.amount = updates.amount
+  if (updates.due_date !== undefined) updateData.due_date = updates.due_date
 
-  const sql = `
-    UPDATE payment_terms
-    SET ${updateFields.join(', ')}
-    WHERE id = ? AND EXISTS (
-      SELECT 1 FROM quotations
-      WHERE quotations.id = payment_terms.quotation_id
-      AND quotations.user_id = ?
-    )
-  `
-  params.push(termId, userId)
+  if (Object.keys(updateData).length === 1) {
+    return existing
+  }
 
-  await db.execute(sql, params)
+  const { error } = await db
+    .from('payment_terms')
+    .update(updateData)
+    .eq('id', termId)
+
+  if (error) {
+    throw new Error(`Failed to update payment term: ${error.message}`)
+  }
 
   const term = await getPaymentTermById(db, userId, termId)
   if (!term) {
@@ -274,22 +257,22 @@ export async function updatePaymentTerm(
  * 刪除付款條款
  */
 export async function deletePaymentTerm(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   termId: string
 ): Promise<void> {
-  const sql = `
-    DELETE FROM payment_terms
-    WHERE id = ? AND EXISTS (
-      SELECT 1 FROM quotations
-      WHERE quotations.id = payment_terms.quotation_id
-      AND quotations.user_id = ?
-    )
-  `
-
-  const result = await db.execute(sql, [termId, userId])
-  if (result.count === 0) {
+  const existing = await getPaymentTermById(db, userId, termId)
+  if (!existing) {
     throw new Error('Payment term not found or access denied')
+  }
+
+  const { error } = await db
+    .from('payment_terms')
+    .delete()
+    .eq('id', termId)
+
+  if (error) {
+    throw new Error(`Failed to delete payment term: ${error.message}`)
   }
 }
 
@@ -297,7 +280,7 @@ export async function deletePaymentTerm(
  * 更新付款狀態
  */
 export async function updatePaymentStatus(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   termId: string,
   paidAmount: number,
@@ -320,12 +303,19 @@ export async function updatePaymentStatus(
   const now = new Date().toISOString()
   const finalPaidDate = paidDate || now.split('T')[0]
 
-  await db.execute(
-    `UPDATE payment_terms
-     SET paid_amount = ?, paid_date = ?, payment_status = ?, updated_at = ?
-     WHERE id = ?`,
-    [paidAmount, finalPaidDate, status, now, termId]
-  )
+  const { error } = await db
+    .from('payment_terms')
+    .update({
+      paid_amount: paidAmount,
+      paid_date: finalPaidDate,
+      payment_status: status,
+      updated_at: now,
+    })
+    .eq('id', termId)
+
+  if (error) {
+    throw new Error(`Failed to update payment status: ${error.message}`)
+  }
 
   const updatedTerm = await getPaymentTermById(db, userId, termId)
   if (!updatedTerm) {
@@ -339,7 +329,7 @@ export async function updatePaymentStatus(
  * 重新計算所有付款條款金額
  */
 export async function recalculateAllTerms(
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   quotationId: string,
   newTotal: number
@@ -352,47 +342,57 @@ export async function recalculateAllTerms(
 
   const now = new Date().toISOString()
 
-  const updatePromises = terms.map((term) => {
+  for (const term of terms) {
     const newAmount = calculateTermAmount(term.percentage, newTotal)
-    return db.execute(
-      `UPDATE payment_terms
-       SET amount = ?, updated_at = ?
-       WHERE id = ?`,
-      [newAmount, now, term.id]
-    )
-  })
+    const { error } = await db
+      .from('payment_terms')
+      .update({
+        amount: newAmount,
+        updated_at: now,
+      })
+      .eq('id', term.id)
 
-  await Promise.all(updatePromises)
+    if (error) {
+      throw new Error(`Failed to recalculate term ${term.id}: ${error.message}`)
+    }
+  }
 }
 
 /**
  * 自動檢查並更新逾期狀態
  */
-export async function updateOverdueStatus(db: D1Client): Promise<number> {
+export async function updateOverdueStatus(db: SupabaseClient): Promise<number> {
   const today = new Date().toISOString().split('T')[0]
 
-  const sql = `
-    SELECT * FROM payment_terms
-    WHERE due_date < ? AND payment_status IN ('unpaid', 'partial')
-  `
+  const { data, error: fetchError } = await db
+    .from('payment_terms')
+    .select('id')
+    .lt('due_date', today)
+    .in('payment_status', ['unpaid', 'partial'])
 
-  const overdueTerms = await db.query<PaymentTermRow>(sql, [today])
+  if (fetchError) {
+    throw new Error(`Failed to get overdue terms: ${fetchError.message}`)
+  }
+
+  const overdueTerms = data || []
 
   if (overdueTerms.length === 0) {
     return 0
   }
 
   const now = new Date().toISOString()
-  const updatePromises = overdueTerms.map((term) =>
-    db.execute(
-      `UPDATE payment_terms
-       SET payment_status = 'overdue', updated_at = ?
-       WHERE id = ?`,
-      [now, term.id]
-    )
-  )
+  const { error: updateError } = await db
+    .from('payment_terms')
+    .update({
+      payment_status: 'overdue',
+      updated_at: now,
+    })
+    .lt('due_date', today)
+    .in('payment_status', ['unpaid', 'partial'])
 
-  await Promise.all(updatePromises)
+  if (updateError) {
+    throw new Error(`Failed to update overdue status: ${updateError.message}`)
+  }
 
   return overdueTerms.length
 }

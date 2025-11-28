@@ -8,8 +8,8 @@
  */
 
 import { KVCache } from './kv-cache'
-import { D1Client } from '@/lib/db/d1-client'
-import { getUserPermissions, Permission } from '@/lib/dal/rbac'
+import { SupabaseClient } from '@/lib/db/supabase-client'
+import { getUserPermissions, Permission, ensureUserHasRole } from '@/lib/dal/rbac'
 import { getCompanyById, Company } from '@/lib/dal/companies'
 import { getAllExchangeRates, ExchangeRate } from '@/lib/dal/exchange-rates'
 
@@ -37,7 +37,7 @@ export const CacheTTL = {
  */
 export async function getCachedUserPermissions(
   kv: KVCache,
-  db: D1Client,
+  db: SupabaseClient,
   userId: string
 ): Promise<Permission[]> {
   return await kv.getCached(
@@ -62,7 +62,7 @@ export async function invalidateUserPermissions(
  */
 export async function getCachedCompany(
   kv: KVCache,
-  db: D1Client,
+  db: SupabaseClient,
   companyId: string
 ): Promise<Company | null> {
   return await kv.getCached(
@@ -87,7 +87,7 @@ export async function invalidateCompany(
  */
 export async function getCachedExchangeRates(
   kv: KVCache,
-  db: D1Client
+  db: SupabaseClient
 ): Promise<ExchangeRate[]> {
   return await kv.getCached(
     CacheKeys.exchangeRates(),
@@ -119,10 +119,17 @@ const permissionMapping: Record<string, string[]> = {
  */
 export async function checkPermission(
   kv: KVCache,
-  db: D1Client,
+  db: SupabaseClient,
   userId: string,
   permissionName: string
 ): Promise<boolean> {
+  // 確保使用者有角色（如果沒有會自動分配）
+  const roleAssigned = await ensureUserHasRole(db, userId)
+  if (roleAssigned) {
+    // 如果剛分配了角色，清除快取以獲取最新權限
+    await invalidateUserPermissions(kv, userId)
+  }
+
   const permissions = await getCachedUserPermissions(kv, db, userId)
 
   // 先嘗試直接匹配

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getD1Client } from '@/lib/db/d1-client'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { updatePaymentSchedule, deletePaymentSchedule } from '@/lib/dal/payments'
 
 interface RouteContext {
@@ -32,8 +31,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     payment_id?: string | null
   }
 
-  const { env } = await getCloudflareContext()
-  const db = getD1Client(env)
+  const db = getSupabaseClient()
 
   try {
     const schedule = await updatePaymentSchedule(db, user.id, id, body)
@@ -56,8 +54,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
   const { id } = await context.params
 
-  const { env } = await getCloudflareContext()
-  const db = getD1Client(env)
+  const db = getSupabaseClient()
 
   try {
     await deletePaymentSchedule(db, user.id, id)

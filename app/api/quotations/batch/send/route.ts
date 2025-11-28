@@ -5,7 +5,7 @@ import { getCustomerById } from '@/lib/dal/customers'
 import { emailService } from '@/lib/services/email'
 import { generateQuotationEmailHTML, generateDefaultEmailSubject } from '@/lib/templates/quotation-email'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getD1Client } from '@/lib/db/d1-client'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const db = getD1Client(env)
+    const db = getSupabaseClient()
     const kv = getKVCache(env)
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')
