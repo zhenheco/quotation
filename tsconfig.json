@@ -47,6 +47,7 @@
     ".next/types/**/*",
     "tests/**/*",
     "examples/**/*",
-    "scripts/**/*"
+    "scripts/**/*",
+    "legacy_backup/**/*"
   ]
 }
