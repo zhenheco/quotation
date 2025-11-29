@@ -886,7 +886,7 @@ export async function getPaymentReminders(
     .eq('status', 'active')
     .eq('payment_schedules.status', 'pending')
     .lte('payment_schedules.due_date', futureDate.toISOString().split('T')[0])
-    .order('payment_schedules(due_date)')
+    .order('due_date', { referencedTable: 'payment_schedules' })
 
   if (error) {
     throw new Error(`Failed to get payment reminders: ${error.message}`)

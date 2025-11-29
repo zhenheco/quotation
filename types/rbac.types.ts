@@ -20,7 +20,8 @@ export type PermissionResource =
   | 'contracts'
   | 'payments'
   | 'company_settings'
-  | 'users';
+  | 'users'
+  | 'exchange_rates';
 
 export type PermissionAction =
   | 'read'
