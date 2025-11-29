@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     })
 
     // 將建立者加入為公司成員（owner）
-    await addCompanyMember(db, company.id, user.id, 'owner')
+    await addCompanyMember(db, company.id, user.id, undefined, true)
 
     return NextResponse.json(company, { status: 201 })
   } catch (error: unknown) {
