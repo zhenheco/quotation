@@ -160,7 +160,7 @@ export interface CompanyMember {
   role_name?: string
   is_owner: boolean
   is_active: boolean
-  created_at: string
+  joined_at: string
   updated_at: string
 }
 
@@ -176,7 +176,7 @@ export async function getCompanyMembers(
     `)
     .eq('company_id', companyId)
     .order('is_owner', { ascending: false })
-    .order('created_at')
+    .order('joined_at')
 
   if (error) {
     throw new Error(`Failed to get company members: ${error.message}`)
@@ -235,7 +235,7 @@ export async function addCompanyMember(
       role_id: roleId || null,
       is_owner: isOwner,
       is_active: true,
-      created_at: now,
+      joined_at: now,
       updated_at: now
     })
 
