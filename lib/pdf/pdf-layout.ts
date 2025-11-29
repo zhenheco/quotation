@@ -6,9 +6,6 @@ function formatPDFNumber(value: number | undefined | null, currency: string): st
   return formatAmount(value, currency)
 }
 
-function formatPDFAmount(value: number | undefined | null, currency: string): string {
-  return `${currency} ${formatPDFNumber(value, currency)}`
-}
 
 const A4_WIDTH = 595.28
 const A4_HEIGHT = 841.89
@@ -304,6 +301,7 @@ export function drawFinancialSummary(
   let y = startY
   const rightX = MARGIN_LEFT + CONTENT_WIDTH - 150
   const pageRight = MARGIN_LEFT + CONTENT_WIDTH
+  const currencyX = rightX + 50
 
   page.drawText(`${t.subtotal}:`, {
     x: rightX,
@@ -312,10 +310,17 @@ export function drawFinancialSummary(
     font,
     color: rgb(0, 0, 0),
   })
-  const subtotalText = formatPDFAmount(data.subtotal, data.currency)
-  const subtotalWidth = font.widthOfTextAtSize(subtotalText, 10)
-  page.drawText(subtotalText, {
-    x: pageRight - subtotalWidth,
+  page.drawText(data.currency, {
+    x: currencyX,
+    y,
+    size: 10,
+    font,
+    color: rgb(0, 0, 0),
+  })
+  const subtotalNum = formatPDFNumber(data.subtotal, data.currency)
+  const subtotalNumWidth = font.widthOfTextAtSize(subtotalNum, 10)
+  page.drawText(subtotalNum, {
+    x: pageRight - subtotalNumWidth,
     y,
     size: 10,
     font,
@@ -330,10 +335,17 @@ export function drawFinancialSummary(
     font,
     color: rgb(0, 0, 0),
   })
-  const taxText = formatPDFAmount(data.taxAmount, data.currency)
-  const taxWidth = font.widthOfTextAtSize(taxText, 10)
-  page.drawText(taxText, {
-    x: pageRight - taxWidth,
+  page.drawText(data.currency, {
+    x: currencyX,
+    y,
+    size: 10,
+    font,
+    color: rgb(0, 0, 0),
+  })
+  const taxNum = formatPDFNumber(data.taxAmount, data.currency)
+  const taxNumWidth = font.widthOfTextAtSize(taxNum, 10)
+  page.drawText(taxNum, {
+    x: pageRight - taxNumWidth,
     y,
     size: 10,
     font,
@@ -355,10 +367,17 @@ export function drawFinancialSummary(
     font,
     color: rgb(0, 0, 0),
   })
-  const totalText = formatPDFAmount(data.totalAmount, data.currency)
-  const totalWidth = font.widthOfTextAtSize(totalText, 12)
-  page.drawText(totalText, {
-    x: pageRight - totalWidth,
+  page.drawText(data.currency, {
+    x: currencyX,
+    y,
+    size: 12,
+    font,
+    color: rgb(0, 0, 0),
+  })
+  const totalNum = formatPDFNumber(data.totalAmount, data.currency)
+  const totalNumWidth = font.widthOfTextAtSize(totalNum, 12)
+  page.drawText(totalNum, {
+    x: pageRight - totalNumWidth,
     y,
     size: 12,
     font,
@@ -451,10 +470,17 @@ export function drawPaymentTerms(
       color: rgb(0, 0, 0),
     })
 
-    const termAmountText = formatPDFAmount(term.amount, currency)
-    const termAmountWidth = font.widthOfTextAtSize(termAmountText, 9)
-    page.drawText(termAmountText, {
-      x: colX[3] + colWidths[3] - termAmountWidth - 5,
+    page.drawText(currency, {
+      x: colX[3] + 5,
+      y: y - 10,
+      size: 9,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    const termAmountNum = formatPDFNumber(term.amount, currency)
+    const termAmountNumWidth = font.widthOfTextAtSize(termAmountNum, 9)
+    page.drawText(termAmountNum, {
+      x: colX[3] + colWidths[3] - termAmountNumWidth - 5,
       y: y - 10,
       size: 9,
       font,
