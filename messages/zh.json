@@ -698,7 +698,19 @@
     "permission": {
       "costRestricted": "您沒有權限查看成本資訊",
       "costRestrictedShort": "權限不足"
-    }
+    },
+    "suppliers": "供應商成本管理",
+    "supplierName": "供應商名稱",
+    "supplierNamePlaceholder": "輸入供應商名稱",
+    "supplierCodePlaceholder": "供應商編號",
+    "addSupplier": "新增供應商",
+    "setPreferred": "設為首選",
+    "setAsPreferred": "設為首選供應商",
+    "noSuppliers": "尚未添加供應商",
+    "saveProductFirst": "請先儲存產品再管理供應商",
+    "add": "新增",
+    "adding": "新增中...",
+    "cancel": "取消"
   },
   "roles": {
     "super_admin": "總管理員",

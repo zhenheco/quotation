@@ -266,218 +266,33 @@ pnpm run typecheck
 
 ---
 
-## 🗄️ 混合資料庫架構說明（重要！）
+## 🗄️ 資料庫架構
 
-本專案使用 **混合資料庫架構**，必須理解兩個資料庫的職責分工：
+本專案使用 **Supabase** 作為唯一的資料庫。
 
-### 架構概覽
+### 資料庫位置
+- **遠端**：`https://oubsycwrxzkuviakzahi.supabase.co`
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      應用程式層                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌──────────────────┐              ┌────────────────────┐   │
-│  │   Supabase       │              │  Cloudflare D1     │   │
-│  │   (遠端)         │              │  (遠端 + 本地)     │   │
-│  ├──────────────────┤              ├────────────────────┤   │
-│  │ • Auth (認證)    │              │ • customers        │   │
-│  │ • user_profiles  │              │ • quotations       │   │
-│  │ • user_roles     │              │ • products         │   │
-│  │ • user_permissions│             │ • payments         │   │
-│  │ • roles          │              │ • payment_schedules│   │
-│  │ • role_permissions│             │ • customer_contracts│  │
-│  └──────────────────┘              │ • companies        │   │
-│                                     │ • 其他業務表...    │   │
-│                                     └────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
+### 資料表
+- 使用者認證（Auth）
+- 使用者資料（`user_profiles`）
+- 角色與權限（`user_roles`, `roles`, `permissions`, `role_permissions`）
+- 產品（`products`, `product_supplier_costs`）
+- 客戶（`customers`）
+- 報價單（`quotations`, `quotation_items`）
+- 付款（`payments`, `payment_schedules`）
+- 合約（`customer_contracts`）
+- 公司設定（`companies`, `company_settings`）
 
-### 資料庫職責分工
-
-#### Supabase（使用者與權限）
-**位置**：遠端（`https://oubsycwrxzkuviakzahi.supabase.co`）
-**用途**：
-- ✅ 使用者認證（Auth）
-- ✅ 使用者資料（`user_profiles`）
-- ✅ 角色與權限（`user_roles`, `roles`, `permissions`, `role_permissions`）
-
-**存取方式**：
+### 存取方式
 ```typescript
-// lib/services/rbac.ts
-import { createClient } from '@/lib/supabase/server'
-const supabase = await createClient()
-const { data } = await supabase.from('user_profiles').select('*')
+import { getSupabaseClient } from '@/lib/db/supabase-client'
+const db = getSupabaseClient()
+const { data } = await db.from('products').select('*')
 ```
 
-#### Cloudflare D1（業務資料）
-**位置**：遠端生產環境 + 本地開發環境
-**用途**：
-- ✅ 所有業務資料（客戶、報價單、產品、付款等）
-- ✅ 日誌與追蹤（`logs`, `traces`, `audit_logs`）
-- ✅ 監控資料（`usage_stats`, `alert_events`）
-
-**存取方式**：
-```typescript
-// lib/dal/*.ts
-import { getD1Client } from '@/lib/db/d1-client'
-const db = getD1Client(env)
-const customers = await db.query('SELECT * FROM customers WHERE user_id = ?', [userId])
-```
-
-### ⚠️ 常見錯誤與解決方案
-
-#### 錯誤 1：測試腳本找不到使用者
-
-**現象**：
-```bash
-❌ 找不到活躍的使用者，請先建立使用者資料
-```
-
-**原因**：
-- 測試腳本查詢 Supabase `user_profiles` 表
-- 但使用者可能只在 Auth 中註冊，尚未建立 `user_profile` 記錄
-- 或本地 Supabase 環境與遠端不同步
-
-**解決方案**：
-1. **方法 A**：修改腳本使用 Supabase Auth Admin API
-   ```typescript
-   const { data: { users }, error } = await supabase.auth.admin.listUsers()
-   const userId = users[0].id
-   ```
-
-2. **方法 B**：允許腳本接受環境變數指定 user_id
-   ```typescript
-   const userId = process.env.TEST_USER_ID || await getUserFromDatabase()
-   ```
-
-3. **方法 C**：從生產環境 D1 提取現有的 user_id
-   ```bash
-   # 需要有遠端 D1 存取權限
-   pnpm exec wrangler d1 execute quotation-system-db \
-     --command "SELECT DISTINCT user_id FROM customers LIMIT 1" \
-     --remote
-   ```
-
-#### 錯誤 2：本地腳本無法存取生產資料
-
-**現象**：
-- 使用者在生產環境（https://quote24.cc）有資料
-- 但本地測試腳本查詢不到
-
-**原因**：
-- 本地 D1 資料庫（`.wrangler/state/v3/d1`）與遠端生產環境分離
-- 本地 Supabase 可能指向不同的資料庫實例
-
-**解決方案**：
-1. **開發時**：使用本地資料庫測試
-   ```bash
-   # 執行本地 migration
-   pnpm exec wrangler d1 migrations apply quotation-system-db --local
-
-   # 執行測試腳本（連接本地）
-   pnpm run seed:payments
-   ```
-
-2. **驗證生產資料時**：
-   - 使用 API 端點測試（通過部署的應用）
-   - 或使用 wrangler 遠端命令（需要權限）
-   - 或使用瀏覽器 DevTools 檢查前端請求
-
-#### 錯誤 3：Wrangler 遠端存取被拒
-
-**現象**：
-```bash
-✘ [ERROR] A request to the Cloudflare API failed.
-  The given account is not valid [code: 7403]
-```
-
-**原因**：
-- 本地 wrangler 未正確認證
-- 或帳號權限不足
-
-**解決方案**：
-```bash
-# 重新登入 Cloudflare
-pnpm exec wrangler login
-
-# 確認帳號
-pnpm exec wrangler whoami
-
-# 測試連接
-pnpm exec wrangler d1 list
-```
-
-### 📝 測試資料最佳實踐
-
-#### 本地開發測試
-1. 確保本地 D1 已初始化：
-   ```bash
-   pnpm exec wrangler d1 migrations apply quotation-system-db --local
-   ```
-
-2. 先登入本地開發環境（如果有），或修改腳本使用固定 user_id
-
-3. 執行測試腳本：
-   ```bash
-   # 設定測試用 user_id（可選）
-   export TEST_USER_ID="your-user-id-here"
-
-   # 執行測試資料腳本
-   pnpm run seed:payments
-   ```
-
-#### 生產環境驗證
-1. **不要直接在生產資料庫執行測試腳本**
-
-2. 使用瀏覽器 + DevTools 驗證：
-   - 登入生產環境
-   - 開啟 Chrome DevTools (F12)
-   - 檢查 Network 請求
-   - 檢查 Console 錯誤
-
-3. 或建立專門的測試 API 端點：
-   ```typescript
-   // app/api/test/seed-data/route.ts
-   export async function POST(request: Request) {
-     if (process.env.NODE_ENV === 'production') {
-       return NextResponse.json({ error: 'Not allowed in production' }, { status: 403 })
-     }
-     // 建立測試資料...
-   }
-   ```
-
-### ✅ 檢查清單
-
-開發新功能時，確認：
-- [ ] 使用者資料查詢使用 Supabase（`user_profiles`, `user_roles` 等）
-- [ ] 業務資料查詢使用 D1（`customers`, `quotations` 等）
-- [ ] 測試腳本能處理 user_id 不存在的情況
-- [ ] 本地測試使用本地資料庫，不影響生產環境
-- [ ] API 端點正確處理兩個資料庫的資料關聯
-
-### 🔍 Debug 技巧
-
-**檢查 Supabase 連接**：
-```typescript
-const supabase = await createClient()
-const { data: { user } } = await supabase.auth.getUser()
-console.log('Current user:', user?.id, user?.email)
-```
-
-**檢查 D1 連接**：
-```typescript
-const db = getD1Client(env)
-const result = await db.query('SELECT COUNT(*) as count FROM customers WHERE user_id = ?', [userId])
-console.log('Customer count:', result[0]?.count)
-```
-
-**檢查環境變數**：
-```bash
-# .env.local 應包含
-NEXT_PUBLIC_SUPABASE_URL=https://oubsycwrxzkuviakzahi.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
+### Migration 檔案位置
+- Supabase: `migrations/*.sql`
 
 ---
 

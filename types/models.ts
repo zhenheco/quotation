@@ -23,6 +23,7 @@ export interface Customer {
   address: BilingualText | null
   tax_id: string | null
   contact_person: BilingualText | null
+  notes: string | null
   created_at: string
   updated_at: string
 }
@@ -53,19 +54,34 @@ export interface UpdateCustomerData {
 export interface Product {
   id: string
   user_id: string
-  sku: string
+  sku: string | null
   name: BilingualText
   description: BilingualText | null
   unit_price: number
   currency: string
-  category: string | null
   base_price: number
   base_currency: string
+  category: string | null
   cost_price: number | null
   cost_currency: string | null
   profit_margin: number | null
   supplier: string | null
   supplier_code: string | null
+  unit: string | null
+  is_active: boolean | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductSupplierCost {
+  id: string
+  product_id: string
+  supplier_name: string
+  supplier_code: string | null
+  cost_price: number
+  cost_currency: string
+  is_preferred: boolean
+  notes: string | null
   created_at: string
   updated_at: string
 }
@@ -78,12 +94,13 @@ export interface CreateProductData {
   unit_price: number
   currency: string
   category?: string | null
-  base_price: number
   cost_price?: number | null
   cost_currency?: string | null
   profit_margin?: number | null
   supplier?: string | null
   supplier_code?: string | null
+  unit?: string | null
+  is_active?: boolean | null
 }
 
 export interface UpdateProductData {
@@ -93,12 +110,32 @@ export interface UpdateProductData {
   unit_price?: number
   currency?: string
   category?: string | null
-  base_price?: number
   cost_price?: number | null
   cost_currency?: string | null
   profit_margin?: number | null
   supplier?: string | null
   supplier_code?: string | null
+  unit?: string | null
+  is_active?: boolean | null
+}
+
+export interface CreateProductSupplierCostData {
+  product_id: string
+  supplier_name: string
+  supplier_code?: string | null
+  cost_price: number
+  cost_currency: string
+  is_preferred?: boolean
+  notes?: string | null
+}
+
+export interface UpdateProductSupplierCostData {
+  supplier_name?: string
+  supplier_code?: string | null
+  cost_price?: number
+  cost_currency?: string
+  is_preferred?: boolean
+  notes?: string | null
 }
 
 // ============================================================================
@@ -140,9 +177,11 @@ export interface QuotationItem {
   product_id: string | null
   description: BilingualText
   quantity: number
+  unit: string | null
   unit_price: number
   discount: number
   subtotal: number
+  sort_order: number
   created_at: string
   updated_at: string
 }

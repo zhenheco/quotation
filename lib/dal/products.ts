@@ -13,14 +13,26 @@ export interface Product {
   description: { zh: string; en: string } | null
   unit_price: number
   currency: string
+  base_price: number
+  base_currency: string
+  category: string | null
   cost_price: number | null
   cost_currency: string | null
   profit_margin: number | null
   supplier: string | null
-  unit: string
-  is_active: boolean
+  supplier_code: string | null
+  unit: string | null
+  is_active: boolean | null
   created_at: string
   updated_at: string
+}
+
+function mapProductWithAliases(product: Omit<Product, 'base_price' | 'base_currency'>): Product {
+  return {
+    ...product,
+    base_price: product.unit_price,
+    base_currency: product.currency,
+  }
 }
 
 export async function getProducts(
@@ -44,7 +56,7 @@ export async function getProducts(
     throw new Error(`Failed to get products: ${error.message}`)
   }
 
-  return data || []
+  return (data || []).map(mapProductWithAliases)
 }
 
 export async function getProductById(
@@ -63,7 +75,7 @@ export async function getProductById(
     throw new Error(`Failed to get product: ${error.message}`)
   }
 
-  return data
+  return data ? mapProductWithAliases(data) : null
 }
 
 export async function createProduct(
@@ -77,10 +89,12 @@ export async function createProduct(
     description?: { zh: string; en: string }
     unit_price: number
     currency: string
+    category?: string
     cost_price?: number
     cost_currency?: string
     profit_margin?: number
     supplier?: string
+    supplier_code?: string
     unit?: string
     is_active?: boolean
   }
@@ -98,11 +112,13 @@ export async function createProduct(
       description: data.description || null,
       unit_price: data.unit_price,
       currency: data.currency,
+      category: data.category || null,
       cost_price: data.cost_price || null,
       cost_currency: data.cost_currency || null,
       profit_margin: data.profit_margin || null,
       supplier: data.supplier || null,
-      unit: data.unit || 'piece',
+      supplier_code: data.supplier_code || null,
+      unit: data.unit || null,
       is_active: data.is_active ?? true,
       created_at: now,
       updated_at: now
@@ -114,7 +130,7 @@ export async function createProduct(
     throw new Error(`Failed to create product: ${error.message}`)
   }
 
-  return product
+  return mapProductWithAliases(product)
 }
 
 export async function updateProduct(
@@ -138,7 +154,7 @@ export async function updateProduct(
     throw new Error(`Failed to update product: ${error.message}`)
   }
 
-  return product
+  return mapProductWithAliases(product)
 }
 
 export async function deleteProduct(
@@ -185,5 +201,5 @@ export async function searchProducts(
     throw new Error(`Failed to search products: ${error.message}`)
   }
 
-  return data || []
+  return (data || []).map(mapProductWithAliases)
 }

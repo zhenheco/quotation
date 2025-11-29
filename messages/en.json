@@ -651,7 +651,19 @@
     "permission": {
       "costRestricted": "You don't have permission to view cost information",
       "costRestrictedShort": "Restricted"
-    }
+    },
+    "suppliers": "Supplier Cost Management",
+    "supplierName": "Supplier Name",
+    "supplierNamePlaceholder": "Enter supplier name",
+    "supplierCodePlaceholder": "Supplier code",
+    "addSupplier": "Add Supplier",
+    "setPreferred": "Set as Preferred",
+    "setAsPreferred": "Set as Preferred Supplier",
+    "noSuppliers": "No suppliers added yet",
+    "saveProductFirst": "Please save the product first to manage suppliers",
+    "add": "Add",
+    "adding": "Adding...",
+    "cancel": "Cancel"
   },
   "settings": {
     "title": "System Settings",

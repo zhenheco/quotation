@@ -18,6 +18,7 @@ import {
 } from '@/hooks/useProducts'
 import { usePermission } from '@/hooks/usePermission'
 import { safeToLocaleString } from '@/lib/utils/formatters'
+import { SupplierCostEditor } from '@/components/products/SupplierCostEditor'
 
 interface ProductFormProps {
   locale: string
@@ -360,23 +361,39 @@ export default function ProductForm({ locale, product: initialProduct }: Product
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormInput
-                  label={t('product.supplier')}
-                  name="supplier"
-                  value={formData.supplier}
-                  onChange={(value) => setFormData({ ...formData, supplier: value })}
-                  placeholder={t('product.supplierPlaceholder')}
-                />
+              {/* 多供應商管理（僅編輯模式） */}
+              {product?.id && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-gray-700">{t('product.suppliers')}</h4>
+                  <SupplierCostEditor
+                    productId={product.id}
+                    canEdit={canEditCost}
+                    basePrice={parseFloat(formData.basePrice) || undefined}
+                    baseCurrency={formData.baseCurrency}
+                  />
+                </div>
+              )}
 
-                <FormInput
-                  label={t('product.supplierCode')}
-                  name="supplierCode"
-                  value={formData.supplierCode}
-                  onChange={(value) => setFormData({ ...formData, supplierCode: value })}
-                  placeholder={t('product.supplierCodePlaceholder')}
-                />
-              </div>
+              {/* 快速供應商輸入（新增模式） */}
+              {!product?.id && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FormInput
+                    label={t('product.supplier')}
+                    name="supplier"
+                    value={formData.supplier}
+                    onChange={(value) => setFormData({ ...formData, supplier: value })}
+                    placeholder={t('product.supplierPlaceholder')}
+                  />
+
+                  <FormInput
+                    label={t('product.supplierCode')}
+                    name="supplierCode"
+                    value={formData.supplierCode}
+                    onChange={(value) => setFormData({ ...formData, supplierCode: value })}
+                    placeholder={t('product.supplierCodePlaceholder')}
+                  />
+                </div>
+              )}
             </>
           ) : (
             // 唯讀模式顯示成本
