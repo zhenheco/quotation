@@ -67,10 +67,8 @@ export default function StatusChart({ data, currency }: StatusChartProps) {
         return '#3b82f6'
       case 'accepted':
         return '#10b981'
-      case 'rejected':
+      case 'expired':
         return '#ef4444'
-      case 'approved':
-        return '#8b5cf6'
       default:
         return '#6b7280'
     }

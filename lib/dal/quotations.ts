@@ -10,7 +10,7 @@ export interface Quotation {
   company_id: string | null
   customer_id: string
   quotation_number: string
-  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved' | 'expired'
+  status: 'draft' | 'sent' | 'accepted' | 'expired'
   issue_date: string
   valid_until: string
   currency: string

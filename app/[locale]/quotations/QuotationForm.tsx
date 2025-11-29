@@ -82,7 +82,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     notes: '',
     paymentMethod: '',
     paymentNotes: '',
-    status: 'draft' as 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved',
+    status: 'draft' as 'draft' | 'sent' | 'accepted' | 'expired',
   })
   const [items, setItems] = useState<QuotationItem[]>([])
   const [error, setError] = useState('')
@@ -445,13 +445,18 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       // 儲存付款條款
       if (paymentTerms.length > 0 && newQuotationId) {
         try {
+          const termsToSave = paymentTerms.map((term, index) => ({
+            term_number: term.term_number ?? index + 1,
+            percentage: term.percentage ?? 0,
+            due_date: term.due_date ?? null,
+          }))
           console.log('[QuotationForm] Saving payment terms:', {
             quotationId: newQuotationId,
-            termsCount: paymentTerms.length,
-            terms: paymentTerms
+            termsCount: termsToSave.length,
+            terms: termsToSave
           })
           const result = await apiPost<{ payment_terms?: unknown[] }>(`/api/quotations/${newQuotationId}/payment-terms`, {
-            terms: paymentTerms,
+            terms: termsToSave,
             total,
           })
           console.log('[QuotationForm] Payment terms saved:', result)
@@ -613,14 +618,13 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
             <select
               id="status"
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved' })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'sent' | 'accepted' | 'expired' })}
               className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="draft">{t('status.draft')}</option>
               <option value="sent">{t('status.sent')}</option>
               <option value="accepted">{t('status.accepted')}</option>
-              <option value="rejected">{t('status.rejected')}</option>
-              <option value="approved">{t('status.approved')}</option>
+              <option value="expired">{t('status.expired')}</option>
             </select>
           </div>
         )}

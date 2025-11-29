@@ -412,8 +412,7 @@
     "draft": "Draft",
     "sent": "Sent",
     "accepted": "Accepted",
-    "rejected": "Rejected",
-    "approved": "Approved"
+    "expired": "Expired"
   },
   "email": {
     "send": "Send",

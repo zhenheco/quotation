@@ -211,8 +211,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
               <option value="draft">{t('status.draft')}</option>
               <option value="sent">{t('status.sent')}</option>
               <option value="accepted">{t('status.accepted')}</option>
-              <option value="rejected">{t('status.rejected')}</option>
-              <option value="approved">{t('status.approved')}</option>
+              <option value="expired">{t('status.expired')}</option>
             </select>
 
             {quotations.length > 0 && (
@@ -357,8 +356,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
                       <option value="draft">{t('status.draft')}</option>
                       <option value="sent">{t('status.sent')}</option>
                       <option value="accepted">{t('status.accepted')}</option>
-                      <option value="rejected">{t('status.rejected')}</option>
-                      <option value="approved">{t('status.approved')}</option>
+                      <option value="expired">{t('status.expired')}</option>
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
