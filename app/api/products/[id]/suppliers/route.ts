@@ -106,7 +106,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   const { env } = await getCloudflareContext()
-  const { id: productId } = await params
+  await params
 
   try {
     const supabase = createApiClient(request)
@@ -165,7 +165,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const { env } = await getCloudflareContext()
-  const { id: productId } = await params
+  await params
 
   try {
     const supabase = createApiClient(request)
