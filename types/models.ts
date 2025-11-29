@@ -54,11 +54,10 @@ export interface UpdateCustomerData {
 export interface Product {
   id: string
   user_id: string
+  company_id: string | null
   sku: string | null
   name: BilingualText
   description: BilingualText | null
-  unit_price: number
-  currency: string
   base_price: number
   base_currency: string
   category: string | null
@@ -88,11 +87,12 @@ export interface ProductSupplierCost {
 
 export interface CreateProductData {
   user_id: string
-  sku: string
+  company_id?: string | null
+  sku?: string | null
   name: BilingualText
   description?: BilingualText | null
-  unit_price: number
-  currency: string
+  base_price: number
+  base_currency: string
   category?: string | null
   cost_price?: number | null
   cost_currency?: string | null
@@ -104,11 +104,12 @@ export interface CreateProductData {
 }
 
 export interface UpdateProductData {
-  sku?: string
+  company_id?: string | null
+  sku?: string | null
   name?: BilingualText
   description?: BilingualText | null
-  unit_price?: number
-  currency?: string
+  base_price?: number
+  base_currency?: string
   category?: string | null
   cost_price?: number | null
   cost_currency?: string | null

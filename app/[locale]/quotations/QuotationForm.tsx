@@ -307,15 +307,15 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     const product = products.find((p) => p.id === productId)
     if (!product) return
 
-    let convertedPrice = product.unit_price
+    let convertedPrice = product.base_price
 
     // 如果產品幣別與報價單幣別不同，進行匯率換算
-    if (isEditMode && product.currency && product.currency !== formData.currency) {
-      const rate = exchangeRates[product.currency]
+    if (isEditMode && product.base_currency && product.base_currency !== formData.currency) {
+      const rate = exchangeRates[product.base_currency]
       if (rate && rate !== 0) {
-        convertedPrice = product.unit_price / rate
+        convertedPrice = product.base_price / rate
       } else {
-        console.warn(`No exchange rate found for ${product.currency} to ${formData.currency}`)
+        console.warn(`No exchange rate found for ${product.base_currency} to ${formData.currency}`)
       }
     }
 

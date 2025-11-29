@@ -102,15 +102,14 @@ export async function PUT(
     const updateData: Partial<{
       name: { zh: string; en: string }
       description?: { zh: string; en: string }
-      unit_price: number
-      currency: string
+      base_price: number
+      base_currency: string
       category?: string
       sku?: string
       cost_price?: number | null
       cost_currency?: string
       profit_margin?: number | null
       supplier?: string
-      base_price?: number
     }> = {}
 
     // 驗證和轉換數值欄位
@@ -119,7 +118,6 @@ export async function PUT(
       if (isNaN(price) || price < 0) {
         return NextResponse.json({ error: 'Invalid price' }, { status: 400 })
       }
-      updateData.unit_price = price
       updateData.base_price = price
     }
 
@@ -154,7 +152,7 @@ export async function PUT(
       updateData.description = typeof body.description === 'string' ? { zh: body.description, en: body.description } : body.description as { zh: string; en: string }
     }
     if (body.base_currency !== undefined) {
-      updateData.currency = body.base_currency
+      updateData.base_currency = body.base_currency
     }
     if (body.category !== undefined) {
       updateData.category = body.category

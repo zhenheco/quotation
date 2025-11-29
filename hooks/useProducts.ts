@@ -333,10 +333,10 @@ export function useFilteredProducts(filters: ProductFilters) {
     }
 
     // 價格範圍過濾
-    if (filters.minPrice && product.unit_price < filters.minPrice) {
+    if (filters.minPrice && product.base_price < filters.minPrice) {
       return false
     }
-    if (filters.maxPrice && product.unit_price > filters.maxPrice) {
+    if (filters.maxPrice && product.base_price > filters.maxPrice) {
       return false
     }
 

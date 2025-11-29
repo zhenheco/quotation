@@ -122,8 +122,8 @@ export async function POST(request: NextRequest) {
     const product = await createProduct(db, user.id, {
       name: typeof body.name === 'string' ? { zh: body.name, en: body.name } : body.name,
       description: body.description ? (typeof body.description === 'string' ? { zh: body.description, en: body.description } : body.description) : undefined,
-      unit_price: price,
-      currency: body.base_currency,
+      base_price: price,
+      base_currency: body.base_currency,
       sku: body.sku,
       cost_price: costPrice,
       cost_currency: body.cost_currency,
