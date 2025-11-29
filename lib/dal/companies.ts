@@ -13,7 +13,6 @@ export interface Company {
   phone: string | null
   email: string | null
   website: string | null
-  settings: Record<string, unknown>
   created_at: string
   updated_at: string
 }
@@ -70,7 +69,6 @@ export async function createCompany(
     phone?: string
     email?: string
     website?: string
-    settings?: Record<string, unknown>
   }
 ): Promise<Company> {
   const now = new Date().toISOString()
@@ -86,7 +84,6 @@ export async function createCompany(
       phone: data.phone || null,
       email: data.email || null,
       website: data.website || null,
-      settings: data.settings || {},
       created_at: now,
       updated_at: now
     })
