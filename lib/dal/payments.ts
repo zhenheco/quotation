@@ -572,7 +572,7 @@ export async function markScheduleAsCollected(
   }
 ): Promise<{
   payment_schedule: PaymentSchedule
-  payment: Payment
+  payment: Payment | null
 }> {
   const { data: schedule, error: scheduleError } = await db
     .from('payment_schedules')
@@ -597,6 +597,46 @@ export async function markScheduleAsCollected(
 
   if (schedule.status === 'paid') {
     throw new Error('Schedule already paid')
+  }
+
+  const now = new Date().toISOString()
+
+  // 處理手動建立的收款單（沒有 quotation_id 和 contract_id）
+  // 不需要建立 payment 記錄，直接更新 schedule 狀態
+  if (!schedule.quotation_id && !schedule.contract_id) {
+    console.log('[markScheduleAsCollected] Manual schedule, skipping payment creation')
+
+    const { error: updateError } = await db
+      .from('payment_schedules')
+      .update({
+        status: 'paid',
+        paid_date: data.payment_date,
+        paid_amount: data.amount || schedule.amount,
+        updated_at: now
+      })
+      .eq('id', scheduleId)
+      .eq('user_id', userId)
+      .neq('status', 'paid')
+
+    if (updateError) {
+      throw new Error(`Failed to update schedule: ${updateError.message}`)
+    }
+
+    const { data: updatedSchedule, error: fetchError } = await db
+      .from('payment_schedules')
+      .select('*')
+      .eq('id', scheduleId)
+      .eq('user_id', userId)
+      .single()
+
+    if (fetchError || !updatedSchedule) {
+      throw new Error('Failed to update schedule')
+    }
+
+    return {
+      payment_schedule: updatedSchedule,
+      payment: null,
+    }
   }
 
   let quotationId: string | null = schedule.quotation_id
@@ -627,8 +667,6 @@ export async function markScheduleAsCollected(
     status: 'confirmed',
     notes: data.notes || null,
   })
-
-  const now = new Date().toISOString()
 
   const { error: updateError, count } = await db
     .from('payment_schedules')

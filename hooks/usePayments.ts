@@ -10,7 +10,7 @@ import type {
   PaymentFrequency,
   PaymentTransactionStatus,
 } from '@/types/extended.types'
-import { apiGet, apiPost } from '@/lib/api-client'
+import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api-client'
 
 // ============================================================================
 // Types
@@ -188,27 +188,15 @@ export interface UpdatePaymentScheduleInput {
 }
 
 async function updatePaymentSchedule(scheduleId: string, input: UpdatePaymentScheduleInput): Promise<CurrentMonthReceivable> {
-  const response = await fetch(`/api/payments/schedules/${scheduleId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to update schedule' })) as { error?: string }
-    throw new Error(error.error || 'Failed to update schedule')
-  }
-  const data = await response.json() as { schedule: CurrentMonthReceivable }
+  const data = await apiPatch<{ schedule: CurrentMonthReceivable }>(
+    `/api/payments/schedules/${scheduleId}`,
+    input
+  )
   return data.schedule
 }
 
 async function deletePaymentSchedule(scheduleId: string): Promise<void> {
-  const response = await fetch(`/api/payments/schedules/${scheduleId}`, {
-    method: 'DELETE',
-  })
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to delete schedule' })) as { error?: string }
-    throw new Error(error.error || 'Failed to delete schedule')
-  }
+  await apiDelete(`/api/payments/schedules/${scheduleId}`)
 }
 
 // ============================================================================
