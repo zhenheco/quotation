@@ -61,10 +61,9 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/companies - 建立新公司
+ * 所有登入用戶都可以建立公司（SaaS 多租戶模式）
  */
 export async function POST(request: NextRequest) {
-  const { env } = await getCloudflareContext()
-
   try {
     // 驗證使用者
     const supabase = createApiClient(request)
@@ -74,14 +73,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 檢查權限
-    const kv = getKVCache(env)
     const db = getSupabaseClient()
-
-    const hasPermission = await checkPermission(kv, db, user.id, 'companies:write')
-    if (!hasPermission) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     // 取得請求資料
     const body = await request.json() as CreateCompanyRequestBody
