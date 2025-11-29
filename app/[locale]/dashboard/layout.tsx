@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import Navbar from '@/components/Navbar'
 import Sidebar from '@/components/Sidebar'
+import MobileNav from '@/components/MobileNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,10 +33,11 @@ export default async function DashboardLayout({
       <Navbar locale={locale} />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar locale={locale} />
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-4 pb-20 md:pb-8 md:p-8 overflow-y-auto">
           {children}
         </main>
       </div>
+      <MobileNav locale={locale} />
     </div>
   )
 }

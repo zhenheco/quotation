@@ -54,7 +54,7 @@ export default function Sidebar({ locale }: { locale: string }) {
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['/quotations'])
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 h-full min-h-screen p-4 flex flex-col overflow-y-auto overflow-x-hidden">
+    <aside className="hidden md:flex md:w-64 bg-white border-r border-gray-200 h-full min-h-screen p-4 flex-col overflow-y-auto overflow-x-hidden">
       {/* Header */}
       <div className="mb-8">
         <Link href={`/${locale}/dashboard`} className="flex items-center gap-3 pb-4 border-b border-gray-200 group cursor-pointer">

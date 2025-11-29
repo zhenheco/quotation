@@ -253,7 +253,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
           rows={4}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormInput
             label={t('product.price')}
             name="basePrice"
@@ -290,7 +290,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
               {t('product.category')}
@@ -352,7 +352,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
 
           {canEditCost ? (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormInput
                   label={t('product.costPrice')}
                   name="costPrice"
@@ -426,7 +426,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
 
               {/* 快速供應商輸入（新增模式） */}
               {!product?.id && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormInput
                     label={t('product.supplier')}
                     name="supplier"
