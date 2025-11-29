@@ -171,6 +171,23 @@
     "percentage": "Percentage",
     "totalValue": "Total Value"
   },
+  "products": {
+    "addSupplier": "Add Supplier",
+    "noSuppliers": "No suppliers added yet",
+    "saveProductFirst": "Please save the product first before adding suppliers",
+    "supplierName": "Supplier Name",
+    "supplierNamePlaceholder": "Enter supplier name",
+    "supplierCode": "Supplier Code",
+    "supplierCodePlaceholder": "Enter supplier code",
+    "costPrice": "Cost Price",
+    "costCurrency": "Cost Currency",
+    "profitMargin": "Profit Margin",
+    "setPreferred": "Set as Preferred",
+    "setAsPreferred": "Set as preferred supplier",
+    "adding": "Adding...",
+    "add": "Add",
+    "cancel": "Cancel"
+  },
   "quotation": {
     "title": "Quotations",
     "createNew": "Create Quotation",

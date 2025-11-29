@@ -171,6 +171,23 @@
     "percentage": "百分比",
     "totalValue": "總價值"
   },
+  "products": {
+    "addSupplier": "新增供應商",
+    "noSuppliers": "尚未新增供應商",
+    "saveProductFirst": "請先儲存產品後再新增供應商",
+    "supplierName": "供應商名稱",
+    "supplierNamePlaceholder": "輸入供應商名稱",
+    "supplierCode": "供應商代碼",
+    "supplierCodePlaceholder": "輸入供應商代碼",
+    "costPrice": "成本價格",
+    "costCurrency": "成本幣別",
+    "profitMargin": "利潤率",
+    "setPreferred": "設為首選",
+    "setAsPreferred": "設為首選供應商",
+    "adding": "新增中...",
+    "add": "新增",
+    "cancel": "取消"
+  },
   "quotation": {
     "title": "報價單",
     "createNew": "建立報價單",
