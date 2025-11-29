@@ -7,7 +7,6 @@ import { SupabaseClient } from '@/lib/db/supabase-client'
 export interface Payment {
   id: string
   user_id: string
-  company_id: string | null
   quotation_id: string | null
   contract_id: string | null
   customer_id: string
@@ -615,7 +614,6 @@ export async function markScheduleAsCollected(
   }
 
   const payment = await createPayment(db, userId, {
-    company_id: null,
     quotation_id: quotationId,
     contract_id: schedule.contract_id,
     customer_id: schedule.customer_id,
@@ -950,7 +948,6 @@ export async function recordPayment(
   }
 
   const payment = await createPayment(db, userId, {
-    company_id: null,
     quotation_id: data.quotation_id || null,
     contract_id: data.contract_id || null,
     customer_id: data.customer_id,
