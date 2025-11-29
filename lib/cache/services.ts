@@ -107,10 +107,11 @@ export async function invalidateExchangeRates(kv: KVCache): Promise<void> {
 
 /**
  * 權限名稱映射：API 格式 -> 資料庫格式
+ * 注意：companies 權限現在直接使用，不再映射到 company_settings
  */
 const permissionMapping: Record<string, string[]> = {
-  'companies:read': ['company_settings:read'],
-  'companies:write': ['company_settings:write'],
+  'companies:read': ['companies:read', 'company_settings:read'],
+  'companies:write': ['companies:write', 'company_settings:write'],
   'exchange_rates:read': ['exchange_rates:read']
 }
 

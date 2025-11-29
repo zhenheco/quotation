@@ -8,7 +8,12 @@ export interface Company {
   id: string
   name: { zh: string; en: string }
   logo_url: string | null
+  signature_url: string | null
+  passbook_url: string | null
   tax_id: string | null
+  bank_name: string | null
+  bank_account: string | null
+  bank_code: string | null
   address: { zh: string; en: string } | null
   phone: string | null
   email: string | null
@@ -64,7 +69,12 @@ export async function createCompany(
     id?: string
     name: { zh: string; en: string }
     logo_url?: string
+    signature_url?: string
+    passbook_url?: string
     tax_id?: string
+    bank_name?: string
+    bank_account?: string
+    bank_code?: string
     address?: { zh: string; en: string }
     phone?: string
     email?: string
@@ -79,7 +89,12 @@ export async function createCompany(
       id: data.id || crypto.randomUUID(),
       name: data.name,
       logo_url: data.logo_url || null,
+      signature_url: data.signature_url || null,
+      passbook_url: data.passbook_url || null,
       tax_id: data.tax_id || null,
+      bank_name: data.bank_name || null,
+      bank_account: data.bank_account || null,
+      bank_code: data.bank_code || null,
       address: data.address || null,
       phone: data.phone || null,
       email: data.email || null,
