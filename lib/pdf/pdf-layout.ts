@@ -299,8 +299,8 @@ export function drawFinancialSummary(
 ): number {
   const t = pdfTranslations[locale]
   let y = startY
-  const rightX = MARGIN_LEFT + CONTENT_WIDTH - 150
-  const pageRight = MARGIN_LEFT + CONTENT_WIDTH
+  const amountColRight = MARGIN_LEFT + 250 + 60 + 100 + 100
+  const rightX = amountColRight - 150
   const currencyX = rightX + 50
 
   page.drawText(`${t.subtotal}:`, {
@@ -320,7 +320,7 @@ export function drawFinancialSummary(
   const subtotalNum = formatPDFNumber(data.subtotal, data.currency)
   const subtotalNumWidth = font.widthOfTextAtSize(subtotalNum, 10)
   page.drawText(subtotalNum, {
-    x: pageRight - subtotalNumWidth,
+    x: amountColRight - subtotalNumWidth,
     y,
     size: 10,
     font,
@@ -345,7 +345,7 @@ export function drawFinancialSummary(
   const taxNum = formatPDFNumber(data.taxAmount, data.currency)
   const taxNumWidth = font.widthOfTextAtSize(taxNum, 10)
   page.drawText(taxNum, {
-    x: pageRight - taxNumWidth,
+    x: amountColRight - taxNumWidth,
     y,
     size: 10,
     font,
@@ -355,7 +355,7 @@ export function drawFinancialSummary(
 
   page.drawLine({
     start: { x: rightX, y: y + 12 },
-    end: { x: pageRight, y: y + 12 },
+    end: { x: amountColRight, y: y + 12 },
     thickness: 1,
     color: rgb(0.5, 0.5, 0.5),
   })
@@ -377,7 +377,7 @@ export function drawFinancialSummary(
   const totalNum = formatPDFNumber(data.totalAmount, data.currency)
   const totalNumWidth = font.widthOfTextAtSize(totalNum, 12)
   page.drawText(totalNum, {
-    x: pageRight - totalNumWidth,
+    x: amountColRight - totalNumWidth,
     y,
     size: 12,
     font,
