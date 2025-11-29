@@ -2,22 +2,12 @@ import { PDFPage, PDFFont, rgb, PDFDocument } from 'pdf-lib'
 import { pdfTranslations, type PDFLocale } from './pdf-translations'
 import { formatAmount } from '@/lib/utils/formatters'
 
-function toFullWidthNumbers(str: string): string {
-  const halfToFull: Record<string, string> = {
-    '0': '０', '1': '１', '2': '２', '3': '３', '4': '４',
-    '5': '５', '6': '６', '7': '７', '8': '８', '9': '９',
-    ',': '，', '.': '．', ' ': '　'
-  }
-  return str.split('').map(char => halfToFull[char] || char).join('')
-}
-
 function formatPDFNumber(value: number | undefined | null, currency: string): string {
-  const amount = formatAmount(value, currency)
-  return toFullWidthNumbers(amount)
+  return formatAmount(value, currency)
 }
 
 function formatPDFAmount(value: number | undefined | null, currency: string): string {
-  return `${currency}　${formatPDFNumber(value, currency)}`
+  return `${currency} ${formatPDFNumber(value, currency)}`
 }
 
 const A4_WIDTH = 595.28
@@ -277,16 +267,20 @@ export function drawItemsTable(
       color: rgb(0, 0, 0),
     })
 
-    page.drawText(formatPDFNumber(item.unitPrice, data.currency), {
-      x: colX[2] + 5,
+    const unitPriceText = formatPDFNumber(item.unitPrice, data.currency)
+    const unitPriceWidth = font.widthOfTextAtSize(unitPriceText, 10)
+    page.drawText(unitPriceText, {
+      x: colX[2] + colWidths[2] - unitPriceWidth - 5,
       y: y - 10,
       size: 10,
       font,
       color: rgb(0, 0, 0),
     })
 
-    page.drawText(formatPDFNumber(item.subtotal, data.currency), {
-      x: colX[3] + 5,
+    const subtotalText = formatPDFNumber(item.subtotal, data.currency)
+    const subtotalWidth = font.widthOfTextAtSize(subtotalText, 10)
+    page.drawText(subtotalText, {
+      x: colX[3] + colWidths[3] - subtotalWidth - 5,
       y: y - 10,
       size: 10,
       font,
@@ -309,6 +303,7 @@ export function drawFinancialSummary(
   const t = pdfTranslations[locale]
   let y = startY
   const rightX = MARGIN_LEFT + CONTENT_WIDTH - 150
+  const pageRight = MARGIN_LEFT + CONTENT_WIDTH
 
   page.drawText(`${t.subtotal}:`, {
     x: rightX,
@@ -317,8 +312,10 @@ export function drawFinancialSummary(
     font,
     color: rgb(0, 0, 0),
   })
-  page.drawText(formatPDFAmount(data.subtotal, data.currency), {
-    x: rightX + 80,
+  const subtotalText = formatPDFAmount(data.subtotal, data.currency)
+  const subtotalWidth = font.widthOfTextAtSize(subtotalText, 10)
+  page.drawText(subtotalText, {
+    x: pageRight - subtotalWidth,
     y,
     size: 10,
     font,
@@ -333,18 +330,20 @@ export function drawFinancialSummary(
     font,
     color: rgb(0, 0, 0),
   })
-  page.drawText(formatPDFAmount(data.taxAmount, data.currency), {
-    x: rightX + 80,
+  const taxText = formatPDFAmount(data.taxAmount, data.currency)
+  const taxWidth = font.widthOfTextAtSize(taxText, 10)
+  page.drawText(taxText, {
+    x: pageRight - taxWidth,
     y,
     size: 10,
     font,
     color: rgb(0, 0, 0),
   })
-  y -= 22
+  y -= 25
 
   page.drawLine({
-    start: { x: rightX, y: y + 8 },
-    end: { x: MARGIN_LEFT + CONTENT_WIDTH, y: y + 8 },
+    start: { x: rightX, y: y + 12 },
+    end: { x: pageRight, y: y + 12 },
     thickness: 1,
     color: rgb(0.5, 0.5, 0.5),
   })
@@ -356,8 +355,10 @@ export function drawFinancialSummary(
     font,
     color: rgb(0, 0, 0),
   })
-  page.drawText(formatPDFAmount(data.totalAmount, data.currency), {
-    x: rightX + 80,
+  const totalText = formatPDFAmount(data.totalAmount, data.currency)
+  const totalWidth = font.widthOfTextAtSize(totalText, 12)
+  page.drawText(totalText, {
+    x: pageRight - totalWidth,
     y,
     size: 12,
     font,
@@ -450,8 +451,10 @@ export function drawPaymentTerms(
       color: rgb(0, 0, 0),
     })
 
-    page.drawText(formatPDFAmount(term.amount, currency), {
-      x: colX[3] + 5,
+    const termAmountText = formatPDFAmount(term.amount, currency)
+    const termAmountWidth = font.widthOfTextAtSize(termAmountText, 9)
+    page.drawText(termAmountText, {
+      x: colX[3] + colWidths[3] - termAmountWidth - 5,
       y: y - 10,
       size: 9,
       font,
