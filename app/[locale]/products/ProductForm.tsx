@@ -27,6 +27,17 @@ interface ProductFormProps {
 
 const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'CNY']
 
+const PRESET_CATEGORIES = [
+  'service',
+  'product',
+  'software',
+  'hardware',
+  'consulting',
+  'maintenance',
+  'design',
+  'training'
+]
+
 export default function ProductForm({ locale, product: initialProduct }: ProductFormProps) {
   const t = useTranslations()
   const currentLocale = useLocale() as 'zh' | 'en'
@@ -70,11 +81,15 @@ export default function ProductForm({ locale, product: initialProduct }: Product
     'sellingPrice'
   )
 
+  // 類別選擇狀態（用於判斷是否選擇「其他」）
+  const [isOtherCategory, setIsOtherCategory] = useState(false)
+
   // 從 product 初始化表單
   useEffect(() => {
     if (product) {
       const name = product.name as { zh: string; en: string }
       const description = product.description as { zh: string; en: string } | null
+      const productCategory = product.category || ''
 
       setFormData({
         nameZh: name.zh || '',
@@ -83,7 +98,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
         descriptionEn: description?.en || '',
         basePrice: product.base_price?.toString() || '',
         baseCurrency: product.base_currency || 'TWD',
-        category: product.category || '',
+        category: productCategory,
         costPrice: product.cost_price?.toString() || '',
         costCurrency: product.cost_currency || product.base_currency || 'TWD',
         profitMargin: product.profit_margin?.toString() || '',
@@ -91,6 +106,10 @@ export default function ProductForm({ locale, product: initialProduct }: Product
         supplierCode: product.supplier_code || '',
         sku: product.sku || '',
       })
+
+      if (productCategory && !PRESET_CATEGORIES.includes(productCategory)) {
+        setIsOtherCategory(true)
+      }
     }
   }, [product])
 
@@ -272,13 +291,44 @@ export default function ProductForm({ locale, product: initialProduct }: Product
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormInput
-            label={t('product.category')}
-            name="category"
-            value={formData.category}
-            onChange={(value) => setFormData({ ...formData, category: value })}
-            placeholder={t('product.categoryPlaceholder')}
-          />
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+              {t('product.category')}
+            </label>
+            <select
+              id="category"
+              name="category"
+              value={isOtherCategory ? 'other' : formData.category}
+              onChange={(e) => {
+                const value = e.target.value
+                if (value === 'other') {
+                  setIsOtherCategory(true)
+                  setFormData({ ...formData, category: '' })
+                } else {
+                  setIsOtherCategory(false)
+                  setFormData({ ...formData, category: value })
+                }
+              }}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            >
+              <option value="">{t('product.selectCategory')}</option>
+              {PRESET_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {t(`product.categories.${cat}`)}
+                </option>
+              ))}
+              <option value="other">{t('product.categories.other')}</option>
+            </select>
+            {isOtherCategory && (
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder={t('product.customCategoryPlaceholder')}
+                className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              />
+            )}
+          </div>
 
           <FormInput
             label={t('product.sku')}

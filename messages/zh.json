@@ -372,6 +372,19 @@
     "price": "價格",
     "currency": "幣別",
     "category": "類別",
+    "selectCategory": "請選擇類別",
+    "customCategoryPlaceholder": "輸入自訂類別名稱",
+    "categories": {
+      "service": "服務",
+      "product": "產品",
+      "software": "軟體",
+      "hardware": "硬體",
+      "consulting": "諮詢",
+      "maintenance": "維護",
+      "design": "設計",
+      "training": "培訓",
+      "other": "其他"
+    },
     "namePlaceholder": {
       "zh": "服務/品項名稱（中文）",
       "en": "服務/品項名稱（英文）"

@@ -370,6 +370,19 @@
     "price": "Price",
     "currency": "Currency",
     "category": "Category",
+    "selectCategory": "Select a category",
+    "customCategoryPlaceholder": "Enter custom category name",
+    "categories": {
+      "service": "Service",
+      "product": "Product",
+      "software": "Software",
+      "hardware": "Hardware",
+      "consulting": "Consulting",
+      "maintenance": "Maintenance",
+      "design": "Design",
+      "training": "Training",
+      "other": "Other"
+    },
     "namePlaceholder": {
       "zh": "Service/Item Name (Chinese)",
       "en": "Service/Item Name (English)"
