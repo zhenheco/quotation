@@ -4,6 +4,7 @@ import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { getPaymentTerms, batchCreatePaymentTerms, deletePaymentTerm } from '@/lib/dal/payment-terms'
+import { syncQuotationToPaymentSchedules } from '@/lib/dal/payments'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
@@ -101,6 +102,23 @@ export async function POST(
       total
     )
     console.log('[payment-terms API] Created terms:', paymentTerms.length)
+
+    // 檢查報價單狀態，如果已簽約或已結案則同步到 payment_schedules
+    const { data: quotation } = await db
+      .from('quotations')
+      .select('status')
+      .eq('id', id)
+      .single()
+
+    if (quotation && ['accepted', 'completed'].includes(quotation.status)) {
+      console.log('[payment-terms API] Syncing to payment_schedules...')
+      try {
+        const syncResult = await syncQuotationToPaymentSchedules(db, user.id, id)
+        console.log('[payment-terms API] Sync result:', syncResult)
+      } catch (syncError) {
+        console.error('[payment-terms API] Sync error:', syncError)
+      }
+    }
 
     return NextResponse.json({ payment_terms: paymentTerms })
   } catch (error: unknown) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updatePaymentTerm, deletePaymentTerm } from '@/lib/dal/payment-terms';
+import { syncQuotationToPaymentSchedules } from '@/lib/dal/payments';
 import { createApiClient } from '@/lib/supabase/api';
 import { getSupabaseClient } from '@/lib/db/supabase-client';
 import { getKVCache } from '@/lib/cache/kv-cache';
@@ -25,7 +26,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string; termId: string }> }
 ) {
   try {
-    const { termId } = await params;
+    const { id, termId } = await params;
     const { env } = await getCloudflareContext();
     const supabase = createApiClient(request);
 
@@ -52,6 +53,21 @@ export async function PUT(
 
     const updatedTerm = await updatePaymentTerm(db, user.id, termId, updates);
 
+    // 檢查報價單狀態，如果已簽約或已結案則同步到 payment_schedules
+    const { data: quotation } = await db
+      .from('quotations')
+      .select('status')
+      .eq('id', id)
+      .single();
+
+    if (quotation && ['accepted', 'completed'].includes(quotation.status)) {
+      try {
+        await syncQuotationToPaymentSchedules(db, user.id, id);
+      } catch (syncError) {
+        console.error('[payment-terms API] Sync error:', syncError);
+      }
+    }
+
     return NextResponse.json(updatedTerm);
   } catch (error) {
     console.error('更新付款條款失敗:', error);
@@ -71,7 +87,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; termId: string }> }
 ) {
   try {
-    const { termId } = await params;
+    const { id, termId } = await params;
     const { env } = await getCloudflareContext();
     const supabase = createApiClient(request);
 
@@ -95,6 +111,21 @@ export async function DELETE(
     }
 
     await deletePaymentTerm(db, user.id, termId);
+
+    // 檢查報價單狀態，如果已簽約或已結案則同步到 payment_schedules
+    const { data: quotation } = await db
+      .from('quotations')
+      .select('status')
+      .eq('id', id)
+      .single();
+
+    if (quotation && ['accepted', 'completed'].includes(quotation.status)) {
+      try {
+        await syncQuotationToPaymentSchedules(db, user.id, id);
+      } catch (syncError) {
+        console.error('[payment-terms API] Sync error:', syncError);
+      }
+    }
 
     return NextResponse.json(null, { status: 204 });
   } catch (error) {
