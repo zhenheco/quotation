@@ -109,12 +109,12 @@ export default function ProductList({ locale }: ProductListProps) {
           />
 
           {/* 篩選器與視圖切換 */}
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             {/* 分類篩選 */}
             <select
               value={filters.category || ''}
               onChange={(e) => updateFilters({ category: e.target.value || undefined })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
             >
               <option value="">{t('product.allCategories')}</option>
               {categories?.map((category) => (
@@ -124,8 +124,8 @@ export default function ProductList({ locale }: ProductListProps) {
               ))}
             </select>
 
-            {/* View mode toggle buttons */}
-            <div className="flex gap-2">
+            {/* View mode toggle buttons - 只在桌面版顯示 */}
+            <div className="hidden md:flex gap-2">
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-2 rounded-lg transition-colors ${
@@ -156,9 +156,9 @@ export default function ProductList({ locale }: ProductListProps) {
           </div>
         </div>
 
-        {/* List View */}
+        {/* List View - 只在桌面版且選擇 list 模式時顯示 */}
         {viewMode === 'list' && (
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -258,9 +258,10 @@ export default function ProductList({ locale }: ProductListProps) {
           </div>
         )}
 
-        {/* Card View */}
-        {viewMode === 'card' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Card View - 手機版始終顯示，或桌面版選擇 card 模式時顯示 */}
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${
+          viewMode === 'list' ? 'md:hidden' : ''
+        }`}>
             {products.map((product) => {
               const name = product.name as { zh: string; en: string }
               const description = product.description as { zh: string; en: string } | null
@@ -342,8 +343,7 @@ export default function ProductList({ locale }: ProductListProps) {
                 </div>
               )
             })}
-          </div>
-        )}
+        </div>
 
         {products.length === 0 && filters.search && (
           <div className="text-center py-8 text-gray-500">{t('common.noResults')}</div>
