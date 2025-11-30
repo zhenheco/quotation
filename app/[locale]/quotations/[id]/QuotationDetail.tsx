@@ -289,12 +289,12 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
             </h4>
             <div className="space-y-2">
               {paymentTerms.map((term: PaymentTerm) => (
-                <div key={term.id} className="flex justify-between text-sm">
-                  <span className="text-gray-600">
+                <div key={term.id} className="flex flex-col sm:flex-row sm:justify-between text-sm gap-1 sm:gap-0">
+                  <span className="text-gray-600 break-words">
                     {locale === 'zh' ? `第 ${term.term_number} 期` : `Term ${term.term_number}`}
                     {' '}({term.percentage}%)
                     {term.due_date && (
-                      <span className="ml-2">
+                      <span className="sm:ml-2 block sm:inline mt-0.5 sm:mt-0">
                         - {locale === 'zh'
                           ? new Date(term.due_date).toLocaleDateString('zh-TW', {
                               year: 'numeric',
@@ -309,7 +309,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                       </span>
                     )}
                   </span>
-                  <span className="text-gray-900 font-medium">
+                  <span className="text-gray-900 font-medium whitespace-nowrap">
                     {quotation.currency} {formatAmount(term.amount, quotation.currency)}
                   </span>
                 </div>

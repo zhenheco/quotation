@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { apiGet, apiPost, apiPut, apiPostFormData } from '@/lib/api-client';
 
 function getImageUrl(url: string | undefined): string | null {
@@ -44,6 +45,7 @@ interface CompanySettingsProps {
 }
 
 export default function CompanySettings({ locale, triggerCreate }: CompanySettingsProps) {
+  const t = useTranslations('common');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -500,7 +502,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                     disabled={uploading.logo}
                     className="w-full px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                   >
-                    {uploading.logo ? (locale === 'zh' ? '上傳中...' : 'Uploading...') : (locale === 'zh' ? '選擇檔案' : 'Choose File')}
+                    {uploading.logo ? t('uploading') : t('chooseFile')}
                   </button>
                 </div>
 
@@ -533,7 +535,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                     disabled={uploading.signature}
                     className="w-full px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                   >
-                    {uploading.signature ? (locale === 'zh' ? '上傳中...' : 'Uploading...') : (locale === 'zh' ? '選擇檔案' : 'Choose File')}
+                    {uploading.signature ? t('uploading') : t('chooseFile')}
                   </button>
                 </div>
 
@@ -566,7 +568,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                     disabled={uploading.passbook}
                     className="w-full px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                   >
-                    {uploading.passbook ? (locale === 'zh' ? '上傳中...' : 'Uploading...') : (locale === 'zh' ? '選擇檔案' : 'Choose File')}
+                    {uploading.passbook ? t('uploading') : t('chooseFile')}
                   </button>
                 </div>
               </div>

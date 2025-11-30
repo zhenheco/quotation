@@ -29,6 +29,12 @@ const menuItems = [
     icon: '📄',
   },
   {
+    en: 'Payments',
+    zh: '收款',
+    href: '/payments',
+    icon: '💰',
+  },
+  {
     en: 'Settings',
     zh: '設定',
     href: '/settings',

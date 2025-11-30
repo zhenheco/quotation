@@ -26,7 +26,9 @@
     "cardView": "Card View",
     "notLoggedIn": "Not logged in",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "chooseFile": "Choose File",
+    "uploading": "Uploading..."
   },
   "auth": {
     "signInWithGoogle": "Sign in / Sign up with Google",
