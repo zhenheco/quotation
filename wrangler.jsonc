@@ -16,6 +16,13 @@
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://oubsycwrxzkuviakzahi.supabase.co"
   },
+  // Cloudflare R2 - 檔案儲存
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "quote24"
+    }
+  ],
   // Cloudflare KV - 快取層
   "kv_namespaces": [
     {

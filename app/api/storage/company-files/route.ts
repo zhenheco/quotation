@@ -1,6 +1,6 @@
 import { createApiClient } from '@/lib/supabase/api'
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 const MIME_TYPES: Record<string, string> = {
   'png': 'image/png',
@@ -30,24 +30,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    // 使用 Cloudflare R2 讀取檔案
+    const { env } = getCloudflareContext()
+    const object = await env.R2_BUCKET.get(path)
 
-    const { data, error } = await supabaseAdmin.storage
-      .from('company-files')
-      .download(path)
-
-    if (error) {
-      console.error('Storage download error:', error)
-      return NextResponse.json({ error: error.message }, { status: 404 })
+    if (!object) {
+      return NextResponse.json({ error: 'File not found' }, { status: 404 })
     }
 
     const ext = path.split('.').pop()?.toLowerCase() || 'png'
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream'
+    const contentType = object.httpMetadata?.contentType || MIME_TYPES[ext] || 'application/octet-stream'
 
-    const arrayBuffer = await data.arrayBuffer()
+    const arrayBuffer = await object.arrayBuffer()
 
     return new NextResponse(arrayBuffer, {
       headers: {

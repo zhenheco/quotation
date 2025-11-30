@@ -1,6 +1,7 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 const ALLOWED_TYPES = ['logo', 'signature', 'passbook'] as const
 type FileType = typeof ALLOWED_TYPES[number]
@@ -47,19 +48,15 @@ export async function POST(request: NextRequest) {
     const filePath = `${user.id}/${fileName}`
 
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = new Uint8Array(arrayBuffer)
 
-    const { error: uploadError } = await supabase.storage
-      .from('company-files')
-      .upload(filePath, buffer, {
-        upsert: true,
-        contentType: file.type
-      })
+    // 使用 Cloudflare R2 上傳檔案
+    const { env } = getCloudflareContext()
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError)
-      return NextResponse.json({ error: uploadError.message }, { status: 500 })
-    }
+    await env.R2_BUCKET.put(filePath, arrayBuffer, {
+      httpMetadata: {
+        contentType: file.type,
+      },
+    })
 
     const apiUrl = `/api/storage/company-files?path=${encodeURIComponent(filePath)}`
 
