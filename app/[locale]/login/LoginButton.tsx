@@ -1,11 +1,19 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations } from 'next-intl'
+import { isWebView } from '@/lib/utils/detect-webview'
 
 export default function LoginButton({ locale }: { locale: string }) {
   const supabase = createClient()
   const t = useTranslations('login')
+  const [inWebView, setInWebView] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    setInWebView(isWebView())
+  }, [])
 
   const handleGoogleLogin = async () => {
     const redirectBase = process.env.NEXT_PUBLIC_APP_URL || 'https://quote24.cc'
@@ -15,6 +23,72 @@ export default function LoginButton({ locale }: { locale: string }) {
         redirectTo: `${redirectBase}/auth/callback?next=/${locale}/dashboard`,
       },
     })
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      const textArea = document.createElement('textarea')
+      textArea.value = window.location.href
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  if (inWebView) {
+    return (
+      <div className="w-full text-center">
+        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <div className="flex items-center justify-center mb-2">
+            <svg
+              className="w-6 h-6 text-amber-600 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <span className="font-semibold text-amber-800">
+              {t('webviewWarning')}
+            </span>
+          </div>
+          <p className="text-sm text-amber-700">{t('webviewDescription')}</p>
+        </div>
+        <button
+          onClick={handleCopyLink}
+          className="w-full flex items-center justify-center gap-3 px-6 py-4 border-2 border-blue-500 rounded-xl shadow-sm bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+        >
+          <svg
+            className="w-5 h-5 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+            />
+          </svg>
+          <span className="text-white font-semibold text-lg">
+            {copied ? t('linkCopied') : t('copyLink')}
+          </span>
+        </button>
+      </div>
+    )
   }
 
   return (

@@ -59,6 +59,10 @@
     "emailTab": "Email Login",
     "googleTab": "Google Login",
     "googleLoginDescription": "Sign in quickly with your Google account, no password to remember",
+    "webviewWarning": "Please open in browser",
+    "webviewDescription": "Google sign-in requires a browser like Safari or Chrome. Please copy the link and open it in your browser.",
+    "copyLink": "Copy Link",
+    "linkCopied": "Copied!",
     "registrationSuccessNotice": "✅ Registration successful! Please check your email and click the confirmation link to activate your account."
   },
   "register": {

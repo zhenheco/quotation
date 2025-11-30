@@ -59,6 +59,10 @@
     "emailTab": "電子郵件登入",
     "googleTab": "Google 登入",
     "googleLoginDescription": "使用您的 Google 帳戶快速登入，無需記住密碼",
+    "webviewWarning": "請使用瀏覽器開啟",
+    "webviewDescription": "Google 登入需要使用 Safari 或 Chrome 等瀏覽器。請複製連結後在瀏覽器中開啟。",
+    "copyLink": "複製連結",
+    "linkCopied": "已複製！",
     "registrationSuccessNotice": "✅ 註冊成功！請查看您的電子郵件並點擊確認連結以啟用帳號。"
   },
   "register": {
