@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase/client'
 import { PaymentTermsEditor } from '@/components/payment-terms'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 import { apiPost, apiPatch, apiGet } from '@/lib/api-client'
+import { getSelectedCompanyId } from '@/lib/utils/company-context'
 
 interface PaymentTerm {
   id: string
@@ -400,7 +401,14 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
       let newQuotationId = quotationId
 
+      const companyId = getSelectedCompanyId()
+      if (!companyId) {
+        toast.error(t('common.selectCompanyFirst'))
+        return
+      }
+
       const quotationData = {
+        company_id: companyId,
         customer_id: formData.customerId,
         issue_date: formData.issueDate,
         valid_until: formData.validUntil,

@@ -54,3 +54,30 @@ await addCompanyMember(db, company.id, user.id, ownerRole.id, true)
 - `lib/dal/companies.ts` - 資料存取層
 - `lib/services/company.ts` - 服務層（正確實現參考）
 - `migrations/003_multi_company_architecture.sql` - 資料庫約束定義
+
+## 2024-11-30: 修復報價單編號跨公司重複問題
+
+### 問題現象
+新用戶建立第一張報價單時出現錯誤，因為報價單編號 `QT202411-0001` 已被其他公司使用。
+
+### 根本原因
+1. `quotations.quotation_number` 欄位有**全域 UNIQUE 約束**
+2. `quotation_number_sequences` 只按 `user_id` 分組，未考慮 `company_id`
+3. 編號生成函數 `generate_quotation_number_atomic(p_user_id)` 未考慮公司
+
+### 解決方案
+1. **移除全域 UNIQUE 約束**，改為複合唯一約束 `(company_id, quotation_number)`
+2. **修改序列表**：新增 `company_id` 欄位，改為按 `(company_id, year_month)` 分組
+3. **更新編號生成函數**：改為接收 `company_id` 參數
+4. **更新 DAL 和 API 層**：傳遞 `company_id` 到編號生成函數
+5. **更新前端**：從 localStorage 取得 `selectedCompanyId` 並傳遞給 API
+
+### 相關檔案
+- `migrations/025_quotation_number_per_company.sql` - 資料庫遷移
+- `lib/dal/quotations.ts` - DAL 層修改
+- `app/api/quotations/route.ts` - API 路由修改
+- `app/[locale]/quotations/QuotationForm.tsx` - 前端表單修改
+- `hooks/useQuotations.ts` - Hook 類型修改
+
+### 執行 Migration
+需要在 Supabase Dashboard 的 SQL Editor 執行 `migrations/025_quotation_number_per_company.sql`

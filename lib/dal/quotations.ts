@@ -331,10 +331,10 @@ export async function deleteQuotationItem(
 
 export async function generateQuotationNumber(
   db: SupabaseClient,
-  userId: string
+  companyId: string
 ): Promise<string> {
   const { data, error } = await db.rpc('generate_quotation_number_atomic', {
-    p_user_id: userId
+    p_company_id: companyId
   })
 
   if (error) {
@@ -351,7 +351,8 @@ export async function generateQuotationNumber(
 export async function createQuotationWithRetry(
   db: SupabaseClient,
   userId: string,
-  data: Omit<Parameters<typeof createQuotation>[2], 'quotation_number'>,
+  companyId: string,
+  data: Omit<Parameters<typeof createQuotation>[2], 'quotation_number' | 'company_id'>,
   options: { maxRetries?: number; baseDelayMs?: number } = {}
 ): Promise<Quotation> {
   const { maxRetries = 3, baseDelayMs = 100 } = options
@@ -359,9 +360,10 @@ export async function createQuotationWithRetry(
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const quotationNumber = await generateQuotationNumber(db, userId)
+      const quotationNumber = await generateQuotationNumber(db, companyId)
       return await createQuotation(db, userId, {
         ...data,
+        company_id: companyId,
         quotation_number: quotationNumber
       })
     } catch (error) {

@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     interface CreateQuotationBody {
+      company_id: string;
       customer_id: string;
       issue_date: string;
       valid_until: string;
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json() as CreateQuotationBody
     const {
+      company_id,
       customer_id,
       issue_date,
       valid_until,
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     // 驗證必填欄位
-    if (!customer_id || !issue_date || !valid_until || !currency || !items || items.length === 0) {
+    if (!company_id || !customer_id || !issue_date || !valid_until || !currency || !items || items.length === 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
@@ -141,7 +143,7 @@ export async function POST(request: NextRequest) {
     console.log('[API] POST /api/quotations - notes type:', typeof notes, notes)
     console.log('[API] POST /api/quotations - items:', JSON.stringify(items, null, 2))
 
-    const quotation = await createQuotationWithRetry(db, user.id, {
+    const quotation = await createQuotationWithRetry(db, user.id, company_id, {
       customer_id,
       status: 'draft',
       issue_date,
