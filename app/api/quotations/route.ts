@@ -5,9 +5,8 @@ import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import {
   getQuotations,
-  createQuotation,
   createQuotationItem,
-  generateQuotationNumber,
+  createQuotationWithRetry,
   validateCustomerOwnership
 } from '@/lib/dal/quotations'
 import { getCustomersByIds } from '@/lib/dal/customers'
@@ -138,16 +137,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid customer' }, { status: 400 })
     }
 
-    // 生成報價單號碼
-    const quotationNumber = await generateQuotationNumber(db, user.id)
-
-    // 建立報價單
+    // 建立報價單（使用帶重試機制的函數防止編號重複）
     console.log('[API] POST /api/quotations - notes type:', typeof notes, notes)
     console.log('[API] POST /api/quotations - items:', JSON.stringify(items, null, 2))
 
-    const quotation = await createQuotation(db, user.id, {
+    const quotation = await createQuotationWithRetry(db, user.id, {
       customer_id,
-      quotation_number: quotationNumber,
       status: 'draft',
       issue_date,
       valid_until,

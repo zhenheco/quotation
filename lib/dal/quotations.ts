@@ -4,6 +4,20 @@
 
 import { SupabaseClient } from '@/lib/db/supabase-client'
 
+interface PostgresError {
+  code?: string
+  constraint?: string
+  message?: string
+}
+
+function isQuotationNumberConflict(error: unknown): boolean {
+  const pgError = error as PostgresError
+  return pgError?.code === '23505' &&
+         (pgError?.constraint?.includes('quotation_number') ||
+          pgError?.message?.includes('quotation_number') ||
+          false)
+}
+
 export interface Quotation {
   id: string
   user_id: string
@@ -319,26 +333,46 @@ export async function generateQuotationNumber(
   db: SupabaseClient,
   userId: string
 ): Promise<string> {
-  const year = new Date().getFullYear()
-  const month = String(new Date().getMonth() + 1).padStart(2, '0')
-  const prefix = `QT${year}${month}`
+  const { data, error } = await db.rpc('generate_quotation_number_atomic', {
+    p_user_id: userId
+  })
 
-  const { data } = await db
-    .from('quotations')
-    .select('quotation_number')
-    .eq('user_id', userId)
-    .like('quotation_number', `${prefix}%`)
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  if (!data || data.length === 0) {
-    return `${prefix}-0001`
+  if (error) {
+    throw new Error(`Failed to generate quotation number: ${error.message}`)
   }
 
-  const lastNumber = parseInt(data[0].quotation_number.split('-')[1] || '0')
-  const nextNumber = String(lastNumber + 1).padStart(4, '0')
+  if (!data) {
+    throw new Error('Failed to generate quotation number: no data returned')
+  }
 
-  return `${prefix}-${nextNumber}`
+  return data as string
+}
+
+export async function createQuotationWithRetry(
+  db: SupabaseClient,
+  userId: string,
+  data: Omit<Parameters<typeof createQuotation>[2], 'quotation_number'>,
+  options: { maxRetries?: number; baseDelayMs?: number } = {}
+): Promise<Quotation> {
+  const { maxRetries = 3, baseDelayMs = 100 } = options
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const quotationNumber = await generateQuotationNumber(db, userId)
+      return await createQuotation(db, userId, {
+        ...data,
+        quotation_number: quotationNumber
+      })
+    } catch (error) {
+      lastError = error as Error
+      if (!isQuotationNumberConflict(error) || attempt === maxRetries) {
+        throw error
+      }
+      await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt)))
+    }
+  }
+  throw lastError
 }
 
 export async function validateCustomerOwnership(
