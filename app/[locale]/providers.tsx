@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState } from 'react'
-import { Toaster } from 'react-hot-toast'
+import { Toaster } from 'sonner'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -28,26 +28,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         {children}
       <Toaster
         position="top-right"
+        richColors
+        closeButton
         toastOptions={{
           duration: 3000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            duration: 4000,
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
         }}
       />
       <ReactQueryDevtools initialIsOpen={false} />

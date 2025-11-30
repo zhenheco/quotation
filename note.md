@@ -81,3 +81,36 @@ await addCompanyMember(db, company.id, user.id, ownerRole.id, true)
 
 ### 執行 Migration
 需要在 Supabase Dashboard 的 SQL Editor 執行 `migrations/025_quotation_number_per_company.sql`
+
+## 2024-11-30: 修復報價單儲存按鈕無反應問題
+
+### 問題現象
+客戶反應在「建立報價單」頁面點擊「Save」按鈕後沒有任何反應，也沒有顯示錯誤訊息。
+
+### 根本原因
+1. **Toast 庫不匹配**：`providers.tsx` 使用 `react-hot-toast` 的 Toaster，但 23 個業務組件使用 `sonner` 的 toast
+2. 這兩個庫完全獨立，sonner 的 toast 需要 sonner 的 Toaster 才能渲染
+3. **翻譯鍵缺失**：`common.selectCompanyFirst` 不存在於翻譯檔案中
+
+### 解決方案
+1. **修改 `app/[locale]/providers.tsx`**：將 `react-hot-toast` 改為 `sonner` 的 Toaster
+   ```typescript
+   // Before
+   import { Toaster } from 'react-hot-toast'
+
+   // After
+   import { Toaster } from 'sonner'
+   ```
+2. **新增翻譯鍵**：
+   - `messages/zh.json`: `"selectCompanyFirst": "請先選擇公司"`
+   - `messages/en.json`: `"selectCompanyFirst": "Please select a company first"`
+
+### 經驗教訓
+1. **檢查 Toast 庫一致性**：providers 和業務組件必須使用同一個 toast 庫
+2. **翻譯鍵驗證**：新增 toast 訊息時要確保翻譯鍵存在
+
+### 相關檔案
+- `app/[locale]/providers.tsx` - Toast Provider（已修復）
+- `messages/zh.json` - 中文翻譯（已新增）
+- `messages/en.json` - 英文翻譯（已新增）
+- `app/[locale]/quotations/QuotationForm.tsx` - 報價單表單（使用 sonner toast）

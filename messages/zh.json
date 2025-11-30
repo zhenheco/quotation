@@ -28,7 +28,8 @@
     "show": "顯示",
     "hide": "隱藏",
     "chooseFile": "選擇檔案",
-    "uploading": "上傳中..."
+    "uploading": "上傳中...",
+    "selectCompanyFirst": "請先選擇公司"
   },
   "auth": {
     "signInWithGoogle": "使用 Google 登入/註冊",

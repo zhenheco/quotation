@@ -28,7 +28,8 @@
     "show": "Show",
     "hide": "Hide",
     "chooseFile": "Choose File",
-    "uploading": "Uploading..."
+    "uploading": "Uploading...",
+    "selectCompanyFirst": "Please select a company first"
   },
   "auth": {
     "signInWithGoogle": "Sign in / Sign up with Google",
