@@ -20,15 +20,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 從 user metadata 返回 profile 資訊
+    // 從 user metadata 返回 profile 資訊（支援 Google OAuth 的 name/picture 欄位）
     const profile = {
       user_id: user.id,
       email: user.email,
-      full_name: user.user_metadata?.full_name || null,
-      display_name: user.user_metadata?.display_name || user.user_metadata?.full_name || null,
+      full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+      display_name: user.user_metadata?.display_name || user.user_metadata?.full_name || user.user_metadata?.name || null,
       phone: user.user_metadata?.phone || user.phone || null,
       department: user.user_metadata?.department || null,
-      avatar_url: user.user_metadata?.avatar_url || null,
+      avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
     };
 
     return NextResponse.json(profile || {});
@@ -80,15 +80,15 @@ export async function PUT(request: NextRequest) {
       throw updateError;
     }
 
-    // 返回更新後的 profile
+    // 返回更新後的 profile（支援 Google OAuth 的 name/picture 欄位）
     const profile = {
       user_id: updatedUser.user.id,
       email: updatedUser.user.email,
-      full_name: updatedUser.user.user_metadata?.full_name || null,
-      display_name: updatedUser.user.user_metadata?.display_name || updatedUser.user.user_metadata?.full_name || null,
+      full_name: updatedUser.user.user_metadata?.full_name || updatedUser.user.user_metadata?.name || null,
+      display_name: updatedUser.user.user_metadata?.display_name || updatedUser.user.user_metadata?.full_name || updatedUser.user.user_metadata?.name || null,
       phone: updatedUser.user.user_metadata?.phone || updatedUser.user.phone || null,
       department: updatedUser.user.user_metadata?.department || null,
-      avatar_url: updatedUser.user.user_metadata?.avatar_url || null,
+      avatar_url: updatedUser.user.user_metadata?.avatar_url || updatedUser.user.user_metadata?.picture || null,
     };
 
     return NextResponse.json(profile);
