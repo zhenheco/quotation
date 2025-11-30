@@ -200,12 +200,12 @@ export default function QuotationList({ locale }: QuotationListProps) {
   return (
     <>
       <div className="p-6">
-        <div className="mb-4 flex justify-between items-center">
-          <div className="flex gap-2 items-center">
+        <div className="mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+          <div className="flex flex-wrap gap-2 items-center">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
             >
               <option value="all">{t('quotation.allStatus')}</option>
               <option value="draft">{t('status.draft')}</option>
@@ -220,7 +220,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
                   setIsBatchOperation(!isBatchOperation)
                   setSelectedIds(new Set())
                 }}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
+                className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer text-sm sm:text-base ${
                   isBatchOperation
                     ? 'bg-red-100 text-red-700 hover:bg-red-200'
                     : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -232,22 +232,22 @@ export default function QuotationList({ locale }: QuotationListProps) {
           </div>
 
           {isBatchOperation && selectedIds.size > 0 && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setBatchStatusModal(true)}
-                className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 font-medium text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 font-medium text-xs sm:text-sm cursor-pointer"
               >
                 {t('batch.updateStatus')} ({selectedIds.size})
               </button>
               <button
                 onClick={() => setSendModal({ isOpen: true, quotation: null, isBatch: true })}
-                className="px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 font-medium text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 font-medium text-xs sm:text-sm cursor-pointer"
               >
                 {t('batch.send')} ({selectedIds.size})
               </button>
               <button
                 onClick={() => setBatchDeleteModal(true)}
-                className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium text-xs sm:text-sm cursor-pointer"
               >
                 {t('batch.delete')} ({selectedIds.size})
               </button>
@@ -255,7 +255,8 @@ export default function QuotationList({ locale }: QuotationListProps) {
           )}
         </div>
 
-        <div className="overflow-x-auto">
+        {/* 桌面版表格 */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -407,6 +408,113 @@ export default function QuotationList({ locale }: QuotationListProps) {
           </table>
         </div>
 
+        {/* 手機版卡片 */}
+        <div className="md:hidden divide-y divide-gray-200">
+          {quotations.map((quotation) => (
+            <div key={quotation.id} className="p-4 bg-white">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start space-x-3">
+                  {isBatchOperation && (
+                    <div className="mt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(quotation.id)}
+                        onChange={(e) => handleSelectOne(quotation.id, e.target.checked)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-medium text-gray-900">
+                      {quotation.quotation_number}
+                    </h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {quotation.customer_name
+                        ? (locale === 'zh' ? quotation.customer_name.zh : quotation.customer_name.en)
+                        : quotation.customer_id}
+                    </p>
+                  </div>
+                </div>
+                <select
+                  value={quotation.status}
+                  onChange={(e) => handleStatusChange(quotation.id, e.target.value as QuotationStatus)}
+                  className="px-2 py-1 text-xs font-medium rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer bg-white"
+                >
+                  <option value="draft">{t('status.draft')}</option>
+                  <option value="sent">{t('status.sent')}</option>
+                  <option value="accepted">{t('status.accepted')}</option>
+                  <option value="expired">{t('status.expired')}</option>
+                </select>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('quotation.total')}</span>
+                  <span className="font-medium text-gray-900">
+                    {quotation.currency} {quotation.total_amount?.toLocaleString() || '0'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('quotation.issueDate')}</span>
+                  <span className="text-gray-900">
+                    {new Date(quotation.issue_date).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('quotation.validUntil')}</span>
+                  <span className="text-gray-900">
+                    {new Date(quotation.valid_until).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t">
+                <button
+                  onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
+                  className="text-blue-600 hover:text-blue-900 text-sm"
+                >
+                  {t('common.edit')}
+                </button>
+                {quotation.customer_email ? (
+                  <button
+                    onClick={() => setSendModal({ isOpen: true, quotation, isBatch: false })}
+                    className="text-green-700 hover:text-green-900 text-sm"
+                  >
+                    {t('quotation.send')}
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="text-gray-400 text-sm cursor-not-allowed"
+                  >
+                    {t('quotation.send')}
+                  </button>
+                )}
+                <button
+                  onClick={() => router.push(`/${locale}/quotations/${quotation.id}`)}
+                  className="text-indigo-600 hover:text-indigo-900 text-sm"
+                >
+                  {t('common.view')}
+                </button>
+                <button
+                  onClick={() => setDeleteModal({ isOpen: true, quotation })}
+                  className="text-red-600 hover:text-red-900 text-sm"
+                >
+                  {t('common.delete')}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {quotations.length === 0 && statusFilter !== 'all' && (
           <div className="text-center py-8 text-gray-500">
             {t('common.noResults')}
@@ -439,8 +547,8 @@ export default function QuotationList({ locale }: QuotationListProps) {
 
       {/* 批次更新狀態彈窗 */}
       {batchStatusModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-start justify-center pt-20 px-4">
+          <div className="relative p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               {t('batch.updateStatus')}
             </h3>

@@ -105,7 +105,7 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
       <select
         value={selectedCompanyId || ''}
         onChange={(e) => handleCompanyChange(e.target.value)}
-        className="appearance-none flex items-center gap-2 pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="appearance-none flex items-center gap-2 pl-10 pr-8 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 max-w-[180px] sm:max-w-none text-sm sm:text-base truncate"
       >
         {companies.map((company) => (
           <option key={company.id} value={company.id}>
