@@ -107,8 +107,24 @@ export async function POST(request: NextRequest) {
       website: body.website || undefined,
     })
 
+    // 查詢 company_owner 角色 ID
+    const { data: ownerRole, error: roleError } = await db
+      .from('roles')
+      .select('id')
+      .eq('name', 'company_owner')
+      .single()
+
+    if (roleError || !ownerRole) {
+      // 回滾：刪除剛建立的公司
+      await db.from('companies').delete().eq('id', company.id)
+      return NextResponse.json(
+        { error: 'Company owner role not found' },
+        { status: 500 }
+      )
+    }
+
     // 將建立者加入為公司成員（owner）
-    await addCompanyMember(db, company.id, user.id, undefined, true)
+    await addCompanyMember(db, company.id, user.id, ownerRole.id, true)
 
     return NextResponse.json(company, { status: 201 })
   } catch (error: unknown) {
