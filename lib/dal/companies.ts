@@ -152,6 +152,13 @@ export async function deleteCompany(
   }
 }
 
+export interface UserProfile {
+  full_name: string
+  display_name: string
+  email: string | null
+  avatar_url: string | null
+}
+
 export interface CompanyMember {
   id: string
   company_id: string
@@ -162,6 +169,7 @@ export interface CompanyMember {
   is_active: boolean
   joined_at: string
   updated_at: string
+  user_profile?: UserProfile
 }
 
 export async function getCompanyMembers(
@@ -172,7 +180,13 @@ export async function getCompanyMembers(
     .from('company_members')
     .select(`
       *,
-      roles (name)
+      roles (name),
+      user_profiles!company_members_user_id_fkey (
+        full_name,
+        display_name,
+        email,
+        avatar_url
+      )
     `)
     .eq('company_id', companyId)
     .order('is_owner', { ascending: false })
@@ -185,7 +199,9 @@ export async function getCompanyMembers(
   return (data || []).map(member => ({
     ...member,
     role_name: (member.roles as { name: string } | null)?.name,
+    user_profile: member.user_profiles as UserProfile | null || undefined,
     roles: undefined,
+    user_profiles: undefined,
   }))
 }
 

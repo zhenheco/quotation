@@ -26,6 +26,13 @@
 - **AND** 公司擁有者 SHALL 標示為「擁有者」
 - **AND** 當前使用者 SHALL 標示為「你」
 
+#### Scenario: 成員資料來源
+
+- **WHEN** 系統載入成員列表
+- **THEN** API SHALL 從 `company_members` 表 join `user_profiles` 表取得成員資料
+- **AND** 每位成員資料 SHALL 包含 `user_profile` 物件，含 `full_name`、`display_name`、`email`、`avatar_url`
+- **AND** 系統 SHALL 不需額外呼叫 profile API 取得使用者資料
+
 #### Scenario: 擁有者管理成員
 
 - **WHEN** 當前使用者是公司擁有者

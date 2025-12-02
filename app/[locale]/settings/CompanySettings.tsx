@@ -132,24 +132,10 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
     setLoadingMembers(true);
     try {
       const data = await apiGet<Member[]>(`/api/companies/${companyId}/members`);
-
-      const membersWithProfiles = await Promise.all(
-        data.map(async (member) => {
-          try {
-            const profile = await apiGet<{ full_name: string; display_name: string; email?: string }>(
-              `/api/users/${member.user_id}/profile`
-            );
-            return { ...member, user_profile: profile };
-          } catch {
-            return member;
-          }
-        })
-      );
-
-      setMembers(membersWithProfiles.filter((m) => m.is_active));
+      setMembers(data.filter((m) => m.is_active));
 
       const me = await apiGet<{ id: string }>('/api/auth/me');
-      const myMembership = membersWithProfiles.find((m) => m.user_id === me.id);
+      const myMembership = data.find((m) => m.user_id === me.id);
       if (myMembership) {
         setCurrentUser({
           id: me.id,

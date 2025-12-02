@@ -22,16 +22,23 @@
    - 新增 TeamMemberSection 子區塊
    - 整合 TeamMemberList 和 InviteLinkSection 組件
 
+4. **修復成員資料取得**（新增）
+   - 修改 `getCompanyMembers` DAL 函式，join `user_profiles` 表取得成員 email 和名稱
+   - 移除前端對 `/api/users/{id}/profile` 的額外呼叫（此 API 不存在）
+   - 確保成員列表正確顯示：頭像、名稱、Email、角色、加入日期
+
 ## Impact
 
 - 受影響的程式碼：
   - `components/Sidebar.tsx` - 移除團隊管理選單項目
-  - `app/[locale]/settings/CompanySettings.tsx` - 新增團隊成員區塊
+  - `app/[locale]/settings/CompanySettings.tsx` - 新增團隊成員區塊、簡化成員資料獲取
   - `app/[locale]/settings/team/page.tsx` - 刪除此頁面
+  - `lib/dal/companies.ts` - 修改 `getCompanyMembers` 函式 join user_profiles
 
 - 使用者體驗：
   - 使用者在公司設定頁面即可管理團隊成員
   - 減少頁面跳轉
+  - 成員列表正確顯示 email 和名稱
 
 ## 相關規格
 
