@@ -81,7 +81,9 @@ export default function Sidebar({ locale }: { locale: string }) {
       <nav className="space-y-2 flex-1">
         {menuItems.map((item) => {
           const href = `/${locale}${item.href}`
-          const isActive = pathname.startsWith(href)
+          const isActive = item.href === '/settings'
+            ? pathname === href
+            : pathname.startsWith(href)
           const hasSubmenu = item.submenu && item.submenu.length > 0
           const isExpanded = expandedMenus.includes(item.href)
 
