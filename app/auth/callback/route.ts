@@ -7,6 +7,7 @@ import { validateUrlSafety } from '@/lib/security/url-validator'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const redirectParam = searchParams.get('redirect')
   // 驗證 next 參數防止開放重定向攻擊
   const next = validateUrlSafety(searchParams.get('next'), '/zh/dashboard')
 
@@ -40,18 +41,48 @@ export async function GET(request: Request) {
       const host = request.headers.get('host')
       const isLocalEnv = process.env.NODE_ENV === 'development'
 
-      const getRedirectUrl = () => {
+      const getBaseUrl = () => {
         if (isLocalEnv) {
-          return `${origin}${next}`
+          return origin
         } else if (forwardedHost) {
-          return `https://${forwardedHost}${next}`
+          return `https://${forwardedHost}`
         } else if (host) {
-          return `https://${host}${next}`
+          return `https://${host}`
         }
-        return `${origin}${next}`
+        return origin
       }
 
-      return NextResponse.redirect(getRedirectUrl())
+      const baseUrl = getBaseUrl()
+
+      // 1. 優先處理邀請連結重導向
+      if (redirectParam?.startsWith('/invite/')) {
+        console.log(`🔗 Redirecting to invite page: ${redirectParam}`)
+        return NextResponse.redirect(`${baseUrl}/zh${redirectParam}`)
+      }
+
+      // 2. 檢查用戶是否有公司
+      try {
+        const db = getSupabaseClient()
+        const { data: membership } = await db
+          .from('company_members')
+          .select('company_id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .single()
+
+        if (!membership) {
+          // 無公司，導向 onboarding
+          console.log(`🆕 New user without company, redirecting to onboarding: ${user.email}`)
+          return NextResponse.redirect(`${baseUrl}/zh/onboarding`)
+        }
+      } catch {
+        // 查詢失敗（可能是無記錄），導向 onboarding
+        console.log(`🆕 User has no company membership, redirecting to onboarding: ${user.email}`)
+        return NextResponse.redirect(`${baseUrl}/zh/onboarding`)
+      }
+
+      // 3. 有公司，正常導向 dashboard
+      return NextResponse.redirect(`${baseUrl}${next}`)
     }
 
     if (error) {
