@@ -8,9 +8,11 @@ export interface Customer {
   id: string
   user_id: string
   company_id: string | null
+  owner_id: string | null
   name: { zh: string; en: string }
   email: string
   phone: string | null
+  fax: string | null
   address: { zh: string; en: string } | null
   tax_id: string | null
   contact_person: { name: string; phone: string; email: string } | null
@@ -19,19 +21,32 @@ export interface Customer {
   updated_at: string
 }
 
+export interface CustomerQueryOptions {
+  companyId?: string
+  ownerId?: string
+  filterByOwner?: boolean
+}
+
 export async function getCustomers(
   db: SupabaseClient,
   userId: string,
-  companyId?: string
+  options: CustomerQueryOptions = {}
 ): Promise<Customer[]> {
+  const { companyId, ownerId, filterByOwner } = options
+
   let query = db
     .from('customers')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
   if (companyId) {
     query = query.eq('company_id', companyId)
+  }
+
+  if (filterByOwner && ownerId) {
+    query = query.eq('owner_id', ownerId)
+  } else {
+    query = query.eq('user_id', userId)
   }
 
   const { data, error } = await query
@@ -68,9 +83,11 @@ export async function createCustomer(
   data: {
     id?: string
     company_id?: string
+    owner_id?: string
     name: { zh: string; en: string }
     email: string
     phone?: string
+    fax?: string
     address?: { zh: string; en: string }
     tax_id?: string
     contact_person?: { name: string; phone: string; email: string }
@@ -85,9 +102,11 @@ export async function createCustomer(
       id: data.id || crypto.randomUUID(),
       user_id: userId,
       company_id: data.company_id || null,
+      owner_id: data.owner_id || userId,
       name: data.name,
       email: data.email,
       phone: data.phone || null,
+      fax: data.fax || null,
       address: data.address || null,
       tax_id: data.tax_id || null,
       contact_person: data.contact_person || null,
@@ -113,11 +132,13 @@ export async function updateCustomer(
     name: { zh: string; en: string }
     email: string
     phone: string
+    fax: string
     address: { zh: string; en: string }
     tax_id: string
     contact_person: { name: string; phone: string; email: string }
     notes: string
     company_id: string
+    owner_id: string
   }>
 ): Promise<Customer> {
   const { data: customer, error } = await db
