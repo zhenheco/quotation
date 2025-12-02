@@ -176,18 +176,9 @@ export async function getCompanyMembers(
   db: SupabaseClient,
   companyId: string
 ): Promise<CompanyMember[]> {
-  const { data, error } = await db
+  const { data: members, error } = await db
     .from('company_members')
-    .select(`
-      *,
-      roles (name),
-      user_profiles!company_members_user_id_fkey (
-        full_name,
-        display_name,
-        email,
-        avatar_url
-      )
-    `)
+    .select(`*, roles (name)`)
     .eq('company_id', companyId)
     .order('is_owner', { ascending: false })
     .order('joined_at')
@@ -196,12 +187,23 @@ export async function getCompanyMembers(
     throw new Error(`Failed to get company members: ${error.message}`)
   }
 
-  return (data || []).map(member => ({
+  if (!members || members.length === 0) return []
+
+  const userIds = members.map(m => m.user_id)
+  const { data: profiles } = await db
+    .from('user_profiles')
+    .select('user_id, full_name, display_name, email, avatar_url')
+    .in('user_id', userIds)
+
+  const profileMap = new Map(
+    (profiles || []).map(p => [p.user_id, p as UserProfile])
+  )
+
+  return members.map(member => ({
     ...member,
     role_name: (member.roles as { name: string } | null)?.name,
-    user_profile: member.user_profiles as UserProfile | null || undefined,
+    user_profile: profileMap.get(member.user_id),
     roles: undefined,
-    user_profiles: undefined,
   }))
 }
 
