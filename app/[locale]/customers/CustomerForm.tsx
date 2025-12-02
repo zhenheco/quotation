@@ -7,6 +7,8 @@ import { toast } from 'sonner'
 import FormInput from '@/components/ui/FormInput'
 import BilingualFormInput from '@/components/ui/BilingualFormInput'
 import { useCreateCustomer, useUpdateCustomer, type Customer } from '@/hooks/useCustomers'
+import OwnerSelect from '@/components/team/OwnerSelect'
+import { getSelectedCompanyId } from '@/lib/utils/company-context'
 
 interface CustomerFormProps {
   locale: string
@@ -30,8 +32,11 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
     nameEn: name?.en || '',
     email: customer?.email || '',
     phone: customer?.phone || '',
+    fax: customer?.fax || '',
+    tax_id: customer?.tax_id || '',
     addressZh: address?.zh || '',
     addressEn: address?.en || '',
+    ownerId: (customer as { owner_id?: string } | undefined)?.owner_id || '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,14 +57,17 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
       const customerData = {
         name: {
           zh: formData.nameZh.trim(),
-          en: formData.nameEn.trim() || '', // 英文名稱選填
+          en: formData.nameEn.trim() || '',
         },
         email: formData.email.trim(),
         phone: formData.phone.trim() || undefined,
+        fax: formData.fax.trim() || undefined,
+        tax_id: formData.tax_id.trim() || undefined,
         address: formData.addressZh.trim() || formData.addressEn.trim() ? {
           zh: formData.addressZh.trim() || '',
           en: formData.addressEn.trim() || '',
         } : undefined,
+        owner_id: formData.ownerId || undefined,
       }
 
       if (customer) {
@@ -83,7 +91,7 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
   const isSubmitting = customer ? updateCustomer.isPending : createCustomer.isPending
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <BilingualFormInput
         label={t('customer.name')}
         name="name"
@@ -96,24 +104,46 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
         required
       />
 
-      <FormInput
-        label={t('customer.email')}
-        name="email"
-        type="email"
-        value={formData.email}
-        onChange={(value) => setFormData({ ...formData, email: value })}
-        placeholder={t('customer.emailPlaceholder')}
-        required
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <FormInput
+          label={t('customer.email')}
+          name="email"
+          type="email"
+          value={formData.email}
+          onChange={(value) => setFormData({ ...formData, email: value })}
+          placeholder={t('customer.emailPlaceholder')}
+          required
+        />
 
-      <FormInput
-        label={t('customer.phone')}
-        name="phone"
-        type="tel"
-        value={formData.phone}
-        onChange={(value) => setFormData({ ...formData, phone: value })}
-        placeholder={t('customer.phonePlaceholder')}
-      />
+        <FormInput
+          label={t('customer.tax_id')}
+          name="tax_id"
+          type="text"
+          value={formData.tax_id}
+          onChange={(value) => setFormData({ ...formData, tax_id: value })}
+          placeholder={t('customer.tax_idPlaceholder')}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <FormInput
+          label={t('customer.phone')}
+          name="phone"
+          type="tel"
+          value={formData.phone}
+          onChange={(value) => setFormData({ ...formData, phone: value })}
+          placeholder={t('customer.phonePlaceholder')}
+        />
+
+        <FormInput
+          label={t('customer.fax')}
+          name="fax"
+          type="tel"
+          value={formData.fax}
+          onChange={(value) => setFormData({ ...formData, fax: value })}
+          placeholder={t('customer.faxPlaceholder')}
+        />
+      </div>
 
       <BilingualFormInput
         label={t('customer.address')}
@@ -128,7 +158,20 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
         rows={3}
       />
 
-      <div className="flex justify-end gap-4">
+      {/* 負責人選擇 */}
+      <div>
+        <label htmlFor="ownerId" className="block text-sm font-semibold text-gray-900 mb-1">
+          {t('team.ownerLabel')}
+        </label>
+        <OwnerSelect
+          companyId={getSelectedCompanyId() || ''}
+          value={formData.ownerId}
+          onChange={(ownerId) => setFormData({ ...formData, ownerId })}
+        />
+        <p className="mt-1 text-xs text-gray-500">{t('team.ownerHint')}</p>
+      </div>
+
+      <div className="flex justify-end gap-3">
         <button
           type="button"
           onClick={() => router.push(`/${locale}/customers`)}

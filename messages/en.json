@@ -924,6 +924,9 @@
     "invitationExpired": "This invitation has expired",
     "invitationMaxUsesReached": "This invitation has reached its maximum uses",
     "alreadyMember": "You are already a member of this company",
-    "invitationError": "Invitation error"
+    "invitationError": "Invitation error",
+    "selectOwner": "Select Owner",
+    "ownerLabel": "Owner",
+    "ownerHint": "Select the salesperson responsible for this record"
   }
 }

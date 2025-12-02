@@ -23,18 +23,22 @@ export interface CreateCustomerInput {
   name: BilingualText
   email: string
   phone?: string
+  fax?: string
   address?: BilingualText
   tax_id?: string
   contact_person?: BilingualText
+  owner_id?: string
 }
 
 export interface UpdateCustomerInput {
   name?: BilingualText
   email?: string
   phone?: string
+  fax?: string
   address?: BilingualText
   tax_id?: string
   contact_person?: BilingualText
+  owner_id?: string
 }
 
 // ============================================================================

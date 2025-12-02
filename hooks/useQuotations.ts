@@ -38,6 +38,7 @@ export interface CreateQuotationItemInput {
 export interface CreateQuotationInput {
   company_id: string
   customer_id: string
+  owner_id?: string
   issue_date: string
   valid_until: string
   currency: string
@@ -51,6 +52,7 @@ export interface CreateQuotationInput {
 
 export interface UpdateQuotationInput {
   customer_id?: string
+  owner_id?: string
   issue_date?: string
   valid_until?: string
   status?: QuotationStatus

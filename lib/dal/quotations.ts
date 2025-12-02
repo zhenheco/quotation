@@ -22,6 +22,7 @@ export interface Quotation {
   id: string
   user_id: string
   company_id: string | null
+  owner_id: string | null
   customer_id: string
   quotation_number: string
   status: 'draft' | 'sent' | 'accepted' | 'expired'
@@ -71,20 +72,33 @@ export interface QuotationItem {
   created_at: string
 }
 
+export interface QuotationQueryOptions {
+  companyId?: string
+  status?: Quotation['status']
+  ownerId?: string
+  filterByOwner?: boolean
+}
+
 export async function getQuotations(
   db: SupabaseClient,
   userId: string,
-  companyId?: string,
-  status?: Quotation['status']
+  options: QuotationQueryOptions = {}
 ): Promise<Quotation[]> {
+  const { companyId, status, ownerId, filterByOwner } = options
+
   let query = db
     .from('quotations')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
   if (companyId) {
     query = query.eq('company_id', companyId)
+  }
+
+  if (filterByOwner && ownerId) {
+    query = query.eq('owner_id', ownerId)
+  } else {
+    query = query.eq('user_id', userId)
   }
 
   if (status) {
@@ -163,6 +177,7 @@ export async function createQuotation(
   data: {
     id?: string
     company_id?: string
+    owner_id?: string
     customer_id: string
     quotation_number: string
     status?: Quotation['status']
@@ -186,6 +201,7 @@ export async function createQuotation(
       id: data.id || crypto.randomUUID(),
       user_id: userId,
       company_id: data.company_id || null,
+      owner_id: data.owner_id || userId,
       customer_id: data.customer_id,
       quotation_number: data.quotation_number,
       status: data.status || 'draft',

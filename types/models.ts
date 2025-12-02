@@ -17,9 +17,11 @@ export interface BilingualText {
 export interface Customer {
   id: string
   user_id: string
+  owner_id: string | null
   name: BilingualText
   email: string
   phone: string | null
+  fax: string | null
   address: BilingualText | null
   tax_id: string | null
   contact_person: BilingualText | null
@@ -33,6 +35,7 @@ export interface CreateCustomerData {
   name: BilingualText
   email: string
   phone?: string | null
+  fax?: string | null
   address?: BilingualText | null
   tax_id?: string | null
   contact_person?: BilingualText | null
@@ -42,6 +45,7 @@ export interface UpdateCustomerData {
   name?: BilingualText
   email?: string
   phone?: string | null
+  fax?: string | null
   address?: BilingualText | null
   tax_id?: string | null
   contact_person?: BilingualText | null
@@ -155,6 +159,7 @@ export type PaymentMethod =
 export interface Quotation {
   id: string
   user_id: string
+  owner_id: string | null
   quotation_number: string
   customer_id: string
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved'

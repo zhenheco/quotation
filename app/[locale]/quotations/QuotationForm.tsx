@@ -22,6 +22,7 @@ import { PaymentTermsEditor } from '@/components/payment-terms'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 import { apiPost, apiPatch, apiGet } from '@/lib/api-client'
 import { getSelectedCompanyId } from '@/lib/utils/company-context'
+import OwnerSelect from '@/components/team/OwnerSelect'
 
 interface PaymentTerm {
   id: string
@@ -76,6 +77,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [formData, setFormData] = useState({
     customerId: '',
+    ownerId: '',
     issueDate: new Date().toISOString().split('T')[0],
     validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     currency: 'TWD',
@@ -158,6 +160,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     if (existingQuotation) {
       setFormData({
         customerId: existingQuotation.customer_id,
+        ownerId: (existingQuotation as { owner_id?: string }).owner_id || '',
         issueDate: formatDateForInput(existingQuotation.issue_date),
         validUntil: formatDateForInput(existingQuotation.valid_until),
         currency: existingQuotation.currency,
@@ -410,6 +413,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       const quotationData = {
         company_id: companyId,
         customer_id: formData.customerId,
+        owner_id: formData.ownerId || undefined,
         issue_date: formData.issueDate,
         valid_until: formData.validUntil,
         currency: formData.currency,
@@ -528,7 +532,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   const isSubmitting = createQuotation.isPending || updateQuotation.isPending
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           {error}
@@ -536,7 +540,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       )}
 
       {/* 基本資訊 */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="customerId" className="block text-sm font-semibold text-gray-900 mb-1">
             {t('quotation.customer')}
@@ -617,6 +621,19 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           </div>
         </div>
 
+        {/* 負責人選擇 */}
+        <div>
+          <label htmlFor="ownerId" className="block text-sm font-semibold text-gray-900 mb-1">
+            {t('team.ownerLabel')}
+          </label>
+          <OwnerSelect
+            companyId={getSelectedCompanyId() || ''}
+            value={formData.ownerId}
+            onChange={(ownerId) => setFormData({ ...formData, ownerId })}
+          />
+          <p className="mt-1 text-xs text-gray-500">{t('team.ownerHint')}</p>
+        </div>
+
         {/* 狀態選擇（僅編輯模式） */}
         {isEditMode && (
           <div>
@@ -690,7 +707,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
       {/* 行項目 */}
       <div>
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-3">
           <h3 className="text-lg font-medium text-gray-900">{t('quotation.items')}</h3>
           <button
             type="button"
@@ -701,10 +718,10 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {items.map((item, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg p-4">
-              <div className="grid grid-cols-6 gap-4 items-start">
+            <div key={index} className="border border-gray-200 rounded-lg p-3">
+              <div className="grid grid-cols-6 gap-3 items-start">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {t('quotation.product')}
@@ -802,8 +819,8 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       </div>
 
       {/* 總計 */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <div className="max-w-md ml-auto space-y-2">
+      <div className="bg-gray-50 rounded-lg p-3">
+        <div className="max-w-md ml-auto space-y-1.5">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">{t('quotation.subtotal')}:</span>
             <span className="text-gray-900 font-medium">
@@ -893,10 +910,10 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       </div>
 
       {/* 付款資訊 */}
-      <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{t('quotation.paymentInfo')}</h3>
+      <div className="border-t border-gray-200 pt-4">
+        <h3 className="text-lg font-medium text-gray-900 mb-3">{t('quotation.paymentInfo')}</h3>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* 付款方式 */}
           <div>
             <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700 mb-1">
@@ -946,8 +963,8 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
 
       {/* 版本歷史（僅編輯模式） */}
       {isEditMode && versions.length > 0 && (
-        <div className="border-t border-gray-200 pt-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="border-t border-gray-200 pt-4">
+          <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-medium text-gray-900">{t('quotation.versionHistory')}</h3>
             <button
               type="button"
@@ -972,9 +989,9 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
             </button>
           </div>
           {showVersionHistory && (
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3 max-h-96 overflow-y-auto">
+            <div className="bg-gray-50 rounded-lg p-3 space-y-2 max-h-96 overflow-y-auto">
               {versions.map((version) => (
-                <div key={version.id} className="bg-white rounded-lg p-3 border border-gray-200">
+                <div key={version.id} className="bg-white rounded-lg p-2 border border-gray-200">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-900">
                       {t('quotation.version')} {version.version_number}
@@ -1076,7 +1093,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       </div>
 
       {/* 提交按鈕 */}
-      <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-3">
         <button
           type="button"
           onClick={() => router.back()}

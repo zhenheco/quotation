@@ -949,6 +949,9 @@
     "invitationExpired": "此邀請連結已過期",
     "invitationMaxUsesReached": "此邀請連結已達使用上限",
     "alreadyMember": "您已經是此公司的成員",
-    "invitationError": "邀請連結錯誤"
+    "invitationError": "邀請連結錯誤",
+    "selectOwner": "選擇負責人",
+    "ownerLabel": "負責人",
+    "ownerHint": "選擇負責此資料的業務人員"
   }
 }
