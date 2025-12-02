@@ -190,6 +190,7 @@ export async function getCompanyMembers(
   if (!members || members.length === 0) return []
 
   const userIds = members.map(m => m.user_id)
+
   const { data: profiles } = await db
     .from('user_profiles')
     .select('user_id, full_name, display_name, email, avatar_url')
@@ -199,12 +200,26 @@ export async function getCompanyMembers(
     (profiles || []).map(p => [p.user_id, p as UserProfile])
   )
 
-  return members.map(member => ({
-    ...member,
-    role_name: (member.roles as { name: string } | null)?.name,
-    user_profile: profileMap.get(member.user_id),
-    roles: undefined,
-  }))
+  const { data: authData } = await db.auth.admin.listUsers()
+  const authUsers = authData?.users || []
+  const authUserMap = new Map(
+    authUsers.map(u => [u.id, {
+      full_name: (u.user_metadata?.full_name || u.user_metadata?.name || '') as string,
+      display_name: (u.user_metadata?.name || u.user_metadata?.full_name || '') as string,
+      email: u.email || null,
+      avatar_url: (u.user_metadata?.avatar_url || u.user_metadata?.picture || null) as string | null,
+    }])
+  )
+
+  return members.map(member => {
+    const profile = profileMap.get(member.user_id) || authUserMap.get(member.user_id)
+    return {
+      ...member,
+      role_name: (member.roles as { name: string } | null)?.name,
+      user_profile: profile,
+      roles: undefined,
+    }
+  })
 }
 
 export async function getCompanyMember(
