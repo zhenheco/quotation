@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { apiGet, apiPost, apiPut, apiPostFormData } from '@/lib/api-client';
+import TeamMemberList from '@/components/team/TeamMemberList';
+import InviteLinkSection from '@/components/team/InviteLinkSection';
 
 function getImageUrl(url: string | undefined): string | null {
   if (!url) return null;
@@ -39,6 +41,35 @@ interface Company {
   website?: string;
 }
 
+interface Role {
+  id: string;
+  name: string;
+  display_name: { zh: string; en: string };
+}
+
+interface Member {
+  id: string;
+  company_id: string;
+  user_id: string;
+  role_id: string | null;
+  role_name?: string;
+  is_owner: boolean;
+  is_active: boolean;
+  joined_at: string;
+  user_profile?: {
+    full_name: string;
+    display_name: string;
+    avatar_url?: string;
+    email?: string;
+  };
+}
+
+interface CurrentUser {
+  id: string;
+  is_owner: boolean;
+  role_name?: string;
+}
+
 interface CompanySettingsProps {
   locale: string;
   triggerCreate?: boolean;
@@ -46,6 +77,7 @@ interface CompanySettingsProps {
 
 export default function CompanySettings({ locale, triggerCreate }: CompanySettingsProps) {
   const t = useTranslations('common');
+  const tTeam = useTranslations('team');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -53,6 +85,12 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState({ logo: false, signature: false, passbook: false });
   const [pendingFiles, setPendingFiles] = useState<{ logo?: File; signature?: File; passbook?: File }>({});
+
+  const [teamActiveTab, setTeamActiveTab] = useState<'members' | 'invitations'>('members');
+  const [members, setMembers] = useState<Member[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
   const fetchCompanies = useCallback(async () => {
     try {
@@ -79,9 +117,63 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
     }
   }, []);
 
+  const fetchRoles = useCallback(async () => {
+    try {
+      const data = await apiGet<Role[]>('/api/roles');
+      setRoles(data);
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+    }
+  }, []);
+
+  const fetchMembers = useCallback(async (companyId: string) => {
+    if (!companyId) return;
+
+    setLoadingMembers(true);
+    try {
+      const data = await apiGet<Member[]>(`/api/companies/${companyId}/members`);
+
+      const membersWithProfiles = await Promise.all(
+        data.map(async (member) => {
+          try {
+            const profile = await apiGet<{ full_name: string; display_name: string; email?: string }>(
+              `/api/users/${member.user_id}/profile`
+            );
+            return { ...member, user_profile: profile };
+          } catch {
+            return member;
+          }
+        })
+      );
+
+      setMembers(membersWithProfiles.filter((m) => m.is_active));
+
+      const me = await apiGet<{ id: string }>('/api/auth/me');
+      const myMembership = membersWithProfiles.find((m) => m.user_id === me.id);
+      if (myMembership) {
+        setCurrentUser({
+          id: me.id,
+          is_owner: myMembership.is_owner,
+          role_name: myMembership.role_name,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching members:', error);
+    } finally {
+      setLoadingMembers(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchCompanies();
-  }, [fetchCompanies]);
+    fetchRoles();
+  }, [fetchCompanies, fetchRoles]);
+
+  useEffect(() => {
+    if (selectedCompany?.id && !isCreating) {
+      fetchMembers(selectedCompany.id);
+    }
+  }, [selectedCompany?.id, isCreating, fetchMembers]);
 
   const loadCompany = async (companyId: string) => {
     try {
@@ -466,6 +558,74 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
               </div>
             </div>
           </div>
+
+          {/* Team Members - Only show when editing existing company */}
+          {!isCreating && selectedCompany.id && (
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-medium mb-4">
+                {locale === 'zh' ? '團隊成員' : 'Team Members'}
+              </h3>
+
+              {/* Tab 切換 */}
+              <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+                <nav className="-mb-px flex gap-8">
+                  <button
+                    type="button"
+                    onClick={() => setTeamActiveTab('members')}
+                    className={`border-b-2 pb-4 text-sm font-medium ${
+                      teamActiveTab === 'members'
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400'
+                    }`}
+                  >
+                    {tTeam('members')} ({members.length})
+                  </button>
+                  {(currentUser?.is_owner || currentUser?.role_name === 'sales_manager') && (
+                    <button
+                      type="button"
+                      onClick={() => setTeamActiveTab('invitations')}
+                      className={`border-b-2 pb-4 text-sm font-medium ${
+                        teamActiveTab === 'invitations'
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400'
+                      }`}
+                    >
+                      {tTeam('invitations')}
+                    </button>
+                  )}
+                </nav>
+              </div>
+
+              {/* 內容區 */}
+              {loadingMembers ? (
+                <div className="flex justify-center py-12">
+                  <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+                </div>
+              ) : (
+                <>
+                  {teamActiveTab === 'members' && currentUser && (
+                    <TeamMemberList
+                      companyId={selectedCompany.id}
+                      members={members}
+                      roles={roles}
+                      currentUserId={currentUser.id}
+                      isOwner={currentUser.is_owner}
+                      locale={locale}
+                      onMemberUpdated={() => fetchMembers(selectedCompany.id)}
+                    />
+                  )}
+                  {teamActiveTab === 'invitations' && (
+                    <InviteLinkSection
+                      companyId={selectedCompany.id}
+                      roles={roles}
+                      locale={locale}
+                      canManage={currentUser?.is_owner || currentUser?.role_name === 'sales_manager' || false}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {/* File Uploads */}
           <div className="border-t pt-6">

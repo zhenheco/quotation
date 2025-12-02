@@ -47,12 +47,6 @@ const menuItems = [
     href: '/settings',
     icon: '⚙️',
   },
-  {
-    en: 'Team',
-    zh: '團隊管理',
-    href: '/settings/team',
-    icon: '👨‍👩‍👧‍👦',
-  },
 ]
 
 export default function Sidebar({ locale }: { locale: string }) {
