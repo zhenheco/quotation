@@ -200,26 +200,31 @@ export async function getCompanyMembers(
     (profiles || []).map(p => [p.user_id, p as UserProfile])
   )
 
-  const { data: authData } = await db.auth.admin.listUsers()
-  const authUsers = authData?.users || []
-  const authUserMap = new Map(
-    authUsers.map(u => [u.id, {
-      full_name: (u.user_metadata?.full_name || u.user_metadata?.name || '') as string,
-      display_name: (u.user_metadata?.name || u.user_metadata?.full_name || '') as string,
-      email: u.email || null,
-      avatar_url: (u.user_metadata?.avatar_url || u.user_metadata?.picture || null) as string | null,
-    }])
-  )
+  const missingIds = userIds.filter(id => !profileMap.has(id))
 
-  return members.map(member => {
-    const profile = profileMap.get(member.user_id) || authUserMap.get(member.user_id)
-    return {
-      ...member,
-      role_name: (member.roles as { name: string } | null)?.name,
-      user_profile: profile,
-      roles: undefined,
+  if (missingIds.length > 0) {
+    const { data: authProfiles } = await db.rpc('get_auth_users_metadata', {
+      user_ids: missingIds
+    })
+
+    if (authProfiles) {
+      (authProfiles as Array<{ user_id: string; email: string; full_name: string; avatar_url: string }>).forEach(p => {
+        profileMap.set(p.user_id, {
+          full_name: p.full_name,
+          display_name: p.full_name,
+          email: p.email,
+          avatar_url: p.avatar_url,
+        })
+      })
     }
-  })
+  }
+
+  return members.map(member => ({
+    ...member,
+    role_name: (member.roles as { name: string } | null)?.name,
+    user_profile: profileMap.get(member.user_id),
+    roles: undefined,
+  }))
 }
 
 export async function getCompanyMember(
