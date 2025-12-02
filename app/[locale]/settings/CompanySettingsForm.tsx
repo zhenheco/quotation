@@ -134,12 +134,12 @@ export default function CompanySettingsForm() {
         description={t('description')}
       />
 
-      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
+      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-4">
         {/* Company Information */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium mb-4">{t('company_info')}</h2>
+        <div className="bg-white shadow rounded-lg p-4">
+          <h2 className="text-lg font-medium mb-3">{t('company_info')}</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('company_name_zh')}
@@ -208,10 +208,10 @@ export default function CompanySettingsForm() {
         </div>
 
         {/* File Uploads */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium mb-4">檔案上傳</h2>
+        <div className="bg-white shadow rounded-lg p-4">
+          <h2 className="text-lg font-medium mb-3">檔案上傳</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Logo Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -302,10 +302,10 @@ export default function CompanySettingsForm() {
         </div>
 
         {/* Bank Information */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium mb-4">{t('bank_info')}</h2>
+        <div className="bg-white shadow rounded-lg p-4">
+          <h2 className="text-lg font-medium mb-3">{t('bank_info')}</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('bank_name')}

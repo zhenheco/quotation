@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // 取得請求資料
     const body = await request.json() as CreateCustomerRequest
-    const { name, email, phone, address, tax_id, contact_person, company_id } = body
+    const { name, email, phone, fax, address, tax_id, contact_person, company_id } = body
 
     // 驗證必填欄位
     if (!name) {
@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
       name: typeof name === 'string' ? { zh: name, en: name } : (name as { zh: string; en: string }),
       email: (email || undefined) as string,
       phone: phone || undefined,
+      fax: fax || undefined,
       address: address ? (typeof address === 'string' ? { zh: address, en: address } : address) : undefined,
       tax_id: tax_id || undefined,
       contact_person: contact_person

@@ -63,7 +63,7 @@ export default function ProductList({ locale }: ProductListProps) {
   // 載入狀態
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center">
+      <div className="p-4 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     )
@@ -72,7 +72,7 @@ export default function ProductList({ locale }: ProductListProps) {
   // 錯誤狀態
   if (error) {
     return (
-      <div className="p-6">
+      <div className="p-4">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           {error instanceof Error ? error.message : t('common.error')}
         </div>
@@ -97,8 +97,8 @@ export default function ProductList({ locale }: ProductListProps) {
 
   return (
     <>
-      <div className="p-6">
-        <div className="mb-4 space-y-3">
+      <div className="p-4">
+        <div className="mb-3 space-y-2">
           {/* 搜尋框 */}
           <input
             type="text"
@@ -162,24 +162,24 @@ export default function ProductList({ locale }: ProductListProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('product.name')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('product.description')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('product.category')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('product.price')}
                   </th>
                   {canSeeCost && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {t('product.cost')}
                     </th>
                   )}
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('common.actions')}
                   </th>
                 </tr>
@@ -191,26 +191,26 @@ export default function ProductList({ locale }: ProductListProps) {
 
                   return (
                     <tr key={product.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {name[locale as 'zh' | 'en']}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         <div className="text-sm text-gray-900 max-w-xs truncate">
                           {description?.[locale as 'zh' | 'en'] || '-'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{product.category || '-'}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {product.base_currency} {product.base_price?.toLocaleString() || 0}
                         </div>
                       </td>
                       {canSeeCost && (
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
                             {product.cost_price ? (
                               <>
@@ -236,7 +236,7 @@ export default function ProductList({ locale }: ProductListProps) {
                           </div>
                         </td>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => router.push(`/${locale}/products/${product.id}`)}
                           className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer"
@@ -259,7 +259,7 @@ export default function ProductList({ locale }: ProductListProps) {
         )}
 
         {/* Card View - 手機版始終顯示，或桌面版選擇 card 模式時顯示 */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 ${
           viewMode === 'list' ? 'md:hidden' : ''
         }`}>
             {products.map((product) => {
@@ -269,13 +269,13 @@ export default function ProductList({ locale }: ProductListProps) {
               return (
                 <div
                   key={product.id}
-                  className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow"
+                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow"
                 >
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <div className="mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
                       {name[locale as 'zh' | 'en']}
                     </h3>
-                    <div className="space-y-2 text-sm text-gray-600">
+                    <div className="space-y-1.5 text-sm text-gray-600">
                       {description?.[locale as 'zh' | 'en'] && (
                         <p className="line-clamp-2">{description[locale as 'zh' | 'en']}</p>
                       )}
@@ -326,7 +326,7 @@ export default function ProductList({ locale }: ProductListProps) {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2 pt-4 border-t border-gray-200">
+                  <div className="flex gap-2 pt-3 border-t border-gray-200">
                     <button
                       onClick={() => router.push(`/${locale}/products/${product.id}`)}
                       className="flex-1 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"

@@ -90,6 +90,7 @@ export async function PUT(
       name: { zh: string; en: string }
       email: string
       phone: string
+      fax: string
       address: { zh: string; en: string }
       tax_id: string
       contact_person: { name: string; phone: string; email: string }
@@ -105,6 +106,9 @@ export async function PUT(
     }
     if (body.phone !== undefined && body.phone !== null) {
       updateData.phone = body.phone
+    }
+    if (body.fax !== undefined && body.fax !== null) {
+      updateData.fax = body.fax
     }
     if (body.address !== undefined && body.address !== null) {
       updateData.address = typeof body.address === 'string' ? { zh: body.address, en: body.address } : body.address as { zh: string; en: string }

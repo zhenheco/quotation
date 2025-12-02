@@ -223,9 +223,9 @@ export default function ProductForm({ locale, product: initialProduct }: Product
   const isSubmitting = createProduct.isPending || updateProduct.isPending
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {/* 基本資訊 */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <h3 className="text-lg font-medium text-gray-900">{t('product.basicInfo')}</h3>
 
         <BilingualFormInput
@@ -253,7 +253,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
           rows={4}
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <FormInput
             label={t('product.price')}
             name="basePrice"
@@ -290,7 +290,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
               {t('product.category')}
@@ -342,7 +342,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
 
       {/* 成本資訊（需要權限） */}
       {canSeeCost && (
-        <div className="space-y-4 pt-6 border-t border-gray-200">
+        <div className="space-y-3 pt-4 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">{t('product.costInfo')}</h3>
             {!canEditCost && (
@@ -352,7 +352,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
 
           {canEditCost ? (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormInput
                   label={t('product.costPrice')}
                   name="costPrice"
@@ -426,7 +426,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
 
               {/* 快速供應商輸入（新增模式） */}
               {!product?.id && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FormInput
                     label={t('product.supplier')}
                     name="supplier"
@@ -471,7 +471,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
       )}
 
       {/* 按鈕 */}
-      <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
         <button
           type="button"
           onClick={() => router.push(`/${locale}/products`)}

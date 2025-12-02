@@ -9,6 +9,7 @@ export interface CreateCustomerRequest {
   name: string;
   email?: string | null;
   phone?: string | null;
+  fax?: string | null;
   address?: string | null;
   tax_id?: string | null;
   contact_person?: string | null;
@@ -19,6 +20,7 @@ export interface UpdateCustomerRequest {
   name?: string;
   email?: string | null;
   phone?: string | null;
+  fax?: string | null;
   address?: string | null;
   tax_id?: string | null;
   contact_person?: string | null;

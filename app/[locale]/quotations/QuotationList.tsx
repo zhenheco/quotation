@@ -199,8 +199,8 @@ export default function QuotationList({ locale }: QuotationListProps) {
 
   return (
     <>
-      <div className="p-6">
-        <div className="mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+      <div className="p-4">
+        <div className="mb-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div className="flex flex-wrap gap-2 items-center">
             <select
               value={statusFilter}
@@ -261,7 +261,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
             <thead className="bg-gray-50">
               <tr>
                 {isBatchOperation && (
-                  <th className="px-6 py-3 text-left">
+                  <th className="px-4 py-2 text-left">
                     <input
                       type="checkbox"
                       checked={selectedIds.size === quotations.length && quotations.length > 0}
@@ -270,25 +270,25 @@ export default function QuotationList({ locale }: QuotationListProps) {
                     />
                   </th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('quotation.quotationNumber')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('quotation.customer')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('quotation.issueDate')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('quotation.validUntil')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('quotation.status')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('quotation.total')}
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('common.actions')}
                 </th>
               </tr>
@@ -297,7 +297,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
               {quotations.map((quotation) => (
                 <tr key={quotation.id} className="hover:bg-gray-50">
                   {isBatchOperation && (
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(quotation.id)}
@@ -306,19 +306,19 @@ export default function QuotationList({ locale }: QuotationListProps) {
                       />
                     </td>
                   )}
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
                       {quotation.quotation_number}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
                       {quotation.customer_name
                         ? (locale === 'zh' ? quotation.customer_name.zh : quotation.customer_name.en)
                         : quotation.customer_id}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
                       {locale === 'zh'
                         ? new Date(quotation.issue_date).toLocaleDateString('zh-TW', {
@@ -333,7 +333,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
                           })}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
                       {locale === 'zh'
                         ? new Date(quotation.valid_until).toLocaleDateString('zh-TW', {
@@ -348,7 +348,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
                           })}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <select
                       value={quotation.status}
                       onChange={(e) => handleStatusChange(quotation.id, e.target.value as QuotationStatus)}
@@ -360,12 +360,12 @@ export default function QuotationList({ locale }: QuotationListProps) {
                       <option value="expired">{t('status.expired')}</option>
                     </select>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
                       {quotation.currency} {quotation.total_amount?.toLocaleString() || '0'}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
                       className="text-blue-600 hover:text-blue-900 mr-4 cursor-pointer"
@@ -411,8 +411,8 @@ export default function QuotationList({ locale }: QuotationListProps) {
         {/* 手機版卡片 */}
         <div className="md:hidden divide-y divide-gray-200">
           {quotations.map((quotation) => (
-            <div key={quotation.id} className="p-4 bg-white">
-              <div className="flex items-start justify-between mb-3">
+            <div key={quotation.id} className="p-3 bg-white">
+              <div className="flex items-start justify-between mb-2">
                 <div className="flex items-start space-x-3">
                   {isBatchOperation && (
                     <div className="mt-1">
@@ -447,7 +447,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
                 </select>
               </div>
 
-              <div className="space-y-2 text-sm">
+              <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">{t('quotation.total')}</span>
                   <span className="font-medium text-gray-900">
@@ -476,7 +476,7 @@ export default function QuotationList({ locale }: QuotationListProps) {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t">
+              <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t">
                 <button
                   onClick={() => router.push(`/${locale}/quotations/${quotation.id}/edit`)}
                   className="text-blue-600 hover:text-blue-900 text-sm"
