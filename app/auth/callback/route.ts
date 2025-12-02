@@ -21,6 +21,24 @@ export async function GET(request: Request) {
 
       console.log(`✅ User ${isNewUser ? 'registered' : 'logged in'}: ${user.email}`)
 
+      // 同步 user_profiles
+      try {
+        const db = getSupabaseClient()
+        await db
+          .from('user_profiles')
+          .upsert({
+            user_id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '',
+            display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '',
+            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' })
+        console.log(`✅ Synced user profile for: ${user.email}`)
+      } catch (profileError) {
+        console.error('Failed to sync user profile:', profileError)
+      }
+
       try {
         const db = getSupabaseClient()
 

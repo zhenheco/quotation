@@ -203,9 +203,13 @@ export async function getCompanyMembers(
   const missingIds = userIds.filter(id => !profileMap.has(id))
 
   if (missingIds.length > 0) {
-    const { data: authProfiles } = await db.rpc('get_auth_users_metadata', {
+    const { data: authProfiles, error: rpcError } = await db.rpc('get_auth_users_metadata', {
       user_ids: missingIds
     })
+
+    if (rpcError) {
+      console.error('Failed to get auth user metadata:', rpcError.message, rpcError.details)
+    }
 
     if (authProfiles) {
       (authProfiles as Array<{ user_id: string; email: string; full_name: string; avatar_url: string }>).forEach(p => {
