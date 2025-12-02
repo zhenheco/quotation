@@ -201,7 +201,9 @@ export default function TeamMemberList({
           if (member) handleRemoveMember(member)
         }}
         title={t('removeConfirmTitle')}
-        message={t('removeConfirmMessage')}
+        description={t('removeConfirmMessage')}
+        confirmText={t('remove')}
+        cancelText={t('cancel')}
       />
     </div>
   )

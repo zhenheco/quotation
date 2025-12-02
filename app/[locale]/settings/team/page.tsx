@@ -144,7 +144,6 @@ export default function TeamSettingsPage() {
       <PageHeader
         title={t('title')}
         description={t('description')}
-        backLink={`/${locale}/settings`}
       />
 
       <div className="space-y-6">
