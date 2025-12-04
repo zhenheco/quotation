@@ -28,6 +28,8 @@ export interface CreateCustomerInput {
   tax_id?: string
   contact_person?: BilingualText
   owner_id?: string
+  customer_number?: string
+  company_id?: string
 }
 
 export interface UpdateCustomerInput {
@@ -39,6 +41,8 @@ export interface UpdateCustomerInput {
   tax_id?: string
   contact_person?: BilingualText
   owner_id?: string
+  customer_number?: string
+  company_id?: string
 }
 
 // ============================================================================

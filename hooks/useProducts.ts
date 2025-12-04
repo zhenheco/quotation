@@ -32,6 +32,8 @@ export interface CreateProductInput {
   supplier?: string
   supplier_code?: string
   sku?: string
+  product_number?: string
+  company_id?: string
 }
 
 export interface UpdateProductInput {
@@ -46,6 +48,8 @@ export interface UpdateProductInput {
   supplier?: string
   supplier_code?: string
   sku?: string
+  product_number?: string
+  company_id?: string
 }
 
 export interface ProductFilters {

@@ -331,6 +331,7 @@
   },
   "customer": {
     "title": "Customers",
+    "customerNumber": "Customer Number",
     "createNew": "Create Customer",
     "edit": "Edit Customer",
     "name": "Name",
@@ -374,6 +375,7 @@
   },
   "product": {
     "title": "Services/Items",
+    "productNumber": "Item Number",
     "createNew": "Create Service/Item",
     "edit": "Edit Service/Item",
     "name": "Name",

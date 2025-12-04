@@ -8,6 +8,7 @@ export interface Product {
   id: string
   user_id: string
   company_id: string | null
+  product_number: string | null
   sku: string | null
   name: { zh: string; en: string }
   description: { zh: string; en: string } | null
@@ -23,6 +24,22 @@ export interface Product {
   is_active: boolean | null
   created_at: string
   updated_at: string
+}
+
+// PostgreSQL 錯誤類型
+interface PostgresError {
+  code?: string
+  constraint?: string
+  message?: string
+}
+
+// 檢查是否為商品編號衝突錯誤
+function isProductNumberConflict(error: unknown): boolean {
+  const pgError = error as PostgresError
+  return pgError?.code === '23505' &&
+         (pgError?.constraint?.includes('product_number') ||
+          pgError?.message?.includes('product_number') ||
+          false)
 }
 
 export async function getProducts(
@@ -74,6 +91,7 @@ export async function createProduct(
   data: {
     id?: string
     company_id?: string
+    product_number?: string
     sku?: string
     name: { zh: string; en: string }
     description?: { zh: string; en: string }
@@ -97,6 +115,7 @@ export async function createProduct(
       id: data.id || crypto.randomUUID(),
       user_id: userId,
       company_id: data.company_id || null,
+      product_number: data.product_number || null,
       sku: data.sku || null,
       name: data.name,
       description: data.description || null,
@@ -192,4 +211,59 @@ export async function searchProducts(
   }
 
   return data || []
+}
+
+/**
+ * 生成商品編號（呼叫資料庫 RPC 函數）
+ */
+export async function generateProductNumber(
+  db: SupabaseClient,
+  companyId: string
+): Promise<string> {
+  const { data, error } = await db.rpc('generate_product_number_atomic', {
+    p_company_id: companyId
+  })
+
+  if (error) {
+    throw new Error(`Failed to generate product number: ${error.message}`)
+  }
+
+  if (!data) {
+    throw new Error('Failed to generate product number: no data returned')
+  }
+
+  return data as string
+}
+
+/**
+ * 建立商品（帶重試機制，處理編號衝突）
+ */
+export async function createProductWithRetry(
+  db: SupabaseClient,
+  userId: string,
+  companyId: string,
+  data: Omit<Parameters<typeof createProduct>[2], 'product_number' | 'company_id'>,
+  options: { maxRetries?: number; baseDelayMs?: number } = {}
+): Promise<Product> {
+  const { maxRetries = 3, baseDelayMs = 100 } = options
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const productNumber = await generateProductNumber(db, companyId)
+      return await createProduct(db, userId, {
+        ...data,
+        company_id: companyId,
+        product_number: productNumber
+      })
+    } catch (error) {
+      lastError = error as Error
+      if (!isProductNumberConflict(error) || attempt === maxRetries) {
+        throw error
+      }
+      // 指數退避重試
+      await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt)))
+    }
+  }
+  throw lastError
 }

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
-import { getProducts, createProduct } from '@/lib/dal/products'
+import { getProducts, createProduct, createProductWithRetry } from '@/lib/dal/products'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 // Note: Edge runtime removed for OpenNext compatibility;
@@ -15,6 +15,8 @@ interface CreateProductRequestBody {
   base_currency: string;
   category?: string;
   sku?: string;
+  product_number?: string;
+  company_id?: string;
   cost_price?: number | string;
   cost_currency?: string;
   profit_margin?: number | string;
@@ -118,8 +120,8 @@ export async function POST(request: NextRequest) {
       profitMargin = parsedMargin
     }
 
-    // 建立產品（DAL 會自動處理 JSON 序列化）
-    const product = await createProduct(db, user.id, {
+    // 準備產品資料
+    const productData = {
       name: typeof body.name === 'string' ? { zh: body.name, en: body.name } : body.name,
       description: body.description ? (typeof body.description === 'string' ? { zh: body.description, en: body.description } : body.description) : undefined,
       base_price: price,
@@ -129,7 +131,27 @@ export async function POST(request: NextRequest) {
       cost_currency: body.cost_currency,
       profit_margin: profitMargin,
       supplier: body.supplier
-    })
+    }
+
+    // 建立產品
+    // 如果提供了 product_number（使用者自訂），直接使用
+    // 如果提供了 company_id 但沒有 product_number，自動生成
+    // 如果都沒有，不帶編號建立
+    let product
+    if (body.product_number) {
+      // 使用者自訂編號
+      product = await createProduct(db, user.id, {
+        ...productData,
+        product_number: body.product_number,
+        company_id: body.company_id
+      })
+    } else if (body.company_id) {
+      // 自動生成編號
+      product = await createProductWithRetry(db, user.id, body.company_id, productData)
+    } else {
+      // 不帶編號建立
+      product = await createProduct(db, user.id, productData)
+    }
 
     return NextResponse.json(product, { status: 201 })
   } catch (error: unknown) {

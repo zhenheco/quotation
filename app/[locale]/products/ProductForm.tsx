@@ -19,6 +19,7 @@ import {
 import { usePermission } from '@/hooks/usePermission'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 import { SupplierCostEditor } from '@/components/products/SupplierCostEditor'
+import { getSelectedCompanyId } from '@/lib/utils/company-context'
 
 interface ProductFormProps {
   locale: string
@@ -60,6 +61,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
 
   // 表單狀態
   const [formData, setFormData] = useState({
+    productNumber: '',
     nameZh: '',
     nameEn: '',
     descriptionZh: '',
@@ -75,6 +77,29 @@ export default function ProductForm({ locale, product: initialProduct }: Product
     supplierCode: '',
     sku: '',
   })
+
+  // 新商品時自動生成編號
+  useEffect(() => {
+    async function fetchGeneratedNumber() {
+      if (!product) {
+        const companyId = getSelectedCompanyId()
+        if (companyId) {
+          try {
+            const response = await fetch(`/api/products/generate-number?company_id=${companyId}`)
+            if (response.ok) {
+              const data = await response.json() as { product_number?: string }
+              if (data.product_number) {
+                setFormData(prev => ({ ...prev, productNumber: data.product_number }))
+              }
+            }
+          } catch (error) {
+            console.error('Failed to generate product number:', error)
+          }
+        }
+      }
+    }
+    fetchGeneratedNumber()
+  }, [product])
 
   // 自動計算模式（利潤率 <-> 售價）
   const [autoCalculateMode, setAutoCalculateMode] = useState<'sellingPrice' | 'profitMargin'>(
@@ -92,6 +117,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
       const productCategory = product.category || ''
 
       setFormData({
+        productNumber: (product as { product_number?: string }).product_number || '',
         nameZh: name.zh || '',
         nameEn: name.en || '',
         descriptionZh: description?.zh || '',
@@ -169,6 +195,8 @@ export default function ProductForm({ locale, product: initialProduct }: Product
         return
       }
 
+      const companyId = getSelectedCompanyId()
+
       // 基本資料
       const productData: CreateProductInput | UpdateProductInput = {
         name: {
@@ -185,6 +213,8 @@ export default function ProductForm({ locale, product: initialProduct }: Product
         base_currency: formData.baseCurrency,
         category: formData.category || undefined,
         sku: formData.sku || undefined,
+        product_number: formData.productNumber || undefined,
+        company_id: companyId || undefined,
       }
 
       // 只有在有權限且有輸入成本時才加入成本相關欄位
@@ -227,6 +257,16 @@ export default function ProductForm({ locale, product: initialProduct }: Product
       {/* 基本資訊 */}
       <div className="space-y-3">
         <h3 className="text-lg font-medium text-gray-900">{t('product.basicInfo')}</h3>
+
+        {/* 商品編號 */}
+        <FormInput
+          label={t('product.productNumber')}
+          name="productNumber"
+          type="text"
+          value={formData.productNumber}
+          onChange={(value) => setFormData({ ...formData, productNumber: value })}
+          placeholder="PRD202512-0001"
+        />
 
         <BilingualFormInput
           label={t('product.name')}

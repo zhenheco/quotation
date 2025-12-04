@@ -333,6 +333,7 @@
   },
   "customer": {
     "title": "客戶",
+    "customerNumber": "客戶編號",
     "createNew": "建立客戶",
     "edit": "編輯客戶",
     "name": "名稱",
@@ -376,6 +377,7 @@
   },
   "product": {
     "title": "服務/品項",
+    "productNumber": "品項編號",
     "createNew": "建立服務/品項",
     "edit": "編輯服務/品項",
     "name": "名稱",

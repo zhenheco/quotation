@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
@@ -28,6 +28,7 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
   const address = customer?.address as { zh: string; en: string } | null | undefined
 
   const [formData, setFormData] = useState({
+    customerNumber: (customer as { customer_number?: string } | undefined)?.customer_number || '',
     nameZh: name?.zh || '',
     nameEn: name?.en || '',
     email: customer?.email || '',
@@ -38,6 +39,29 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
     addressEn: address?.en || '',
     ownerId: (customer as { owner_id?: string } | undefined)?.owner_id || '',
   })
+
+  // 新客戶時自動生成編號
+  useEffect(() => {
+    async function fetchGeneratedNumber() {
+      if (!customer) {
+        const companyId = getSelectedCompanyId()
+        if (companyId) {
+          try {
+            const response = await fetch(`/api/customers/generate-number?company_id=${companyId}`)
+            if (response.ok) {
+              const data = await response.json() as { customer_number?: string }
+              if (data.customer_number) {
+                setFormData(prev => ({ ...prev, customerNumber: data.customer_number }))
+              }
+            }
+          } catch (error) {
+            console.error('Failed to generate customer number:', error)
+          }
+        }
+      }
+    }
+    fetchGeneratedNumber()
+  }, [customer])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,6 +78,7 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
     }
 
     try {
+      const companyId = getSelectedCompanyId()
       const customerData = {
         name: {
           zh: formData.nameZh.trim(),
@@ -68,6 +93,8 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
           en: formData.addressEn.trim() || '',
         } : undefined,
         owner_id: formData.ownerId || undefined,
+        customer_number: formData.customerNumber.trim() || undefined,
+        company_id: companyId || undefined,
       }
 
       if (customer) {
@@ -92,6 +119,16 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* 客戶編號 */}
+      <FormInput
+        label={t('customer.customerNumber')}
+        name="customerNumber"
+        type="text"
+        value={formData.customerNumber}
+        onChange={(value) => setFormData({ ...formData, customerNumber: value })}
+        placeholder="CUS202512-0001"
+      />
+
       <BilingualFormInput
         label={t('customer.name')}
         name="name"

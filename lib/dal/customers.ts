@@ -9,6 +9,7 @@ export interface Customer {
   user_id: string
   company_id: string | null
   owner_id: string | null
+  customer_number: string | null
   name: { zh: string; en: string }
   email: string
   phone: string | null
@@ -19,6 +20,22 @@ export interface Customer {
   notes: string | null
   created_at: string
   updated_at: string
+}
+
+// PostgreSQL 錯誤類型
+interface PostgresError {
+  code?: string
+  constraint?: string
+  message?: string
+}
+
+// 檢查是否為客戶編號衝突錯誤
+function isCustomerNumberConflict(error: unknown): boolean {
+  const pgError = error as PostgresError
+  return pgError?.code === '23505' &&
+         (pgError?.constraint?.includes('customer_number') ||
+          pgError?.message?.includes('customer_number') ||
+          false)
 }
 
 export interface CustomerQueryOptions {
@@ -84,6 +101,7 @@ export async function createCustomer(
     id?: string
     company_id?: string
     owner_id?: string
+    customer_number?: string
     name: { zh: string; en: string }
     email: string
     phone?: string
@@ -103,6 +121,7 @@ export async function createCustomer(
       user_id: userId,
       company_id: data.company_id || null,
       owner_id: data.owner_id || userId,
+      customer_number: data.customer_number || null,
       name: data.name,
       email: data.email,
       phone: data.phone || null,
@@ -233,4 +252,59 @@ export async function searchCustomers(
   }
 
   return data || []
+}
+
+/**
+ * 生成客戶編號（呼叫資料庫 RPC 函數）
+ */
+export async function generateCustomerNumber(
+  db: SupabaseClient,
+  companyId: string
+): Promise<string> {
+  const { data, error } = await db.rpc('generate_customer_number_atomic', {
+    p_company_id: companyId
+  })
+
+  if (error) {
+    throw new Error(`Failed to generate customer number: ${error.message}`)
+  }
+
+  if (!data) {
+    throw new Error('Failed to generate customer number: no data returned')
+  }
+
+  return data as string
+}
+
+/**
+ * 建立客戶（帶重試機制，處理編號衝突）
+ */
+export async function createCustomerWithRetry(
+  db: SupabaseClient,
+  userId: string,
+  companyId: string,
+  data: Omit<Parameters<typeof createCustomer>[2], 'customer_number' | 'company_id'>,
+  options: { maxRetries?: number; baseDelayMs?: number } = {}
+): Promise<Customer> {
+  const { maxRetries = 3, baseDelayMs = 100 } = options
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const customerNumber = await generateCustomerNumber(db, companyId)
+      return await createCustomer(db, userId, {
+        ...data,
+        company_id: companyId,
+        customer_number: customerNumber
+      })
+    } catch (error) {
+      lastError = error as Error
+      if (!isCustomerNumberConflict(error) || attempt === maxRetries) {
+        throw error
+      }
+      // 指數退避重試
+      await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt)))
+    }
+  }
+  throw lastError
 }
