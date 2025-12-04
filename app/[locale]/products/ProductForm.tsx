@@ -189,11 +189,7 @@ export default function ProductForm({ locale, product: initialProduct }: Product
     e.preventDefault()
 
     try {
-      const basePrice = parseFloat(formData.basePrice)
-      if (isNaN(basePrice) || basePrice < 0) {
-        toast.error(t('product.invalidPrice'))
-        return
-      }
+      const basePrice = parseFloat(formData.basePrice) || 0
 
       const companyId = getSelectedCompanyId()
 
@@ -277,7 +273,6 @@ export default function ProductForm({ locale, product: initialProduct }: Product
           onChangeEn={(value) => setFormData({ ...formData, nameEn: value })}
           placeholderZh={t('product.namePlaceholder.zh')}
           placeholderEn={t('product.namePlaceholder.en')}
-          required
         />
 
         <BilingualFormInput
@@ -305,20 +300,17 @@ export default function ProductForm({ locale, product: initialProduct }: Product
               setAutoCalculateMode('profitMargin')
             }}
             placeholder={currentLocale === 'zh' ? '0' : '0.00'}
-            required
           />
 
           <div>
             <label htmlFor="baseCurrency" className="block text-sm font-medium text-gray-700 mb-1">
               {t('product.currency')}
-              <span className="text-red-500 ml-1">*</span>
             </label>
             <select
               id="baseCurrency"
               name="baseCurrency"
               value={formData.baseCurrency}
               onChange={(e) => setFormData({ ...formData, baseCurrency: e.target.value })}
-              required
               className={`block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${formData.baseCurrency ? 'text-gray-900 font-medium' : 'text-gray-700'}`}
             >
               {CURRENCIES.map((currency) => (

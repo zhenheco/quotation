@@ -86,19 +86,10 @@ export async function POST(request: NextRequest) {
     // 取得請求資料
     const body = await request.json() as CreateProductRequestBody
 
-    // 驗證必填欄位
-    if (!body.name || body.base_price === undefined || !body.base_currency) {
-      return NextResponse.json(
-        { error: 'Name, base_price and base_currency are required' },
-        { status: 400 }
-      )
-    }
-
-    // 驗證價格
-    const price = typeof body.base_price === 'number' ? body.base_price : parseFloat(body.base_price)
-    if (isNaN(price) || price < 0) {
-      return NextResponse.json({ error: 'Invalid price' }, { status: 400 })
-    }
+    // 解析價格（預設為 0）
+    const price = body.base_price !== undefined
+      ? (typeof body.base_price === 'number' ? body.base_price : parseFloat(body.base_price) || 0)
+      : 0
 
     // 驗證成本價格（如有提供）
     let costPrice: number | undefined = undefined
@@ -122,10 +113,10 @@ export async function POST(request: NextRequest) {
 
     // 準備產品資料
     const productData = {
-      name: typeof body.name === 'string' ? { zh: body.name, en: body.name } : body.name,
+      name: body.name ? (typeof body.name === 'string' ? { zh: body.name, en: body.name } : body.name) : { zh: '', en: '' },
       description: body.description ? (typeof body.description === 'string' ? { zh: body.description, en: body.description } : body.description) : undefined,
       base_price: price,
-      base_currency: body.base_currency,
+      base_currency: body.base_currency || 'TWD',
       sku: body.sku,
       cost_price: costPrice,
       cost_currency: body.cost_currency,

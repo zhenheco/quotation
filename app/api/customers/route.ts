@@ -72,15 +72,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as CreateCustomerRequest & { customer_number?: string }
     const { name, email, phone, fax, address, tax_id, contact_person, company_id, customer_number } = body
 
-    // 驗證必填欄位
-    if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
-    }
-
     // 準備客戶資料
     const customerData = {
-      name: typeof name === 'string' ? { zh: name, en: name } : (name as { zh: string; en: string }),
-      email: (email || undefined) as string,
+      name: name ? (typeof name === 'string' ? { zh: name, en: name } : (name as { zh: string; en: string })) : { zh: '', en: '' },
+      email: (email || '') as string,
       phone: phone || undefined,
       fax: fax || undefined,
       address: address ? (typeof address === 'string' ? { zh: address, en: address } : address) : undefined,

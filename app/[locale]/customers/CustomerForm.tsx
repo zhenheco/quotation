@@ -66,17 +66,6 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // 驗證（只有中文名稱和信箱必填）
-    if (!formData.nameZh.trim()) {
-      toast.error(t('customer.validation.nameRequired'))
-      return
-    }
-
-    if (!formData.email.trim()) {
-      toast.error(t('customer.validation.emailRequired'))
-      return
-    }
-
     try {
       const companyId = getSelectedCompanyId()
       const customerData = {
@@ -138,7 +127,6 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
         onChangeEn={(value) => setFormData({ ...formData, nameEn: value })}
         placeholderZh={t('customer.namePlaceholder.zh')}
         placeholderEn={t('customer.namePlaceholder.en')}
-        required
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -149,7 +137,6 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
           value={formData.email}
           onChange={(value) => setFormData({ ...formData, email: value })}
           placeholder={t('customer.emailPlaceholder')}
-          required
         />
 
         <FormInput
