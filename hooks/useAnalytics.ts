@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { apiGet } from '@/lib/api-client'
+import { STALE_TIME } from '@/lib/api/queryClient'
 
 // ============================================================================
 // Types
@@ -114,7 +115,7 @@ export function useRevenueTrend(months: number = 6) {
   return useQuery({
     queryKey: ['analytics', 'revenue-trend', months],
     queryFn: () => fetchRevenueTrend(months),
-    staleTime: 10 * 60 * 1000, // 10 分鐘
+    staleTime: STALE_TIME.STATIC,
     refetchInterval: 10 * 60 * 1000, // 自動刷新
   })
 }
@@ -137,7 +138,7 @@ export function useCurrencyDistribution() {
   return useQuery({
     queryKey: ['analytics', 'currency-distribution'],
     queryFn: fetchCurrencyDistribution,
-    staleTime: 10 * 60 * 1000,
+    staleTime: STALE_TIME.STATIC,
     refetchInterval: 10 * 60 * 1000,
   })
 }
@@ -160,7 +161,7 @@ export function useStatusStatistics() {
   return useQuery({
     queryKey: ['analytics', 'status-statistics'],
     queryFn: fetchStatusStatistics,
-    staleTime: 10 * 60 * 1000,
+    staleTime: STALE_TIME.STATIC,
     refetchInterval: 10 * 60 * 1000,
   })
 }
@@ -189,7 +190,7 @@ export function useDashboardSummary() {
   return useQuery({
     queryKey: ['analytics', 'dashboard-summary'],
     queryFn: fetchDashboardSummary,
-    staleTime: 10 * 60 * 1000,
+    staleTime: STALE_TIME.STATIC,
     refetchInterval: 10 * 60 * 1000,
   })
 }
@@ -239,7 +240,7 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ['analytics', 'dashboard-stats'],
     queryFn: fetchDashboardStats,
-    staleTime: 10 * 60 * 1000, // 10 分鐘
+    staleTime: STALE_TIME.STATIC,
     refetchInterval: 10 * 60 * 1000, // 自動刷新
   })
 }

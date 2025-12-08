@@ -9,6 +9,7 @@ import type {
   PaymentFrequency,
 } from '@/types/extended.types'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
+import { STALE_TIME } from '@/lib/api/queryClient'
 
 // ============================================================================
 // Types
@@ -127,7 +128,7 @@ export function useContracts(filters?: ContractFilters) {
   return useQuery({
     queryKey: ['contracts', filters],
     queryFn: () => fetchContracts(filters),
-    staleTime: 5 * 60 * 1000, // 5 分鐘
+    staleTime: STALE_TIME.DYNAMIC
   })
 }
 
@@ -161,14 +162,14 @@ export function useContractDetail(contractId: string) {
     queryKey: ['contracts', contractId],
     queryFn: () => fetchContract(contractId),
     enabled: !!contractId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME.DYNAMIC,
   })
 
   const progressQuery = useQuery({
     queryKey: ['contracts', contractId, 'progress'],
     queryFn: () => fetchContractProgress(contractId),
     enabled: !!contractId,
-    staleTime: 2 * 60 * 1000, // 付款進度更新較頻繁，2 分鐘
+    staleTime: STALE_TIME.DYNAMIC
   })
 
   return {
@@ -206,7 +207,7 @@ export function useOverdueContracts() {
   return useQuery({
     queryKey: ['contracts', 'overdue'],
     queryFn: fetchOverdueContracts,
-    staleTime: 2 * 60 * 1000,
+    staleTime: STALE_TIME.DYNAMIC,
     // 自動定時重新取得（每 5 分鐘）
     refetchInterval: 5 * 60 * 1000,
   })
@@ -427,7 +428,7 @@ export function useContractProgress(contractId: string) {
     queryKey: ['contracts', contractId, 'progress'],
     queryFn: () => fetchContractProgress(contractId),
     enabled: !!contractId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: STALE_TIME.DYNAMIC,
   })
 }
 

@@ -92,6 +92,16 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
+  const loadCompany = useCallback(async (companyId: string) => {
+    try {
+      const data = await apiGet<Company>(`/api/companies/${companyId}`);
+      setSelectedCompany(data);
+      setIsCreating(false);
+    } catch (error) {
+      console.error('Error loading company:', error);
+    }
+  }, []);
+
   const fetchCompanies = useCallback(async () => {
     try {
       const data = await apiGet<Company[]>('/api/companies');
@@ -115,7 +125,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadCompany]);
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -160,16 +170,6 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
       fetchMembers(selectedCompany.id);
     }
   }, [selectedCompany?.id, isCreating, fetchMembers]);
-
-  const loadCompany = async (companyId: string) => {
-    try {
-      const data = await apiGet<Company>(`/api/companies/${companyId}`);
-      setSelectedCompany(data);
-      setIsCreating(false);
-    } catch (error) {
-      console.error('Error loading company:', error);
-    }
-  };
 
   useEffect(() => {
     if (triggerCreate) {
@@ -349,7 +349,6 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                       width={48}
                       height={48}
                       className="rounded-full object-cover flex-shrink-0"
-                      unoptimized
                     />
                   ) : (
                     <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
@@ -631,7 +630,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                       width={128}
                       height={128}
                       className="object-cover mb-2 rounded"
-                      unoptimized
+                      unoptimized={!!pendingFiles.logo}
                     />
                   )}
                   <input
@@ -664,7 +663,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                       width={128}
                       height={128}
                       className="object-cover mb-2 rounded"
-                      unoptimized
+                      unoptimized={!!pendingFiles.signature}
                     />
                   )}
                   <input
@@ -697,7 +696,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                       width={128}
                       height={128}
                       className="object-cover mb-2 rounded"
-                      unoptimized
+                      unoptimized={!!pendingFiles.passbook}
                     />
                   )}
                   <input

@@ -7,6 +7,7 @@ import type {
   UpdateCustomerData
 } from '@/types/models'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
+import { STALE_TIME } from '@/lib/api/queryClient'
 
 // ============================================================================
 // Types
@@ -98,7 +99,7 @@ export function useCustomers() {
   return useQuery({
     queryKey: ['customers'],
     queryFn: fetchCustomers,
-    staleTime: 5 * 60 * 1000, // 5 分鐘
+    staleTime: STALE_TIME.STATIC
   })
 }
 
@@ -124,7 +125,7 @@ export function useCustomer(id: string) {
     queryKey: ['customers', id],
     queryFn: () => fetchCustomer(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME.STATIC,
   })
 }
 
