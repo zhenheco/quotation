@@ -1,5 +1,81 @@
 # Development Log
 
+## 2025-12-08: 程式碼品質改善與部署架構調整
+
+### 一、程式碼品質改善（PR #1）
+
+#### 1.1 清理過時程式碼
+- 刪除 `legacy_backup/` 資料夾（100+ 個過時檔案）
+
+#### 1.2 CompanySettings.tsx 修復
+- **Image 優化**：將 `unoptimized={true}` 改為 `unoptimized={!!pendingFiles.logo}`，僅對 blob URL 禁用優化
+- **useCallback 依賴**：重新排序 `loadCompany` 定義，修正依賴陣列問題
+
+#### 1.3 React Query staleTime 標準化
+新增 `STALE_TIME` 常數到 `lib/api/queryClient.ts`：
+| 類型 | 時間 | 用途 |
+|------|------|------|
+| STATIC | 10 分鐘 | 產品、客戶等少變動資料 |
+| DYNAMIC | 5 分鐘 | 報價單、付款、合約等 |
+| REALTIME | 2 分鐘 | 分析數據、即時統計 |
+
+更新的 hooks：useProducts, useCustomers, useQuotations, usePayments, useContracts, useAnalytics
+
+#### 1.4 統一錯誤處理
+新增 `hooks/useApiError.ts`，提供：
+- `handleError()` - 錯誤處理（含 toast 通知、console 記錄、認證重導向）
+- `handleMutationError()` - React Query mutation 專用
+- `getErrorMessage()` - 錯誤訊息提取
+
+---
+
+### 二、部署架構調整：切換至 Cloudflare Git 整合
+
+#### 2.1 移除 GitHub Actions
+- 刪除 `.github/workflows/cloudflare-deploy.yml`
+- 部署改由 Cloudflare Dashboard Git 整合處理
+
+#### 2.2 更新 wrangler.jsonc
+- 加入 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 到 vars
+- 加入 `NEXT_PUBLIC_APP_URL` 到 vars
+- 自訂網域設定從 `zone_name` 改為 `custom_domain: true`
+
+#### 2.3 設定 Cloudflare Secrets
+透過 wrangler secret 設定：
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_DB_URL`
+- `SUPABASE_POOLER_URL`
+
+#### 2.4 自訂網域
+- `quote24.cc` ✅
+- `www.quote24.cc` ✅
+
+---
+
+### 三、注意事項
+
+#### wrangler delete 陷阱
+當 wrangler.jsonc 有多個環境（如 preview）時，`wrangler delete <worker-name>` 可能刪錯 worker。
+**解決方案**：使用 `--name` 參數明確指定，如：
+```bash
+pnpm exec wrangler delete --name quotation-system-preview --force
+```
+
+#### NEXT_PUBLIC_* 環境變數
+這些變數在 **build time** 嵌入 JavaScript，不是 runtime。
+- 使用 Git 整合部署時，需在 wrangler.jsonc 的 `vars` 中設定
+- 或在 Cloudflare Dashboard Build Settings 中設定
+
+---
+
+### 四、相關提交
+- `0c4aafc` - 重構：程式碼品質改善
+- `425c958` - 切換至 Cloudflare Git 整合部署
+- `93e3244` - 修正：自訂網域設定改用 custom_domain
+- `5c0c35c` - 移除 preview 環境設定
+
+---
+
 ## 2024-12-04: 客戶和商品編號系統
 
 ### 問題
