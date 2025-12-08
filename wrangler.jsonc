@@ -5,8 +5,8 @@
   "compatibility_flags": ["nodejs_compat"],
   // 自訂域名路由配置
   "routes": [
-    { "pattern": "quote24.cc/*", "zone_name": "quote24.cc" },
-    { "pattern": "www.quote24.cc/*", "zone_name": "quote24.cc" }
+    { "pattern": "quote24.cc", "custom_domain": true },
+    { "pattern": "www.quote24.cc", "custom_domain": true }
   ],
   "assets": {
     "directory": ".open-next/assets",
