@@ -12,9 +12,11 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  // 環境變數（非敏感資料）
+  // 環境變數（非敏感資料，NEXT_PUBLIC_* 會在 build 時嵌入）
   "vars": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://oubsycwrxzkuviakzahi.supabase.co"
+    "NEXT_PUBLIC_SUPABASE_URL": "https://oubsycwrxzkuviakzahi.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91YnN5Y3dyeHprdXZpYWt6YWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MDM5MDUsImV4cCI6MjA3OTQ3OTkwNX0.Ltz-HSAlcWHV6nsEkckD88ERbCVZSE9C8vNhbW7ELGA",
+    "NEXT_PUBLIC_APP_URL": "https://quote24.cc"
   },
   // Cloudflare R2 - 檔案儲存
   "r2_buckets": [
@@ -44,6 +46,34 @@
       "enabled": true,
       "head_sampling_rate": 1,
       "invocation_logs": true
+    }
+  },
+  // Preview 環境配置 (Git 整合用)
+  "env": {
+    "preview": {
+      "name": "quotation-system-preview",
+      "vars": {
+        "NEXT_PUBLIC_SUPABASE_URL": "https://oubsycwrxzkuviakzahi.supabase.co",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91YnN5Y3dyeHprdXZpYWt6YWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MDM5MDUsImV4cCI6MjA3OTQ3OTkwNX0.Ltz-HSAlcWHV6nsEkckD88ERbCVZSE9C8vNhbW7ELGA",
+        "NEXT_PUBLIC_APP_URL": "https://quotation-system-preview.acejou27.workers.dev"
+      },
+      "r2_buckets": [
+        {
+          "binding": "R2_BUCKET",
+          "bucket_name": "quote24"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "KV",
+          "id": "d503cad51c1f404baafc7fdee2943ddc"
+        }
+      ],
+      "analytics_engine_datasets": [
+        {
+          "binding": "ANALYTICS"
+        }
+      ]
     }
   }
 }
