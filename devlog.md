@@ -1,5 +1,41 @@
 # Development Log
 
+## 2025-12-09: Supabase 客戶端環境變數修復
+
+### 問題
+生產環境 (quote24.cc) 出現錯誤：
+```
+@supabase/ssr: Your project's URL and API key are required to create a Supabase client!
+```
+
+### 根本原因
+1. `middleware.ts` 使用 `process.env.NEXT_PUBLIC_SUPABASE_URL!` 取得環境變數
+2. Cloudflare Workers Git 整合部署時，`NEXT_PUBLIC_*` 在 **build time** 未正確設定
+3. `wrangler.jsonc` 的 `vars` 是 **runtime** 變數，無法在 build time 嵌入 JavaScript
+
+### 解決方案
+在 `middleware.ts` 中直接 hardcode Supabase URL 和 Anon Key：
+
+```typescript
+// middleware.ts
+const SUPABASE_URL = 'https://oubsycwrxzkuviakzahi.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIs...'
+
+const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, ...)
+```
+
+### 安全性說明
+- **Anon Key 是設計為公開的**：前端 JavaScript 已經暴露相同的 key
+- **資料安全由 RLS 保護**：Supabase Row Level Security 政策控制實際的資料存取
+- **Service Role Key 才需要保密**：已透過 Cloudflare Secrets 管理
+
+### 經驗教訓
+1. Cloudflare Workers Git 整合：`NEXT_PUBLIC_*` 需要在 build time 可用
+2. `wrangler.jsonc` 的 `vars` 是 runtime 變數，不影響 build time
+3. 對於 middleware 等 server-side 程式碼，hardcode 是最可靠的方案
+
+---
+
 ## 2025-12-09: Cloudflare 部署無限循環修復
 
 ### 問題

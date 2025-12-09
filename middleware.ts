@@ -5,6 +5,12 @@ import { routing } from '@/i18n/routing'
 import { addSecurityHeaders } from '@/lib/security/headers'
 import { csrfProtection } from '@/lib/security/csrf'
 
+// Hardcoded Supabase credentials for Cloudflare Workers compatibility
+// Note: Anon key is designed to be public (same as exposed in frontend JS)
+// Data security is protected by Supabase RLS policies
+const SUPABASE_URL = 'https://oubsycwrxzkuviakzahi.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91YnN5Y3dyeHprdXZpYWt6YWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MDM5MDUsImV4cCI6MjA3OTQ3OTkwNX0.Ltz-HSAlcWHV6nsEkckD88ERbCVZSE9C8vNhbW7ELGA'
+
 const intlMiddleware = createMiddleware(routing)
 
 export async function middleware(request: NextRequest) {
@@ -34,8 +40,8 @@ export async function middleware(request: NextRequest) {
 
   // Step 3: Create Supabase client and update session cookies on the response
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
