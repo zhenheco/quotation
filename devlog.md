@@ -1,6 +1,6 @@
 # Development Log
 
-## 2025-12-09: Supabase 客戶端環境變數修復
+## 2025-12-09: Cloudflare Workers process.env 修復（正確方案）
 
 ### 問題
 生產環境 (quote24.cc) 出現錯誤：
@@ -9,30 +9,31 @@
 ```
 
 ### 根本原因
-1. `middleware.ts` 使用 `process.env.NEXT_PUBLIC_SUPABASE_URL!` 取得環境變數
-2. Cloudflare Workers Git 整合部署時，`NEXT_PUBLIC_*` 在 **build time** 未正確設定
-3. `wrangler.jsonc` 的 `vars` 是 **runtime** 變數，無法在 build time 嵌入 JavaScript
+`wrangler.jsonc` 的 `compatibility_date` 設為 `2025-03-25`，早於 `2025-04-01`。
+
+根據 [Cloudflare 官方文檔](https://developers.cloudflare.com/changelog/2025-03-11-process-env-support/)：
+- `nodejs_compat_populate_process_env` 標誌使 `process.env` 在 runtime 可用
+- 此標誌在 `compatibility_date >= 2025-04-01` 時自動啟用
+- 因此 `wrangler.jsonc` 的 `vars` 無法填充到 `process.env`
 
 ### 解決方案
-在 `middleware.ts` 中直接 hardcode Supabase URL 和 Anon Key：
+1. 將 `wrangler.jsonc` 的 `compatibility_date` 從 `2025-03-25` 改為 `2025-04-01`
+2. 移除 `middleware.ts` 的硬編碼，恢復使用 `process.env.NEXT_PUBLIC_*`
 
 ```typescript
-// middleware.ts
-const SUPABASE_URL = 'https://oubsycwrxzkuviakzahi.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIs...'
-
-const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, ...)
+// middleware.ts（修復後）
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 ```
 
-### 安全性說明
-- **Anon Key 是設計為公開的**：前端 JavaScript 已經暴露相同的 key
-- **資料安全由 RLS 保護**：Supabase Row Level Security 政策控制實際的資料存取
-- **Service Role Key 才需要保密**：已透過 Cloudflare Secrets 管理
-
 ### 經驗教訓
-1. Cloudflare Workers Git 整合：`NEXT_PUBLIC_*` 需要在 build time 可用
-2. `wrangler.jsonc` 的 `vars` 是 runtime 變數，不影響 build time
-3. 對於 middleware 等 server-side 程式碼，hardcode 是最可靠的方案
+1. Cloudflare Workers 的 `process.env` 支援需要 `compatibility_date >= 2025-04-01`
+2. 使用環境變數比硬編碼更好，但要確保平台配置正確
+3. 遇到 `process.env` 問題時，先檢查 Cloudflare 兼容性日期
+
+### 參考資料
+- [Cloudflare process.env 支援公告](https://developers.cloudflare.com/changelog/2025-03-11-process-env-support/)
+- [OpenNext Env Vars 文檔](https://opennext.js.org/cloudflare/howtos/env-vars)
 
 ---
 

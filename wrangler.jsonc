@@ -1,7 +1,7 @@
 {
   "name": "quotation-system",
   "main": ".open-next/worker.js",
-  "compatibility_date": "2025-03-25",
+  "compatibility_date": "2025-04-01",
   "compatibility_flags": ["nodejs_compat"],
   // 自訂域名路由配置
   "routes": [
