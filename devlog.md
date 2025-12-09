@@ -1,5 +1,43 @@
 # Development Log
 
+## 2025-12-09: Google OAuth 登入重導向修復
+
+### 問題
+用戶反應 Google 登入驗證完成後會跳回登入畫面，無法正常進入系統。
+
+### 根本原因
+切換到 Cloudflare Git 整合後，`NEXT_PUBLIC_APP_URL` 環境變數在 build time 未設定：
+- wrangler.jsonc 的 `vars` 只對 **runtime** 有效
+- `NEXT_PUBLIC_*` 變數必須在 **build time** 嵌入 JavaScript
+- Build 時沒有這些環境變數，導致 OAuth redirect URL 指向 `localhost:3333`
+
+### 驗證結果
+檢查生產環境 JS bundle（`page-c32b84aed16a19df.js`）：
+| 檢查項目 | 結果 |
+|---------|------|
+| `quote24.cc` | ❌ 不存在 |
+| `redirectTo` | ⚠️ 指向 `localhost:3333` |
+
+### 解決方案
+在 `/app/[locale]/login/LoginButton.tsx` 第 19 行硬編碼 redirect URL：
+```typescript
+// 修改前
+const redirectBase = process.env.NEXT_PUBLIC_APP_URL || 'https://quote24.cc'
+
+// 修改後
+const redirectBase = 'https://quote24.cc'
+```
+
+### 經驗教訓
+1. wrangler.jsonc 的 `vars` ≠ Build Time 環境變數
+2. 使用 Cloudflare Git 整合時，`NEXT_PUBLIC_*` 需要在 Cloudflare Dashboard Build Settings 中設定
+3. 或直接硬編碼生產 URL 以避免環境變數問題
+
+### 相關提交
+- `2343c33` - fix: 強制使用 quote24.cc 作為 OAuth redirect URL
+
+---
+
 ## 2025-12-08: 程式碼品質改善與部署架構調整
 
 ### 一、程式碼品質改善（PR #1）
