@@ -1,6 +1,6 @@
 # Development Log
 
-## 2025-12-09: Cloudflare Workers process.env 修復（正確方案）
+## 2025-12-09: Supabase 客戶端環境變數完整修復
 
 ### 問題
 生產環境 (quote24.cc) 出現錯誤：
@@ -8,32 +8,54 @@
 @supabase/ssr: Your project's URL and API key are required to create a Supabase client!
 ```
 
-### 根本原因
-`wrangler.jsonc` 的 `compatibility_date` 設為 `2025-03-25`，早於 `2025-04-01`。
+### 根本原因（兩個層面）
 
-根據 [Cloudflare 官方文檔](https://developers.cloudflare.com/changelog/2025-03-11-process-env-support/)：
-- `nodejs_compat_populate_process_env` 標誌使 `process.env` 在 runtime 可用
-- 此標誌在 `compatibility_date >= 2025-04-01` 時自動啟用
-- 因此 `wrangler.jsonc` 的 `vars` 無法填充到 `process.env`
+#### 1. Server-side Runtime 問題
+`wrangler.jsonc` 的 `compatibility_date` 設為 `2025-03-25`，早於 `2025-04-01`。
+- `nodejs_compat_populate_process_env` 標誌在 `compatibility_date >= 2025-04-01` 時才自動啟用
+- 修復：更新 `compatibility_date` 為 `2025-04-01`
+
+#### 2. Client-side Build-time 問題
+客戶端代碼的 `NEXT_PUBLIC_*` 是在 **build time** 被 Next.js 編譯器嵌入：
+- `wrangler.jsonc` 的 `vars` 是 **runtime** 變數，不影響 build 過程
+- Cloudflare Workers Builds 的 build 環境沒有設定這些變數
+- 結果：`lib/supabase/client.ts` 編譯時 `process.env.NEXT_PUBLIC_*` 是 `undefined`
 
 ### 解決方案
-1. 將 `wrangler.jsonc` 的 `compatibility_date` 從 `2025-03-25` 改為 `2025-04-01`
-2. 移除 `middleware.ts` 的硬編碼，恢復使用 `process.env.NEXT_PUBLIC_*`
 
+#### Server-side（middleware.ts, server.ts）
 ```typescript
-// middleware.ts（修復後）
+// 使用環境變數（需 compatibility_date >= 2025-04-01）
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 ```
 
+#### Client-side（client.ts）
+```typescript
+// 硬編碼（因為 build-time 無法取得環境變數）
+const SUPABASE_URL = 'https://oubsycwrxzkuviakzahi.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIs...'
+```
+
+**安全性說明**：
+- Anon Key 本來就是公開的（前端 JS 已暴露）
+- 資料安全由 Supabase RLS 保護
+
+### 修改的檔案
+- `wrangler.jsonc`: `compatibility_date` → `2025-04-01`
+- `middleware.ts`: 恢復使用 `process.env`
+- `lib/supabase/client.ts`: 硬編碼 URL 和 Key
+
 ### 經驗教訓
-1. Cloudflare Workers 的 `process.env` 支援需要 `compatibility_date >= 2025-04-01`
-2. 使用環境變數比硬編碼更好，但要確保平台配置正確
-3. 遇到 `process.env` 問題時，先檢查 Cloudflare 兼容性日期
+1. Cloudflare Workers 環境變數有兩種類型：
+   - **Runtime vars**（`wrangler.jsonc` vars）：Worker 執行時可用
+   - **Build vars**（Dashboard 設定）：build 過程可用
+2. `NEXT_PUBLIC_*` 對於 Next.js 客戶端代碼需要在 **build time** 可用
+3. 對於客戶端代碼，最可靠的方案是硬編碼公開值
 
 ### 參考資料
 - [Cloudflare process.env 支援公告](https://developers.cloudflare.com/changelog/2025-03-11-process-env-support/)
 - [OpenNext Env Vars 文檔](https://opennext.js.org/cloudflare/howtos/env-vars)
+- [Cloudflare Build Configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)
 
 ---
 
