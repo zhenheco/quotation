@@ -1,5 +1,47 @@
 # Development Log
 
+## 2025-12-09: Cloudflare 部署無限循環修復
+
+### 問題
+部署在 Cloudflare 上執行超過 10 分鐘，build 過程陷入無限循環。
+
+### 根本原因
+`package.json` 的 build script 設定為：
+```json
+"build": "next build && pnpm exec opennextjs-cloudflare build"
+```
+
+當 `opennextjs-cloudflare build` 執行時，它內部會呼叫 `pnpm run build`，造成無限遞迴：
+```
+build → next build → opennextjs-cloudflare build → build → ...
+```
+
+### 解決方案
+將 `build` script 改為只執行 `next build`：
+```json
+"build": "next build"
+```
+
+因為 `opennextjs-cloudflare build` 會自動執行 `next build`，所以不需要在 build script 中重複。
+
+### 部署方式變更
+使用 Wrangler CLI 直接部署，而非依賴 Cloudflare Git 整合：
+```bash
+pnpm exec opennextjs-cloudflare build && pnpm exec wrangler deploy
+```
+
+或使用現有的 script：
+```bash
+pnpm run deploy:cf
+```
+
+### 經驗教訓
+1. `opennextjs-cloudflare build` 會自動呼叫 `pnpm run build`，不要在 build script 中再呼叫它
+2. 如果使用 Cloudflare Git 整合，build command 應設為 `opennextjs-cloudflare build`，而非 `pnpm run build`
+3. 優先使用 Wrangler CLI 部署，避免 Git 整合的 build command 配置問題
+
+---
+
 ## 2025-12-09: Google OAuth 登入重導向修復
 
 ### 問題
