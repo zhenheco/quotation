@@ -16,7 +16,8 @@ export default function LoginButton({ locale }: { locale: string }) {
   }, [])
 
   const handleGoogleLogin = async () => {
-    const redirectBase = process.env.NEXT_PUBLIC_APP_URL || 'https://quote24.cc'
+    // 強制使用 quote24.cc，避免 build time 環境變數問題
+    const redirectBase = 'https://quote24.cc'
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
