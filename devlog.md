@@ -1,5 +1,47 @@
 # Development Log
 
+## 2025-12-09: 修復 quotations owner_id 欄位缺失問題
+
+### 問題
+新增報價單時出現錯誤：
+```
+Failed to create quotation: Could not find the 'owner_id' column of 'quotations' in the schema cache
+```
+
+### 根本原因
+**Migration 028 從未執行**，導致 `owner_id` 欄位不存在於資料庫中。
+
+錯誤訊息中的 "schema cache" 具有誤導性：
+- 初步診斷以為是 PostgREST schema cache 問題
+- 實際驗證後發現欄位根本不存在
+
+### 解決方案
+執行 `migrations/028_add_owner_fields.sql`：
+```sql
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES user_profiles(id);
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES user_profiles(id);
+CREATE INDEX IF NOT EXISTS idx_quotations_owner_id ON quotations(owner_id);
+-- ... 觸發器和索引
+NOTIFY pgrst, 'reload schema';
+```
+
+### 執行結果
+- ✅ `owner_id` 欄位已添加
+- ✅ 索引已建立
+- ✅ 觸發器已設置（自動填充 owner_id = user_id）
+- ⚠️ 7 筆 quotations 和 10 筆 customers 的 owner_id 為 NULL（user_id 不在 user_profiles 中的孤立記錄）
+
+### 經驗教訓
+1. "schema cache" 錯誤不一定是 cache 問題，可能是欄位根本不存在
+2. 應先驗證欄位是否存在於資料庫，再判斷是否為 cache 問題
+3. 驗證命令：
+   ```sql
+   SELECT column_name FROM information_schema.columns
+   WHERE table_name = 'quotations' AND column_name = 'owner_id';
+   ```
+
+---
+
 ## 2025-12-09: Supabase 客戶端環境變數完整修復
 
 ### 問題
