@@ -25,6 +25,7 @@
     "test:e2e:playwright:ui": "playwright test --ui",
     "test:watch": "vitest watch",
     "migrate": "tsx scripts/run-migration.ts",
+    "db:verify": "tsx scripts/verify-schema-sync.ts",
     "test:migration": "tsx scripts/test-migration.ts",
     "seed": "tsx scripts/seed-test-data.ts",
     "seed:admin": "tsx scripts/seed-admin-test-data.ts",

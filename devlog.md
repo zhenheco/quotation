@@ -1,5 +1,67 @@
 # Development Log
 
+## 2025-12-10: 資料庫欄位缺失問題修復 + 防呆機制建立
+
+### 問題
+客戶反應無法建立客戶，錯誤訊息：
+```
+Failed to create customer: Could not find the 'fax' column of 'customers' in the schema cache
+```
+
+### 根本原因
+- Migration 026 (`026_add_fax_to_customers.sql`) 存在於檔案系統但從未在資料庫執行
+- 沒有機制追蹤哪些 migrations 已執行
+
+### 修復步驟
+1. 執行缺失的 migration：
+```sql
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS fax VARCHAR(50);
+NOTIFY pgrst, 'reload schema';
+```
+
+### 防呆機制
+為防止未來再發生類似問題，建立了以下機制：
+
+#### 1. Migration 追蹤表
+建立 `schema_migrations` 表追蹤所有已執行的 migrations：
+```sql
+CREATE TABLE schema_migrations (
+  id SERIAL PRIMARY KEY,
+  filename VARCHAR(255) NOT NULL UNIQUE,
+  executed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  checksum VARCHAR(64)
+);
+```
+
+#### 2. 驗證腳本
+新增 `scripts/verify-schema-sync.ts`：
+- 自動比對 DAL 層定義的欄位與資料庫實際結構
+- 檢查哪些 migrations 尚未執行
+- 可整合到 CI/CD 流程中
+
+### 新增檔案
+- `migrations/000_create_migrations_table.sql` - 追蹤表定義
+- `scripts/verify-schema-sync.ts` - Schema 驗證腳本
+
+### CI/CD 整合
+
+新增 GitHub Actions workflow `.github/workflows/schema-check.yml`：
+- 當 `migrations/` 或 `lib/dal/` 有變更時自動執行
+- 驗證 DAL 欄位與資料庫同步
+- 檢查未執行的 migrations
+
+本地執行驗證：
+```bash
+pnpm db:verify
+```
+
+### 經驗教訓
+1. **Migration 檔案不等於已執行**：檔案存在不代表資料庫已更新
+2. **需要追蹤機制**：每次執行 migration 都應記錄到追蹤表
+3. **定期驗證**：CI/CD 中已加入 schema 驗證步驟
+
+---
+
 ## 2025-12-09: 🚨 嚴重錯誤 - owner_id 外鍵設計錯誤導致生產環境無法新增報價單
 
 ### 問題嚴重性：🔴 Critical

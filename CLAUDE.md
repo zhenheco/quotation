@@ -294,6 +294,42 @@ const { data } = await db.from('products').select('*')
 ### Migration 檔案位置
 - Supabase: `migrations/*.sql`
 
+### Migration 執行追蹤（重要！）
+
+專案使用 `schema_migrations` 表追蹤已執行的 migrations，避免代碼與資料庫不同步。
+
+#### 執行新 Migration 後必須更新追蹤表
+```sql
+-- 1. 執行 migration
+\i migrations/0XX_your_migration.sql
+
+-- 2. 記錄到追蹤表
+INSERT INTO schema_migrations (filename) VALUES ('0XX_your_migration.sql');
+
+-- 3. 刷新 Schema Cache
+NOTIFY pgrst, 'reload schema';
+```
+
+#### 驗證 Schema 同步
+```bash
+# 本地執行驗證
+pnpm db:verify
+```
+
+#### CI/CD 自動驗證
+- 當 `migrations/` 或 `lib/dal/` 有變更時，GitHub Actions 會自動執行 schema 驗證
+- 參考 `.github/workflows/schema-check.yml`
+
+#### 追蹤表結構
+```sql
+CREATE TABLE schema_migrations (
+  id SERIAL PRIMARY KEY,
+  filename VARCHAR(255) NOT NULL UNIQUE,
+  executed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  checksum VARCHAR(64)
+);
+```
+
 ---
 
 ## 🔐 OAuth 登入重導向問題排查指南
