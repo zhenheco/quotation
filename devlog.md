@@ -17,28 +17,26 @@ build → next build → opennextjs-cloudflare build → build → ...
 ```
 
 ### 解決方案
-將 `build` script 改為只執行 `next build`：
+使用 `--skipNextBuild` 參數避免遞迴：
 ```json
-"build": "next build"
+"build": "next build && pnpm exec opennextjs-cloudflare build --skipNextBuild"
 ```
 
-因為 `opennextjs-cloudflare build` 會自動執行 `next build`，所以不需要在 build script 中重複。
+**流程**：
+1. `next build` 執行
+2. `opennextjs-cloudflare build --skipNextBuild` 執行（跳過內部的 next build 呼叫）
+3. 生成 `.open-next` 目錄
+4. 無遞迴 ✅
 
-### 部署方式變更
-使用 Wrangler CLI 直接部署，而非依賴 Cloudflare Git 整合：
-```bash
-pnpm exec opennextjs-cloudflare build && pnpm exec wrangler deploy
-```
-
-或使用現有的 script：
-```bash
-pnpm run deploy:cf
-```
+### 支援 Git 整合自動部署
+這個修改支援 Cloudflare Workers Git 整合（push 到 GitHub 自動部署）：
+- Cloudflare 組建命令：`pnpm run build`
+- Cloudflare 部署命令：`npx wrangler deploy`
 
 ### 經驗教訓
-1. `opennextjs-cloudflare build` 會自動呼叫 `pnpm run build`，不要在 build script 中再呼叫它
-2. 如果使用 Cloudflare Git 整合，build command 應設為 `opennextjs-cloudflare build`，而非 `pnpm run build`
-3. 優先使用 Wrangler CLI 部署，避免 Git 整合的 build command 配置問題
+1. `opennextjs-cloudflare build` 預設會呼叫 `pnpm run build`，會造成遞迴
+2. 使用 `--skipNextBuild` 參數可以跳過 OpenNext 內部的 next build 呼叫
+3. 參考 [OpenNext CLI 文檔](https://opennext.js.org/cloudflare/cli) 了解更多選項
 
 ---
 
