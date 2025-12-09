@@ -5,36 +5,41 @@
 ### 問題
 用戶反應 Google 登入驗證完成後會跳回登入畫面，無法正常進入系統。
 
-### 根本原因
-切換到 Cloudflare Git 整合後，`NEXT_PUBLIC_APP_URL` 環境變數在 build time 未設定：
-- wrangler.jsonc 的 `vars` 只對 **runtime** 有效
-- `NEXT_PUBLIC_*` 變數必須在 **build time** 嵌入 JavaScript
-- Build 時沒有這些環境變數，導致 OAuth redirect URL 指向 `localhost:3333`
+### 根本原因（兩個問題）
 
-### 驗證結果
-檢查生產環境 JS bundle（`page-c32b84aed16a19df.js`）：
-| 檢查項目 | 結果 |
-|---------|------|
-| `quote24.cc` | ❌ 不存在 |
-| `redirectTo` | ⚠️ 指向 `localhost:3333` |
+#### 問題 1：Cloudflare 部署失敗
+```
+✘ [ERROR] The entry-point file at ".open-next/worker.js" was not found.
+```
+
+切換到 Cloudflare Git 整合後，build command 只執行 `next build`，
+缺少 `opennextjs-cloudflare build` 步驟。
+
+#### 問題 2：OAuth redirect URL 錯誤
+`NEXT_PUBLIC_APP_URL` 環境變數在 build time 未設定，導致 OAuth redirect URL 指向 `localhost:3333`。
 
 ### 解決方案
-在 `/app/[locale]/login/LoginButton.tsx` 第 19 行硬編碼 redirect URL：
-```typescript
-// 修改前
-const redirectBase = process.env.NEXT_PUBLIC_APP_URL || 'https://quote24.cc'
 
-// 修改後
+#### 修復 1：修改 build script
+```json
+// package.json
+"build": "next build && pnpm exec opennextjs-cloudflare build"
+```
+
+#### 修復 2：硬編碼 OAuth redirect URL
+```typescript
+// app/[locale]/login/LoginButton.tsx
 const redirectBase = 'https://quote24.cc'
 ```
 
 ### 經驗教訓
-1. wrangler.jsonc 的 `vars` ≠ Build Time 環境變數
-2. 使用 Cloudflare Git 整合時，`NEXT_PUBLIC_*` 需要在 Cloudflare Dashboard Build Settings 中設定
-3. 或直接硬編碼生產 URL 以避免環境變數問題
+1. Cloudflare Git 整合需要完整的 build 流程，包括 opennextjs-cloudflare build
+2. wrangler.jsonc 的 `vars` 只對 runtime 有效，不影響 build time
+3. 使用硬編碼生產 URL 可避免環境變數問題
 
 ### 相關提交
 - `2343c33` - fix: 強制使用 quote24.cc 作為 OAuth redirect URL
+- `8fa7d0b` - fix: 修改 build script 加入 opennextjs-cloudflare build
 
 ---
 
