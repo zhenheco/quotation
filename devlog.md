@@ -1,44 +1,110 @@
 # Development Log
 
-## 2025-12-09: 修復 quotations owner_id 欄位缺失問題
+## 2025-12-09: 🚨 嚴重錯誤 - owner_id 外鍵設計錯誤導致生產環境無法新增報價單
 
-### 問題
-新增報價單時出現錯誤：
+### 問題嚴重性：🔴 Critical
+**影響範圍**：所有用戶無法新增報價單，直接影響業務運營
+
+### 錯誤時間線
+1. Migration 028 設計時犯了致命錯誤
+2. 部署到生產環境後，所有新增報價單操作失敗
+3. 錯誤訊息具有誤導性，導致初步診斷方向錯誤
+
+### 錯誤訊息
 ```
-Failed to create quotation: Could not find the 'owner_id' column of 'quotations' in the schema cache
+Failed to create quotation: insert or update on table "quotations" violates foreign key constraint "quotations_owner_id_fkey"
 ```
 
-### 根本原因
-**Migration 028 從未執行**，導致 `owner_id` 欄位不存在於資料庫中。
+### 根本原因分析
 
-錯誤訊息中的 "schema cache" 具有誤導性：
-- 初步診斷以為是 PostgREST schema cache 問題
-- 實際驗證後發現欄位根本不存在
+#### 致命錯誤：外鍵指向錯誤的欄位
 
-### 解決方案
-執行 `migrations/028_add_owner_fields.sql`：
+```
+user_profiles 表結構：
+┌─────────────────────────────────────────┐
+│ id (主鍵)    │ 自動生成的 UUID           │ ← 錯誤指向這裡
+│ user_id      │ 對應 auth.users.id        │ ← 應該指向這裡
+└─────────────────────────────────────────┘
+
+這兩個是完全不同的 UUID！
+```
+
+| 項目 | 錯誤設計 | 正確設計 |
+|-----|---------|---------|
+| 外鍵指向 | `user_profiles(id)` | `user_profiles(user_id)` |
+
+#### 為什麼會出錯
+1. 設計 migration 時**假設** `user_profiles.id` = `auth.users.id`
+2. **沒有驗證** `user_profiles` 的實際表結構
+3. **沒有測試** 新增報價單功能
+
+#### 連鎖問題
+1. 新用戶註冊後沒有自動創建 `user_profiles` 記錄
+2. 即使有 `user_profiles`，外鍵指向錯誤也會失敗
+
+### 修復步驟
+
+#### 1. 為缺失用戶創建 user_profiles
 ```sql
-ALTER TABLE quotations ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES user_profiles(id);
-ALTER TABLE customers ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES user_profiles(id);
-CREATE INDEX IF NOT EXISTS idx_quotations_owner_id ON quotations(owner_id);
--- ... 觸發器和索引
+INSERT INTO user_profiles (user_id, email, full_name)
+SELECT au.id, au.email, COALESCE(au.raw_user_meta_data->>'full_name', split_part(au.email, '@', 1))
+FROM auth.users au
+LEFT JOIN user_profiles up ON au.id = up.user_id
+WHERE up.user_id IS NULL
+ON CONFLICT (user_id) DO NOTHING;
+```
+
+#### 2. 修正外鍵指向
+```sql
+-- 刪除錯誤的外鍵
+ALTER TABLE quotations DROP CONSTRAINT IF EXISTS quotations_owner_id_fkey;
+ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_owner_id_fkey;
+
+-- 創建正確的外鍵
+ALTER TABLE quotations ADD CONSTRAINT quotations_owner_id_fkey
+FOREIGN KEY (owner_id) REFERENCES user_profiles(user_id);
+
+ALTER TABLE customers ADD CONSTRAINT customers_owner_id_fkey
+FOREIGN KEY (owner_id) REFERENCES user_profiles(user_id);
+```
+
+#### 3. 刷新 Schema Cache
+```sql
 NOTIFY pgrst, 'reload schema';
 ```
 
-### 執行結果
-- ✅ `owner_id` 欄位已添加
-- ✅ 索引已建立
-- ✅ 觸發器已設置（自動填充 owner_id = user_id）
-- ⚠️ 7 筆 quotations 和 10 筆 customers 的 owner_id 為 NULL（user_id 不在 user_profiles 中的孤立記錄）
+### 預防措施（必須遵守）
+
+#### 1. Migration 設計檢查清單
+- [ ] **查看目標表的完整結構**：`\d table_name` 或查詢 `information_schema.columns`
+- [ ] **確認外鍵指向的是正確欄位**：不要假設欄位名稱
+- [ ] **檢查 user_profiles 的 id vs user_id**：這是常見陷阱
+- [ ] **在開發環境測試完整流程**：不只是 migration 成功，要測試業務功能
+
+#### 2. user_profiles 表的特殊性
+```
+⚠️ user_profiles 有兩個 UUID 欄位：
+- id: 表主鍵（自動生成，與 auth.users.id 無關）
+- user_id: 對應 auth.users.id（這才是要用的）
+
+任何引用用戶的外鍵都應該指向 user_profiles(user_id)，不是 user_profiles(id)
+```
+
+#### 3. 部署前必須測試
+- 新增報價單
+- 新增客戶
+- 新用戶註冊後的所有操作
 
 ### 經驗教訓
-1. "schema cache" 錯誤不一定是 cache 問題，可能是欄位根本不存在
-2. 應先驗證欄位是否存在於資料庫，再判斷是否為 cache 問題
-3. 驗證命令：
-   ```sql
-   SELECT column_name FROM information_schema.columns
-   WHERE table_name = 'quotations' AND column_name = 'owner_id';
-   ```
+
+1. **永遠不要假設表結構**：一定要先查看實際結構
+2. **外鍵設計要特別謹慎**：錯誤的外鍵會導致整個功能失效
+3. **測試要覆蓋完整業務流程**：migration 成功不代表功能正常
+4. **錯誤訊息可能誤導診斷**：要深入分析根本原因
+5. **生產環境問題要快速響應**：這種錯誤直接影響業務
+
+### 相關檔案
+- `migrations/028_add_owner_fields.sql` - 已修正外鍵定義
 
 ---
 

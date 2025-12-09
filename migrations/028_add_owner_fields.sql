@@ -3,12 +3,14 @@
 -- 用於實現資料負責人指派功能
 
 -- 為 quotations 表新增 owner_id 欄位
+-- 注意：外鍵指向 user_profiles(user_id)，不是 user_profiles(id)
+-- 因為 owner_id 存儲的是 auth.users.id，對應 user_profiles.user_id
 ALTER TABLE quotations
-ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES user_profiles(id);
+ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES user_profiles(user_id);
 
 -- 為 customers 表新增 owner_id 欄位
 ALTER TABLE customers
-ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES user_profiles(id);
+ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES user_profiles(user_id);
 
 -- 建立索引以加速查詢
 CREATE INDEX IF NOT EXISTS idx_quotations_owner_id ON quotations(owner_id);
