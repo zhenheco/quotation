@@ -69,8 +69,13 @@ export const CSRF_HEADER_NAME = 'x-csrf-token'
 
 // CSRF Secret - 生產環境必須設定
 // 注意：build 時會使用預設值，運行時會檢查
-const CSRF_SECRET = process.env.CSRF_SECRET || 'dev-csrf-secret-only-for-development'
+const DEV_SECRET = 'dev-csrf-secret-only-for-development'
+const CSRF_SECRET = process.env.CSRF_SECRET || DEV_SECRET
 const TOKEN_LENGTH = 32
+
+// 生產環境安全檢查
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const IS_SECURE_SECRET = CSRF_SECRET !== DEV_SECRET && CSRF_SECRET.length >= 32
 
 // HTTP 方法白名單（不需要 CSRF 檢查）
 const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
@@ -183,8 +188,20 @@ function requiresCsrfProtection(request: NextRequest): boolean {
  */
 export async function csrfProtection(request: NextRequest): Promise<NextResponse> {
   // 運行時檢查 CSRF_SECRET（生產環境必須設定）
-  if (process.env.NODE_ENV === 'production' && CSRF_SECRET === 'dev-csrf-secret-only-for-development') {
-    console.error('[CSRF] CSRF_SECRET not configured in production!')
+  if (IS_PRODUCTION && !IS_SECURE_SECRET) {
+    console.error('[CSRF] ⚠️ SECURITY WARNING: CSRF_SECRET not properly configured in production!')
+    console.error('[CSRF] Please set CSRF_SECRET environment variable with at least 32 characters')
+
+    // 在生產環境中，如果沒有正確設定 CSRF_SECRET，拒絕所有需要 CSRF 保護的請求
+    if (!SAFE_METHODS.includes(request.method)) {
+      return NextResponse.json(
+        {
+          error: 'CSRF_CONFIGURATION_ERROR',
+          message: 'Server security configuration error. Please contact administrator.'
+        },
+        { status: 500 }
+      )
+    }
   }
 
   const response = NextResponse.next()
@@ -366,20 +383,26 @@ export function useCsrfToken(): string | null {
  */
 export function checkCsrfConfig(): {
   isConfigured: boolean
+  isSecure: boolean
   warnings: string[]
 } {
   const warnings: string[] = []
 
-  if (CSRF_SECRET === 'default-csrf-secret-change-me') {
-    warnings.push('CSRF_SECRET is using default value. Please set CSRF_SECRET environment variable.')
+  if (CSRF_SECRET === DEV_SECRET) {
+    warnings.push('CSRF_SECRET is using development default value. Please set CSRF_SECRET environment variable.')
   }
 
-  if (process.env.NODE_ENV === 'production' && !process.env.CSRF_SECRET) {
-    warnings.push('CSRF_SECRET is not set in production environment.')
+  if (CSRF_SECRET.length < 32) {
+    warnings.push('CSRF_SECRET should be at least 32 characters long for security.')
+  }
+
+  if (IS_PRODUCTION && !IS_SECURE_SECRET) {
+    warnings.push('CRITICAL: CSRF_SECRET is not properly configured in production environment!')
   }
 
   return {
     isConfigured: warnings.length === 0,
+    isSecure: IS_SECURE_SECRET,
     warnings
   }
 }

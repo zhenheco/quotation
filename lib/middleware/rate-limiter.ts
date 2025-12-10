@@ -370,3 +370,101 @@ export function checkRateLimiterConfig(): {
     }
   }
 }
+
+// ========================================
+// Middleware 專用函數
+// ========================================
+
+export interface RateLimitResult {
+  limited: boolean
+  remaining: number
+  resetTime: string
+  retryAfter?: number
+}
+
+/**
+ * 檢查請求是否應該被速率限制（適用於 middleware）
+ *
+ * @param request - Next.js 請求物件
+ * @param windowMs - 時間窗口（毫秒）
+ * @param maxRequests - 最大請求數
+ * @returns 速率限制結果
+ */
+export function checkRateLimit(
+  request: NextRequest,
+  windowMs: number = 60000,
+  maxRequests: number = 60
+): RateLimitResult {
+  const ip = extractIP(request)
+
+  // 檢查白名單
+  if (isWhitelisted(ip)) {
+    return {
+      limited: false,
+      remaining: maxRequests,
+      resetTime: new Date(Date.now() + windowMs).toISOString()
+    }
+  }
+
+  const key = `${request.nextUrl.pathname}-${ip}`
+  const now = Date.now()
+  const resetTime = now + windowMs
+
+  // 獲取或初始化請求記錄
+  let record = requestStore.get(key)
+
+  if (!record || record.resetTime < now) {
+    // 新的時間窗口
+    record = { count: 0, resetTime }
+    requestStore.set(key, record)
+  }
+
+  // 增加計數
+  record.count++
+
+  // 檢查是否超過限制
+  if (record.count > maxRequests) {
+    const retryAfter = Math.ceil((record.resetTime - now) / 1000)
+
+    logger.warn('Rate limit exceeded', {
+      ip,
+      path: request.nextUrl.pathname,
+      count: record.count,
+      limit: maxRequests,
+      resetTime: new Date(record.resetTime).toISOString()
+    })
+
+    return {
+      limited: true,
+      remaining: 0,
+      resetTime: new Date(record.resetTime).toISOString(),
+      retryAfter
+    }
+  }
+
+  return {
+    limited: false,
+    remaining: Math.max(0, maxRequests - record.count),
+    resetTime: new Date(record.resetTime).toISOString()
+  }
+}
+
+/**
+ * 創建速率限制響應
+ */
+export function createRateLimitResponse(result: RateLimitResult): NextResponse {
+  return NextResponse.json(
+    {
+      error: 'Too many requests, please try again later.',
+      retryAfter: `${result.retryAfter} seconds`,
+    },
+    {
+      status: 429,
+      headers: {
+        'X-RateLimit-Remaining': result.remaining.toString(),
+        'X-RateLimit-Reset': result.resetTime,
+        'Retry-After': result.retryAfter?.toString() || '60',
+      },
+    }
+  )
+}

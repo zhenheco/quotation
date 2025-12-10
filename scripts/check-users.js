@@ -1,7 +1,15 @@
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config({ path: '.env.local' });
 
-const supabaseUrl = 'https://nxlqtnnssfzzpbyfjnby.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54bHF0bm5zc2Z6enBieWZqbmJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwODMwMTEsImV4cCI6MjA1OTY1OTAxMX0.nMSM3V16oNAEpK738c5SOQmMDL3kPpJSgsC71HppQrI';
+// 從環境變數讀取 Supabase 配置
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ 缺少環境變數：NEXT_PUBLIC_SUPABASE_URL 或 NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  console.log('請確保 .env.local 檔案存在且包含正確的配置');
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
