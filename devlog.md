@@ -1,5 +1,55 @@
 # Development Log
 
+## 2025-12-10: Supabase RLS 安全修復
+
+### 問題
+Supabase linter 報告 28 個安全錯誤：
+- **6 個 Security Definer Views**：Views 使用 SECURITY DEFINER 屬性，繞過 RLS
+- **22 個 RLS Disabled Tables**：Tables 沒有啟用 Row Level Security
+
+### 修復方案
+建立 7 個 migrations (034-040)：
+
+1. **034_fix_security_definer_views.sql** - 重建所有 Views，加入 `auth.uid()` 過濾
+2. **035_rls_helper_functions.sql** - 建立 RLS 輔助函數：
+   - `is_super_admin()` - 檢查超級管理員
+   - `can_access_company_rls()` - 檢查公司存取權
+   - `is_company_owner()` - 檢查公司所有者
+   - `get_user_company_ids()` - 取得用戶公司 ID 列表
+3. **036_rls_system_tables.sql** - 系統表 RLS (roles, permissions, exchange_rates, schema_migrations)
+4. **037_rls_user_tables.sql** - 用戶表 RLS (user_roles)
+5. **038_rls_company_tables.sql** - 公司表 RLS (companies, company_members, company_settings)
+6. **039_rls_business_tables.sql** - 業務表 RLS (11 表：customers, products, quotations 等)
+7. **040_rls_sequence_tables.sql** - 序號表 RLS (quotation/product/customer_number_sequences)
+
+### RLS 策略設計
+- **System tables**: 所有人可讀，僅 super_admin 可改
+- **User tables**: 用戶只能看自己的資料
+- **Company tables**: 公司成員可查看，owner 可管理
+- **Business tables**: 依 `company_id` 或 `user_id` 隔離
+- **Special**: `quotation_shares` 允許 anon 存取已啟用的公開分享
+
+### 執行結果
+- ✅ 27 個表全部啟用 RLS
+- ✅ 6 個 Views 移除 SECURITY DEFINER，改用 `auth.uid()` 過濾
+- ✅ Service role 自動繞過 RLS（Cron jobs 不受影響）
+
+### 修復過程中發現的 Bug
+- `overdue_payments` view 使用 `ps.*` 會導致 `days_overdue` 欄位重複
+- 解決方案：改為明確列出所有欄位
+
+### 新增檔案
+- `migrations/034_fix_security_definer_views.sql`
+- `migrations/035_rls_helper_functions.sql`
+- `migrations/036_rls_system_tables.sql`
+- `migrations/037_rls_user_tables.sql`
+- `migrations/038_rls_company_tables.sql`
+- `migrations/039_rls_business_tables.sql`
+- `migrations/040_rls_sequence_tables.sql`
+- `migrations/034-040_combined_rls_fix.sql` - 合併檔案
+
+---
+
 ## 2025-12-10: 資料庫欄位缺失問題修復 + 防呆機制建立
 
 ### 問題
