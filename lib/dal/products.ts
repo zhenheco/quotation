@@ -3,6 +3,7 @@
  */
 
 import { SupabaseClient } from '@/lib/db/supabase-client'
+import { withRetry, RetryOptions } from '@/lib/utils/retry'
 
 export interface Product {
   id: string
@@ -243,27 +244,20 @@ export async function createProductWithRetry(
   userId: string,
   companyId: string,
   data: Omit<Parameters<typeof createProduct>[2], 'product_number' | 'company_id'>,
-  options: { maxRetries?: number; baseDelayMs?: number } = {}
+  options: Pick<RetryOptions, 'maxRetries' | 'baseDelayMs'> = {}
 ): Promise<Product> {
-  const { maxRetries = 3, baseDelayMs = 100 } = options
-  let lastError: Error | null = null
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
+  return withRetry(
+    async () => {
       const productNumber = await generateProductNumber(db, companyId)
-      return await createProduct(db, userId, {
+      return createProduct(db, userId, {
         ...data,
         company_id: companyId,
         product_number: productNumber
       })
-    } catch (error) {
-      lastError = error as Error
-      if (!isProductNumberConflict(error) || attempt === maxRetries) {
-        throw error
-      }
-      // 指數退避重試
-      await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt)))
+    },
+    {
+      ...options,
+      shouldRetry: isProductNumberConflict
     }
-  }
-  throw lastError
+  )
 }

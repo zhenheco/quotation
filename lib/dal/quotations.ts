@@ -3,6 +3,7 @@
  */
 
 import { SupabaseClient } from '@/lib/db/supabase-client'
+import { withRetry, RetryOptions } from '@/lib/utils/retry'
 
 interface PostgresError {
   code?: string
@@ -369,28 +370,22 @@ export async function createQuotationWithRetry(
   userId: string,
   companyId: string,
   data: Omit<Parameters<typeof createQuotation>[2], 'quotation_number' | 'company_id'>,
-  options: { maxRetries?: number; baseDelayMs?: number } = {}
+  options: Pick<RetryOptions, 'maxRetries' | 'baseDelayMs'> = {}
 ): Promise<Quotation> {
-  const { maxRetries = 3, baseDelayMs = 100 } = options
-  let lastError: Error | null = null
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
+  return withRetry(
+    async () => {
       const quotationNumber = await generateQuotationNumber(db, companyId)
-      return await createQuotation(db, userId, {
+      return createQuotation(db, userId, {
         ...data,
         company_id: companyId,
         quotation_number: quotationNumber
       })
-    } catch (error) {
-      lastError = error as Error
-      if (!isQuotationNumberConflict(error) || attempt === maxRetries) {
-        throw error
-      }
-      await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt)))
+    },
+    {
+      ...options,
+      shouldRetry: isQuotationNumberConflict
     }
-  }
-  throw lastError
+  )
 }
 
 export async function validateCustomerOwnership(
