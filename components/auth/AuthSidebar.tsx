@@ -25,7 +25,7 @@ export default function AuthSidebar() {
   ]
 
   return (
-    <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800 relative overflow-hidden">
+    <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-teal-600 via-cyan-600 to-cyan-900 relative overflow-hidden">
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-10">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -48,7 +48,7 @@ export default function AuthSidebar() {
         {/* Logo and tagline */}
         <div className="mb-12">
           <h2 className="text-3xl font-bold mb-3">{t('title')}</h2>
-          <p className="text-lg text-indigo-100">{t('subtitle')}</p>
+          <p className="text-lg text-cyan-100">{t('subtitle')}</p>
         </div>
 
         {/* Stats */}
@@ -56,7 +56,7 @@ export default function AuthSidebar() {
           {stats.map((stat, index) => (
             <div key={index} className="text-center">
               <div className="text-3xl font-bold mb-1">{stat.value}</div>
-              <div className="text-sm text-indigo-200">{t(stat.labelKey)}</div>
+              <div className="text-sm text-cyan-200">{t(stat.labelKey)}</div>
             </div>
           ))}
         </div>
@@ -64,7 +64,7 @@ export default function AuthSidebar() {
         {/* Testimonial */}
         <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
           <svg
-            className="w-8 h-8 text-indigo-300 mb-4"
+            className="w-8 h-8 text-teal-300 mb-4"
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -74,12 +74,12 @@ export default function AuthSidebar() {
             {t(testimonials[0].quote)}
           </p>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-400 rounded-full flex items-center justify-center text-white font-bold">
+            <div className="w-10 h-10 bg-teal-400 rounded-full flex items-center justify-center text-white font-bold">
               {t(testimonials[0].author).charAt(0)}
             </div>
             <div>
               <div className="font-semibold">{t(testimonials[0].author)}</div>
-              <div className="text-sm text-indigo-200">{t(testimonials[0].role)}</div>
+              <div className="text-sm text-cyan-200">{t(testimonials[0].role)}</div>
             </div>
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function AuthSidebar() {
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="text-indigo-100">{t(key)}</span>
+              <span className="text-teal-100">{t(key)}</span>
             </div>
           ))}
         </div>
