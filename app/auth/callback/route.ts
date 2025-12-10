@@ -11,6 +11,27 @@ export async function GET(request: Request) {
   // 驗證 next 參數防止開放重定向攻擊
   const next = validateUrlSafety(searchParams.get('next'), '/zh/dashboard')
 
+  // Supabase Email 認證類型（signup, recovery, invite, magiclink）
+  const type = searchParams.get('type')
+
+  // 處理密碼重設流程 - 直接重導向到 reset-password 頁面
+  // Supabase 會自動建立 session
+  if (type === 'recovery') {
+    const forwardedHost = request.headers.get('x-forwarded-host')
+    const host = request.headers.get('host')
+    const isLocalEnv = process.env.NODE_ENV === 'development'
+
+    const getBaseUrl = () => {
+      if (isLocalEnv) return origin
+      if (forwardedHost) return `https://${forwardedHost}`
+      if (host) return `https://${host}`
+      return origin
+    }
+
+    console.log('🔐 Password recovery flow detected')
+    return NextResponse.redirect(`${getBaseUrl()}/zh/reset-password`)
+  }
+
   if (code) {
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)

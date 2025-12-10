@@ -1,11 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import LoginForm from './LoginForm'
+import RegisterForm from './RegisterForm'
 import AuthSidebar from '@/components/auth/AuthSidebar'
 
 export const dynamic = 'force-dynamic'
 
-export default async function LoginPage({
+export default async function RegisterPage({
   params,
 }: {
   params: Promise<{ locale: string }>
@@ -20,9 +20,9 @@ export default async function LoginPage({
 
   return (
     <div className="min-h-screen flex">
-      {/* 左側：登入表單 */}
+      {/* 左側：註冊表單 */}
       <div className="flex-1 flex items-center justify-center bg-white px-4 py-12">
-        <LoginForm locale={locale} />
+        <RegisterForm locale={locale} />
       </div>
 
       {/* 右側：廣告區域（桌面版） */}
