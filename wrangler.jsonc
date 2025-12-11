@@ -47,5 +47,14 @@
       "head_sampling_rate": 1,
       "invocation_logs": true
     }
+  },
+  // Preview 環境配置 - 用於分支預覽
+  // 繼承所有綁定 (KV, R2, Analytics)，但不使用自訂域名
+  "env": {
+    "preview": {
+      "name": "quotation-system-preview",
+      // 移除自訂域名，使用 workers.dev 子域名
+      "routes": []
+    }
   }
 }

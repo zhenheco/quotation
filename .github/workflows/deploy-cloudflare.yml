@@ -14,7 +14,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     name: Deploy
-    # 只在推送時部署，PR 只做 build 測試
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,24 +33,38 @@ jobs:
       - name: Build Next.js with OpenNext
         env:
           # Build-time 環境變數 (NEXT_PUBLIC_* 會在 build 時嵌入 JS)
-          # 這些是公開值，可以直接寫在這裡
           NEXT_PUBLIC_SUPABASE_URL: https://oubsycwrxzkuviakzahi.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91YnN5Y3dyeHprdXZpYWt6YWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MDM5MDUsImV4cCI6MjA3OTQ3OTkwNX0.Ltz-HSAlcWHV6nsEkckD88ERbCVZSE9C8vNhbW7ELGA
           NEXT_PUBLIC_APP_URL: https://quote24.cc
         run: pnpm run build
 
-      - name: Deploy to Cloudflare Workers (Production)
+      # 生產環境部署 (main 分支)
+      - name: Deploy to Production
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: f9916b95d011e8ad2a3fe10883053b0f
-        run: npx wrangler deploy
+        run: |
+          npx wrangler deploy
+          echo "## 🚀 Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "**URL**: https://quote24.cc" >> $GITHUB_STEP_SUMMARY
 
-      - name: Deploy Preview (Non-main branches)
+      # 預覽環境部署 (非 main 分支)
+      - name: Deploy to Preview
         if: github.ref != 'refs/heads/main' && github.event_name == 'push'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: f9916b95d011e8ad2a3fe10883053b0f
         run: |
-          BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')
-          npx wrangler deploy --name "quotation-system-preview-${BRANCH_NAME}"
+          # 使用 preview 環境 (繼承 KV, R2 等綁定)
+          npx wrangler deploy --env preview
+          echo "## 🔍 Preview Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**URL**: https://quotation-system-preview.acejou27.workers.dev" >> $GITHUB_STEP_SUMMARY
+
+      # PR 只做 build 測試，不部署
+      - name: Build Test Summary (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "## ✅ Build Test Passed" >> $GITHUB_STEP_SUMMARY
+          echo "PR build completed successfully. Merge to deploy." >> $GITHUB_STEP_SUMMARY
