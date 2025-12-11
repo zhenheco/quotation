@@ -170,6 +170,9 @@ export interface Quotation {
   tax_rate: number
   tax_amount: number
   total_amount: number
+  show_tax: boolean
+  discount_amount: number
+  discount_description: string | null
   notes: BilingualText | null
   payment_method: PaymentMethod | null
   payment_notes: string | null
@@ -204,6 +207,9 @@ export interface CreateQuotationData {
   tax_rate: number
   tax_amount: number
   total_amount: number
+  show_tax?: boolean
+  discount_amount?: number
+  discount_description?: string | null
   notes?: BilingualText | null
   payment_method?: PaymentMethod | null
   payment_notes?: string | null
@@ -229,6 +235,9 @@ export interface UpdateQuotationData {
   tax_rate?: number
   tax_amount?: number
   total_amount?: number
+  show_tax?: boolean
+  discount_amount?: number
+  discount_description?: string | null
   notes?: BilingualText | null
   payment_method?: PaymentMethod | null
   payment_notes?: string | null
@@ -295,6 +304,37 @@ export interface UpdatePaymentTermData {
   paid_amount?: number | null
   paid_date?: string | null
   status?: 'unpaid' | 'partial' | 'paid' | 'overdue'
+}
+
+// ============================================================================
+// Quotation Image Types
+// ============================================================================
+
+export interface QuotationImage {
+  id: string
+  quotation_id: string
+  file_url: string
+  file_name: string
+  file_size: number | null
+  mime_type: string | null
+  sort_order: number
+  caption: string | null
+  created_at: string
+}
+
+export interface CreateQuotationImageData {
+  quotation_id: string
+  file_url: string
+  file_name: string
+  file_size?: number | null
+  mime_type?: string | null
+  sort_order?: number
+  caption?: string | null
+}
+
+export interface UpdateQuotationImageData {
+  sort_order?: number
+  caption?: string | null
 }
 
 // ============================================================================

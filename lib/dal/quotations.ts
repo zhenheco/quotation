@@ -190,6 +190,9 @@ export async function createQuotation(
     tax_rate?: number
     tax_amount?: number
     total_amount?: number
+    show_tax?: boolean
+    discount_amount?: number
+    discount_description?: string | null
     notes?: { zh: string; en: string }
     terms?: { zh: string; en: string }
   }
@@ -214,6 +217,9 @@ export async function createQuotation(
       tax_rate: data.tax_rate || 5.0,
       tax_amount: data.tax_amount || 0,
       total_amount: data.total_amount || 0,
+      show_tax: data.show_tax !== false,
+      discount_amount: data.discount_amount || 0,
+      discount_description: data.discount_description || null,
       notes: data.notes || null,
       terms: data.terms || null,
       created_at: now,

@@ -53,6 +53,9 @@ interface QuotationItem {
   unit_price: number
   discount: number
   subtotal: number
+  is_custom: boolean
+  custom_description_zh: string
+  custom_description_en: string
 }
 
 export default function QuotationForm({ locale, quotationId }: QuotationFormProps) {
@@ -82,6 +85,9 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     currency: 'TWD',
     taxRate: '5',
+    showTax: true,
+    discountAmount: '0',
+    discountDescription: '',
     notes: '',
     paymentMethod: '',
     paymentNotes: '',
@@ -158,18 +164,29 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
   // 初始化編輯模式
   useEffect(() => {
     if (existingQuotation) {
+      const quotationWithNewFields = existingQuotation as {
+        owner_id?: string
+        payment_method?: string
+        payment_notes?: string
+        show_tax?: boolean
+        discount_amount?: number
+        discount_description?: string | null
+      }
       setFormData({
         customerId: existingQuotation.customer_id,
-        ownerId: (existingQuotation as { owner_id?: string }).owner_id || '',
+        ownerId: quotationWithNewFields.owner_id || '',
         issueDate: formatDateForInput(existingQuotation.issue_date),
         validUntil: formatDateForInput(existingQuotation.valid_until),
         currency: existingQuotation.currency,
         taxRate: existingQuotation.tax_rate?.toString() || '5',
+        showTax: quotationWithNewFields.show_tax !== false,
+        discountAmount: quotationWithNewFields.discount_amount?.toString() || '0',
+        discountDescription: quotationWithNewFields.discount_description || '',
         notes: typeof existingQuotation.notes === 'string'
           ? existingQuotation.notes
           : (existingQuotation.notes as unknown as BilingualText)?.[locale as 'zh' | 'en'] || '',
-        paymentMethod: (existingQuotation as { payment_method?: string }).payment_method || '',
-        paymentNotes: (existingQuotation as { payment_notes?: string }).payment_notes || '',
+        paymentMethod: quotationWithNewFields.payment_method || '',
+        paymentNotes: quotationWithNewFields.payment_notes || '',
         status: existingQuotation.status || 'draft',
       })
 
@@ -197,13 +214,22 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       }
       const existingItems = (existingQuotation as { items?: QuotationItemResponse[] }).items
       if (existingItems && existingItems.length > 0) {
-        setItems(existingItems.map(item => ({
-          product_id: item.product_id || '',
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          discount: item.discount || 0,
-          subtotal: item.subtotal
-        })))
+        setItems(existingItems.map(item => {
+          const isCustom = !item.product_id
+          const description = typeof item.description === 'object'
+            ? item.description as BilingualText
+            : { zh: item.description || '', en: item.description || '' }
+          return {
+            product_id: item.product_id || '',
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount: item.discount || 0,
+            subtotal: item.subtotal,
+            is_custom: isCustom,
+            custom_description_zh: isCustom ? description.zh : '',
+            custom_description_en: isCustom ? description.en : '',
+          }
+        }))
       }
     }
   }, [existingQuotation, customers, locale])
@@ -297,6 +323,9 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         unit_price: 0,
         discount: 0,
         subtotal: 0,
+        is_custom: false,
+        custom_description_zh: '',
+        custom_description_en: '',
       },
     ])
   }
@@ -375,16 +404,18 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     setItems(newItems)
   }
 
-  // 計算總計
+  // 計算總計（含整體折扣）
   const calculateTotals = () => {
-    const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0)
-    const taxRate = parseFloat(formData.taxRate) || 0
-    const taxAmount = (subtotal * taxRate) / 100
-    const total = subtotal + taxAmount
-    return { subtotal, taxAmount, total }
+    const itemsSubtotal = items.reduce((sum, item) => sum + item.subtotal, 0)
+    const discountAmount = parseFloat(formData.discountAmount) || 0
+    const adjustedSubtotal = itemsSubtotal - discountAmount
+    const taxRate = formData.showTax ? (parseFloat(formData.taxRate) || 0) : 0
+    const taxAmount = (adjustedSubtotal * taxRate) / 100
+    const total = adjustedSubtotal + taxAmount
+    return { subtotal: itemsSubtotal, discountAmount, adjustedSubtotal, taxAmount, total }
   }
 
-  const { subtotal, taxAmount, total } = calculateTotals()
+  const { subtotal, discountAmount, adjustedSubtotal, taxAmount, total } = calculateTotals()
 
   // 提交表單
   const handleSubmit = async (e: React.FormEvent) => {
@@ -397,7 +428,14 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         return
       }
 
-      if (items.length === 0 || items.some(item => !item.product_id)) {
+      // 驗證品項：每個品項必須有產品或自訂描述
+      const hasInvalidItems = items.some(item => {
+        if (item.is_custom) {
+          return !item.custom_description_zh && !item.custom_description_en
+        }
+        return !item.product_id
+      })
+      if (items.length === 0 || hasInvalidItems) {
         toast.error(t('quotation.atLeastOneProduct'))
         return
       }
@@ -417,10 +455,13 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         issue_date: formData.issueDate,
         valid_until: formData.validUntil,
         currency: formData.currency,
-        subtotal,
+        subtotal: adjustedSubtotal,
         tax_rate: parseFloat(formData.taxRate),
         tax_amount: taxAmount,
         total_amount: total,
+        show_tax: formData.showTax,
+        discount_amount: discountAmount,
+        discount_description: formData.discountDescription || undefined,
         notes: formData.notes ? {
           zh: formData.notes,
           en: formData.notes,
@@ -428,6 +469,21 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         payment_method: formData.paymentMethod || undefined,
         payment_notes: formData.paymentNotes || undefined,
         items: items.map((item) => {
+          // 自訂品項使用手動輸入的描述
+          if (item.is_custom) {
+            return {
+              product_id: undefined,
+              description: {
+                zh: item.custom_description_zh || '',
+                en: item.custom_description_en || '',
+              },
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              discount: item.discount,
+              subtotal: item.subtotal,
+            } as CreateQuotationItemInput
+          }
+          // 產品品項使用產品名稱
           const product = products.find(p => p.id === item.product_id)
           const productName = product?.name as BilingualText | undefined
           return {
@@ -687,10 +743,20 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         </div>
 
         <div>
-          <label htmlFor="taxRate" className="block text-sm font-semibold text-gray-900 mb-1">
-            {t('quotation.taxRate')} (%)
-            <span className="text-red-500 ml-1">*</span>
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="taxRate" className="block text-sm font-semibold text-gray-900">
+              {t('quotation.taxRate')} (%)
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.showTax}
+                onChange={(e) => setFormData({ ...formData, showTax: e.target.checked })}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span className="text-sm text-gray-600">{t('quotation.showTaxOnDocument')}</span>
+            </label>
+          </div>
           <input
             type="number"
             id="taxRate"
@@ -700,7 +766,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
             min="0"
             max="100"
             step={currentLocale === 'zh' ? '1' : '0.01'}
-            required
+            disabled={!formData.showTax}
           />
         </div>
       </div>
@@ -723,26 +789,84 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
             <div key={index} className="border border-gray-200 rounded-lg p-3">
               <div className="grid grid-cols-6 gap-3 items-start">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('quotation.product')}
-                  </label>
-                  <select
-                    value={item.product_id}
-                    onChange={(e) => handleItemChange(index, 'product_id', e.target.value)}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="">{t('quotation.selectProduct')}</option>
-                    {products.map((product) => {
-                      const name = typeof product.name === 'string'
-                        ? product.name
-                        : (product.name as unknown as BilingualText)?.[locale as 'zh' | 'en'] || ''
-                      return (
-                        <option key={product.id} value={product.id}>
-                          {name} ({product.base_currency} {product.base_price})
-                        </option>
-                      )
-                    })}
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {t('quotation.product')}
+                    </label>
+                    {/* 品項模式切換 */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newItems = [...items]
+                          newItems[index] = { ...newItems[index], is_custom: false, product_id: '' }
+                          setItems(newItems)
+                        }}
+                        className={`px-2 py-0.5 text-xs rounded ${
+                          !item.is_custom ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        }`}
+                      >
+                        {t('quotation.selectProduct')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newItems = [...items]
+                          newItems[index] = { ...newItems[index], is_custom: true, product_id: '' }
+                          setItems(newItems)
+                        }}
+                        className={`px-2 py-0.5 text-xs rounded ${
+                          item.is_custom ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        }`}
+                      >
+                        {t('quotation.customItem')}
+                      </button>
+                    </div>
+                  </div>
+                  {item.is_custom ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={item.custom_description_zh}
+                        onChange={(e) => {
+                          const newItems = [...items]
+                          newItems[index] = { ...newItems[index], custom_description_zh: e.target.value }
+                          setItems(newItems)
+                        }}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder={t('quotation.customItemDescriptionZh')}
+                      />
+                      <input
+                        type="text"
+                        value={item.custom_description_en}
+                        onChange={(e) => {
+                          const newItems = [...items]
+                          newItems[index] = { ...newItems[index], custom_description_en: e.target.value }
+                          setItems(newItems)
+                        }}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder={t('quotation.customItemDescriptionEn')}
+                      />
+                    </div>
+                  ) : (
+                    <select
+                      value={item.product_id}
+                      onChange={(e) => handleItemChange(index, 'product_id', e.target.value)}
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">{t('quotation.selectProduct')}</option>
+                      {products.map((product) => {
+                        const name = typeof product.name === 'string'
+                          ? product.name
+                          : (product.name as unknown as BilingualText)?.[locale as 'zh' | 'en'] || ''
+                        return (
+                          <option key={product.id} value={product.id}>
+                            {name} ({product.base_currency} {product.base_price})
+                          </option>
+                        )
+                      })}
+                    </select>
+                  )}
                 </div>
 
                 <div>
@@ -822,19 +946,65 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       <div className="bg-gray-50 rounded-lg p-3">
         <div className="max-w-md ml-auto space-y-1.5">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">{t('quotation.subtotal')}:</span>
+            <span className="text-gray-600">{t('quotation.itemsSubtotal')}:</span>
             <span className="text-gray-900 font-medium">
               {formData.currency} {safeToLocaleString(subtotal)}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">
-              {t('quotation.tax')} ({formData.taxRate}%):
-            </span>
-            <span className="text-gray-900 font-medium">
-              {formData.currency} {safeToLocaleString(taxAmount)}
-            </span>
+
+          {/* 整體折扣 */}
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">{t('quotation.overallDiscount')}:</span>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">-</span>
+              <span>{formData.currency}</span>
+              <input
+                type="number"
+                value={formData.discountAmount}
+                onChange={(e) => setFormData({ ...formData, discountAmount: e.target.value })}
+                className="w-24 px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                min="0"
+                step="1"
+                placeholder="0"
+              />
+            </div>
           </div>
+
+          {/* 折扣說明（折扣金額大於 0 時顯示） */}
+          {parseFloat(formData.discountAmount) > 0 && (
+            <div className="flex justify-end">
+              <input
+                type="text"
+                value={formData.discountDescription}
+                onChange={(e) => setFormData({ ...formData, discountDescription: e.target.value })}
+                className="w-48 px-2 py-1 border border-gray-300 rounded text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder={t('quotation.discountDescriptionPlaceholder')}
+              />
+            </div>
+          )}
+
+          {/* 折後小計（有折扣時顯示） */}
+          {parseFloat(formData.discountAmount) > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">{t('quotation.adjustedSubtotal')}:</span>
+              <span className="text-gray-900 font-medium">
+                {formData.currency} {safeToLocaleString(adjustedSubtotal)}
+              </span>
+            </div>
+          )}
+
+          {/* 稅金（開啟時顯示） */}
+          {formData.showTax && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">
+                {t('quotation.tax')} ({formData.taxRate}%):
+              </span>
+              <span className="text-gray-900 font-medium">
+                {formData.currency} {safeToLocaleString(taxAmount)}
+              </span>
+            </div>
+          )}
+
           <div className="flex justify-between text-lg font-bold border-t pt-2">
             <span>{t('quotation.total')}:</span>
             <span>{formData.currency} {safeToLocaleString(total)}</span>

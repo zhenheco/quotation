@@ -47,7 +47,7 @@ export default function RegisterForm({ locale }: RegisterFormProps) {
       return
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -61,6 +61,14 @@ export default function RegisterForm({ locale }: RegisterFormProps) {
       } else {
         setError(t('register.genericError'))
       }
+      setIsLoading(false)
+      return
+    }
+
+    // 檢查是否為已存在的帳號（Supabase 會回傳空的 identities）
+    // 這種情況發生在：用 Google 登入過，現在嘗試用 email 註冊
+    if (data?.user?.identities?.length === 0) {
+      setError(t('register.emailExistsUseLogin'))
       setIsLoading(false)
       return
     }

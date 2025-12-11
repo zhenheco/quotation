@@ -59,6 +59,9 @@ export const POST = withAuth('quotations:write')(async (request, { user, db }) =
     tax_rate: string | number
     tax_amount: string | number
     total_amount: string | number
+    show_tax?: boolean
+    discount_amount?: string | number
+    discount_description?: string | null
     notes?: { zh: string; en: string }
     terms?: { zh: string; en: string }
     items: QuotationItemInput[]
@@ -75,6 +78,9 @@ export const POST = withAuth('quotations:write')(async (request, { user, db }) =
     tax_rate,
     tax_amount,
     total_amount,
+    show_tax,
+    discount_amount,
+    discount_description,
     notes,
     terms,
     items
@@ -105,6 +111,9 @@ export const POST = withAuth('quotations:write')(async (request, { user, db }) =
     tax_rate: parseFloat(String(tax_rate)),
     tax_amount: parseFloat(String(tax_amount)),
     total_amount: parseFloat(String(total_amount)),
+    show_tax: show_tax !== false,
+    discount_amount: discount_amount ? parseFloat(String(discount_amount)) : 0,
+    discount_description: discount_description || null,
     notes,
     terms
   })

@@ -30,6 +30,9 @@ export interface QuotationPDFData {
   taxRate: number
   taxAmount: number
   totalAmount: number
+  showTax?: boolean
+  discountAmount?: number
+  discountDescription?: string | null
   currency: string
   notes?: { zh: string; en: string } | null
   paymentTerms?: Array<{
@@ -303,6 +306,10 @@ export function drawFinancialSummary(
   const rightX = amountColRight - 150
   const currencyX = rightX + 50
 
+  const hasDiscount = (data.discountAmount ?? 0) > 0
+  const showTax = data.showTax !== false
+
+  // 品項小計
   page.drawText(`${t.subtotal}:`, {
     x: rightX,
     y,
@@ -328,31 +335,96 @@ export function drawFinancialSummary(
   })
   y -= 18
 
-  page.drawText(`${t.tax} (${data.taxRate}%):`, {
-    x: rightX,
-    y,
-    size: 10,
-    font,
-    color: rgb(0, 0, 0),
-  })
-  page.drawText(data.currency, {
-    x: currencyX,
-    y,
-    size: 10,
-    font,
-    color: rgb(0, 0, 0),
-  })
-  const taxNum = formatPDFNumber(data.taxAmount, data.currency)
-  const taxNumWidth = font.widthOfTextAtSize(taxNum, 10)
-  page.drawText(taxNum, {
-    x: amountColRight - taxNumWidth,
-    y,
-    size: 10,
-    font,
-    color: rgb(0, 0, 0),
-  })
-  y -= 25
+  // 折扣（如果有）
+  if (hasDiscount) {
+    const discountLabel = data.discountDescription
+      ? `${t.discount} (${data.discountDescription}):`
+      : `${t.discount}:`
 
+    page.drawText(discountLabel, {
+      x: rightX,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    page.drawText(`-${data.currency}`, {
+      x: currencyX,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    const discountNum = formatPDFNumber(data.discountAmount, data.currency)
+    const discountNumWidth = font.widthOfTextAtSize(discountNum, 10)
+    page.drawText(discountNum, {
+      x: amountColRight - discountNumWidth,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    y -= 18
+
+    // 折後小計
+    const adjustedSubtotal = data.subtotal - (data.discountAmount ?? 0)
+    page.drawText(`${t.adjustedSubtotal}:`, {
+      x: rightX,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    page.drawText(data.currency, {
+      x: currencyX,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    const adjustedSubtotalNum = formatPDFNumber(adjustedSubtotal, data.currency)
+    const adjustedSubtotalNumWidth = font.widthOfTextAtSize(adjustedSubtotalNum, 10)
+    page.drawText(adjustedSubtotalNum, {
+      x: amountColRight - adjustedSubtotalNumWidth,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    y -= 18
+  }
+
+  // 稅金（如果顯示）
+  if (showTax) {
+    page.drawText(`${t.tax} (${data.taxRate}%):`, {
+      x: rightX,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    page.drawText(data.currency, {
+      x: currencyX,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    const taxNum = formatPDFNumber(data.taxAmount, data.currency)
+    const taxNumWidth = font.widthOfTextAtSize(taxNum, 10)
+    page.drawText(taxNum, {
+      x: amountColRight - taxNumWidth,
+      y,
+      size: 10,
+      font,
+      color: rgb(0, 0, 0),
+    })
+    y -= 18
+  }
+
+  y -= 7
+
+  // 分隔線
   page.drawLine({
     start: { x: rightX, y: y + 12 },
     end: { x: amountColRight, y: y + 12 },
@@ -360,6 +432,7 @@ export function drawFinancialSummary(
     color: rgb(0.5, 0.5, 0.5),
   })
 
+  // 總計
   page.drawText(`${t.total}:`, {
     x: rightX,
     y,
