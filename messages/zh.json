@@ -69,7 +69,7 @@
       "termsOfService": "使用條款",
       "passwordTooWeak": "密碼強度不足，請參考下方規則",
       "emailAlreadyExists": "此電子郵件已被註冊",
-      "emailExistsUseLogin": "此電子郵件已註冊（可能透過 Google 登入）。請直接登入，或使用「忘記密碼」設定密碼。",
+      "emailExistsUseLogin": "此電子郵件已註冊。請直接登入，或使用「忘記密碼」設定密碼。",
       "genericError": "註冊失敗，請稍後再試",
       "checkEmail": "請查看您的電子郵件",
       "confirmationSent": "我們已發送驗證連結至 {email}，請點擊連結以啟用帳號。",
