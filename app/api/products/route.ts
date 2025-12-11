@@ -52,7 +52,10 @@ export async function GET(request: NextRequest) {
     // 取得產品資料
     const products = await getProducts(db, user.id)
 
-    return NextResponse.json(products)
+    // 設定快取：私有快取 60 秒，過期後允許返回舊資料 120 秒
+    const response = NextResponse.json(products)
+    response.headers.set('Cache-Control', 'private, s-maxage=60, stale-while-revalidate=120')
+    return response
   } catch (error: unknown) {
     console.error('Error fetching products:', error)
     return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })

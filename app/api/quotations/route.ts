@@ -29,7 +29,10 @@ export const GET = withAuth('quotations:read')(async (request, { user, db }) => 
     }
   })
 
-  return NextResponse.json(formattedQuotations)
+  // 設定快取：報價單資料較敏感，快取 30 秒
+  const response = NextResponse.json(formattedQuotations)
+  response.headers.set('Cache-Control', 'private, s-maxage=30, stale-while-revalidate=60')
+  return response
 })
 
 /**

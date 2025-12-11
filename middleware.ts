@@ -110,8 +110,11 @@ export async function middleware(request: NextRequest) {
   )
 
   // Step 5: Trigger session refresh
-  // Skip for API routes as they handle auth themselves
-  if (!pathname.startsWith('/api')) {
+  // Skip for API routes (they handle auth themselves) and public pages (no auth needed)
+  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/terms', '/privacy']
+  const isPublicPath = publicPaths.some(p => pathname.includes(p))
+
+  if (!pathname.startsWith('/api') && !isPublicPath) {
     try {
       await supabase.auth.getUser()
     } catch (error) {

@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getUserRoles, assignRoleToUser, getRoleByName } from '@/lib/dal/rbac'
 import { validateUrlSafety } from '@/lib/security/url-validator'
+import { getKVCache } from '@/lib/cache/kv-cache'
+import { warmUserCache } from '@/lib/cache/warm-cache'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -71,6 +74,17 @@ export async function GET(request: Request) {
             await assignRoleToUser(db, user.id, superAdminRole.id)
             console.log(`✅ Assigned super_admin role to new user: ${user.email}`)
           }
+        }
+
+        // 預熱用戶權限快取，加速首屏載入
+        try {
+          const { env } = await getCloudflareContext()
+          const kv = getKVCache(env)
+          await warmUserCache(kv, db, user.id)
+          console.log(`✅ Warmed cache for user: ${user.email}`)
+        } catch (cacheError) {
+          // 快取預熱失敗不影響登入流程
+          console.warn('Cache warming failed:', cacheError)
         }
       } catch (roleError) {
         console.error('Failed to check/assign user roles:', roleError)

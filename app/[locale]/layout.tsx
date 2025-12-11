@@ -5,7 +5,13 @@ import { notFound } from 'next/navigation'
 import { routing } from '@/i18n/routing'
 import { Providers } from './providers'
 
-export const dynamic = 'force-dynamic'
+/**
+ * 生成靜態參數以支援靜態渲染
+ * 此 layout 只處理 i18n，不需要動態渲染
+ */
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }))
+}
 
 export default async function LocaleLayout({
   children,
