@@ -69,6 +69,7 @@
       "termsOfService": "Terms of Service",
       "passwordTooWeak": "Password is too weak, please see requirements below",
       "emailAlreadyExists": "This email is already registered",
+      "emailExistsUseLogin": "This email is already registered (possibly via Google). Please sign in directly, or use \"Forgot Password\" to set a password.",
       "genericError": "Registration failed, please try again later",
       "checkEmail": "Check your email",
       "confirmationSent": "We've sent a verification link to {email}. Please click the link to activate your account.",
