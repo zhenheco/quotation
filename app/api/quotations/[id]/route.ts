@@ -120,6 +120,9 @@ export async function PUT(
       tax_rate?: string | number;
       tax_amount?: string | number;
       total_amount?: string | number;
+      show_tax?: boolean;
+      discount_amount?: string | number;
+      discount_description?: string | null;
       notes?: { zh: string; en: string };
       payment_method?: string;
       payment_notes?: string;
@@ -137,6 +140,9 @@ export async function PUT(
       tax_rate,
       tax_amount,
       total_amount,
+      show_tax,
+      discount_amount,
+      discount_description,
       notes,
       payment_method,
       payment_notes,
@@ -167,6 +173,9 @@ export async function PUT(
     if (tax_rate !== undefined) updateData.tax_rate = typeof tax_rate === 'string' ? parseFloat(tax_rate) : tax_rate
     if (tax_amount !== undefined) updateData.tax_amount = typeof tax_amount === 'string' ? parseFloat(tax_amount) : tax_amount
     if (total_amount !== undefined) updateData.total_amount = typeof total_amount === 'string' ? parseFloat(total_amount) : total_amount
+    if (show_tax !== undefined) updateData.show_tax = show_tax
+    if (discount_amount !== undefined) updateData.discount_amount = typeof discount_amount === 'string' ? parseFloat(discount_amount) : discount_amount
+    if (discount_description !== undefined) updateData.discount_description = discount_description
     if (notes !== undefined) updateData.notes = notes
     if (payment_method !== undefined) updateData.payment_method = payment_method
     if (payment_notes !== undefined) updateData.payment_notes = payment_notes
