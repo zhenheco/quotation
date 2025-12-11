@@ -1,0 +1,57 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+      - 'fix/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy
+    # 只在推送時部署，PR 只做 build 測試
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Next.js with OpenNext
+        env:
+          # Build-time 環境變數 (NEXT_PUBLIC_* 會在 build 時嵌入 JS)
+          # 這些是公開值，可以直接寫在這裡
+          NEXT_PUBLIC_SUPABASE_URL: https://oubsycwrxzkuviakzahi.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91YnN5Y3dyeHprdXZpYWt6YWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MDM5MDUsImV4cCI6MjA3OTQ3OTkwNX0.Ltz-HSAlcWHV6nsEkckD88ERbCVZSE9C8vNhbW7ELGA
+          NEXT_PUBLIC_APP_URL: https://quote24.cc
+        run: pnpm run build
+
+      - name: Deploy to Cloudflare Workers (Production)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: f9916b95d011e8ad2a3fe10883053b0f
+        run: npx wrangler deploy
+
+      - name: Deploy Preview (Non-main branches)
+        if: github.ref != 'refs/heads/main' && github.event_name == 'push'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: f9916b95d011e8ad2a3fe10883053b0f
+        run: |
+          BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')
+          npx wrangler deploy --name "quotation-system-preview-${BRANCH_NAME}"
