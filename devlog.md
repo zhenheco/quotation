@@ -1,5 +1,139 @@
 # Development Log
 
+## 2025-12-11: 報價單系統功能改善
+
+### 背景
+根據客戶反饋，實作以下四項功能改善：
+
+### 新增功能
+
+#### 1. 稅金可選擇性顯示
+- 新增 `show_tax` 欄位到報價單
+- 用戶可選擇是否在 PDF 文件上顯示稅金行
+- 預設顯示稅金（向後相容）
+
+#### 2. 整體優惠折抵（稅前折扣）
+- 新增 `discount_amount` 和 `discount_description` 欄位
+- 計算邏輯：品項小計 → 減折扣 → 折後小計 → 計稅 → 總計
+- PDF 顯示折扣行和折後小計
+
+#### 3. 自訂品項輸入
+- 品項可手動輸入中英文名稱和價格
+- 不需選擇既有產品（`product_id` 允許 NULL）
+- UI 切換「選擇產品」和「自訂品項」模式
+
+#### 4. 報價單附件照片
+- 新增 `quotation_images` 資料表
+- 支援多張照片上傳（JPG/PNG，每張最大 5MB）
+- 使用 Supabase Storage 儲存
+
+### 修改的檔案
+
+**資料庫遷移**:
+- `migrations/041_quotation_enhancements.sql` - Supabase PostgreSQL
+- `migrations/d1/014_quotation_enhancements.sql` - Cloudflare D1
+
+**類型與 DAL**:
+- `types/models.ts` - 新增 `QuotationImage` 介面和更新 `Quotation`
+- `lib/dal/quotation-images.ts` - 新增 CRUD 操作
+- `lib/dal/quotations.ts` - 處理新欄位
+
+**API 路由**:
+- `app/api/quotations/route.ts` - 處理新欄位
+- `app/api/quotations/[id]/route.ts` - 處理新欄位
+- `app/api/quotations/[id]/images/route.ts` - 新增圖片 API
+
+**前端**:
+- `app/[locale]/quotations/QuotationForm.tsx` - 新增 UI 控制項
+
+**PDF 生成**:
+- `lib/pdf/pdf-layout.ts` - 條件渲染稅金和折扣
+- `lib/pdf/pdf-translations.ts` - 新增翻譯 key
+
+**翻譯**:
+- `messages/zh.json` - 新增中文翻譯
+- `messages/en.json` - 新增英文翻譯
+
+### 向後相容性
+- `show_tax` 預設 `true`（維持現有行為）
+- `discount_amount` 預設 `0`（總額不變）
+- 現有報價單不受影響
+
+### 資料庫遷移執行（2025-12-11 22:30）
+- ✅ 執行 `migrations/041_quotation_enhancements.sql`
+- ✅ 新增 `quotations.show_tax`, `quotations.discount_amount`, `quotations.discount_description` 欄位
+- ✅ 建立 `quotation_images` 資料表及 RLS policies
+- ✅ 建立 `quotation-images` Storage bucket（5MB 限制，僅允許 JPG/PNG/WebP）
+- ✅ 設定 Storage RLS policies（用戶只能存取自己公司的報價單圖片）
+- ✅ 記錄到 `schema_migrations` 表
+
+### 待辦
+- QuotationImageUploader 獨立元件（目前使用內建 UI）
+
+---
+
+## 2025-12-11: Cloudflare Workers GitHub Actions 部署設定
+
+### 問題
+生產環境 Build 失敗：`Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+### 根本原因
+1. **Workers 原生 Git 連動不支援 build-time 環境變數**
+   - `NEXT_PUBLIC_*` 變數在 `next build` 時嵌入 JS
+   - Workers 只提供 runtime 環境變數（`wrangler.jsonc` 的 `vars`）
+   - Build 時讀不到這些變數，導致失敗
+
+2. **Pages 與 OpenNext.js 不相容**
+   - 嘗試遷移到 Pages（原生支援 build-time 變數）
+   - Pages 部署成功但返回 404
+   - 原因：OpenNext.js 產生 Workers 專用的 `worker.js`，Pages 無法執行
+
+### 解決方案
+**使用 GitHub Actions + Wrangler 取代原生 Git 連動**
+
+1. 建立 `.github/workflows/deploy-cloudflare.yml`
+2. 在 workflow `env:` 區塊設定 build-time 環境變數
+3. 用 `wrangler deploy` 部署到 Workers
+4. 加入 `--env preview` 支援預覽環境
+
+### 部署架構
+```
+GitHub Repository
+       │ push
+       ▼
+  GitHub Actions
+       ├── main ──────→ quotation-system → https://quote24.cc
+       └── feature/* ──→ quotation-system-preview → *.workers.dev
+           fix/*
+```
+
+### 修改的檔案
+- `.github/workflows/deploy-cloudflare.yml` - 新增 workflow
+- `wrangler.jsonc` - 加入 `env.preview` 區塊
+
+### GitHub 設定
+**Secrets**:
+- `CLOUDFLARE_API_TOKEN`
+
+**Variables**:
+- `CLOUDFLARE_ACCOUNT_ID`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_APP_URL`
+
+### 必須手動執行
+- ⚠️ **停用 Workers 原生 Git 連動**（Dashboard > Workers > Settings > Builds > Disconnect）
+  - 否則每次 push 會觸發兩次部署（一次失敗、一次成功）
+
+### 經驗總結
+1. OpenNext.js 專案**只能用 Workers**，不能用 Pages
+2. `NEXT_PUBLIC_*` 是 build-time 變數，必須在 build 時設定
+3. `wrangler.jsonc` 的 `vars` 只是 runtime 變數，無法解決 build 問題
+4. 預覽環境用 `env.preview` 繼承所有綁定（KV、R2、Analytics）
+5. 建立了用戶級 skill：`~/.claude/skills/cloudflare-deploy.md` 供未來專案參考
+
+---
+
 ## 2025-12-10: Supabase RLS 安全修復
 
 ### 問題
