@@ -94,12 +94,6 @@ function mapQuotationToPDFData(
   quotation: QuotationWithCustomer,
   paymentTerms: PaymentTerm[] | undefined
 ): QuotationPDFData {
-  // 調試日誌 - 確認數據是否正確傳遞
-  console.log('[PDF Debug] quotation:', quotation)
-  console.log('[PDF Debug] customer_name:', quotation.customer_name)
-  console.log('[PDF Debug] items:', quotation.items)
-  console.log('[PDF Debug] items length:', quotation.items?.length)
-
   // 確保 items 是陣列
   const items = Array.isArray(quotation.items) ? quotation.items : []
 
@@ -112,9 +106,6 @@ function mapQuotationToPDFData(
       customerName = { zh: quotation.customer_name, en: quotation.customer_name }
     }
   }
-
-  console.log('[PDF Debug] processed customerName:', customerName)
-  console.log('[PDF Debug] processed items count:', items.length)
 
   return {
     quotationNumber: quotation.quotation_number,
