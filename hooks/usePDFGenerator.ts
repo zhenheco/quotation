@@ -94,12 +94,34 @@ function mapQuotationToPDFData(
   quotation: QuotationWithCustomer,
   paymentTerms: PaymentTerm[] | undefined
 ): QuotationPDFData {
+  // 調試日誌 - 確認數據是否正確傳遞
+  console.log('[PDF Debug] quotation:', quotation)
+  console.log('[PDF Debug] customer_name:', quotation.customer_name)
+  console.log('[PDF Debug] items:', quotation.items)
+  console.log('[PDF Debug] items length:', quotation.items?.length)
+
+  // 確保 items 是陣列
+  const items = Array.isArray(quotation.items) ? quotation.items : []
+
+  // 確保 customer_name 結構正確
+  let customerName: { zh: string; en: string } | null = null
+  if (quotation.customer_name) {
+    if (typeof quotation.customer_name === 'object' && 'zh' in quotation.customer_name) {
+      customerName = quotation.customer_name as { zh: string; en: string }
+    } else if (typeof quotation.customer_name === 'string') {
+      customerName = { zh: quotation.customer_name, en: quotation.customer_name }
+    }
+  }
+
+  console.log('[PDF Debug] processed customerName:', customerName)
+  console.log('[PDF Debug] processed items count:', items.length)
+
   return {
     quotationNumber: quotation.quotation_number,
     issueDate: quotation.issue_date,
     validUntil: quotation.valid_until,
-    customerName: quotation.customer_name || null,
-    items: (quotation.items || []).map((item) => ({
+    customerName,
+    items: items.map((item) => ({
       description:
         typeof item.description === 'string'
           ? { zh: item.description, en: item.description }
