@@ -1,5 +1,51 @@
 # Development Log
 
+## 2025-12-13: PDF 下載客戶名稱和項目遺失修復
+
+### 問題
+用戶報告下載 PDF 時：
+1. 報價項目全部消失
+2. 客戶名稱只顯示 "-"
+
+**重要發現**：頁面上顯示正常，只有 PDF 有問題 → 數據層正確，問題在 PDF 生成邏輯
+
+### 根本原因
+`mapQuotationToPDFData()` 函數在處理數據時缺乏防禦性檢查：
+- `items` 可能是 `undefined` 而非空陣列
+- `customer_name` 結構可能不符預期（string vs object）
+
+### 解決方案
+在 `hooks/usePDFGenerator.ts` 的 `mapQuotationToPDFData` 函數中加入防禦性程式碼：
+
+```typescript
+// 確保 items 是陣列
+const items = Array.isArray(quotation.items) ? quotation.items : []
+
+// 確保 customer_name 結構正確
+let customerName: { zh: string; en: string } | null = null
+if (quotation.customer_name) {
+  if (typeof quotation.customer_name === 'object' && 'zh' in quotation.customer_name) {
+    customerName = quotation.customer_name as { zh: string; en: string }
+  } else if (typeof quotation.customer_name === 'string') {
+    customerName = { zh: quotation.customer_name, en: quotation.customer_name }
+  }
+}
+```
+
+### 修改的檔案
+- `hooks/usePDFGenerator.ts` (第 97-108 行)
+
+### 經驗教訓
+1. **頁面正常 + PDF 異常** → 問題在數據轉換層，非 API 層
+2. `QuotationWithCustomer` 類型定義為 `any`，導致 TypeScript 無法捕捉類型錯誤
+3. 數據映射函數應始終包含防禦性檢查，不應假設輸入結構
+
+### 後續建議
+- 將 `types/extended.types.ts` 中的 `QuotationWithCustomer` 從 `any` 改為明確類型定義
+- 在 `items` 屬性明確定義為 `QuotationItem[]`
+
+---
+
 ## 2025-12-11: 報價單系統功能改善
 
 ### 背景
