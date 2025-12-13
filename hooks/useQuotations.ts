@@ -10,6 +10,7 @@ import type {
 } from '@/types/models'
 import type { QuotationWithCustomer as QuotationWithCustomerType } from '@/types/extended.types'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
+import { STALE_TIME } from '@/lib/api/queryClient'
 
 // ============================================================================
 // Types
@@ -199,7 +200,7 @@ export function useQuotations(filters?: QuotationFilters) {
   return useQuery({
     queryKey: ['quotations', filters],
     queryFn: () => fetchQuotations(filters),
-    staleTime: 2 * 60 * 1000, // 2 分鐘
+    staleTime: STALE_TIME.DYNAMIC
   })
 }
 
@@ -213,7 +214,7 @@ export function useQuotation(id: string) {
     queryKey: ['quotations', id],
     queryFn: () => fetchQuotation(id),
     enabled: !!id,
-    staleTime: 2 * 60 * 1000,
+    staleTime: STALE_TIME.DYNAMIC,
   })
 }
 
@@ -430,7 +431,7 @@ export function useQuotationVersions(quotationId: string) {
   return useQuery({
     queryKey: ['quotation-versions', quotationId],
     queryFn: () => fetchQuotationVersions(quotationId),
-    staleTime: 5 * 60 * 1000, // 5 分鐘
+    staleTime: STALE_TIME.DYNAMIC,
     enabled: !!quotationId, // 只在有 quotationId 時才執行
   })
 }
@@ -468,7 +469,7 @@ export function usePaymentTerms(quotationId: string) {
   return useQuery({
     queryKey: ['payment-terms', quotationId],
     queryFn: () => fetchPaymentTerms(quotationId),
-    staleTime: 2 * 60 * 1000,
+    staleTime: STALE_TIME.DYNAMIC,
     enabled: !!quotationId,
   })
 }
