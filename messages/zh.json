@@ -545,7 +545,8 @@
     "draft": "草稿",
     "sent": "已發送",
     "accepted": "已接受",
-    "expired": "已過期"
+    "expired": "已過期",
+    "signed": "已簽署"
   },
   "email": {
     "send": "寄送",

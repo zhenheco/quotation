@@ -25,7 +25,7 @@ export interface SecurityHeadersConfig {
 function getCSPHeader(): string {
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js 需要 unsafe-eval 和 unsafe-inline
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://static.cloudflareinsights.com", // Next.js 需要 unsafe-eval 和 unsafe-inline，Cloudflare Insights 需要外部腳本
     "style-src 'self' 'unsafe-inline'", // Tailwind CSS 需要 unsafe-inline
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",

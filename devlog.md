@@ -1,5 +1,29 @@
 # Development Log
 
+## 2025-12-13: 修復 CSP 和翻譯缺失錯誤
+
+### 問題
+控制台出現兩類錯誤：
+1. CSP 違規：Cloudflare Insights 腳本 (`static.cloudflareinsights.com`) 被阻止載入
+2. 翻譯缺失：`MISSING_MESSAGE: status.signed (zh)`
+
+### 根本原因
+1. `lib/security/headers.ts` 的 CSP `script-src` 不包含 Cloudflare Insights 域名
+2. `status.signed` 翻譯 key 在 `messages/zh.json` 和 `messages/en.json` 中未定義，但在 `QuotationDetail.tsx:112` 被使用
+
+### 解決方案
+1. 在 CSP `script-src` 加入 `https://static.cloudflareinsights.com`
+2. 在翻譯檔案加入 `status.signed`：
+   - 中文：「已簽署」
+   - 英文：「Signed」
+
+### 影響範圍
+- `lib/security/headers.ts`
+- `messages/zh.json`
+- `messages/en.json`
+
+---
+
 ## 2025-12-13: PDF 下載客戶名稱和項目遺失修復
 
 ### 問題
