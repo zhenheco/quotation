@@ -1,5 +1,46 @@
 # Development Log
 
+## 2025-12-15: 修復黑屏問題（API 端點遺漏）
+
+### 問題描述
+- quote24.cc 上會計系統和 POS 系統頁面全部顯示黑色
+- 頁面切換時先黑一片才變白
+- Console 錯誤：`GET /api/roles 404`、`GET /api/auth/me 404`
+
+### 根本原因
+Account-system 合併到 quotation-system 時，前端代碼調用的 API 端點沒有建立：
+- `CompanySettings.tsx` 調用 `/api/roles` 但端點不存在
+- 多個頁面調用 `/api/auth/me` 但只有 `/api/me` 存在
+
+### 解決方案
+
+#### 1. 建立缺少的 API 端點
+- `app/api/roles/route.ts` - 角色列表 API（含資料格式轉換：name_zh/name_en → display_name）
+- `app/api/auth/me/route.ts` - 當前用戶 API
+
+#### 2. 補充 loading.tsx 組件
+- `app/loading.tsx` - 全局 loading
+- `app/[locale]/loading.tsx` - Locale 層級（已存在）
+- `app/[locale]/accounting/loading.tsx` - 會計模組
+- `app/[locale]/pos/loading.tsx` - POS 模組
+- `app/[locale]/settings/loading.tsx` - 設定頁面
+
+### 影響檔案
+- `/app/api/roles/route.ts` (新增)
+- `/app/api/auth/me/route.ts` (新增)
+- `/app/loading.tsx` (新增)
+- `/app/[locale]/accounting/loading.tsx` (新增)
+- `/app/[locale]/pos/loading.tsx` (新增)
+- `/app/[locale]/settings/loading.tsx` (新增)
+
+### 經驗教訓
+合併系統時必須完整檢查：
+1. 前端調用的所有 API 端點是否存在
+2. 資料庫 schema 與 API 回傳格式是否匹配
+3. 各頁面路由是否有 loading.tsx 處理過渡狀態
+
+---
+
 ## 2025-12-15: Account-system 整合至 quotation-system（會計 + POS 模組）
 
 ### 背景
