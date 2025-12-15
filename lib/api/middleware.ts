@@ -45,7 +45,7 @@ export interface ApiContext {
 
 // Cloudflare 環境類型（簡化版）
 interface CloudflareEnv {
-  KV_CACHE?: KVNamespace
+  KV?: KVNamespace
   [key: string]: unknown
 }
 
@@ -104,7 +104,7 @@ async function getAuthenticatedUser(
         email: user.email,
         cachedAt: Date.now()
       }
-      await kv.set(sessionKey, cachedUser, SESSION_CACHE_TTL)
+      await kv.set(sessionKey, cachedUser, { ttl: SESSION_CACHE_TTL })
     } catch {
       // 快取寫入失敗，不影響正常流程
     }
@@ -154,7 +154,7 @@ export function withAuth(permission: string) {
     return async function (request: NextRequest): Promise<NextResponse> {
       try {
         // 取得 Cloudflare 環境
-        const { env } = await getCloudflareContext() as { env: CloudflareEnv }
+        const { env } = await getCloudflareContext() as unknown as { env: CloudflareEnv }
 
         // 取得資料庫和快取客戶端
         const kv = getKVCache(env)
@@ -217,7 +217,7 @@ export function withAuthOnly(handler: ApiHandler) {
   return async function (request: NextRequest): Promise<NextResponse> {
     try {
       // 取得 Cloudflare 環境
-      const { env } = await getCloudflareContext() as { env: CloudflareEnv }
+      const { env } = await getCloudflareContext() as unknown as { env: CloudflareEnv }
 
       // 取得資料庫和快取客戶端
       const kv = getKVCache(env)

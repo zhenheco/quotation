@@ -48,6 +48,52 @@ const menuItems = [
     ],
   },
   {
+    en: 'Accounting',
+    zh: '會計系統',
+    href: '/accounting',
+    icon: '📊',
+    submenu: [
+      {
+        en: 'Invoices',
+        zh: '發票管理',
+        href: '/accounting/invoices',
+      },
+      {
+        en: 'Journal Entries',
+        zh: '會計傳票',
+        href: '/accounting/journals',
+      },
+      {
+        en: 'Financial Reports',
+        zh: '財務報表',
+        href: '/accounting/reports',
+      },
+    ],
+  },
+  {
+    en: 'POS System',
+    zh: 'POS 系統',
+    href: '/pos',
+    icon: '🛒',
+    submenu: [
+      {
+        en: 'Sales',
+        zh: '銷售紀錄',
+        href: '/pos/sales',
+      },
+      {
+        en: 'Members',
+        zh: '會員管理',
+        href: '/pos/members',
+      },
+      {
+        en: 'Settlements',
+        zh: '日結帳',
+        href: '/pos/settlements',
+      },
+    ],
+  },
+  {
     en: 'Settings',
     zh: '系統設定',
     href: '/settings',
