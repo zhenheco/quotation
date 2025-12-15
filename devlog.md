@@ -33,11 +33,22 @@ Account-system 合併到 quotation-system 時，前端代碼調用的 API 端點
 - `/app/[locale]/pos/loading.tsx` (新增)
 - `/app/[locale]/settings/loading.tsx` (新增)
 
+### 第二次修復（同日）
+問題仍然存在，進一步調查發現：
+1. 會計和 POS 頁面缺少 layout.tsx（沒有 Sidebar、Header）
+2. CSS `body { background: var(--background) }` 使用錯誤（應為 `hsl(var(--background))`）
+
+額外修復：
+- 新增 `accounting/layout.tsx`、`pos/layout.tsx`
+- 修正 `globals.css` body 背景為 `hsl(var(--background))`
+
 ### 經驗教訓
 合併系統時必須完整檢查：
 1. 前端調用的所有 API 端點是否存在
 2. 資料庫 schema 與 API 回傳格式是否匹配
 3. 各頁面路由是否有 loading.tsx 處理過渡狀態
+4. 各功能模組是否有正確的 layout.tsx 提供共用 UI（Sidebar、Header）
+5. CSS 變數使用是否正確（HSL 格式需要包裝）
 
 ---
 
