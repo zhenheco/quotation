@@ -1,5 +1,131 @@
 # Development Log
 
+## 2025-12-15: Account-system 整合至 quotation-system（會計 + POS 模組）
+
+### 背景
+將 Account-system（會計系統 + POS 系統）完整整合到 quotation-system，採用 Cloudflare Workers + Supabase Client 架構。
+
+### 整合範圍
+
+#### 會計模組
+- 發票管理（invoices）- CRUD + 審核/過帳/作廢/付款
+- 會計傳票（journals）- CRUD + 過帳/作廢
+- 財務報表（reports）- 試算表/損益表/資產負債表
+
+#### POS 模組
+- 銷售交易（sales）- 列表/結帳/作廢/退款/報表
+- 日結帳（settlements）- 開始/點鈔/審核/鎖定
+- 會員管理（members）- CRUD + 儲值/扣款/餘額
+
+### 建立的檔案
+
+#### API Routes（15 個）
+```
+app/api/accounting/
+├── invoices/
+│   ├── route.ts
+│   └── [id]/
+│       ├── route.ts
+│       ├── verify/route.ts
+│       ├── post/route.ts
+│       ├── void/route.ts
+│       └── payment/route.ts
+├── journals/
+│   ├── route.ts
+│   └── [id]/
+│       ├── route.ts
+│       ├── post/route.ts
+│       └── void/route.ts
+└── reports/
+    ├── trial-balance/route.ts
+    ├── income-statement/route.ts
+    └── balance-sheet/route.ts
+
+app/api/pos/
+├── sales/
+│   ├── route.ts
+│   ├── report/route.ts
+│   └── [id]/
+│       ├── route.ts
+│       ├── void/route.ts
+│       └── refund/route.ts
+├── settlements/
+│   ├── route.ts
+│   └── [id]/
+│       ├── route.ts
+│       ├── count/route.ts
+│       ├── approve/route.ts
+│       └── lock/route.ts
+└── members/
+    ├── route.ts
+    └── [id]/
+        ├── route.ts
+        ├── deposit/route.ts
+        └── balance/route.ts
+```
+
+#### React Query Hooks（7 個）
+```
+hooks/accounting/
+├── use-invoices.ts
+├── use-journals.ts
+├── use-reports.ts
+└── index.ts
+
+hooks/pos/
+├── use-sales.ts
+├── use-settlements.ts
+├── use-members.ts
+└── index.ts
+```
+
+### 修復的 TypeScript 錯誤
+
+1. **middleware.ts**
+   - `kv.set(key, value, 300)` → `kv.set(key, value, { ttl: 300 })`
+   - `getCloudflareContext() as { env }` → `as unknown as { env }`
+   - `CloudflareEnv.KV_CACHE` → `CloudflareEnv.KV`
+
+2. **Hooks**
+   - `response.json()` 類型錯誤 → 使用 `as { error?: string }` 類型斷言
+   - `Record<string, unknown>` 相容性 → 改用 `object` 類型
+   - 缺少類型定義 → 在 hooks 檔案本地定義
+
+3. **Service 層**
+   - 移除未使用的 imports（`InvoiceType`, `InvoiceStatus`, `voidInvoice`, `SettlementStatus`）
+   - Export 未使用的介面（`EncryptionKeyRecord`）
+
+### 驗證結果
+- ✅ `pnpm run lint` - 通過
+- ✅ `pnpm run typecheck` - 通過
+
+### 架構特色
+
+#### API Route 權限檢查
+```typescript
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const { env } = await getCloudflareContext() as unknown as { env: CloudflareEnv }
+  const { kv, db, user, error } = await validateRequest(request, env)
+
+  const hasPermission = await checkPermission(kv, db, user.id, 'accounting:invoices:read')
+  if (!hasPermission) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  // 業務邏輯...
+}
+```
+
+#### React Query Hooks 快取策略
+- 列表數據：30 秒 staleTime
+- 單筆數據：無快取（即時）
+- 報表數據：60 秒 staleTime
+
+### 待辦
+- 建立前端頁面（Dashboard UI）
+- 執行資料庫 RPC 函數遷移
+- 完整端對端測試
+
+---
+
 ## 2025-12-15: 供應商獨立化重構
 
 ### 背景
