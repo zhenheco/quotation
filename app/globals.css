@@ -77,8 +77,8 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   font-family: Arial, Helvetica, sans-serif;
   /* 防止滑動時出現橡皮筋效果和白色空白區域 */
   overscroll-behavior: none;
