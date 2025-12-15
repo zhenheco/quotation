@@ -3,199 +3,269 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import {
+  LayoutDashboard,
+  Receipt,
+  FileText,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  List,
+  BarChart3,
+  FileSpreadsheet,
+  Store,
+  Users,
+  Package,
+  CreditCard,
+  Calculator,
+  Factory,
+  UserCheck,
+  Wallet,
+  ClipboardList,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import type { LucideIcon } from 'lucide-react'
 
-const menuItems = [
+interface NavigationItem {
+  name: { en: string; zh: string }
+  href: string
+  icon: LucideIcon
+  children?: NavigationItem[]
+}
+
+const navigation: NavigationItem[] = [
   {
-    en: 'Dashboard',
-    zh: '儀表板',
+    name: { en: 'Dashboard', zh: '儀表板' },
     href: '/dashboard',
-    icon: '🏠',
+    icon: LayoutDashboard,
   },
   {
-    en: 'Products',
-    zh: '服務/項目',
+    name: { en: 'Products', zh: '服務/項目' },
     href: '/products',
-    icon: '📦',
+    icon: Package,
   },
   {
-    en: 'Suppliers',
-    zh: '供應商',
+    name: { en: 'Suppliers', zh: '供應商' },
     href: '/suppliers',
-    icon: '🏭',
+    icon: Factory,
   },
   {
-    en: 'Customers',
-    zh: '客戶',
+    name: { en: 'Customers', zh: '客戶' },
     href: '/customers',
-    icon: '👥',
+    icon: UserCheck,
   },
   {
-    en: 'Quotations',
-    zh: '報價單',
+    name: { en: 'Quotations', zh: '報價管理' },
     href: '/quotations',
-    icon: '📄',
-    submenu: [
+    icon: FileText,
+    children: [
       {
-        en: 'All Quotations',
-        zh: '所有報價單',
+        name: { en: 'All Quotations', zh: '所有報價單' },
         href: '/quotations',
+        icon: List,
       },
       {
-        en: 'Payments',
-        zh: '收款管理',
+        name: { en: 'Payments', zh: '收款管理' },
         href: '/payments',
+        icon: Wallet,
       },
     ],
   },
   {
-    en: 'Accounting',
-    zh: '會計系統',
+    name: { en: 'Accounting', zh: '會計系統' },
     href: '/accounting',
-    icon: '📊',
-    submenu: [
+    icon: Calculator,
+    children: [
       {
-        en: 'Invoices',
-        zh: '發票管理',
+        name: { en: 'Invoices', zh: '發票管理' },
         href: '/accounting/invoices',
+        icon: Receipt,
       },
       {
-        en: 'Journal Entries',
-        zh: '會計傳票',
+        name: { en: 'Journal Entries', zh: '會計傳票' },
         href: '/accounting/journals',
+        icon: FileText,
       },
       {
-        en: 'Financial Reports',
-        zh: '財務報表',
+        name: { en: 'Financial Reports', zh: '財務報表' },
         href: '/accounting/reports',
+        icon: BarChart3,
       },
     ],
   },
   {
-    en: 'POS System',
-    zh: 'POS 系統',
+    name: { en: 'POS System', zh: 'POS 系統' },
     href: '/pos',
-    icon: '🛒',
-    submenu: [
+    icon: Store,
+    children: [
       {
-        en: 'Sales',
-        zh: '銷售紀錄',
+        name: { en: 'Sales', zh: '銷售紀錄' },
         href: '/pos/sales',
+        icon: CreditCard,
       },
       {
-        en: 'Members',
-        zh: '會員管理',
+        name: { en: 'Members', zh: '會員管理' },
         href: '/pos/members',
+        icon: Users,
       },
       {
-        en: 'Settlements',
-        zh: '日結帳',
+        name: { en: 'Settlements', zh: '日結帳' },
         href: '/pos/settlements',
+        icon: ClipboardList,
       },
     ],
   },
   {
-    en: 'Settings',
-    zh: '系統設定',
+    name: { en: 'Settings', zh: '系統設定' },
     href: '/settings',
-    icon: '⚙️',
+    icon: Settings,
   },
 ]
 
-export default function Sidebar({ locale }: { locale: string }) {
+interface SidebarProps {
+  locale: string
+}
+
+export default function Sidebar({ locale }: SidebarProps) {
   const pathname = usePathname()
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(['/quotations'])
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [expandedItems, setExpandedItems] = useState<string[]>(['/quotations', '/accounting', '/pos'])
+
+  const toggleExpanded = (itemHref: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(itemHref)
+        ? prev.filter((href) => href !== itemHref)
+        : [...prev, itemHref]
+    )
+  }
+
+  const getName = (item: NavigationItem) => locale === 'en' ? item.name.en : item.name.zh
 
   return (
-    <aside className="hidden md:flex md:w-64 bg-white border-r border-gray-200 h-full min-h-screen p-4 flex-col overflow-y-auto overflow-x-hidden">
-      {/* Header */}
-      <div className="mb-8">
-        <Link href={`/${locale}/dashboard`} className="flex items-center gap-3 pb-4 border-b border-gray-200 group cursor-pointer">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:shadow-lg transition-shadow flex-shrink-0">
-            Q
+    <aside
+      className={cn(
+        'hidden md:flex h-full flex-col border-r bg-card transition-all duration-300',
+        isCollapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      {/* Logo */}
+      <div className="flex h-16 items-center border-b px-3">
+        <Link
+          href={`/${locale}/dashboard`}
+          className={cn(
+            'flex items-center',
+            isCollapsed ? 'justify-center' : 'space-x-2'
+          )}
+        >
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <FileSpreadsheet className="h-5 w-5" />
           </div>
-          <div>
-            <div className="text-lg font-bold text-gray-900 leading-tight">
+          {!isCollapsed && (
+            <span className="text-lg font-bold">
               {locale === 'zh' ? '報價系統' : 'Quotation'}
-            </div>
-            <div className="text-xs text-gray-500">
-              {locale === 'zh' ? '管理平台' : 'Management'}
-            </div>
-          </div>
+            </span>
+          )}
         </Link>
       </div>
 
-      <nav className="space-y-2 flex-1">
-        {menuItems.map((item) => {
-          const href = `/${locale}${item.href}`
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
+        {navigation.map((item) => {
+          const fullHref = `/${locale}${item.href}`
           const isActive = item.href === '/settings'
-            ? pathname === href
-            : pathname.startsWith(href)
-          const hasSubmenu = item.submenu && item.submenu.length > 0
-          const isExpanded = expandedMenus.includes(item.href)
+            ? pathname === fullHref
+            : pathname.startsWith(fullHref)
+          const hasChildren = item.children && item.children.length > 0
+          const isExpanded = expandedItems.includes(item.href)
+          const isChildActive = item.children?.some((child) => {
+            const childHref = `/${locale}${child.href}`
+            return pathname === childHref || pathname.startsWith(childHref)
+          })
 
           return (
             <div key={item.href}>
-              {hasSubmenu ? (
+              {/* Parent Item */}
+              {hasChildren ? (
                 <button
-                  onClick={() => {
-                    setExpandedMenus(prev =>
-                      prev.includes(item.href)
-                        ? prev.filter(h => h !== item.href)
-                        : [...prev, item.href]
-                    )
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors select-none ${
-                    isActive
-                      ? 'bg-indigo-50 text-indigo-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  onClick={() => toggleExpanded(item.href)}
+                  className={cn(
+                    'group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    isChildActive
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                    isCollapsed && 'justify-center'
+                  )}
+                  title={isCollapsed ? getName(item) : undefined}
                 >
-                  <span className="text-xl flex-shrink-0">{item.icon}</span>
-                  <span className="whitespace-nowrap flex-1 text-left">
-                    {locale === 'en' ? item.en : item.zh}
-                  </span>
-                  <svg
-                    className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <item.icon
+                    className={cn(
+                      'h-5 w-5 flex-shrink-0',
+                      !isCollapsed && 'mr-3',
+                      isChildActive ? 'text-accent-foreground' : 'text-muted-foreground'
+                    )}
+                  />
+                  {!isCollapsed && (
+                    <>
+                      <span className="flex-1 text-left">{getName(item)}</span>
+                      <ChevronDown
+                        className={cn(
+                          'h-4 w-4 transition-transform',
+                          isExpanded && 'rotate-180'
+                        )}
+                      />
+                    </>
+                  )}
                 </button>
               ) : (
                 <Link
-                  href={href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors select-none ${
+                  href={fullHref}
+                  className={cn(
+                    'group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-indigo-50 text-indigo-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                    isCollapsed && 'justify-center'
+                  )}
+                  title={isCollapsed ? getName(item) : undefined}
                 >
-                  <span className="text-xl flex-shrink-0">{item.icon}</span>
-                  <span className="whitespace-nowrap">
-                    {locale === 'en' ? item.en : item.zh}
-                  </span>
+                  <item.icon
+                    className={cn(
+                      'h-5 w-5 flex-shrink-0',
+                      !isCollapsed && 'mr-3',
+                      isActive ? 'text-primary-foreground' : 'text-muted-foreground'
+                    )}
+                  />
+                  {!isCollapsed && getName(item)}
                 </Link>
               )}
 
-              {hasSubmenu && isExpanded && (
-                <div className="ml-8 mt-1 space-y-1">
-                  {item.submenu?.map((subItem) => {
-                    const subHref = `/${locale}${subItem.href}`
-                    const isSubActive = pathname === subHref
-
+              {/* Child Items */}
+              {hasChildren && isExpanded && !isCollapsed && (
+                <div className="mt-1 space-y-1 pl-4">
+                  {item.children?.map((child) => {
+                    const childHref = `/${locale}${child.href}`
+                    const isChildItemActive = pathname === childHref
                     return (
                       <Link
-                        key={subItem.href}
-                        href={subHref}
-                        className={`block px-4 py-2 text-sm rounded-lg transition-colors ${
-                          isSubActive
-                            ? 'bg-indigo-100 text-indigo-700 font-medium'
-                            : 'text-gray-600 hover:bg-gray-50'
-                        }`}
+                        key={child.href}
+                        href={childHref}
+                        className={cn(
+                          'group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                          isChildItemActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )}
                       >
-                        {locale === 'en' ? subItem.en : subItem.zh}
+                        <child.icon
+                          className={cn(
+                            'h-4 w-4 flex-shrink-0 mr-3',
+                            isChildItemActive
+                              ? 'text-primary-foreground'
+                              : 'text-muted-foreground'
+                          )}
+                        />
+                        {getName(child)}
                       </Link>
                     )
                   })}
@@ -205,6 +275,30 @@ export default function Sidebar({ locale }: { locale: string }) {
           )
         })}
       </nav>
+
+      {/* Footer */}
+      <div className="border-t">
+        {/* Toggle Button */}
+        <div className="p-2">
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={cn(
+              'flex w-full cursor-pointer items-center rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
+              isCollapsed && 'justify-center'
+            )}
+            title={isCollapsed ? (locale === 'zh' ? '展開側邊欄' : 'Expand Sidebar') : (locale === 'zh' ? '收合側邊欄' : 'Collapse Sidebar')}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <>
+                <ChevronLeft className="mr-2 h-5 w-5" />
+                <span className="text-xs">{locale === 'zh' ? '收合' : 'Collapse'}</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </aside>
   )
 }
