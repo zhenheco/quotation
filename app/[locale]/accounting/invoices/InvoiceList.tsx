@@ -6,25 +6,33 @@ import Link from 'next/link'
 import { useInvoices } from '@/hooks/accounting'
 import { useCompany } from '@/hooks/useCompany'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 interface InvoiceListProps {
   locale: string
 }
 
-// 簡易金額格式化
-function formatAmount(amount: number): string {
-  return `NT$ ${amount.toLocaleString('zh-TW', { maximumFractionDigits: 0 })}`
+/**
+ * 金額格式化
+ */
+function formatAmount(amount: number | null | undefined): string {
+  return `NT$ ${(amount || 0).toLocaleString('zh-TW', { maximumFractionDigits: 0 })}`
 }
 
 export default function InvoiceList({ locale }: InvoiceListProps) {
   const t = useTranslations()
   const { company } = useCompany()
   const [page, setPage] = useState(1)
+  const [typeFilter, setTypeFilter] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<string>('')
 
   const { data, isLoading, error } = useInvoices(
     {
       companyId: company?.id || '',
+      type: typeFilter as 'OUTPUT' | 'INPUT' | undefined,
       status: statusFilter as 'DRAFT' | 'VERIFIED' | 'POSTED' | 'VOIDED' | undefined,
       page,
       pageSize: 20,
@@ -34,161 +42,209 @@ export default function InvoiceList({ locale }: InvoiceListProps) {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <LoadingSpinner />
-      </div>
+      <Card>
+        <CardContent className="flex justify-center items-center py-12">
+          <LoadingSpinner />
+        </CardContent>
+      </Card>
     )
   }
 
   if (error) {
     return (
-      <div className="p-6 text-center text-red-600">
-        {t('common.error')}: {error.message}
-      </div>
+      <Card>
+        <CardContent className="p-6 text-center text-destructive">
+          {t('common.error')}: {error.message}
+        </CardContent>
+      </Card>
     )
   }
 
   const invoices = data?.invoices || []
   const total = data?.total || 0
 
-  const getStatusBadge = (status: string) => {
-    const statusClasses: Record<string, string> = {
-      DRAFT: 'bg-gray-100 text-gray-800',
-      VERIFIED: 'bg-blue-100 text-blue-800',
-      POSTED: 'bg-green-100 text-green-800',
-      VOIDED: 'bg-red-100 text-red-800',
+  const getTypeBadge = (type: string) => {
+    if (type === 'OUTPUT') {
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+          銷項發票
+        </Badge>
+      )
     }
-    const statusLabels: Record<string, string> = {
+    return (
+      <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200">
+        進項發票
+      </Badge>
+    )
+  }
+
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, 'outline' | 'secondary' | 'default' | 'destructive'> = {
+      DRAFT: 'outline',
+      VERIFIED: 'secondary',
+      POSTED: 'default',
+      VOIDED: 'destructive',
+    }
+    const labels: Record<string, string> = {
       DRAFT: '草稿',
-      VERIFIED: '已審核',
+      VERIFIED: '已驗證',
       POSTED: '已過帳',
       VOIDED: '已作廢',
     }
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusClasses[status] || 'bg-gray-100'}`}>
-        {statusLabels[status] || status}
-      </span>
+      <Badge variant={variants[status] || 'outline'}>
+        {labels[status] || status}
+      </Badge>
     )
   }
 
-  const getTypeBadge = (type: string) => {
-    return type === 'OUTPUT'
-      ? <span className="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-800">銷項</span>
-      : <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800">進項</span>
+  const getPaymentBadge = (status: string) => {
+    const labels: Record<string, string> = {
+      UNPAID: '未付款',
+      PARTIAL: '部分付款',
+      PAID: '已付清',
+      OVERDUE: '已逾期',
+    }
+    const className = status === 'PAID' ? 'bg-green-100 text-green-800' :
+                      status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-800' :
+                      status === 'OVERDUE' ? 'bg-red-100 text-red-800' : ''
+    return (
+      <Badge variant="outline" className={className}>
+        {labels[status] || status}
+      </Badge>
+    )
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* 篩選器 */}
-      <div className="p-4 border-b flex gap-4">
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border rounded-lg text-sm"
-        >
-          <option value="">全部狀態</option>
-          <option value="DRAFT">草稿</option>
-          <option value="VERIFIED">已審核</option>
-          <option value="POSTED">已過帳</option>
-          <option value="VOIDED">已作廢</option>
-        </select>
-      </div>
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">篩選條件</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4">
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">全部類型</option>
+              <option value="OUTPUT">銷項發票</option>
+              <option value="INPUT">進項發票</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">全部狀態</option>
+              <option value="DRAFT">草稿</option>
+              <option value="VERIFIED">已驗證</option>
+              <option value="POSTED">已過帳</option>
+              <option value="VOIDED">已作廢</option>
+            </select>
+            <Button variant="outline" size="sm">
+              新增發票
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* 列表 */}
-      {invoices.length === 0 ? (
-        <div className="p-12 text-center text-gray-500">
-          {t('common.noData')}
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  發票號碼
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  類型
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  日期
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  往來對象
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  金額
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  狀態
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {invoices.map((invoice) => (
-                <tr key={invoice.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Link
-                      href={`/${locale}/accounting/invoices/${invoice.id}`}
-                      className="text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      {invoice.number}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getTypeBadge(invoice.type)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(invoice.date).toLocaleDateString('zh-TW')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {invoice.counterparty_name || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">
-                    {formatAmount(invoice.total_amount)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    {getStatusBadge(invoice.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link
-                      href={`/${locale}/accounting/invoices/${invoice.id}`}
-                      className="text-gray-600 hover:text-gray-900"
-                    >
-                      {t('common.view')}
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* 發票列表 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>發票管理</CardTitle>
+          <CardDescription>共 {total} 筆發票記錄</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {invoices.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              {t('common.noData')}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>發票號碼</TableHead>
+                  <TableHead>類型</TableHead>
+                  <TableHead>日期</TableHead>
+                  <TableHead>交易對象</TableHead>
+                  <TableHead className="text-right">金額</TableHead>
+                  <TableHead className="text-center">狀態</TableHead>
+                  <TableHead className="text-center">付款</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoices.map((invoice) => (
+                  <TableRow key={invoice.id}>
+                    <TableCell>
+                      <Link
+                        href={`/${locale}/accounting/invoices/${invoice.id}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {invoice.number}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      {getTypeBadge(invoice.type)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {new Date(invoice.date).toLocaleDateString('zh-TW')}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {invoice.counterparty_name || '-'}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      <span className={invoice.type === 'OUTPUT' ? 'text-green-600' : 'text-red-600'}>
+                        {formatAmount(invoice.total_amount)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {getStatusBadge(invoice.status)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {getPaymentBadge(invoice.payment_status)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/${locale}/accounting/invoices/${invoice.id}`}>
+                          {t('common.view')}
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 分頁 */}
       {total > 20 && (
-        <div className="px-6 py-4 border-t flex justify-between items-center">
-          <div className="text-sm text-gray-500">
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-muted-foreground">
             顯示 {invoices.length} 筆，共 {total} 筆
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 border rounded disabled:opacity-50"
             >
               上一頁
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setPage((p) => p + 1)}
               disabled={invoices.length < 20}
-              className="px-3 py-1 border rounded disabled:opacity-50"
             >
               下一頁
-            </button>
+            </Button>
           </div>
         </div>
       )}

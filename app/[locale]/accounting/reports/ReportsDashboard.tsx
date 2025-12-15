@@ -4,8 +4,14 @@ import { useState } from 'react'
 import { useTrialBalance, useIncomeStatement, useBalanceSheet } from '@/hooks/accounting'
 import { useCompany } from '@/hooks/useCompany'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
 
-// 簡易金額格式化
+/**
+ * 金額格式化
+ */
 function formatAmount(amount: number | null | undefined): string {
   return `NT$ ${(amount || 0).toLocaleString('zh-TW', { maximumFractionDigits: 0 })}`
 }
@@ -40,87 +46,116 @@ export default function ReportsDashboard() {
     activeTab === 'balance' && !!company?.id
   )
 
-  const tabs = [
-    { id: 'trial', label: '試算表' },
-    { id: 'income', label: '損益表' },
-    { id: 'balance', label: '資產負債表' },
-  ]
-
   const isLoading = loadingTrial || loadingIncome || loadingBalance
 
   return (
     <div className="space-y-6">
       {/* 日期篩選器 */}
-      <div className="bg-white rounded-lg shadow p-4 flex flex-wrap gap-4 items-end">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            開始日期
-          </label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="px-3 py-2 border rounded-lg"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            結束日期
-          </label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="px-3 py-2 border rounded-lg"
-          />
-        </div>
-      </div>
-
-      {/* 標籤頁 */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="border-b">
-          <nav className="flex -mb-px">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'trial' | 'income' | 'balance')}
-                className={`py-4 px-6 text-sm font-medium border-b-2 ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="p-6">
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <LoadingSpinner />
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">報表期間</CardTitle>
+          <CardDescription>選擇要查詢的日期範圍</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                開始日期
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
             </div>
-          ) : (
-            <>
-              {/* 試算表 */}
-              {activeTab === 'trial' && trialBalance && Array.isArray(trialBalance) && (
-                <TrialBalanceTable data={trialBalance as TrialBalanceItem[]} />
-              )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                結束日期
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+            <Button variant="outline" size="sm">
+              匯出 Excel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-              {/* 損益表 */}
-              {activeTab === 'income' && incomeStatement && (
-                <IncomeStatementTable data={incomeStatement} />
-              )}
+      {/* 報表標籤頁 */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'trial' | 'income' | 'balance')}>
+        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+          <TabsTrigger value="trial">試算表</TabsTrigger>
+          <TabsTrigger value="income">損益表</TabsTrigger>
+          <TabsTrigger value="balance">資產負債表</TabsTrigger>
+        </TabsList>
 
-              {/* 資產負債表 */}
-              {activeTab === 'balance' && balanceSheet && (
-                <BalanceSheetTable data={balanceSheet} />
-              )}
-            </>
-          )}
-        </div>
-      </div>
+        {isLoading ? (
+          <Card className="mt-4">
+            <CardContent className="flex justify-center py-12">
+              <LoadingSpinner />
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* 試算表 */}
+            <TabsContent value="trial">
+              <Card>
+                <CardHeader>
+                  <CardTitle>試算表</CardTitle>
+                  <CardDescription>
+                    {startDate} 至 {endDate} 期間各科目餘額
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {trialBalance && Array.isArray(trialBalance) && (
+                    <TrialBalanceTable data={trialBalance as TrialBalanceItem[]} />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* 損益表 */}
+            <TabsContent value="income">
+              <Card>
+                <CardHeader>
+                  <CardTitle>損益表</CardTitle>
+                  <CardDescription>
+                    {startDate} 至 {endDate} 期間營收與費用分析
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {incomeStatement && (
+                    <IncomeStatementTable data={incomeStatement} />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* 資產負債表 */}
+            <TabsContent value="balance">
+              <Card>
+                <CardHeader>
+                  <CardTitle>資產負債表</CardTitle>
+                  <CardDescription>
+                    截至 {endDate} 的財務狀況
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {balanceSheet && (
+                    <BalanceSheetTable data={balanceSheet} />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
     </div>
   )
 }
@@ -143,57 +178,51 @@ function TrialBalanceTable({ data }: { data: TrialBalanceItem[] }) {
   const totalCredit = data.reduce((sum, item) => sum + (item.closing_credit || 0), 0)
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              科目代碼
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-              科目名稱
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-              借方餘額
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-              貸方餘額
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {data.map((item, index) => (
-            <tr key={index} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">
-                {item.account_code}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                {item.account_name}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                {item.closing_debit > 0 ? formatAmount(item.closing_debit) : '-'}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                {item.closing_credit > 0 ? formatAmount(item.closing_credit) : '-'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot className="bg-gray-100 font-semibold">
-          <tr>
-            <td colSpan={2} className="px-6 py-4 text-sm">
-              合計
-            </td>
-            <td className="px-6 py-4 text-sm text-right">
-              {formatAmount(totalDebit)}
-            </td>
-            <td className="px-6 py-4 text-sm text-right">
-              {formatAmount(totalCredit)}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[120px]">科目代碼</TableHead>
+          <TableHead>科目名稱</TableHead>
+          <TableHead className="text-right">借方餘額</TableHead>
+          <TableHead className="text-right">貸方餘額</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.map((item, index) => (
+          <TableRow key={index}>
+            <TableCell className="font-mono text-muted-foreground">
+              {item.account_code}
+            </TableCell>
+            <TableCell className="font-medium">{item.account_name}</TableCell>
+            <TableCell className="text-right">
+              {item.closing_debit > 0 ? (
+                <span className="text-blue-600">{formatAmount(item.closing_debit)}</span>
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+            </TableCell>
+            <TableCell className="text-right">
+              {item.closing_credit > 0 ? (
+                <span className="text-blue-600">{formatAmount(item.closing_credit)}</span>
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+      <TableFooter>
+        <TableRow>
+          <TableCell colSpan={2} className="font-semibold">合計</TableCell>
+          <TableCell className="text-right font-semibold text-blue-700">
+            {formatAmount(totalDebit)}
+          </TableCell>
+          <TableCell className="text-right font-semibold text-blue-700">
+            {formatAmount(totalCredit)}
+          </TableCell>
+        </TableRow>
+      </TableFooter>
+    </Table>
   )
 }
 
@@ -206,51 +235,79 @@ interface IncomeStatementData {
 function IncomeStatementTable({ data }: { data: IncomeStatementData }) {
   return (
     <div className="space-y-8">
-      {/* 收入 */}
+      {/* 三欄摘要 */}
+      <div className="grid grid-cols-3 gap-6">
+        <div className="rounded-lg border bg-green-50 p-4">
+          <div className="text-sm font-semibold text-green-800 mb-2">營業收入</div>
+          <div className="text-2xl font-bold text-green-700">
+            {formatAmount(data.revenue.total)}
+          </div>
+        </div>
+        <div className="rounded-lg border bg-red-50 p-4">
+          <div className="text-sm font-semibold text-red-800 mb-2">營業費用</div>
+          <div className="text-2xl font-bold text-red-700">
+            {formatAmount(data.expenses.total)}
+          </div>
+        </div>
+        <div className={`rounded-lg border p-4 ${data.netIncome >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
+          <div className={`text-sm font-semibold mb-2 ${data.netIncome >= 0 ? 'text-blue-800' : 'text-orange-800'}`}>
+            本期淨利
+          </div>
+          <div className={`text-2xl font-bold ${data.netIncome >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
+            {formatAmount(data.netIncome)}
+          </div>
+        </div>
+      </div>
+
+      {/* 收入明細 */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">營業收入</h3>
-        <table className="min-w-full divide-y divide-gray-200">
-          <tbody className="bg-white divide-y divide-gray-200">
+        <h3 className="text-lg font-semibold mb-4 text-green-800">營業收入明細</h3>
+        <Table>
+          <TableBody>
             {data.revenue.items.map((item, index) => (
-              <tr key={index}>
-                <td className="px-6 py-3 text-sm font-mono w-32">{item.accountCode}</td>
-                <td className="px-6 py-3 text-sm">{item.accountName}</td>
-                <td className="px-6 py-3 text-sm text-right">{formatAmount(item.amount)}</td>
-              </tr>
+              <TableRow key={index}>
+                <TableCell className="font-mono text-muted-foreground w-32">{item.accountCode}</TableCell>
+                <TableCell>{item.accountName}</TableCell>
+                <TableCell className="text-right text-green-600 font-medium">{formatAmount(item.amount)}</TableCell>
+              </TableRow>
             ))}
-            <tr className="bg-green-50 font-semibold">
-              <td colSpan={2} className="px-6 py-3 text-sm">收入合計</td>
-              <td className="px-6 py-3 text-sm text-right text-green-700">{formatAmount(data.revenue.total)}</td>
-            </tr>
-          </tbody>
-        </table>
+          </TableBody>
+          <TableFooter>
+            <TableRow className="bg-green-100">
+              <TableCell colSpan={2} className="font-semibold text-green-800">收入合計</TableCell>
+              <TableCell className="text-right font-bold text-green-700">{formatAmount(data.revenue.total)}</TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
       </div>
 
-      {/* 費用 */}
+      {/* 費用明細 */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">營業費用</h3>
-        <table className="min-w-full divide-y divide-gray-200">
-          <tbody className="bg-white divide-y divide-gray-200">
+        <h3 className="text-lg font-semibold mb-4 text-red-800">營業費用明細</h3>
+        <Table>
+          <TableBody>
             {data.expenses.items.map((item, index) => (
-              <tr key={index}>
-                <td className="px-6 py-3 text-sm font-mono w-32">{item.accountCode}</td>
-                <td className="px-6 py-3 text-sm">{item.accountName}</td>
-                <td className="px-6 py-3 text-sm text-right">{formatAmount(item.amount)}</td>
-              </tr>
+              <TableRow key={index}>
+                <TableCell className="font-mono text-muted-foreground w-32">{item.accountCode}</TableCell>
+                <TableCell>{item.accountName}</TableCell>
+                <TableCell className="text-right text-red-600 font-medium">{formatAmount(item.amount)}</TableCell>
+              </TableRow>
             ))}
-            <tr className="bg-red-50 font-semibold">
-              <td colSpan={2} className="px-6 py-3 text-sm">費用合計</td>
-              <td className="px-6 py-3 text-sm text-right text-red-700">{formatAmount(data.expenses.total)}</td>
-            </tr>
-          </tbody>
-        </table>
+          </TableBody>
+          <TableFooter>
+            <TableRow className="bg-red-100">
+              <TableCell colSpan={2} className="font-semibold text-red-800">費用合計</TableCell>
+              <TableCell className="text-right font-bold text-red-700">{formatAmount(data.expenses.total)}</TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
       </div>
 
-      {/* 淨利 */}
-      <div className={`p-6 rounded-lg ${data.netIncome >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+      {/* 淨利區塊 */}
+      <div className={`p-6 rounded-xl ${data.netIncome >= 0 ? 'bg-gradient-to-r from-green-100 to-blue-100' : 'bg-gradient-to-r from-orange-100 to-red-100'}`}>
         <div className="flex justify-between items-center">
           <span className="text-xl font-bold">本期淨利</span>
-          <span className={`text-2xl font-bold ${data.netIncome >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+          <span className={`text-3xl font-bold ${data.netIncome >= 0 ? 'text-green-700' : 'text-red-700'}`}>
             {formatAmount(data.netIncome)}
           </span>
         </div>
@@ -266,57 +323,84 @@ interface BalanceSheetData {
 }
 
 function BalanceSheetTable({ data }: { data: BalanceSheetData }) {
-  const SectionTable = ({ title, items, total, colorClass }: { title: string; items: Array<{ accountCode: string; accountName: string; balance: number }>; total: number; colorClass: string }) => (
-    <div className="mb-8">
-      <h3 className="text-lg font-semibold mb-4">{title}</h3>
-      <table className="min-w-full divide-y divide-gray-200">
-        <tbody className="bg-white divide-y divide-gray-200">
+  const SectionTable = ({
+    title,
+    items,
+    total,
+    colorClass,
+    bgClass
+  }: {
+    title: string
+    items: Array<{ accountCode: string; accountName: string; balance: number }>
+    total: number
+    colorClass: string
+    bgClass: string
+  }) => (
+    <div className="mb-6">
+      <h3 className={`text-lg font-semibold mb-4 ${colorClass}`}>{title}</h3>
+      <Table>
+        <TableBody>
           {items.map((item, index) => (
-            <tr key={index}>
-              <td className="px-6 py-3 text-sm font-mono w-32">{item.accountCode}</td>
-              <td className="px-6 py-3 text-sm">{item.accountName}</td>
-              <td className="px-6 py-3 text-sm text-right">{formatAmount(item.balance)}</td>
-            </tr>
+            <TableRow key={index}>
+              <TableCell className="font-mono text-muted-foreground w-32">{item.accountCode}</TableCell>
+              <TableCell>{item.accountName}</TableCell>
+              <TableCell className="text-right font-medium">{formatAmount(item.balance)}</TableCell>
+            </TableRow>
           ))}
-          <tr className={`${colorClass} font-semibold`}>
-            <td colSpan={2} className="px-6 py-3 text-sm">合計</td>
-            <td className="px-6 py-3 text-sm text-right">{formatAmount(total)}</td>
-          </tr>
-        </tbody>
-      </table>
+        </TableBody>
+        <TableFooter>
+          <TableRow className={bgClass}>
+            <TableCell colSpan={2} className={`font-semibold ${colorClass}`}>{title}合計</TableCell>
+            <TableCell className={`text-right font-bold ${colorClass}`}>{formatAmount(total)}</TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
     </div>
   )
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
       {/* 左側：資產 */}
-      <div>
+      <div className="space-y-4">
         <SectionTable
           title="資產"
           items={data.assets.items}
           total={data.assets.total}
-          colorClass="bg-blue-50"
+          colorClass="text-blue-800"
+          bgClass="bg-blue-100"
         />
+
+        {/* 資產總計 */}
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 rounded-xl text-white">
+          <div className="flex justify-between items-center">
+            <span className="font-bold">資產總計</span>
+            <span className="text-2xl font-bold">{formatAmount(data.assets.total)}</span>
+          </div>
+        </div>
       </div>
 
       {/* 右側：負債 + 權益 */}
-      <div>
+      <div className="space-y-4">
         <SectionTable
           title="負債"
           items={data.liabilities.items}
           total={data.liabilities.total}
-          colorClass="bg-orange-50"
+          colorClass="text-orange-800"
+          bgClass="bg-orange-100"
         />
         <SectionTable
           title="權益"
           items={data.equity.items}
           total={data.equity.total}
-          colorClass="bg-purple-50"
+          colorClass="text-purple-800"
+          bgClass="bg-purple-100"
         />
-        <div className="bg-gray-100 p-4 rounded-lg">
-          <div className="flex justify-between items-center font-bold">
-            <span>負債及權益合計</span>
-            <span>{formatAmount(data.liabilities.total + data.equity.total)}</span>
+
+        {/* 負債及權益總計 */}
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-4 rounded-xl text-white">
+          <div className="flex justify-between items-center">
+            <span className="font-bold">負債及權益總計</span>
+            <span className="text-2xl font-bold">{formatAmount(data.liabilities.total + data.equity.total)}</span>
           </div>
         </div>
       </div>
