@@ -79,6 +79,7 @@ export interface Product {
 export interface ProductSupplierCost {
   id: string
   product_id: string
+  supplier_id: string | null
   supplier_name: string
   supplier_code: string | null
   cost_price: number
@@ -87,6 +88,8 @@ export interface ProductSupplierCost {
   notes: string | null
   created_at: string
   updated_at: string
+  // 關聯的供應商資料（用於 JOIN 查詢）
+  supplier?: Supplier | null
 }
 
 export interface CreateProductData {
@@ -335,6 +338,80 @@ export interface CreateQuotationImageData {
 export interface UpdateQuotationImageData {
   sort_order?: number
   caption?: string | null
+}
+
+// ============================================================================
+// Supplier Types
+// ============================================================================
+
+export interface Supplier {
+  id: string
+  company_id: string
+  user_id: string
+  supplier_number: string | null
+  name: BilingualText
+  code: string | null
+  contact_person: { name: string; phone: string; email: string } | null
+  phone: string | null
+  email: string | null
+  fax: string | null
+  address: BilingualText | null
+  website: string | null
+  tax_id: string | null
+  payment_terms: string | null
+  payment_days: number | null
+  bank_name: string | null
+  bank_account: string | null
+  bank_code: string | null
+  swift_code: string | null
+  is_active: boolean
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateSupplierData {
+  company_id: string
+  user_id: string
+  supplier_number?: string | null
+  name: BilingualText
+  code?: string | null
+  contact_person?: { name: string; phone: string; email: string } | null
+  phone?: string | null
+  email?: string | null
+  fax?: string | null
+  address?: BilingualText | null
+  website?: string | null
+  tax_id?: string | null
+  payment_terms?: string | null
+  payment_days?: number | null
+  bank_name?: string | null
+  bank_account?: string | null
+  bank_code?: string | null
+  swift_code?: string | null
+  is_active?: boolean
+  notes?: string | null
+}
+
+export interface UpdateSupplierData {
+  supplier_number?: string | null
+  name?: BilingualText
+  code?: string | null
+  contact_person?: { name: string; phone: string; email: string } | null
+  phone?: string | null
+  email?: string | null
+  fax?: string | null
+  address?: BilingualText | null
+  website?: string | null
+  tax_id?: string | null
+  payment_terms?: string | null
+  payment_days?: number | null
+  bank_name?: string | null
+  bank_account?: string | null
+  bank_code?: string | null
+  swift_code?: string | null
+  is_active?: boolean
+  notes?: string | null
 }
 
 // ============================================================================

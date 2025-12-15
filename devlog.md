@@ -1,5 +1,108 @@
 # Development Log
 
+## 2025-12-15: 供應商獨立化重構
+
+### 背景
+供應商原本依附於產品下，以文字輸入方式儲存在 `product_supplier_costs` 表。此設計有以下問題：
+- 同一供應商可能有多個產品，重複輸入資料
+- 無法統一管理供應商資訊（聯絡人、銀行帳戶等）
+- 容易產生資料不一致（同供應商不同名稱）
+
+### 新架構
+```
+suppliers (新表)
+    ↓
+product_supplier_costs.supplier_id (外鍵)
+    ↓
+products
+```
+
+### 實作內容
+
+#### 1. 資料庫遷移 (`migrations/042_supplier_independence.sql`)
+- 建立 `suppliers` 表（含多語名稱、聯絡人、銀行資訊等）
+- 修改 `product_supplier_costs` 新增 `supplier_id` 外鍵
+- 資料遷移：從現有 `product_supplier_costs` 自動建立 `suppliers`
+- RLS 政策與權限設定
+
+#### 2. 類型定義
+- `types/rbac.types.ts` - 新增 `suppliers` 資源
+- `types/models.ts` - 新增 `Supplier` 介面
+
+#### 3. 後端實作
+- `lib/dal/suppliers.ts` - 供應商 CRUD 操作
+- `lib/dal/product-supplier-costs.ts` - 改用 `supplier_id`
+- API 路由：
+  - `/api/suppliers` - 列表和新增
+  - `/api/suppliers/[id]` - 單筆查詢、更新、刪除
+  - `/api/suppliers/generate-number` - 自動生成編號
+
+#### 4. 前端 Hooks
+- `hooks/useSuppliers.ts` - 供應商 CRUD hooks
+- `hooks/useProductSupplierCosts.ts` - 改用 `supplier_id`
+
+#### 5. UI 頁面
+- `app/[locale]/suppliers/page.tsx` - 供應商列表
+- `app/[locale]/suppliers/new/page.tsx` - 新增供應商
+- `app/[locale]/suppliers/[id]/page.tsx` - 編輯供應商
+- `app/[locale]/suppliers/SupplierForm.tsx` - 表單組件
+- `app/[locale]/suppliers/SupplierList.tsx` - 列表組件
+
+#### 6. 產品供應商編輯器改善
+- `components/products/SupplierCostEditor.tsx` - 從文字輸入改為下拉選單
+- 新增「建立新供應商」快捷連結
+
+#### 7. 導航更新
+- `components/Sidebar.tsx` - 新增供應商選單（Products 下方）
+- `components/MobileNav.tsx` - 新增供應商選單
+
+#### 8. 翻譯
+- `messages/zh.json` - 新增供應商相關中文翻譯
+- `messages/en.json` - 新增供應商相關英文翻譯
+
+### 供應商編號格式
+- 格式：`SUP202512-0001`
+- 每公司獨立編號序列
+
+### 待執行
+- ⚠️ 執行資料庫遷移 `migrations/042_supplier_independence.sql`
+- 遷移完成前，供應商功能無法使用
+
+### 向後相容
+- 暫時保留 `supplier_name` 和 `supplier_code` 欄位
+- 資料遷移後再決定是否移除
+
+---
+
+## 2025-12-13: Google OAuth 登入問題排查（瀏覽器 Cookie 問題）
+
+### 問題
+用戶 `acejou27@gmail.com` 反映無法登入：
+- Google OAuth 完成後跳回登入頁
+- 信箱密碼登入顯示「電子郵件或密碼錯誤」
+
+### 排查過程
+1. 檢查 auth.users → 帳號存在，`last_sign_in_at` 是當天
+2. 檢查 user_profiles → 資料完整
+3. 檢查 company_members → 有公司成員資格
+4. 所有資料庫記錄正常
+
+### 根本原因
+**瀏覽器 Cookie 問題** - 用戶瀏覽器中有舊的/損壞的 session cookie，導致登入流程異常。
+
+### 解決方案
+用戶使用**無痕模式**登入後成功。建議清除 `quote24.cc` 的 Cookie。
+
+### 結論
+此問題是用戶端 Cookie 問題，系統本身沒有問題，**不需要修改代碼**。
+
+### 經驗教訓
+- 當登入問題出現時，先確認資料庫記錄（`last_sign_in_at` 可判斷是否實際登入成功）
+- 用戶報告「登入失敗」可能是 Cookie/Session 問題而非系統問題
+- 無痕模式是快速排除 Cookie 問題的好方法
+
+---
+
 ## 2025-12-13: 修復 CSP 和翻譯缺失錯誤
 
 ### 問題

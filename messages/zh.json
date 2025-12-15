@@ -291,7 +291,12 @@
     "setAsPreferred": "設為首選供應商",
     "adding": "新增中...",
     "add": "新增",
-    "cancel": "取消"
+    "cancel": "取消",
+    "selectSupplier": "選擇供應商",
+    "selectSupplierPlaceholder": "請選擇供應商",
+    "createNewSupplier": "新增供應商",
+    "noSuppliersAvailable": "尚無可用的供應商，請先建立供應商",
+    "allSuppliersAdded": "所有供應商都已新增"
   },
   "quotation": {
     "title": "報價單",
@@ -491,6 +496,78 @@
     "validation": {
       "nameRequired": "請輸入客戶名稱（中文和英文）",
       "emailRequired": "請輸入電子郵件地址"
+    }
+  },
+  "supplier": {
+    "title": "供應商",
+    "createNew": "新增供應商",
+    "edit": "編輯供應商",
+    "name": "供應商名稱",
+    "code": "供應商代碼",
+    "supplierNumber": "供應商編號",
+    "contactPerson": "聯絡人",
+    "contactName": "聯絡人姓名",
+    "contactPhone": "聯絡人電話",
+    "contactEmail": "聯絡人電子郵件",
+    "contactNamePlaceholder": "輸入聯絡人姓名",
+    "contactPhonePlaceholder": "輸入聯絡人電話",
+    "contactEmailPlaceholder": "輸入聯絡人電子郵件",
+    "phone": "電話",
+    "email": "電子郵件",
+    "fax": "傳真",
+    "address": "地址",
+    "website": "網站",
+    "taxId": "統一編號",
+    "paymentTerms": "付款條件",
+    "paymentDays": "付款天數",
+    "days": "天",
+    "bankName": "銀行名稱",
+    "bankAccount": "銀行帳號",
+    "bankCode": "銀行代碼",
+    "swiftCode": "SWIFT 代碼",
+    "notes": "備註",
+    "basicInfo": "基本資訊",
+    "paymentInfo": "付款資訊",
+    "bankInfo": "銀行資訊",
+    "other": "其他資訊",
+    "selectSupplier": "選擇供應商",
+    "namePlaceholder": {
+      "zh": "供應商名稱（中文）",
+      "en": "供應商名稱（英文）"
+    },
+    "codePlaceholder": "供應商代碼（如：SUP001）",
+    "emailPlaceholder": "supplier@example.com",
+    "phonePlaceholder": "+886 2 1234 5678",
+    "faxPlaceholder": "+886 2 1234 5679",
+    "taxIdPlaceholder": "12345678",
+    "addressPlaceholder": {
+      "zh": "地址（中文）",
+      "en": "地址（英文）"
+    },
+    "paymentTermsPlaceholder": "例如：月結30天",
+    "bankNamePlaceholder": "銀行名稱",
+    "bankAccountPlaceholder": "銀行帳號",
+    "bankCodePlaceholder": "銀行代碼",
+    "swiftCodePlaceholder": "SWIFT 代碼",
+    "notesPlaceholder": "備註說明",
+    "emptyState": {
+      "title": "尚無供應商",
+      "description": "建立您的第一個供應商以開始使用"
+    },
+    "deleteConfirm": {
+      "title": "刪除供應商",
+      "description": "確定要刪除此供應商嗎？此操作無法復原。"
+    },
+    "createSuccess": "供應商建立成功",
+    "updateSuccess": "供應商更新成功",
+    "deleteSuccess": "供應商刪除成功",
+    "createError": "建立供應商失敗",
+    "updateError": "更新供應商失敗",
+    "deleteError": "刪除供應商失敗",
+    "fetchError": "載入供應商資料失敗",
+    "saveError": "儲存供應商失敗",
+    "validation": {
+      "nameRequired": "請輸入供應商名稱"
     }
   },
   "product": {
