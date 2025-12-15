@@ -7,6 +7,7 @@ import { SupabaseClient } from '@/lib/db/supabase-client'
 export interface ProductSupplierCost {
   id: string
   product_id: string
+  supplier_id: string | null
   supplier_name: string
   supplier_code: string | null
   cost_price: number
@@ -15,6 +16,12 @@ export interface ProductSupplierCost {
   notes: string | null
   created_at: string
   updated_at: string
+  // 關聯的供應商資料（用於 JOIN 查詢）
+  supplier?: {
+    id: string
+    name: { zh: string; en: string }
+    code: string | null
+  } | null
 }
 
 export async function getProductSupplierCosts(
@@ -23,7 +30,10 @@ export async function getProductSupplierCosts(
 ): Promise<ProductSupplierCost[]> {
   const { data, error } = await db
     .from('product_supplier_costs')
-    .select('*')
+    .select(`
+      *,
+      supplier:suppliers(id, name, code)
+    `)
     .eq('product_id', productId)
     .order('is_preferred', { ascending: false })
     .order('created_at', { ascending: true })
@@ -57,6 +67,7 @@ export async function createProductSupplierCost(
   db: SupabaseClient,
   data: {
     product_id: string
+    supplier_id?: string
     supplier_name: string
     supplier_code?: string
     cost_price: number
@@ -80,6 +91,7 @@ export async function createProductSupplierCost(
     .insert({
       id: crypto.randomUUID(),
       product_id: data.product_id,
+      supplier_id: data.supplier_id || null,
       supplier_name: data.supplier_name,
       supplier_code: data.supplier_code || null,
       cost_price: data.cost_price,
@@ -89,7 +101,10 @@ export async function createProductSupplierCost(
       created_at: now,
       updated_at: now
     })
-    .select()
+    .select(`
+      *,
+      supplier:suppliers(id, name, code)
+    `)
     .single()
 
   if (error) {
@@ -106,7 +121,7 @@ export async function createProductSupplierCost(
 export async function updateProductSupplierCost(
   db: SupabaseClient,
   id: string,
-  data: Partial<Omit<ProductSupplierCost, 'id' | 'product_id' | 'created_at' | 'updated_at'>>
+  data: Partial<Omit<ProductSupplierCost, 'id' | 'product_id' | 'created_at' | 'updated_at' | 'supplier'>>
 ): Promise<ProductSupplierCost> {
   const now = new Date().toISOString()
 
@@ -135,7 +150,10 @@ export async function updateProductSupplierCost(
       updated_at: now
     })
     .eq('id', id)
-    .select()
+    .select(`
+      *,
+      supplier:suppliers(id, name, code)
+    `)
     .single()
 
   if (error) {

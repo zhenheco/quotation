@@ -21,7 +21,8 @@ export type PermissionResource =
   | 'payments'
   | 'company_settings'
   | 'users'
-  | 'exchange_rates';
+  | 'exchange_rates'
+  | 'suppliers';
 
 export type PermissionAction =
   | 'read'

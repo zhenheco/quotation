@@ -17,6 +17,12 @@ const menuItems = [
     icon: '📦',
   },
   {
+    en: 'Suppliers',
+    zh: '供應商',
+    href: '/suppliers',
+    icon: '🏭',
+  },
+  {
     en: 'Customers',
     zh: '客戶',
     href: '/customers',

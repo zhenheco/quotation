@@ -6,6 +6,7 @@ import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from '@/lib/api-client'
 export interface ProductSupplierCost {
   id: string
   product_id: string
+  supplier_id: string | null
   supplier_name: string
   supplier_code: string | null
   cost_price: number
@@ -14,9 +15,16 @@ export interface ProductSupplierCost {
   notes: string | null
   created_at: string
   updated_at: string
+  // 關聯的供應商資料
+  supplier?: {
+    id: string
+    name: { zh: string; en: string }
+    code: string | null
+  } | null
 }
 
 export interface CreateSupplierCostInput {
+  supplier_id?: string
   supplier_name: string
   supplier_code?: string
   cost_price: number
@@ -27,6 +35,7 @@ export interface CreateSupplierCostInput {
 
 export interface UpdateSupplierCostInput {
   id: string
+  supplier_id?: string
   supplier_name?: string
   supplier_code?: string
   cost_price?: number
