@@ -1162,5 +1162,112 @@
     "selectOwner": "Select Owner",
     "ownerLabel": "Owner",
     "ownerHint": "Select the salesperson responsible for this record"
+  },
+  "accounting": {
+    "invoices": {
+      "title": "Invoice Management",
+      "filters": "Filters",
+      "addNew": "Add Invoice",
+      "invoiceNumber": "Invoice Number",
+      "type": "Type",
+      "counterparty": "Counterparty",
+      "date": "Date",
+      "amount": "Amount",
+      "status": "Status",
+      "payment": "Payment",
+      "allTypes": "All Types",
+      "allStatus": "All Status",
+      "totalRecords": "{total} invoice records"
+    },
+    "invoiceTypes": {
+      "output": "Output Invoice",
+      "input": "Input Invoice"
+    },
+    "status": {
+      "draft": "Draft",
+      "verified": "Verified",
+      "posted": "Posted",
+      "voided": "Voided"
+    },
+    "paymentStatus": {
+      "unpaid": "Unpaid",
+      "partial": "Partial",
+      "paid": "Paid",
+      "overdue": "Overdue"
+    },
+    "journals": {
+      "title": "Journal Entries",
+      "filters": "Filters",
+      "addNew": "Add Journal",
+      "journalNumber": "Journal Number",
+      "date": "Date",
+      "description": "Description",
+      "source": "Source",
+      "status": "Status",
+      "actions": "Actions",
+      "totalRecords": "{total} journal records"
+    },
+    "journalSource": {
+      "manual": "Manual",
+      "invoice": "Invoice",
+      "bank": "Bank Reconciliation",
+      "adjustment": "Adjustment"
+    }
+  },
+  "pos": {
+    "members": {
+      "title": "Member List",
+      "totalCount": "Total Members",
+      "newThisMonth": "New This Month",
+      "totalBalance": "Total Balance",
+      "search": "Search Members",
+      "searchPlaceholder": "Search name, phone, number...",
+      "addNew": "Add Member",
+      "memberNumber": "Member Number",
+      "name": "Name",
+      "phone": "Phone",
+      "level": "Level",
+      "balance": "Balance",
+      "points": "Points",
+      "deposit": "Deposit",
+      "regularMember": "Regular Member",
+      "totalMembers": "{total} members",
+      "showingRange": "Showing {start} to {end}"
+    },
+    "memberLevels": {
+      "vip": "VIP",
+      "vvip": "VVIP",
+      "gold": "Gold",
+      "silver": "Silver"
+    },
+    "sales": {
+      "title": "Sales Records",
+      "dailySales": "Today's Sales",
+      "transactionCount": "Transactions",
+      "cashIncome": "Cash Income",
+      "cardIncome": "Card Income",
+      "filters": "Filters",
+      "transactionNo": "Transaction No.",
+      "time": "Time",
+      "member": "Member",
+      "amount": "Amount",
+      "status": "Status",
+      "date": "Date",
+      "allStatus": "All Status",
+      "walkIn": "Walk-in",
+      "dateDescription": "Sales on {date}",
+      "showingRange": "Showing {start} to {end}"
+    },
+    "salesStatus": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "voided": "Voided",
+      "refunded": "Refunded"
+    }
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "showing": "Showing {shown} of {total}"
   }
 }

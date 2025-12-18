@@ -60,28 +60,28 @@ export default function JournalList({ locale }: JournalListProps) {
       POSTED: 'default',
       VOIDED: 'destructive',
     }
-    const labels: Record<string, string> = {
-      DRAFT: '草稿',
-      POSTED: '已過帳',
-      VOIDED: '已作廢',
+    const statusMap: Record<string, string> = {
+      DRAFT: 'draft',
+      POSTED: 'posted',
+      VOIDED: 'voided',
     }
     return (
       <Badge variant={variants[status] || 'outline'}>
-        {labels[status] || status}
+        {t(`accounting.status.${statusMap[status] || status.toLowerCase()}`)}
       </Badge>
     )
   }
 
   const getSourceBadge = (source: string) => {
-    const labels: Record<string, string> = {
-      MANUAL: '手動輸入',
-      INVOICE: '發票',
-      BANK: '銀行對帳',
-      ADJUSTMENT: '調整',
+    const sourceMap: Record<string, string> = {
+      MANUAL: 'manual',
+      INVOICE: 'invoice',
+      BANK: 'bank',
+      ADJUSTMENT: 'adjustment',
     }
     return (
       <Badge variant="secondary">
-        {labels[source] || source}
+        {t(`accounting.journalSource.${sourceMap[source] || source.toLowerCase()}`)}
       </Badge>
     )
   }
@@ -91,7 +91,7 @@ export default function JournalList({ locale }: JournalListProps) {
       {/* 篩選器 */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">篩選條件</CardTitle>
+          <CardTitle className="text-lg">{t('accounting.journals.filters')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
@@ -100,13 +100,13 @@ export default function JournalList({ locale }: JournalListProps) {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              <option value="">全部狀態</option>
-              <option value="DRAFT">草稿</option>
-              <option value="POSTED">已過帳</option>
-              <option value="VOIDED">已作廢</option>
+              <option value="">{t('accounting.invoices.allStatus')}</option>
+              <option value="DRAFT">{t('accounting.status.draft')}</option>
+              <option value="POSTED">{t('accounting.status.posted')}</option>
+              <option value="VOIDED">{t('accounting.status.voided')}</option>
             </select>
             <Button variant="outline" size="sm">
-              新增傳票
+              {t('accounting.journals.addNew')}
             </Button>
           </div>
         </CardContent>
@@ -115,8 +115,8 @@ export default function JournalList({ locale }: JournalListProps) {
       {/* 傳票列表 */}
       <Card>
         <CardHeader>
-          <CardTitle>會計傳票</CardTitle>
-          <CardDescription>共 {total} 筆傳票記錄</CardDescription>
+          <CardTitle>{t('accounting.journals.title')}</CardTitle>
+          <CardDescription>{t('accounting.journals.totalRecords', { total })}</CardDescription>
         </CardHeader>
         <CardContent>
           {journals.length === 0 ? (
@@ -127,12 +127,12 @@ export default function JournalList({ locale }: JournalListProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>傳票編號</TableHead>
-                  <TableHead>日期</TableHead>
-                  <TableHead>摘要</TableHead>
-                  <TableHead>來源</TableHead>
-                  <TableHead className="text-center">狀態</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead>{t('accounting.journals.journalNumber')}</TableHead>
+                  <TableHead>{t('accounting.journals.date')}</TableHead>
+                  <TableHead>{t('accounting.journals.description')}</TableHead>
+                  <TableHead>{t('accounting.journals.source')}</TableHead>
+                  <TableHead className="text-center">{t('accounting.journals.status')}</TableHead>
+                  <TableHead className="text-right">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -177,7 +177,7 @@ export default function JournalList({ locale }: JournalListProps) {
       {total > 20 && (
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground">
-            顯示 {journals.length} 筆，共 {total} 筆
+            {t('pagination.showing', { shown: journals.length, total })}
           </div>
           <div className="flex gap-2">
             <Button
@@ -186,7 +186,7 @@ export default function JournalList({ locale }: JournalListProps) {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
             >
-              上一頁
+              {t('pagination.previous')}
             </Button>
             <Button
               variant="outline"
@@ -194,7 +194,7 @@ export default function JournalList({ locale }: JournalListProps) {
               onClick={() => setPage((p) => p + 1)}
               disabled={journals.length < 20}
             >
-              下一頁
+              {t('pagination.next')}
             </Button>
           </div>
         </div>

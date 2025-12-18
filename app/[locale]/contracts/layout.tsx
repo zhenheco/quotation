@@ -7,7 +7,7 @@ import MobileNav from '@/components/MobileNav'
 
 export const dynamic = 'force-dynamic'
 
-export default async function SettingsLayout({
+export default async function ContractsLayout({
   children,
   params,
 }: {
@@ -16,6 +16,7 @@ export default async function SettingsLayout({
 }) {
   const { locale } = await params
 
+  // Enable static rendering
   setRequestLocale(locale)
 
   const supabase = await createClient()

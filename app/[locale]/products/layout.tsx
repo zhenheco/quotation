@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
-import Navbar from '@/components/Navbar'
+import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import MobileNav from '@/components/MobileNav'
 
@@ -29,14 +29,19 @@ export default async function ProductsLayout({
   }
 
   return (
-    <div className="h-screen bg-gray-50 overflow-hidden flex flex-col">
-      <Navbar locale={locale} />
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <Sidebar locale={locale} />
-        <main className="flex-1 p-4 pb-20 md:pb-8 md:p-8 overflow-y-auto">
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Sidebar */}
+      <Sidebar locale={locale} />
+
+      {/* Main Content */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Header locale={locale} />
+        <main className="flex-1 overflow-y-auto bg-muted/10 p-6 pb-20 md:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Mobile Nav */}
       <MobileNav locale={locale} />
     </div>
   )

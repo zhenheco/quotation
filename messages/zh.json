@@ -1187,5 +1187,112 @@
     "selectOwner": "選擇負責人",
     "ownerLabel": "負責人",
     "ownerHint": "選擇負責此資料的業務人員"
+  },
+  "accounting": {
+    "invoices": {
+      "title": "發票管理",
+      "filters": "篩選條件",
+      "addNew": "新增發票",
+      "invoiceNumber": "發票號碼",
+      "type": "類型",
+      "counterparty": "交易對象",
+      "date": "日期",
+      "amount": "金額",
+      "status": "狀態",
+      "payment": "付款",
+      "allTypes": "全部類型",
+      "allStatus": "全部狀態",
+      "totalRecords": "共 {total} 筆發票記錄"
+    },
+    "invoiceTypes": {
+      "output": "銷項發票",
+      "input": "進項發票"
+    },
+    "status": {
+      "draft": "草稿",
+      "verified": "已驗證",
+      "posted": "已過帳",
+      "voided": "已作廢"
+    },
+    "paymentStatus": {
+      "unpaid": "未付款",
+      "partial": "部分付款",
+      "paid": "已付清",
+      "overdue": "已逾期"
+    },
+    "journals": {
+      "title": "會計傳票",
+      "filters": "篩選條件",
+      "addNew": "新增傳票",
+      "journalNumber": "傳票編號",
+      "date": "日期",
+      "description": "摘要",
+      "source": "來源",
+      "status": "狀態",
+      "actions": "操作",
+      "totalRecords": "共 {total} 筆傳票記錄"
+    },
+    "journalSource": {
+      "manual": "手動輸入",
+      "invoice": "發票",
+      "bank": "銀行對帳",
+      "adjustment": "調整"
+    }
+  },
+  "pos": {
+    "members": {
+      "title": "會員列表",
+      "totalCount": "會員總數",
+      "newThisMonth": "本月新增",
+      "totalBalance": "總儲值餘額",
+      "search": "搜尋會員",
+      "searchPlaceholder": "搜尋姓名、電話、編號...",
+      "addNew": "新增會員",
+      "memberNumber": "會員編號",
+      "name": "姓名",
+      "phone": "電話",
+      "level": "等級",
+      "balance": "餘額",
+      "points": "點數",
+      "deposit": "儲值",
+      "regularMember": "一般會員",
+      "totalMembers": "共 {total} 位會員",
+      "showingRange": "顯示第 {start} 到 {end} 筆"
+    },
+    "memberLevels": {
+      "vip": "VIP",
+      "vvip": "VVIP",
+      "gold": "金卡",
+      "silver": "銀卡"
+    },
+    "sales": {
+      "title": "銷售記錄",
+      "dailySales": "今日營業額",
+      "transactionCount": "交易筆數",
+      "cashIncome": "現金收入",
+      "cardIncome": "刷卡收入",
+      "filters": "篩選條件",
+      "transactionNo": "交易編號",
+      "time": "時間",
+      "member": "會員",
+      "amount": "金額",
+      "status": "狀態",
+      "date": "日期",
+      "allStatus": "全部狀態",
+      "walkIn": "散客",
+      "dateDescription": "{date} 的銷售交易",
+      "showingRange": "顯示第 {start} 到 {end} 筆"
+    },
+    "salesStatus": {
+      "pending": "處理中",
+      "completed": "已完成",
+      "voided": "已作廢",
+      "refunded": "已退款"
+    }
+  },
+  "pagination": {
+    "previous": "上一頁",
+    "next": "下一頁",
+    "showing": "顯示 {shown} 筆，共 {total} 筆"
   }
 }
