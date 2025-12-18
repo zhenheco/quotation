@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useSettlements } from '@/hooks/pos'
 import { useTenant } from '@/hooks/useTenant'
+import { formatAmount } from '@/lib/utils/formatters'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -13,13 +14,6 @@ import { Button } from '@/components/ui/button'
 
 interface SettlementListProps {
   locale: string
-}
-
-/**
- * 金額格式化
- */
-function formatAmount(amount: number | null | undefined): string {
-  return `NT$ ${(amount || 0).toLocaleString('zh-TW', { maximumFractionDigits: 0 })}`
 }
 
 export default function SettlementList({ locale }: SettlementListProps) {
@@ -76,12 +70,12 @@ export default function SettlementList({ locale }: SettlementListProps) {
       APPROVED: 'secondary',
       LOCKED: 'outline',
     }
-    const labels: Record<string, string> = {
-      PENDING: '待處理',
-      COUNTING: '點算中',
-      VARIANCE: '有差異',
-      APPROVED: '已核准',
-      LOCKED: '已鎖定',
+    const statusKeyMap: Record<string, string> = {
+      PENDING: 'pending',
+      COUNTING: 'counting',
+      VARIANCE: 'variance',
+      APPROVED: 'approved',
+      LOCKED: 'locked',
     }
     const className = status === 'PENDING' ? 'bg-blue-100 text-blue-800' :
                       status === 'COUNTING' ? 'bg-yellow-100 text-yellow-800' :
@@ -90,7 +84,7 @@ export default function SettlementList({ locale }: SettlementListProps) {
                       status === 'LOCKED' ? 'bg-gray-100 text-gray-800' : ''
     return (
       <Badge variant={variants[status] || 'outline'} className={className}>
-        {labels[status] || status}
+        {t(`pos.settlements.settlementStatus.${statusKeyMap[status] || status.toLowerCase()}`)}
       </Badge>
     )
   }
@@ -113,24 +107,25 @@ export default function SettlementList({ locale }: SettlementListProps) {
       {/* 篩選器 */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">篩選條件</CardTitle>
+          <CardTitle className="text-lg">{t('pos.settlements.filters')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
+              aria-label={t('pos.settlements.status')}
               className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              <option value="">全部狀態</option>
-              <option value="PENDING">待處理</option>
-              <option value="COUNTING">點算中</option>
-              <option value="VARIANCE">有差異</option>
-              <option value="APPROVED">已核准</option>
-              <option value="LOCKED">已鎖定</option>
+              <option value="">{t('pos.settlements.allStatus')}</option>
+              <option value="PENDING">{t('pos.settlements.settlementStatus.pending')}</option>
+              <option value="COUNTING">{t('pos.settlements.settlementStatus.counting')}</option>
+              <option value="VARIANCE">{t('pos.settlements.settlementStatus.variance')}</option>
+              <option value="APPROVED">{t('pos.settlements.settlementStatus.approved')}</option>
+              <option value="LOCKED">{t('pos.settlements.settlementStatus.locked')}</option>
             </select>
             <Button variant="outline" size="sm">
-              建立日結帳
+              {t('pos.settlements.createSettlement')}
             </Button>
           </div>
         </CardContent>
@@ -139,8 +134,8 @@ export default function SettlementList({ locale }: SettlementListProps) {
       {/* 日結帳列表 */}
       <Card>
         <CardHeader>
-          <CardTitle>日結帳記錄</CardTitle>
-          <CardDescription>最近 30 天的日結帳</CardDescription>
+          <CardTitle>{t('pos.settlements.title')}</CardTitle>
+          <CardDescription>{t('pos.settlements.recentDays', { days: 30 })}</CardDescription>
         </CardHeader>
         <CardContent>
           {settlements.length === 0 ? (
@@ -151,13 +146,13 @@ export default function SettlementList({ locale }: SettlementListProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>結帳日期</TableHead>
-                  <TableHead className="text-right">營業額</TableHead>
-                  <TableHead className="text-right">應收現金</TableHead>
-                  <TableHead className="text-right">實收現金</TableHead>
-                  <TableHead className="text-right">差額</TableHead>
-                  <TableHead className="text-center">狀態</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead>{t('pos.settlements.settlementDate')}</TableHead>
+                  <TableHead className="text-right">{t('pos.settlements.totalSales')}</TableHead>
+                  <TableHead className="text-right">{t('pos.settlements.expectedCash')}</TableHead>
+                  <TableHead className="text-right">{t('pos.settlements.actualCash')}</TableHead>
+                  <TableHead className="text-right">{t('pos.settlements.difference')}</TableHead>
+                  <TableHead className="text-center">{t('pos.settlements.status')}</TableHead>
+                  <TableHead className="text-right">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -214,7 +209,7 @@ export default function SettlementList({ locale }: SettlementListProps) {
       {settlements.length >= limit && (
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground">
-            顯示第 {offset + 1} 到 {offset + settlements.length} 筆
+            {t('pos.settlements.showingRange', { start: offset + 1, end: offset + settlements.length })}
           </div>
           <div className="flex gap-2">
             <Button
@@ -223,7 +218,7 @@ export default function SettlementList({ locale }: SettlementListProps) {
               onClick={() => setOffset((o) => Math.max(0, o - limit))}
               disabled={offset === 0}
             >
-              上一頁
+              {t('pagination.previous')}
             </Button>
             <Button
               variant="outline"
@@ -231,7 +226,7 @@ export default function SettlementList({ locale }: SettlementListProps) {
               onClick={() => setOffset((o) => o + limit)}
               disabled={settlements.length < limit}
             >
-              下一頁
+              {t('pagination.next')}
             </Button>
           </div>
         </div>

@@ -1237,6 +1237,37 @@
       "invoice": "發票",
       "bank": "銀行對帳",
       "adjustment": "調整"
+    },
+    "reports": {
+      "period": "報表期間",
+      "selectDateRange": "選擇報表日期範圍",
+      "startDate": "開始日期",
+      "endDate": "結束日期",
+      "exportExcel": "匯出 Excel",
+      "trialBalance": "試算表",
+      "incomeStatement": "損益表",
+      "balanceSheet": "資產負債表",
+      "periodBalance": "{startDate} 至 {endDate} 期間餘額",
+      "periodAnalysis": "{startDate} 至 {endDate} 期間損益分析",
+      "asOf": "截至 {date}",
+      "accountCode": "科目代碼",
+      "accountName": "科目名稱",
+      "debitBalance": "借方餘額",
+      "creditBalance": "貸方餘額",
+      "total": "合計",
+      "revenue": "營業收入",
+      "expenses": "營業費用",
+      "netIncome": "本期淨利",
+      "revenueDetails": "收入明細",
+      "expenseDetails": "費用明細",
+      "revenueTotal": "收入合計",
+      "expenseTotal": "費用合計",
+      "sectionTotal": "{section}合計",
+      "assets": "資產",
+      "liabilities": "負債",
+      "equity": "權益",
+      "assetsTotal": "資產總計",
+      "liabilitiesEquityTotal": "負債及權益總計"
     }
   },
   "pos": {
@@ -1288,6 +1319,27 @@
       "completed": "已完成",
       "voided": "已作廢",
       "refunded": "已退款"
+    },
+    "settlements": {
+      "title": "日結帳",
+      "filters": "篩選條件",
+      "status": "狀態",
+      "allStatus": "全部狀態",
+      "createSettlement": "建立日結",
+      "recentDays": "最近 {days} 天的結帳記錄",
+      "settlementDate": "結帳日期",
+      "totalSales": "營業總額",
+      "expectedCash": "應收現金",
+      "actualCash": "實收現金",
+      "difference": "差額",
+      "showingRange": "顯示第 {start} 到 {end} 筆",
+      "settlementStatus": {
+        "pending": "待結帳",
+        "counting": "點鈔中",
+        "variance": "有差異",
+        "approved": "已核准",
+        "locked": "已鎖定"
+      }
     }
   },
   "pagination": {
