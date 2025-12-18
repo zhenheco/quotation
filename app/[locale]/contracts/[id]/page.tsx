@@ -6,8 +6,6 @@ import { use } from 'react'
 export const dynamic = 'force-dynamic'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import Sidebar from '@/components/Sidebar'
-import Navbar from '@/components/Navbar'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import PageHeader from '@/components/ui/PageHeader'
 import PaymentProgressBar from '@/components/contracts/PaymentProgressBar'
@@ -37,38 +35,26 @@ export default function ContractDetailPage({
 
   if (isLoading) {
     return (
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar locale={locale} />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Navbar locale={locale} />
-          <main className="flex-1 overflow-y-auto flex items-center justify-center">
-            <LoadingSpinner />
-          </main>
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner />
       </div>
     )
   }
 
   if (error || !contract) {
     return (
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar locale={locale} />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Navbar locale={locale} />
-          <main className="flex-1 overflow-y-auto flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {t('contracts.notFound')}
-              </h2>
-              <p className="text-gray-600 mb-4">{t('contracts.notFoundDescription')}</p>
-              <button
-                onClick={() => router.push(`/${locale}/contracts`)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                {t('contracts.backToList')}
-              </button>
-            </div>
-          </main>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {t('contracts.notFound')}
+          </h2>
+          <p className="text-gray-600 mb-4">{t('contracts.notFoundDescription')}</p>
+          <button
+            onClick={() => router.push(`/${locale}/contracts`)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            {t('contracts.backToList')}
+          </button>
         </div>
       </div>
     )
@@ -102,12 +88,7 @@ export default function ContractDetailPage({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar locale={locale} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar locale={locale} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto">
             <PageHeader
               title={contract.title}
               description={`${t('contracts.contractNumber')}: ${contract.contract_number}`}
@@ -332,9 +313,6 @@ export default function ContractDetailPage({
                 </div>
               </div>
             </div>
-          </div>
-        </main>
-      </div>
     </div>
   )
 }

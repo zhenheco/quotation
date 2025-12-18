@@ -6,8 +6,6 @@ import { use, useState } from 'react'
 export const dynamic = 'force-dynamic'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import Sidebar from '@/components/Sidebar'
-import Navbar from '@/components/Navbar'
 import PageHeader from '@/components/ui/PageHeader'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import EmptyState from '@/components/ui/EmptyState'
@@ -68,25 +66,14 @@ export default function ContractsPage({ params }: { params: Promise<{ locale: st
 
   if (isLoading) {
     return (
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar locale={locale} />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Navbar locale={locale} />
-          <main className="flex-1 overflow-y-auto flex items-center justify-center">
-            <LoadingSpinner />
-          </main>
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner />
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar locale={locale} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar locale={locale} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto">
             <PageHeader
               title={t('contracts.title')}
               description={t('contracts.description')}
@@ -210,9 +197,6 @@ export default function ContractsPage({ params }: { params: Promise<{ locale: st
                 ))}
               </div>
             )}
-          </div>
-        </main>
-      </div>
     </div>
   )
 }

@@ -79,11 +79,11 @@ export default function SalesList({ locale }: SalesListProps) {
       VOIDED: 'destructive',
       REFUNDED: 'secondary',
     }
-    const labels: Record<string, string> = {
-      PENDING: '處理中',
-      COMPLETED: '已完成',
-      VOIDED: '已作廢',
-      REFUNDED: '已退款',
+    const statusMap: Record<string, string> = {
+      PENDING: 'pending',
+      COMPLETED: 'completed',
+      VOIDED: 'voided',
+      REFUNDED: 'refunded',
     }
     const className = status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                       status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
@@ -91,7 +91,7 @@ export default function SalesList({ locale }: SalesListProps) {
                       status === 'REFUNDED' ? 'bg-purple-100 text-purple-800' : ''
     return (
       <Badge variant={variants[status] || 'outline'} className={className}>
-        {labels[status] || status}
+        {t(`pos.salesStatus.${statusMap[status] || status.toLowerCase()}`)}
       </Badge>
     )
   }
@@ -103,7 +103,7 @@ export default function SalesList({ locale }: SalesListProps) {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>今日營業額</CardDescription>
+              <CardDescription>{t('pos.sales.dailySales')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
@@ -113,7 +113,7 @@ export default function SalesList({ locale }: SalesListProps) {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>交易筆數</CardDescription>
+              <CardDescription>{t('pos.sales.transactionCount')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -123,7 +123,7 @@ export default function SalesList({ locale }: SalesListProps) {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>現金收入</CardDescription>
+              <CardDescription>{t('pos.sales.cashIncome')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
@@ -133,7 +133,7 @@ export default function SalesList({ locale }: SalesListProps) {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>刷卡收入</CardDescription>
+              <CardDescription>{t('pos.sales.cardIncome')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-600">
@@ -147,12 +147,12 @@ export default function SalesList({ locale }: SalesListProps) {
       {/* 篩選器 */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">篩選條件</CardTitle>
+          <CardTitle className="text-lg">{t('pos.sales.filters')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">日期</label>
+              <label className="text-sm font-medium text-muted-foreground">{t('pos.sales.date')}</label>
               <input
                 type="date"
                 value={dateFilter}
@@ -161,17 +161,17 @@ export default function SalesList({ locale }: SalesListProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">狀態</label>
+              <label className="text-sm font-medium text-muted-foreground">{t('pos.sales.status')}</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="">全部狀態</option>
-                <option value="PENDING">處理中</option>
-                <option value="COMPLETED">已完成</option>
-                <option value="VOIDED">已作廢</option>
-                <option value="REFUNDED">已退款</option>
+                <option value="">{t('pos.sales.allStatus')}</option>
+                <option value="PENDING">{t('pos.salesStatus.pending')}</option>
+                <option value="COMPLETED">{t('pos.salesStatus.completed')}</option>
+                <option value="VOIDED">{t('pos.salesStatus.voided')}</option>
+                <option value="REFUNDED">{t('pos.salesStatus.refunded')}</option>
               </select>
             </div>
           </div>
@@ -181,8 +181,8 @@ export default function SalesList({ locale }: SalesListProps) {
       {/* 銷售列表 */}
       <Card>
         <CardHeader>
-          <CardTitle>銷售記錄</CardTitle>
-          <CardDescription>{dateFilter} 的銷售交易</CardDescription>
+          <CardTitle>{t('pos.sales.title')}</CardTitle>
+          <CardDescription>{t('pos.sales.dateDescription', { date: dateFilter })}</CardDescription>
         </CardHeader>
         <CardContent>
           {sales.length === 0 ? (
@@ -193,12 +193,12 @@ export default function SalesList({ locale }: SalesListProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>交易編號</TableHead>
-                  <TableHead>時間</TableHead>
-                  <TableHead>會員</TableHead>
-                  <TableHead className="text-right">金額</TableHead>
-                  <TableHead className="text-center">狀態</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead>{t('pos.sales.transactionNo')}</TableHead>
+                  <TableHead>{t('pos.sales.time')}</TableHead>
+                  <TableHead>{t('pos.sales.member')}</TableHead>
+                  <TableHead className="text-right">{t('pos.sales.amount')}</TableHead>
+                  <TableHead className="text-center">{t('pos.sales.status')}</TableHead>
+                  <TableHead className="text-right">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -217,7 +217,7 @@ export default function SalesList({ locale }: SalesListProps) {
                     </TableCell>
                     <TableCell>
                       {sale.member_name || (
-                        <span className="text-muted-foreground">散客</span>
+                        <span className="text-muted-foreground">{t('pos.sales.walkIn')}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right font-medium text-green-600">
@@ -245,7 +245,7 @@ export default function SalesList({ locale }: SalesListProps) {
       {sales.length >= limit && (
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground">
-            顯示第 {offset + 1} 到 {offset + sales.length} 筆
+            {t('pos.sales.showingRange', { start: offset + 1, end: offset + sales.length })}
           </div>
           <div className="flex gap-2">
             <Button
@@ -254,7 +254,7 @@ export default function SalesList({ locale }: SalesListProps) {
               onClick={() => setOffset((o) => Math.max(0, o - limit))}
               disabled={offset === 0}
             >
-              上一頁
+              {t('pagination.previous')}
             </Button>
             <Button
               variant="outline"
@@ -262,7 +262,7 @@ export default function SalesList({ locale }: SalesListProps) {
               onClick={() => setOffset((o) => o + limit)}
               disabled={sales.length < limit}
             >
-              下一頁
+              {t('pagination.next')}
             </Button>
           </div>
         </div>
