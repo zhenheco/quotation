@@ -1212,6 +1212,37 @@
       "invoice": "Invoice",
       "bank": "Bank Reconciliation",
       "adjustment": "Adjustment"
+    },
+    "reports": {
+      "period": "Report Period",
+      "selectDateRange": "Select report date range",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "exportExcel": "Export Excel",
+      "trialBalance": "Trial Balance",
+      "incomeStatement": "Income Statement",
+      "balanceSheet": "Balance Sheet",
+      "periodBalance": "Balance for period {startDate} to {endDate}",
+      "periodAnalysis": "P&L analysis for {startDate} to {endDate}",
+      "asOf": "As of {date}",
+      "accountCode": "Account Code",
+      "accountName": "Account Name",
+      "debitBalance": "Debit Balance",
+      "creditBalance": "Credit Balance",
+      "total": "Total",
+      "revenue": "Revenue",
+      "expenses": "Expenses",
+      "netIncome": "Net Income",
+      "revenueDetails": "Revenue Details",
+      "expenseDetails": "Expense Details",
+      "revenueTotal": "Total Revenue",
+      "expenseTotal": "Total Expenses",
+      "sectionTotal": "{section} Total",
+      "assets": "Assets",
+      "liabilities": "Liabilities",
+      "equity": "Equity",
+      "assetsTotal": "Total Assets",
+      "liabilitiesEquityTotal": "Total Liabilities & Equity"
     }
   },
   "pos": {
@@ -1263,6 +1294,27 @@
       "completed": "Completed",
       "voided": "Voided",
       "refunded": "Refunded"
+    },
+    "settlements": {
+      "title": "Daily Settlement",
+      "filters": "Filters",
+      "status": "Status",
+      "allStatus": "All Status",
+      "createSettlement": "Create Settlement",
+      "recentDays": "Settlements from the last {days} days",
+      "settlementDate": "Settlement Date",
+      "totalSales": "Total Sales",
+      "expectedCash": "Expected Cash",
+      "actualCash": "Actual Cash",
+      "difference": "Difference",
+      "showingRange": "Showing {start} to {end}",
+      "settlementStatus": {
+        "pending": "Pending",
+        "counting": "Counting",
+        "variance": "Variance",
+        "approved": "Approved",
+        "locked": "Locked"
+      }
     }
   },
   "pagination": {
