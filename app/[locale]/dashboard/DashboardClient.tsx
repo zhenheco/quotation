@@ -22,7 +22,7 @@ interface StatCardProps {
   color?: 'blue' | 'green' | 'purple' | 'yellow' | 'red' | 'orange'
 }
 
-function StatCard({ title, value, icon, trend, subtitle, color = 'blue' }: StatCardProps) {
+function StatCard({ title, value, icon, trend, subtitle, color = 'blue', trendLabel }: StatCardProps & { trendLabel?: string }) {
   const colorClasses = {
     blue: 'bg-blue-100 text-blue-600',
     green: 'bg-green-100 text-green-600',
@@ -50,7 +50,7 @@ function StatCard({ title, value, icon, trend, subtitle, color = 'blue' }: StatC
           >
             {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
           </span>
-          <span className="text-sm text-gray-500 ml-2">較上月</span>
+          <span className="text-sm text-gray-500 ml-2">{trendLabel}</span>
         </div>
       )}
       {subtitle && <div className="mt-4 text-sm text-gray-500">{subtitle}</div>}
@@ -90,12 +90,16 @@ interface AlertCardProps {
     date?: string
     amount?: number
     days?: number
+    daysLabel?: string
   }>
   type: 'warning' | 'info' | 'error'
   onViewAll?: () => void
+  viewAllLabel?: string
+  amountLabel?: string
+  locale?: string
 }
 
-function AlertCard({ title, items, type, onViewAll }: AlertCardProps) {
+function AlertCard({ title, items, type, onViewAll, viewAllLabel, amountLabel, locale = 'zh' }: AlertCardProps) {
   const typeClasses = {
     warning: 'bg-yellow-50 border-yellow-200',
     info: 'bg-blue-50 border-blue-200',
@@ -122,7 +126,7 @@ function AlertCard({ title, items, type, onViewAll }: AlertCardProps) {
             onClick={onViewAll}
             className="text-sm text-blue-600 hover:text-blue-800"
           >
-            查看全部
+            {viewAllLabel}
           </button>
         )}
       </div>
@@ -134,20 +138,20 @@ function AlertCard({ title, items, type, onViewAll }: AlertCardProps) {
           >
             <div className="flex justify-between items-start">
               <span className="font-medium">{item.name}</span>
-              {item.days !== undefined && (
+              {item.daysLabel && (
                 <span className="text-xs text-gray-500">
-                  {item.days > 0 ? `${item.days} 天後` : `逾期 ${Math.abs(item.days)} 天`}
+                  {item.daysLabel}
                 </span>
               )}
             </div>
             {item.date && (
               <div className="text-xs text-gray-500 mt-1">
-                {new Date(item.date).toLocaleDateString('zh-TW')}
+                {new Date(item.date).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')}
               </div>
             )}
             {item.amount !== undefined && (
               <div className="text-xs text-gray-600 mt-1">
-                金額: {safeToLocaleString(item.amount)}
+                {amountLabel}: {safeToLocaleString(item.amount)}
               </div>
             )}
           </div>
@@ -186,12 +190,12 @@ export default function DashboardClient({ locale }: { locale: string }) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-red-600 text-lg font-semibold">載入儀表板數據時發生錯誤</p>
+          <p className="text-red-600 text-lg font-semibold">{t('dashboard.loadError')}</p>
           <button
             onClick={() => dashboardData.refetchAll()}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            重新載入
+            {t('dashboard.reload')}
           </button>
         </div>
       </div>
@@ -219,19 +223,19 @@ export default function DashboardClient({ locale }: { locale: string }) {
         <QuickCreateButton
           href={`/${locale}/quotations/new`}
           icon="📄"
-          title="建立報價單"
+          title={t('dashboard.createQuotation')}
           variant="primary"
         />
         <QuickCreateButton
           href={`/${locale}/customers/new`}
           icon="👥"
-          title="新增客戶"
+          title={t('dashboard.createCustomer')}
           variant="secondary"
         />
         <QuickCreateButton
           href={`/${locale}/products/new`}
           icon="📦"
-          title="新增產品"
+          title={t('dashboard.createProduct')}
           variant="secondary"
         />
       </div>
@@ -240,8 +244,11 @@ export default function DashboardClient({ locale }: { locale: string }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* 逾期合約提醒 */}
         <AlertCard
-          title="逾期合約"
+          title={t('dashboard.overdueContracts')}
           type="error"
+          locale={locale}
+          viewAllLabel={t('dashboard.viewAll')}
+          amountLabel={t('dashboard.amount')}
           items={
             overdueContracts?.map((contract) => ({
               id: contract.id,
@@ -255,8 +262,11 @@ export default function DashboardClient({ locale }: { locale: string }) {
 
         {/* 付款提醒 */}
         <AlertCard
-          title="即將到期的付款"
+          title={t('dashboard.upcomingPayments')}
           type="warning"
+          locale={locale}
+          viewAllLabel={t('dashboard.viewAll')}
+          amountLabel={t('dashboard.amount')}
           items={
             paymentReminders?.map((reminder) => ({
               id: reminder.contract_id,
@@ -264,6 +274,9 @@ export default function DashboardClient({ locale }: { locale: string }) {
               date: reminder.next_collection_date,
               amount: reminder.next_collection_amount,
               days: reminder.days_until_due,
+              daysLabel: reminder.days_until_due > 0
+                ? t('dashboard.daysLater', { days: reminder.days_until_due })
+                : t('dashboard.daysOverdue', { days: Math.abs(reminder.days_until_due) }),
             })) || []
           }
           onViewAll={() => (window.location.href = `/${locale}/contracts`)}
@@ -275,7 +288,7 @@ export default function DashboardClient({ locale }: { locale: string }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* 本月營收 */}
           <StatCard
-            title="本月營收"
+            title={t('dashboard.monthlyRevenue')}
             value={formatCurrency(summary.currentMonthRevenue)}
             icon="💰"
             color="blue"
@@ -283,11 +296,12 @@ export default function DashboardClient({ locale }: { locale: string }) {
               value: summary.revenueGrowth,
               isPositive: summary.revenueGrowth >= 0,
             }}
+            trendLabel={t('dashboard.vsLastMonth')}
           />
 
           {/* 本月報價單 */}
           <StatCard
-            title="本月報價單"
+            title={t('dashboard.monthlyQuotations')}
             value={summary.currentMonthCount}
             icon="📄"
             color="green"
@@ -295,24 +309,25 @@ export default function DashboardClient({ locale }: { locale: string }) {
               value: summary.countGrowth,
               isPositive: summary.countGrowth >= 0,
             }}
+            trendLabel={t('dashboard.vsLastMonth')}
           />
 
           {/* 轉換率 */}
           <StatCard
-            title="轉換率"
+            title={t('dashboard.conversionRate')}
             value={`${summary.conversionRate}%`}
             icon="📊"
             color="purple"
-            subtitle={`${summary.acceptedCount} 已簽約 / ${summary.acceptedCount + summary.pendingCount} 已發送`}
+            subtitle={`${summary.acceptedCount} ${t('dashboard.signed')} / ${summary.acceptedCount + summary.pendingCount} ${t('dashboard.sent')}`}
           />
 
           {/* 待處理 */}
           <StatCard
-            title="待處理"
+            title={t('dashboard.pending')}
             value={summary.pendingCount}
             icon="⏰"
             color="yellow"
-            subtitle={`${summary.draftCount} 個草稿`}
+            subtitle={t('dashboard.draftCount', { count: summary.draftCount })}
           />
         </div>
       )}
@@ -322,20 +337,20 @@ export default function DashboardClient({ locale }: { locale: string }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* 活躍合約 */}
           <StatCard
-            title="活躍合約"
+            title={t('dashboard.activeContracts')}
             value={stats.contracts.active}
             icon="📝"
             color="green"
             subtitle={
               stats.contracts.overdue > 0
-                ? `${stats.contracts.overdue} 個逾期`
-                : '無逾期合約'
+                ? t('dashboard.overdueCount', { count: stats.contracts.overdue })
+                : t('dashboard.noOverdueContracts')
             }
           />
 
           {/* 本月收款 */}
           <StatCard
-            title="本月收款"
+            title={t('dashboard.monthlyCollection')}
             value={formatCurrency(stats.payments.current_month_collected)}
             icon="💵"
             color="blue"
@@ -343,24 +358,24 @@ export default function DashboardClient({ locale }: { locale: string }) {
 
           {/* 未收款 */}
           <StatCard
-            title="未收款總額"
+            title={t('dashboard.totalOutstanding')}
             value={formatCurrency(stats.payments.total_unpaid)}
             icon="📋"
             color="orange"
             subtitle={
               stats.payments.total_overdue > 0
-                ? `逾期: ${formatCurrency(stats.payments.total_overdue)}`
-                : '無逾期款項'
+                ? t('dashboard.overdueAmount', { amount: formatCurrency(stats.payments.total_overdue) })
+                : t('dashboard.noOverduePayments')
             }
           />
 
           {/* 客戶總數 */}
           <StatCard
-            title="客戶總數"
+            title={t('dashboard.totalCustomers')}
             value={stats.customers.total}
             icon="👥"
             color="purple"
-            subtitle={`${stats.customers.active} 個活躍客戶`}
+            subtitle={t('dashboard.activeCustomers', { count: stats.customers.active })}
           />
         </div>
       )}
@@ -378,43 +393,43 @@ export default function DashboardClient({ locale }: { locale: string }) {
 
       {/* 快速操作區 */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">快速操作</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.quickActions')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <QuickActionCard
             href={`/${locale}/quotations/new`}
             icon="📄"
-            title="建立報價單"
-            description="快速建立新的報價單"
+            title={t('dashboard.createQuotation')}
+            description={t('dashboard.createQuotationDesc')}
           />
           <QuickActionCard
             href={`/${locale}/customers/new`}
             icon="👥"
-            title="新增客戶"
-            description="新增客戶資料"
+            title={t('dashboard.createCustomer')}
+            description={t('dashboard.createCustomerDesc')}
           />
           <QuickActionCard
             href={`/${locale}/products/new`}
             icon="📦"
-            title="新增產品"
-            description="新增產品資料"
+            title={t('dashboard.createProduct')}
+            description={t('dashboard.createProductDesc')}
           />
           <QuickActionCard
             href={`/${locale}/contracts`}
             icon="📝"
-            title="管理合約"
-            description="查看和管理合約"
+            title={t('dashboard.manageContracts')}
+            description={t('dashboard.manageContractsDesc')}
           />
           <QuickActionCard
             href={`/${locale}/payments`}
             icon="💰"
-            title="收款記錄"
-            description="查看收款記錄"
+            title={t('dashboard.paymentRecords')}
+            description={t('dashboard.paymentRecordsDesc')}
           />
           <QuickActionCard
             href={`/${locale}/quotations`}
             icon="📊"
-            title="報價單列表"
-            description="查看所有報價單"
+            title={t('dashboard.quotationList')}
+            description={t('dashboard.quotationListDesc')}
           />
         </div>
       </div>

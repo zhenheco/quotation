@@ -1,17 +1,179 @@
 # Development Log
 
-## 2025-12-19: 修復頁面切換黑屏問題（第三次）
+## 2025-12-19: 修復頁面切換黑屏問題（第四次 - 成功）
+
+### 問題描述
+- 切換到供應商、客戶、報價單、合約、付款等頁面時會先閃一下黑屏
+- **關鍵觀察**：會計和 POS 模組沒有此問題
+
+### 真正的根本原因（深入分析）
+
+經過與無問題頁面（會計/POS）的詳細對比，發現**兩個關鍵差異**：
+
+#### 差異 1：Page 組件類型
+
+| 頁面類型 | 組件類型 | 翻譯方式 |
+|---------|---------|---------|
+| `accounting/invoices/page.tsx` | **Server** (`async`) | `await getTranslations()` |
+| `pos/members/page.tsx` | **Server** (`async`) | `await getTranslations()` |
+| `suppliers/page.tsx` | **Client** (`'use client'`) | `useTranslations()` hook |
+| `customers/page.tsx` | **Client** (`'use client'`) | `useTranslations()` hook |
+
+#### 差異 2：Loading 組件結構
+
+| 頁面類型 | Loading 方式 | 問題 |
+|---------|-------------|------|
+| `accounting/loading.tsx` | 內嵌 HTML + CSS | ✅ 即時渲染 |
+| `pos/loading.tsx` | 內嵌 HTML + CSS | ✅ 即時渲染 |
+| `suppliers/loading.tsx` | `import { ListPageSkeleton }` | ❌ 需要 hydration |
+
+#### 為什麼會黑屏
+
+1. `ListPageSkeleton` 在 `components/ui/Skeleton.tsx` 是 `'use client'` 組件
+2. loading.tsx 匯入 client 組件 → 需要等待 hydration
+3. hydration 完成前，畫面是空白（黑屏）
+4. 會計/POS 的 loading.tsx 用內嵌 HTML，不需要 hydration，所以即時顯示
+
+### 解決方案
+
+#### Phase 1：修改 7 個 loading.tsx（移除 client component import）
+
+**修改前：**
+```tsx
+import { ListPageSkeleton } from '@/components/ui/Skeleton'
+
+export default function SuppliersLoading() {
+  return <ListPageSkeleton />
+}
+```
+
+**修改後：**
+```tsx
+export default function SuppliersLoading() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="flex justify-between items-center">
+        <div className="h-8 bg-gray-200 rounded w-32" />
+        <div className="h-10 bg-gray-200 rounded w-28" />
+      </div>
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="h-4 bg-gray-200 rounded w-full mb-4" />
+        <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
+        <div className="h-4 bg-gray-200 rounded w-1/2" />
+      </div>
+    </div>
+  )
+}
+```
+
+**修改的 7 個檔案：**
+- `app/[locale]/suppliers/loading.tsx`
+- `app/[locale]/customers/loading.tsx`
+- `app/[locale]/products/loading.tsx`
+- `app/[locale]/quotations/loading.tsx`
+- `app/[locale]/contracts/loading.tsx`
+- `app/[locale]/payments/loading.tsx`
+- `app/[locale]/settings/loading.tsx`
+
+#### Phase 2：修改 5 個 page.tsx 為 Server Component
+
+**修改前（Client Component）：**
+```tsx
+'use client'
+
+import { useTranslations } from 'next-intl'
+import { useParams } from 'next/navigation'
+
+export default function SuppliersPage() {
+  const t = useTranslations()
+  const params = useParams()
+  const locale = params.locale as string
+  // ...
+}
+```
+
+**修改後（Server Component）：**
+```tsx
+import { createClient } from '@/lib/supabase/server'
+import { getTranslations } from 'next-intl/server'
+import { redirect } from 'next/navigation'
+
+export const dynamic = 'force-dynamic'
+
+export default async function SuppliersPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  const supabase = await createClient()
+  const t = await getTranslations()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  return (
+    // ... 內容保持不變
+  )
+}
+```
+
+**修改的 5 個 page.tsx 檔案：**
+- `app/[locale]/suppliers/page.tsx`
+- `app/[locale]/customers/page.tsx`
+- `app/[locale]/products/page.tsx`
+- `app/[locale]/contracts/page.tsx`
+- `app/[locale]/payments/page.tsx`
+
+#### Phase 3：為複雜頁面建立 Client Component
+
+對於 contracts 和 payments 這類有複雜互動邏輯的頁面，建立獨立的 Client Component：
+
+- `app/[locale]/contracts/ContractsClient.tsx` - 合約列表互動邏輯
+- `app/[locale]/payments/PaymentsClient.tsx` - 付款頁面互動邏輯
+
+### 修改檔案清單
+
+| 檔案 | 修改內容 |
+|------|---------|
+| `app/[locale]/suppliers/loading.tsx` | 內嵌 HTML skeleton |
+| `app/[locale]/customers/loading.tsx` | 內嵌 HTML skeleton |
+| `app/[locale]/products/loading.tsx` | 內嵌 HTML skeleton |
+| `app/[locale]/quotations/loading.tsx` | 內嵌 HTML skeleton |
+| `app/[locale]/contracts/loading.tsx` | 內嵌 HTML skeleton |
+| `app/[locale]/payments/loading.tsx` | 內嵌 HTML skeleton |
+| `app/[locale]/settings/loading.tsx` | 內嵌 HTML skeleton |
+| `app/[locale]/suppliers/page.tsx` | 改為 async server component |
+| `app/[locale]/customers/page.tsx` | 改為 async server component |
+| `app/[locale]/products/page.tsx` | 改為 async server component |
+| `app/[locale]/contracts/page.tsx` | 改為 async server component |
+| `app/[locale]/payments/page.tsx` | 改為 async server component |
+| `app/[locale]/contracts/ContractsClient.tsx` | 新增，合約互動邏輯 |
+| `app/[locale]/payments/PaymentsClient.tsx` | 新增，付款互動邏輯 |
+
+### 相關提交
+- `99bd8d1` - fix: 修復黑屏閃爍問題（第四次修復）
+
+### 經驗教訓
+1. **loading.tsx 不應該 import client component**：會導致 hydration 延遲，造成黑屏
+2. **page.tsx 使用 Server Component + Client List Component 模式**：與會計/POS 架構保持一致
+3. **用內嵌 HTML 寫 skeleton**：不需要 hydration，即時顯示
+4. **對比正常/異常頁面找差異**：這是找出根本原因的最有效方法
+
+---
+
+## 2025-12-19: 修復頁面切換黑屏問題（第三次 - 無效）
 
 ### 問題描述
 - 切換到供應商、客戶、報價單等頁面時會先閃一下黑屏
 - 側邊欄位置已經統一（第二次修復成功）
 - 會計/POS 模組 i18n 翻譯已完成
 
-### 根本原因
+### 根本原因（錯誤診斷）
 `app/loading.tsx` 和 `app/[locale]/loading.tsx` 使用 `bg-gray-50`，但主布局使用 `bg-background` CSS 變數。
 這種背景色不一致導致頁面切換時產生視覺閃爍。
 
-### 解決方案
+### 解決方案（無效）
 統一 loading 組件的背景色為 CSS 變數：
 
 | 檔案 | 原本 | 修正後 |
@@ -29,6 +191,9 @@
 
 ### 相關提交
 - `d4c93ef` - fix: 修復頁面切換黑屏問題 - 統一 loading 組件背景色
+
+### 結論
+此修復方向錯誤，問題根本原因不是背景色，而是 loading.tsx import client component 導致 hydration 延遲。見第四次修復。
 
 ---
 

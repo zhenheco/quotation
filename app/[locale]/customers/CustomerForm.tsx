@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
@@ -9,6 +9,9 @@ import BilingualFormInput from '@/components/ui/BilingualFormInput'
 import { useCreateCustomer, useUpdateCustomer, type Customer } from '@/hooks/useCustomers'
 import OwnerSelect from '@/components/team/OwnerSelect'
 import { getSelectedCompanyId } from '@/lib/utils/company-context'
+import BusinessCardScanner from './BusinessCardScanner'
+import BusinessCardPreview, { type BusinessCardFormData } from './BusinessCardPreview'
+import type { BusinessCardData } from '@/lib/services/business-card-ocr'
 
 interface CustomerFormProps {
   locale: string
@@ -39,6 +42,45 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
     addressEn: address?.en || '',
     ownerId: (customer as { owner_id?: string } | undefined)?.owner_id || '',
   })
+
+  // 名片掃描相關狀態
+  const [scanData, setScanData] = useState<BusinessCardData | null>(null)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+
+  /**
+   * 處理名片掃描完成
+   */
+  const handleScanComplete = useCallback((data: BusinessCardData) => {
+    setScanData(data)
+    setIsPreviewOpen(true)
+  }, [])
+
+  /**
+   * 確認預覽資料，填入表單
+   */
+  const handlePreviewConfirm = useCallback((previewData: BusinessCardFormData) => {
+    setFormData(prev => ({
+      ...prev,
+      nameZh: previewData.nameZh || prev.nameZh,
+      nameEn: previewData.nameEn || prev.nameEn,
+      email: previewData.email || prev.email,
+      phone: previewData.phone || prev.phone,
+      fax: previewData.fax || prev.fax,
+      addressZh: previewData.addressZh || prev.addressZh,
+      addressEn: previewData.addressEn || prev.addressEn,
+    }))
+    setIsPreviewOpen(false)
+    setScanData(null)
+    toast.success(t('businessCard.filled'))
+  }, [t])
+
+  /**
+   * 取消預覽
+   */
+  const handlePreviewCancel = useCallback(() => {
+    setIsPreviewOpen(false)
+    setScanData(null)
+  }, [])
 
   // 新客戶時自動生成編號
   useEffect(() => {
@@ -107,9 +149,26 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
   const isSubmitting = customer ? updateCustomer.isPending : createCustomer.isPending
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* 客戶編號 */}
-      <FormInput
+    <>
+      {/* 名片掃描預覽對話框 */}
+      {scanData && (
+        <BusinessCardPreview
+          data={scanData}
+          isOpen={isPreviewOpen}
+          onConfirm={handlePreviewConfirm}
+          onCancel={handlePreviewCancel}
+        />
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 名片掃描按鈕 */}
+        <BusinessCardScanner
+          onScanComplete={handleScanComplete}
+          disabled={isSubmitting}
+        />
+
+        {/* 客戶編號 */}
+        <FormInput
         label={t('customer.customerNumber')}
         name="customerNumber"
         type="text"
@@ -212,6 +271,7 @@ export default function CustomerForm({ locale, customer }: CustomerFormProps) {
           {isSubmitting ? t('common.saving') : t('common.save')}
         </button>
       </div>
-    </form>
+      </form>
+    </>
   )
 }
