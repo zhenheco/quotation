@@ -1,7 +1,7 @@
 /**
- * 產品列表頁載入骨架屏
+ * 付款列表頁載入骨架屏
  */
-export default function ProductsLoading() {
+export default function PaymentsLoading() {
   return (
     <div className="space-y-6 animate-pulse">
       <div className="flex justify-between items-center">

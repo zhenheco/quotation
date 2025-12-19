@@ -1,12 +1,21 @@
 /**
- * 設定頁面 Loading 組件
+ * 設定頁面載入骨架屏
  */
 export default function SettingsLoading() {
   return (
-    <div className="flex h-[60vh] items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-        <p className="text-sm text-gray-500">Loading...</p>
+    <div className="space-y-6 animate-pulse">
+      <div className="h-8 bg-gray-200 rounded w-32" />
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="h-6 bg-gray-200 rounded w-40 mb-4" />
+          <div className="h-10 bg-gray-200 rounded w-full mb-3" />
+          <div className="h-10 bg-gray-200 rounded w-full" />
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="h-6 bg-gray-200 rounded w-40 mb-4" />
+          <div className="h-10 bg-gray-200 rounded w-full mb-3" />
+          <div className="h-10 bg-gray-200 rounded w-full" />
+        </div>
       </div>
     </div>
   )

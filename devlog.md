@@ -1,5 +1,88 @@
 # Development Log
 
+## 2025-12-19: 修復頁面切換黑屏問題（第三次）
+
+### 問題描述
+- 切換到供應商、客戶、報價單等頁面時會先閃一下黑屏
+- 側邊欄位置已經統一（第二次修復成功）
+- 會計/POS 模組 i18n 翻譯已完成
+
+### 根本原因
+`app/loading.tsx` 和 `app/[locale]/loading.tsx` 使用 `bg-gray-50`，但主布局使用 `bg-background` CSS 變數。
+這種背景色不一致導致頁面切換時產生視覺閃爍。
+
+### 解決方案
+統一 loading 組件的背景色為 CSS 變數：
+
+| 檔案 | 原本 | 修正後 |
+|------|------|--------|
+| `app/loading.tsx` | `bg-gray-50` | `bg-background` |
+| `app/[locale]/loading.tsx` | `bg-gray-50` | `bg-muted/10` |
+
+同時將硬編碼的顏色改為 CSS 變數：
+- `border-blue-600` → `border-primary`
+- `text-gray-500` → `text-muted-foreground`
+
+### 修改檔案
+- `app/loading.tsx`
+- `app/[locale]/loading.tsx`
+
+### 相關提交
+- `d4c93ef` - fix: 修復頁面切換黑屏問題 - 統一 loading 組件背景色
+
+---
+
+## 2025-12-18: 新增名片掃描 OCR 功能
+
+### 功能描述
+在客戶新增/編輯頁面加入「掃描名片」按鈕，使用 AI 視覺模型（Qwen-VL-Plus / GLM-4.6V）識別名片上的聯絡資訊，自動填入表單欄位。
+
+### 技術架構
+```
+前端 → API Route → Cloudflare AI Gateway → OpenRouter → Qwen-VL / GLM-4.6V
+```
+
+- **主要模型**：Qwen-VL-Plus（中文識別最佳，$0.21/百萬 tokens）
+- **Fallback**：GLM-4.6V（$0.30/百萬 tokens）
+- 透過 Cloudflare AI Gateway 代理（可選），提供緩存、監控、限流
+- 統一使用 OpenRouter API（OpenAI 兼容格式）
+
+### 使用流程
+1. 用戶點擊「掃描名片」按鈕
+2. 選擇/拍攝名片圖片（自動壓縮到 1MB 以下）
+3. 上傳到 API 進行 OCR 識別
+4. 顯示預覽對話框，讓用戶確認/修改
+5. 確認後自動填入表單（姓名、Email、電話、傳真、地址）
+
+### 新增檔案
+- `lib/cloudflare/ai-gateway.ts` - AI Gateway 認證模組（參考 Auto-pilot-SEO）
+- `lib/services/business-card-ocr.ts` - OCR 服務（帶 Fallback）
+- `app/api/ocr/business-card/route.ts` - API 端點
+- `app/[locale]/customers/BusinessCardScanner.tsx` - 掃描按鈕組件
+- `app/[locale]/customers/BusinessCardPreview.tsx` - 預覽對話框
+
+### 修改檔案
+- `app/[locale]/customers/CustomerForm.tsx` - 整合掃描功能
+- `messages/en.json` - 英文翻譯
+- `messages/zh.json` - 中文翻譯
+- `.env.local.example` - 環境變數範例
+
+### 環境變數（使用 AI Gateway BYOK 模式）
+```env
+# Cloudflare AI Gateway（參考 Auto-pilot-SEO）
+CF_AI_GATEWAY_ENABLED=true
+CF_AI_GATEWAY_ACCOUNT_ID=your-account-id
+CF_AI_GATEWAY_ID=your-gateway-name
+CF_AI_GATEWAY_TOKEN=your-gateway-token
+```
+
+### 參考資料
+- [Qwen-VL-Plus on OpenRouter](https://openrouter.ai/qwen/qwen-vl-plus)
+- [GLM-4.6V on OpenRouter](https://openrouter.ai/z-ai/glm-4.6v)
+- [Cloudflare AI Gateway + OpenRouter](https://developers.cloudflare.com/ai-gateway/usage/providers/openrouter/)
+
+---
+
 ## 2025-12-15: 修復黑屏問題（API 端點遺漏）
 
 ### 問題描述
