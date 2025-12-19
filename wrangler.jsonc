@@ -16,7 +16,11 @@
   "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://oubsycwrxzkuviakzahi.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91YnN5Y3dyeHprdXZpYWt6YWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MDM5MDUsImV4cCI6MjA3OTQ3OTkwNX0.Ltz-HSAlcWHV6nsEkckD88ERbCVZSE9C8vNhbW7ELGA",
-    "NEXT_PUBLIC_APP_URL": "https://quote24.cc"
+    "NEXT_PUBLIC_APP_URL": "https://quote24.cc",
+    "CF_AI_GATEWAY_ENABLED": "true",
+    "CF_AI_GATEWAY_ACCOUNT_ID": "f9916b95d011e8ad2a3fe10883053b0f",
+    "CF_AI_GATEWAY_ID": "quotation",
+    "CF_AI_GATEWAY_TOKEN": "Lek-bTsRcGUoP16Se28zlzOUFmnaSABvYmuEU9hk"
   },
   // Cloudflare R2 - 檔案儲存
   "r2_buckets": [
