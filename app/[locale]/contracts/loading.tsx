@@ -1,7 +1,7 @@
 /**
- * 產品列表頁載入骨架屏
+ * 合約列表頁載入骨架屏
  */
-export default function ProductsLoading() {
+export default function ContractsLoading() {
   return (
     <div className="space-y-6 animate-pulse">
       <div className="flex justify-between items-center">
