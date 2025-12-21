@@ -14,15 +14,11 @@ import {
   List,
   BarChart3,
   FileSpreadsheet,
-  Store,
-  Users,
   Package,
-  CreditCard,
   Calculator,
   Factory,
   UserCheck,
   Wallet,
-  ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -95,28 +91,6 @@ const navigation: NavigationItem[] = [
     ],
   },
   {
-    name: { en: 'POS System', zh: 'POS 系統' },
-    href: '/pos',
-    icon: Store,
-    children: [
-      {
-        name: { en: 'Sales', zh: '銷售紀錄' },
-        href: '/pos/sales',
-        icon: CreditCard,
-      },
-      {
-        name: { en: 'Members', zh: '會員管理' },
-        href: '/pos/members',
-        icon: Users,
-      },
-      {
-        name: { en: 'Settlements', zh: '日結帳' },
-        href: '/pos/settlements',
-        icon: ClipboardList,
-      },
-    ],
-  },
-  {
     name: { en: 'Settings', zh: '系統設定' },
     href: '/settings',
     icon: Settings,
@@ -130,7 +104,7 @@ interface SidebarProps {
 export default function Sidebar({ locale }: SidebarProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [expandedItems, setExpandedItems] = useState<string[]>(['/quotations', '/accounting', '/pos'])
+  const [expandedItems, setExpandedItems] = useState<string[]>(['/quotations', '/accounting'])
 
   const toggleExpanded = (itemHref: string) => {
     setExpandedItems((prev) =>
