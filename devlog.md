@@ -1,5 +1,52 @@
 # Development Log
 
+## 2025-12-21: 移除 POS 系統功能
+
+### 目的
+系統將專注於報價單、會計系統和報表分析，不再需要 POS（Point of Sale）功能。
+
+### 刪除範圍
+
+| 類別 | 說明 |
+|------|------|
+| 頁面 | `app/[locale]/pos/` - 8 個檔案 |
+| API | `app/api/pos/` - 15 個 API 路由 |
+| DAL | `lib/dal/pos/` - 6 個資料存取層檔案 |
+| Services | `lib/services/pos/` - 3 個服務層檔案 |
+| Hooks | `hooks/pos/` - 4 個 React Query hooks |
+| 導航 | `components/Sidebar.tsx` - 移除 POS 導航區塊 |
+| i18n | `messages/*.json` - 移除 POS 翻譯區段 |
+
+### 資料庫變更
+
+新增遷移腳本 `migrations/049_drop_pos_system.sql`：
+
+**刪除 19 張表格**（按依賴順序）：
+- 交易相關：`transaction_commissions`, `transaction_payments`, `transaction_items`
+- 銷售主表：`sales_transactions`, `daily_settlements`
+- 會員相關：`member_deposits`, `deposit_promotions`, `pos_members`, `member_levels`
+- 員工相關：`commission_rules`, `staff_schedules`, `pos_staff`
+- 服務相關：`service_package_services`, `service_packages`, `pos_services`, `service_categories`
+- 租戶相關：`branches`, `user_tenants`, `tenants`
+
+**刪除 8 個 POS 專用枚舉**：
+- `tenant_plan`, `staff_role`, `schedule_status`, `commission_type`
+- `deposit_promotion_type`, `sales_status`, `discount_type`, `settlement_status`
+
+**保留共用枚舉**：
+- `payment_method_type`（會計系統使用）
+- `gender`（可能被客戶系統使用）
+
+### 驗證結果
+- ✅ `pnpm run typecheck` - 通過
+- ✅ `pnpm run lint` - 通過
+- ✅ `pnpm run build` - 建置成功
+
+### 待執行
+- ⚠️ 執行資料庫遷移 `migrations/049_drop_pos_system.sql`（在 Supabase SQL Editor 中執行）
+
+---
+
 ## 2025-12-19: 修復頁面切換黑屏問題（第四次 - 成功）
 
 ### 問題描述
