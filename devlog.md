@@ -30,6 +30,12 @@ Supabase Security Advisor 報告 6 個安全錯誤。
 - ✅ `authenticated` 和 `service_role` 只有 SELECT 權限
 - ✅ 8 個遺漏的 POS 函數已刪除
 
+**遷移 052**：`migrations/052_harden_function_security.sql`
+- 撤銷 `PUBLIC` 對 `get_auth_users_metadata` 和 `verify_user_pin` 的執行權限
+- 修改這兩個函數加入 `auth.uid()` 認證檢查
+- `get_auth_users_metadata` 現在只能查詢同公司成員
+- `verify_user_pin` 現在只能驗證自己的 PIN
+
 ---
 
 ## 2025-12-21: 移除 POS 系統功能
