@@ -1,5 +1,37 @@
 # Development Log
 
+## 2025-12-24: 修復 Supabase Security Advisor 報告的 6 個錯誤
+
+### 問題
+Supabase Security Advisor 報告 6 個安全錯誤。
+
+### 根本原因
+6 個視圖授予了 `anon`（匿名/未認證）角色完整存取權限：
+- `collected_payments_summary`
+- `next_collection_reminders`
+- `overdue_payments`
+- `unpaid_payments_30_days`
+- `upcoming_payments`
+- `user_permissions`
+
+雖然這些視圖都有 `WHERE ... auth.uid()` 過濾，但 `anon` 角色不應該有任何存取權限。
+
+### 解決方案
+
+**遷移 050**：`migrations/050_fix_view_security.sql`
+- 撤銷 `anon` 角色對所有 6 個視圖的權限
+- 限制 `authenticated` 和 `service_role` 只有 SELECT 權限
+
+**遷移 051**：`migrations/051_cleanup_pos_functions.sql`
+- 清理 049 遷移中因參數簽名不符而未刪除的 8 個 POS 函數
+
+### 驗證結果
+- ✅ `anon` 角色已無法存取任何視圖
+- ✅ `authenticated` 和 `service_role` 只有 SELECT 權限
+- ✅ 8 個遺漏的 POS 函數已刪除
+
+---
+
 ## 2025-12-21: 移除 POS 系統功能
 
 ### 目的
@@ -42,8 +74,8 @@
 - ✅ `pnpm run lint` - 通過
 - ✅ `pnpm run build` - 建置成功
 
-### 待執行
-- ⚠️ 執行資料庫遷移 `migrations/049_drop_pos_system.sql`（在 Supabase SQL Editor 中執行）
+### 已完成
+- ✅ 資料庫遷移 `migrations/049_drop_pos_system.sql` 已於 2025-12-21 執行完成
 
 ---
 
