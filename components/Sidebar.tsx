@@ -119,32 +119,37 @@ export default function Sidebar({ locale }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'hidden md:flex h-screen flex-col border-r bg-card transition-all duration-300',
-        isCollapsed ? 'w-16' : 'w-64'
+        'hidden md:flex h-screen flex-col border-r bg-gradient-to-b from-slate-50/80 to-white transition-all duration-300',
+        isCollapsed ? 'w-20' : 'w-72'
       )}
     >
-      {/* Logo */}
-      <div className="flex h-16 items-center border-b px-3">
+      {/* Logo - 現代圓潤風格 */}
+      <div className="flex h-20 items-center border-b border-slate-100 px-4">
         <Link
           href={`/${locale}/dashboard`}
           className={cn(
-            'flex items-center',
-            isCollapsed ? 'justify-center' : 'space-x-2'
+            'flex items-center gap-3 transition-transform hover:scale-[1.02]',
+            isCollapsed && 'justify-center'
           )}
         >
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <FileSpreadsheet className="h-5 w-5" />
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30">
+            <FileSpreadsheet className="h-6 w-6" />
           </div>
           {!isCollapsed && (
-            <span className="text-lg font-bold">
-              {locale === 'zh' ? '報價系統' : 'Quotation'}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold text-slate-800">
+                {locale === 'zh' ? '報價系統' : 'Quote24'}
+              </span>
+              <span className="text-xs text-slate-400">
+                {locale === 'zh' ? '專業報價管理' : 'Professional Quotes'}
+              </span>
+            </div>
           )}
         </Link>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
+      {/* Navigation - 更大的觸控目標和更柔和的樣式 */}
+      <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-6">
         {navigation.map((item) => {
           const fullHref = `/${locale}${item.href}`
           const isActive = item.href === '/settings'
@@ -159,32 +164,36 @@ export default function Sidebar({ locale }: SidebarProps) {
 
           return (
             <div key={item.href}>
-              {/* Parent Item */}
+              {/* Parent Item - 更大更圓潤 */}
               {hasChildren ? (
                 <button
                   onClick={() => toggleExpanded(item.href)}
                   className={cn(
-                    'group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    'group flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200',
                     isChildActive
-                      ? 'bg-accent text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                    isCollapsed && 'justify-center'
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 hover:scale-[1.02]',
+                    isCollapsed && 'justify-center px-3'
                   )}
                   title={isCollapsed ? getName(item) : undefined}
                 >
-                  <item.icon
-                    className={cn(
-                      'h-5 w-5 flex-shrink-0',
-                      !isCollapsed && 'mr-3',
-                      isChildActive ? 'text-accent-foreground' : 'text-muted-foreground'
-                    )}
-                  />
+                  <div className={cn(
+                    'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-colors',
+                    isChildActive ? 'bg-emerald-100' : 'bg-slate-100 group-hover:bg-slate-200'
+                  )}>
+                    <item.icon
+                      className={cn(
+                        'h-5 w-5',
+                        isChildActive ? 'text-emerald-600' : 'text-slate-500'
+                      )}
+                    />
+                  </div>
                   {!isCollapsed && (
                     <>
                       <span className="flex-1 text-left">{getName(item)}</span>
                       <ChevronDown
                         className={cn(
-                          'h-4 w-4 transition-transform',
+                          'h-4 w-4 text-slate-400 transition-transform duration-200',
                           isExpanded && 'rotate-180'
                         )}
                       />
@@ -195,28 +204,32 @@ export default function Sidebar({ locale }: SidebarProps) {
                 <Link
                   href={fullHref}
                   className={cn(
-                    'group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    'group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200',
                     isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                    isCollapsed && 'justify-center'
+                      ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 hover:scale-[1.02]',
+                    isCollapsed && 'justify-center px-3'
                   )}
                   title={isCollapsed ? getName(item) : undefined}
                 >
-                  <item.icon
-                    className={cn(
-                      'h-5 w-5 flex-shrink-0',
-                      !isCollapsed && 'mr-3',
-                      isActive ? 'text-primary-foreground' : 'text-muted-foreground'
-                    )}
-                  />
-                  {!isCollapsed && getName(item)}
+                  <div className={cn(
+                    'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-colors',
+                    isActive ? 'bg-white/20' : 'bg-slate-100 group-hover:bg-slate-200'
+                  )}>
+                    <item.icon
+                      className={cn(
+                        'h-5 w-5',
+                        isActive ? 'text-white' : 'text-slate-500'
+                      )}
+                    />
+                  </div>
+                  {!isCollapsed && <span>{getName(item)}</span>}
                 </Link>
               )}
 
-              {/* Child Items */}
+              {/* Child Items - 縮進的子選單 */}
               {hasChildren && isExpanded && !isCollapsed && (
-                <div className="mt-1 space-y-1 pl-4">
+                <div className="mt-1.5 ml-6 space-y-1 border-l-2 border-slate-100 pl-4">
                   {item.children?.map((child) => {
                     const childHref = `/${locale}${child.href}`
                     const isChildItemActive = pathname === childHref
@@ -225,18 +238,18 @@ export default function Sidebar({ locale }: SidebarProps) {
                         key={child.href}
                         href={childHref}
                         className={cn(
-                          'group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                          'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                           isChildItemActive
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                            ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
+                            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                         )}
                       >
                         <child.icon
                           className={cn(
-                            'h-4 w-4 flex-shrink-0 mr-3',
+                            'h-4 w-4 flex-shrink-0',
                             isChildItemActive
-                              ? 'text-primary-foreground'
-                              : 'text-muted-foreground'
+                              ? 'text-white'
+                              : 'text-slate-400'
                           )}
                         />
                         {getName(child)}
@@ -250,28 +263,25 @@ export default function Sidebar({ locale }: SidebarProps) {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t">
-        {/* Toggle Button */}
-        <div className="p-2">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className={cn(
-              'flex w-full cursor-pointer items-center rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
-              isCollapsed && 'justify-center'
-            )}
-            title={isCollapsed ? (locale === 'zh' ? '展開側邊欄' : 'Expand Sidebar') : (locale === 'zh' ? '收合側邊欄' : 'Collapse Sidebar')}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-5 w-5" />
-            ) : (
-              <>
-                <ChevronLeft className="mr-2 h-5 w-5" />
-                <span className="text-xs">{locale === 'zh' ? '收合' : 'Collapse'}</span>
-              </>
-            )}
-          </button>
-        </div>
+      {/* Footer - 收合按鈕 */}
+      <div className="border-t border-slate-100 p-3">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={cn(
+            'flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-slate-500 transition-all duration-200 hover:bg-slate-100 hover:text-slate-700',
+            isCollapsed && 'justify-center'
+          )}
+          title={isCollapsed ? (locale === 'zh' ? '展開側邊欄' : 'Expand Sidebar') : (locale === 'zh' ? '收合側邊欄' : 'Collapse Sidebar')}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-5 w-5" />
+          ) : (
+            <>
+              <ChevronLeft className="h-5 w-5" />
+              <span className="text-sm">{locale === 'zh' ? '收合側邊欄' : 'Collapse'}</span>
+            </>
+          )}
+        </button>
       </div>
     </aside>
   )

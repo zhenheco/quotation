@@ -7,60 +7,28 @@ import { usePaymentStatistics, usePaymentReminders } from '@/hooks/usePayments'
 import { useOverdueContracts } from '@/hooks/useContracts'
 import DashboardCharts from '@/components/DashboardCharts'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import QuickCreateButton from '@/components/QuickCreateButton'
 import { safeToLocaleString } from '@/lib/utils/formatters'
+import { BentoCard, BentoCardHeader, BentoCardValue } from '@/components/ui/BentoCard'
+import {
+  Plus,
+  FileText,
+  Users,
+  Package,
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  AlertTriangle,
+  Wallet,
+  ArrowRight,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-interface StatCardProps {
-  title: string
-  value: number | string
-  icon: string
-  trend?: {
-    value: number
-    isPositive: boolean
-  }
-  subtitle?: string
-  color?: 'blue' | 'green' | 'purple' | 'yellow' | 'red' | 'orange'
-}
-
-function StatCard({ title, value, icon, trend, subtitle, color = 'blue', trendLabel }: StatCardProps & { trendLabel?: string }) {
-  const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600',
-    green: 'bg-green-100 text-green-600',
-    purple: 'bg-purple-100 text-purple-600',
-    yellow: 'bg-yellow-100 text-yellow-600',
-    red: 'bg-red-100 text-red-600',
-    orange: 'bg-orange-100 text-orange-600',
-  }
-
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
-        </div>
-        <div className={`rounded-full p-3 ${colorClasses[color]}`}>
-          <span className="text-2xl">{icon}</span>
-        </div>
-      </div>
-      {trend && (
-        <div className="mt-4">
-          <span
-            className={`text-sm font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}
-          >
-            {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
-          </span>
-          <span className="text-sm text-gray-500 ml-2">{trendLabel}</span>
-        </div>
-      )}
-      {subtitle && <div className="mt-4 text-sm text-gray-500">{subtitle}</div>}
-    </div>
-  )
-}
-
+/**
+ * 快速操作卡片 - 圖標 + 文字
+ */
 interface QuickActionCardProps {
   href: string
-  icon: string
+  icon: React.ReactNode
   title: string
   description: string
 }
@@ -69,19 +37,23 @@ function QuickActionCard({ href, icon, title, description }: QuickActionCardProp
   return (
     <Link
       href={href}
-      className="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all"
+      className="group flex items-start gap-4 p-4 bg-white rounded-2xl border border-slate-100 transition-all duration-200 hover:shadow-lg hover:scale-[1.01] hover:border-emerald-200"
     >
-      <div className="flex items-start gap-3">
-        <div className="text-2xl">{icon}</div>
-        <div className="flex-1">
-          <h3 className="font-medium text-gray-900">{title}</h3>
-          <p className="text-sm text-gray-500 mt-1">{description}</p>
-        </div>
+      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-colors">
+        {icon}
       </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-medium text-slate-800 group-hover:text-emerald-700 transition-colors">{title}</h3>
+        <p className="text-sm text-slate-500 mt-0.5 truncate">{description}</p>
+      </div>
+      <ArrowRight className="h-5 w-5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
     </Link>
   )
 }
 
+/**
+ * 警告卡片 - 更現代的設計
+ */
 interface AlertCardProps {
   title: string
   items: Array<{
@@ -92,71 +64,118 @@ interface AlertCardProps {
     days?: number
     daysLabel?: string
   }>
-  type: 'warning' | 'info' | 'error'
+  type: 'warning' | 'error'
   onViewAll?: () => void
   viewAllLabel?: string
-  amountLabel?: string
   locale?: string
 }
 
-function AlertCard({ title, items, type, onViewAll, viewAllLabel, amountLabel, locale = 'zh' }: AlertCardProps) {
-  const typeClasses = {
-    warning: 'bg-yellow-50 border-yellow-200',
-    info: 'bg-blue-50 border-blue-200',
-    error: 'bg-red-50 border-red-200',
-  }
-
-  const iconClasses = {
-    warning: '⚠️',
-    info: 'ℹ️',
-    error: '❌',
-  }
-
+function AlertCard({ title, items, type, onViewAll, viewAllLabel, locale = 'zh' }: AlertCardProps) {
   if (!items || items.length === 0) return null
 
+  const config = {
+    warning: {
+      bg: 'bg-gradient-to-br from-amber-50 to-yellow-50',
+      border: 'border-amber-100',
+      icon: <Clock className="h-5 w-5 text-amber-500" />,
+      badge: 'bg-amber-100 text-amber-700',
+    },
+    error: {
+      bg: 'bg-gradient-to-br from-red-50 to-rose-50',
+      border: 'border-red-100',
+      icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
+      badge: 'bg-red-100 text-red-700',
+    },
+  }
+
+  const { bg, border, icon, badge } = config[type]
+
   return (
-    <div className={`rounded-lg border p-4 ${typeClasses[type]}`}>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-          <span>{iconClasses[type]}</span>
-          {title} ({items.length})
-        </h3>
+    <div className={cn('rounded-2xl border p-5', bg, border)}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="font-semibold text-slate-800">{title}</h3>
+          <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', badge)}>
+            {items.length}
+          </span>
+        </div>
         {onViewAll && (
           <button
             onClick={onViewAll}
-            className="text-sm text-blue-600 hover:text-blue-800"
+            className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
           >
             {viewAllLabel}
           </button>
         )}
       </div>
-      <div className="space-y-2 max-h-48 overflow-y-auto">
-        {items.slice(0, 5).map((item) => (
+      <div className="space-y-2 max-h-40 overflow-y-auto">
+        {items.slice(0, 4).map((item) => (
           <div
             key={item.id}
-            className="text-sm text-gray-700 bg-white bg-opacity-50 rounded p-2"
+            className="flex items-center justify-between p-3 bg-white/60 rounded-xl"
           >
-            <div className="flex justify-between items-start">
-              <span className="font-medium">{item.name}</span>
-              {item.daysLabel && (
-                <span className="text-xs text-gray-500">
-                  {item.daysLabel}
-                </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-slate-700 truncate">{item.name}</p>
+              {item.date && (
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {new Date(item.date).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')}
+                </p>
               )}
             </div>
-            {item.date && (
-              <div className="text-xs text-gray-500 mt-1">
-                {new Date(item.date).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')}
-              </div>
-            )}
-            {item.amount !== undefined && (
-              <div className="text-xs text-gray-600 mt-1">
-                {amountLabel}: {safeToLocaleString(item.amount)}
-              </div>
-            )}
+            <div className="text-right ml-3">
+              {item.daysLabel && (
+                <span className="text-xs font-medium text-slate-500">{item.daysLabel}</span>
+              )}
+              {item.amount !== undefined && (
+                <p className="text-sm font-semibold text-slate-700">
+                  {safeToLocaleString(item.amount)}
+                </p>
+              )}
+            </div>
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * 迷你統計卡片 - 用於側邊堆疊
+ */
+interface MiniStatProps {
+  label: string
+  value: string | number
+  trend?: number
+  trendLabel?: string
+  color?: 'green' | 'blue' | 'purple' | 'yellow'
+}
+
+function MiniStat({ label, value, trend, trendLabel, color = 'green' }: MiniStatProps) {
+  const colorMap = {
+    green: 'from-emerald-50 to-teal-50 border-emerald-100',
+    blue: 'from-sky-50 to-blue-50 border-sky-100',
+    purple: 'from-violet-50 to-purple-50 border-violet-100',
+    yellow: 'from-amber-50 to-yellow-50 border-amber-100',
+  }
+
+  return (
+    <div className={cn('rounded-2xl border p-5 bg-gradient-to-br', colorMap[color])}>
+      <p className="text-sm font-medium text-slate-500">{label}</p>
+      <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p>
+      {trend !== undefined && (
+        <div className="flex items-center gap-1 mt-2">
+          {trend >= 0 ? (
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
+          ) : (
+            <TrendingDown className="h-4 w-4 text-red-500" />
+          )}
+          <span className={cn('text-sm font-medium', trend >= 0 ? 'text-emerald-600' : 'text-red-500')}>
+            {Math.abs(trend)}%
+          </span>
+          {trendLabel && <span className="text-xs text-slate-400">{trendLabel}</span>}
+        </div>
+      )}
     </div>
   )
 }
@@ -170,7 +189,7 @@ export default function DashboardClient({ locale }: { locale: string }) {
   const { data: paymentReminders } = usePaymentReminders()
   const { data: overdueContracts } = useOverdueContracts()
 
-  // 取得預設貨幣（從統計資料或預設為 TWD）
+  // 取得預設貨幣
   const defaultCurrency = paymentStats?.current_month?.currency || 'TWD'
 
   // 格式化貨幣
@@ -178,9 +197,17 @@ export default function DashboardClient({ locale }: { locale: string }) {
     return `${defaultCurrency} ${safeToLocaleString(amount)}`
   }
 
+  // 取得問候語
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return locale === 'zh' ? '早安' : 'Good morning'
+    if (hour < 18) return locale === 'zh' ? '午安' : 'Good afternoon'
+    return locale === 'zh' ? '晚安' : 'Good evening'
+  }
+
   if (dashboardData.isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner />
       </div>
     )
@@ -188,12 +215,15 @@ export default function DashboardClient({ locale }: { locale: string }) {
 
   if (dashboardData.hasError) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 flex items-center justify-center">
+            <AlertTriangle className="h-8 w-8 text-red-500" />
+          </div>
           <p className="text-red-600 text-lg font-semibold">{t('dashboard.loadError')}</p>
           <button
             onClick={() => dashboardData.refetchAll()}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="mt-4 px-6 py-3 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 transition-colors font-medium"
           >
             {t('dashboard.reload')}
           </button>
@@ -204,183 +234,145 @@ export default function DashboardClient({ locale }: { locale: string }) {
 
   const { summary, stats, revenueTrend, currencyDistribution, statusStats } = dashboardData
 
+  // 判斷是否有警告需要顯示
+  const hasAlerts = (overdueContracts && overdueContracts.length > 0) ||
+                    (paymentReminders && paymentReminders.length > 0)
+
   return (
-    <div className="space-y-6">
-      {/* 頁面標題 */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">{t('nav.dashboard')}</h1>
-        <div className="text-sm text-gray-500">
-          {new Date().toLocaleDateString('zh-TW', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </div>
+    <div className="space-y-6 pb-24 md:pb-6">
+      {/* ===== Hero Section: 歡迎區 + 側邊統計 ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 歡迎卡片 - Hero (佔 2 列) */}
+        <BentoCard size="hero" color="green" className="md:col-span-2 md:row-span-2">
+          <div className="h-full flex flex-col justify-between">
+            <div>
+              <p className="text-emerald-700 font-medium">{getGreeting()}!</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mt-1">
+                {locale === 'zh' ? '歡迎回來' : 'Welcome back'}
+              </h1>
+              <p className="text-slate-500 mt-2">
+                {new Date().toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  weekday: 'long',
+                })}
+              </p>
+            </div>
+
+            {/* 快速建立按鈕 */}
+            <div className="flex flex-wrap gap-3 mt-6">
+              <Link
+                href={`/${locale}/quotations/new`}
+                className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-500 text-white rounded-2xl font-medium shadow-lg shadow-emerald-500/25 hover:bg-emerald-600 hover:shadow-xl transition-all"
+              >
+                <Plus className="h-5 w-5" />
+                {t('dashboard.createQuotation')}
+              </Link>
+              <Link
+                href={`/${locale}/customers/new`}
+                className="inline-flex items-center gap-2 px-5 py-3 bg-white text-slate-700 rounded-2xl font-medium border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+              >
+                <Users className="h-5 w-5" />
+                {t('dashboard.createCustomer')}
+              </Link>
+            </div>
+          </div>
+        </BentoCard>
+
+        {/* 側邊統計卡片堆疊 */}
+        {summary && (
+          <>
+            <MiniStat
+              label={t('dashboard.monthlyRevenue')}
+              value={formatCurrency(summary.currentMonthRevenue)}
+              trend={summary.revenueGrowth}
+              trendLabel={t('dashboard.vsLastMonth')}
+              color="blue"
+            />
+            <MiniStat
+              label={t('dashboard.pending')}
+              value={summary.pendingCount}
+              color="yellow"
+            />
+          </>
+        )}
       </div>
 
-      {/* 頂部精簡快速建立區 */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <QuickCreateButton
-          href={`/${locale}/quotations/new`}
-          icon="📄"
-          title={t('dashboard.createQuotation')}
-          variant="primary"
-        />
-        <QuickCreateButton
-          href={`/${locale}/customers/new`}
-          icon="👥"
-          title={t('dashboard.createCustomer')}
-          variant="secondary"
-        />
-        <QuickCreateButton
-          href={`/${locale}/products/new`}
-          icon="📦"
-          title={t('dashboard.createProduct')}
-          variant="secondary"
-        />
-      </div>
-
-      {/* 提醒與警告區 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* 逾期合約提醒 */}
-        <AlertCard
-          title={t('dashboard.overdueContracts')}
-          type="error"
-          locale={locale}
-          viewAllLabel={t('dashboard.viewAll')}
-          amountLabel={t('dashboard.amount')}
-          items={
-            overdueContracts?.map((contract) => ({
-              id: contract.id,
-              name: locale === 'zh' ? contract.customer?.company_name_zh : contract.customer?.company_name_en || '',
-              date: contract.next_collection_date || '',
-              amount: contract.next_collection_amount || 0,
-            })) || []
-          }
-          onViewAll={() => (window.location.href = `/${locale}/contracts?status=overdue`)}
-        />
-
-        {/* 付款提醒 */}
-        <AlertCard
-          title={t('dashboard.upcomingPayments')}
-          type="warning"
-          locale={locale}
-          viewAllLabel={t('dashboard.viewAll')}
-          amountLabel={t('dashboard.amount')}
-          items={
-            paymentReminders?.map((reminder) => ({
-              id: reminder.contract_id,
-              name: reminder.customer_name,
-              date: reminder.next_collection_date,
-              amount: reminder.next_collection_amount,
-              days: reminder.days_until_due,
-              daysLabel: reminder.days_until_due > 0
-                ? t('dashboard.daysLater', { days: reminder.days_until_due })
-                : t('dashboard.daysOverdue', { days: Math.abs(reminder.days_until_due) }),
-            })) || []
-          }
-          onViewAll={() => (window.location.href = `/${locale}/contracts`)}
-        />
-      </div>
-
-      {/* 主要統計卡片 */}
-      {summary && stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 本月營收 */}
-          <StatCard
-            title={t('dashboard.monthlyRevenue')}
-            value={formatCurrency(summary.currentMonthRevenue)}
-            icon="💰"
-            color="blue"
-            trend={{
-              value: summary.revenueGrowth,
-              isPositive: summary.revenueGrowth >= 0,
-            }}
-            trendLabel={t('dashboard.vsLastMonth')}
+      {/* ===== 警告區域 ===== */}
+      {hasAlerts && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <AlertCard
+            title={t('dashboard.overdueContracts')}
+            type="error"
+            locale={locale}
+            viewAllLabel={t('dashboard.viewAll')}
+            items={
+              overdueContracts?.map((contract) => ({
+                id: contract.id,
+                name: locale === 'zh' ? contract.customer?.company_name_zh : contract.customer?.company_name_en || '',
+                date: contract.next_collection_date || '',
+                amount: contract.next_collection_amount || 0,
+              })) || []
+            }
+            onViewAll={() => (window.location.href = `/${locale}/contracts?status=overdue`)}
           />
-
-          {/* 本月報價單 */}
-          <StatCard
-            title={t('dashboard.monthlyQuotations')}
-            value={summary.currentMonthCount}
-            icon="📄"
-            color="green"
-            trend={{
-              value: summary.countGrowth,
-              isPositive: summary.countGrowth >= 0,
-            }}
-            trendLabel={t('dashboard.vsLastMonth')}
-          />
-
-          {/* 轉換率 */}
-          <StatCard
-            title={t('dashboard.conversionRate')}
-            value={`${summary.conversionRate}%`}
-            icon="📊"
-            color="purple"
-            subtitle={`${summary.acceptedCount} ${t('dashboard.signed')} / ${summary.acceptedCount + summary.pendingCount} ${t('dashboard.sent')}`}
-          />
-
-          {/* 待處理 */}
-          <StatCard
-            title={t('dashboard.pending')}
-            value={summary.pendingCount}
-            icon="⏰"
-            color="yellow"
-            subtitle={t('dashboard.draftCount', { count: summary.draftCount })}
+          <AlertCard
+            title={t('dashboard.upcomingPayments')}
+            type="warning"
+            locale={locale}
+            viewAllLabel={t('dashboard.viewAll')}
+            items={
+              paymentReminders?.map((reminder) => ({
+                id: reminder.contract_id,
+                name: reminder.customer_name,
+                date: reminder.next_collection_date,
+                amount: reminder.next_collection_amount,
+                days: reminder.days_until_due,
+                daysLabel: reminder.days_until_due > 0
+                  ? t('dashboard.daysLater', { days: reminder.days_until_due })
+                  : t('dashboard.daysOverdue', { days: Math.abs(reminder.days_until_due) }),
+              })) || []
+            }
+            onViewAll={() => (window.location.href = `/${locale}/contracts`)}
           />
         </div>
       )}
 
-      {/* 業務統計卡片 */}
+      {/* ===== 業務統計卡片 ===== */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 活躍合約 */}
-          <StatCard
-            title={t('dashboard.activeContracts')}
-            value={stats.contracts.active}
-            icon="📝"
-            color="green"
-            subtitle={
-              stats.contracts.overdue > 0
-                ? t('dashboard.overdueCount', { count: stats.contracts.overdue })
-                : t('dashboard.noOverdueContracts')
-            }
-          />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <BentoCard color="green">
+            <BentoCardHeader title={t('dashboard.activeContracts')} />
+            <BentoCardValue value={stats.contracts.active} />
+            {stats.contracts.overdue > 0 && (
+              <p className="text-xs text-amber-600 mt-2">
+                {t('dashboard.overdueCount', { count: stats.contracts.overdue })}
+              </p>
+            )}
+          </BentoCard>
 
-          {/* 本月收款 */}
-          <StatCard
-            title={t('dashboard.monthlyCollection')}
-            value={formatCurrency(stats.payments.current_month_collected)}
-            icon="💵"
-            color="blue"
-          />
+          <BentoCard color="blue">
+            <BentoCardHeader title={t('dashboard.monthlyCollection')} />
+            <BentoCardValue value={formatCurrency(stats.payments.current_month_collected)} />
+          </BentoCard>
 
-          {/* 未收款 */}
-          <StatCard
-            title={t('dashboard.totalOutstanding')}
-            value={formatCurrency(stats.payments.total_unpaid)}
-            icon="📋"
-            color="orange"
-            subtitle={
-              stats.payments.total_overdue > 0
-                ? t('dashboard.overdueAmount', { amount: formatCurrency(stats.payments.total_overdue) })
-                : t('dashboard.noOverduePayments')
-            }
-          />
+          <BentoCard color="yellow">
+            <BentoCardHeader title={t('dashboard.totalOutstanding')} />
+            <BentoCardValue value={formatCurrency(stats.payments.total_unpaid)} />
+          </BentoCard>
 
-          {/* 客戶總數 */}
-          <StatCard
-            title={t('dashboard.totalCustomers')}
-            value={stats.customers.total}
-            icon="👥"
-            color="purple"
-            subtitle={t('dashboard.activeCustomers', { count: stats.customers.active })}
-          />
+          <BentoCard color="purple">
+            <BentoCardHeader title={t('dashboard.totalCustomers')} />
+            <BentoCardValue value={stats.customers.total} />
+            <p className="text-xs text-slate-500 mt-2">
+              {t('dashboard.activeCustomers', { count: stats.customers.active })}
+            </p>
+          </BentoCard>
         </div>
       )}
 
-      {/* 圖表區域 */}
+      {/* ===== 圖表區域 ===== */}
       {revenueTrend && currencyDistribution && statusStats && summary && (
         <DashboardCharts
           revenueData={revenueTrend}
@@ -391,43 +383,43 @@ export default function DashboardClient({ locale }: { locale: string }) {
         />
       )}
 
-      {/* 快速操作區 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.quickActions')}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* ===== 快速操作網格 ===== */}
+      <div>
+        <h2 className="text-lg font-semibold text-slate-800 mb-4">{t('dashboard.quickActions')}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <QuickActionCard
             href={`/${locale}/quotations/new`}
-            icon="📄"
+            icon={<FileText className="h-6 w-6" />}
             title={t('dashboard.createQuotation')}
             description={t('dashboard.createQuotationDesc')}
           />
           <QuickActionCard
             href={`/${locale}/customers/new`}
-            icon="👥"
+            icon={<Users className="h-6 w-6" />}
             title={t('dashboard.createCustomer')}
             description={t('dashboard.createCustomerDesc')}
           />
           <QuickActionCard
             href={`/${locale}/products/new`}
-            icon="📦"
+            icon={<Package className="h-6 w-6" />}
             title={t('dashboard.createProduct')}
             description={t('dashboard.createProductDesc')}
           />
           <QuickActionCard
             href={`/${locale}/contracts`}
-            icon="📝"
+            icon={<FileText className="h-6 w-6" />}
             title={t('dashboard.manageContracts')}
             description={t('dashboard.manageContractsDesc')}
           />
           <QuickActionCard
             href={`/${locale}/payments`}
-            icon="💰"
+            icon={<Wallet className="h-6 w-6" />}
             title={t('dashboard.paymentRecords')}
             description={t('dashboard.paymentRecordsDesc')}
           />
           <QuickActionCard
             href={`/${locale}/quotations`}
-            icon="📊"
+            icon={<FileText className="h-6 w-6" />}
             title={t('dashboard.quotationList')}
             description={t('dashboard.quotationListDesc')}
           />

@@ -1,26 +1,60 @@
 @import "tailwindcss";
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  /* ===== 親民 UI 設計系統 ===== */
+
+  /* 暖灰奶油背景 - 柔和不刺眼 */
+  --background: 40 20% 98%;
+  --foreground: 160 10% 15%;
+
+  /* 卡片 - 純白突出 */
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 160 10% 15%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --radius: 0.5rem;
+  --popover-foreground: 160 10% 15%;
+
+  /* 森林綠主色 - 象徵成長與財富 */
+  --primary: 160 84% 39%;
+  --primary-foreground: 0 0% 100%;
+
+  /* 柔和次要色 */
+  --secondary: 40 15% 95%;
+  --secondary-foreground: 160 10% 25%;
+
+  /* 靜音色 */
+  --muted: 40 10% 94%;
+  --muted-foreground: 160 5% 45%;
+
+  /* 強調色 - 淡綠 */
+  --accent: 160 40% 95%;
+  --accent-foreground: 160 84% 30%;
+
+  /* 狀態色 */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 160 84% 39%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 30 80% 15%;
+
+  /* 邊框和輸入框 */
+  --border: 40 15% 90%;
+  --input: 40 15% 90%;
+  --ring: 160 84% 39%;
+
+  /* 圓角系統 - 現代圓潤 */
+  --radius: 1rem;
+  --radius-sm: 0.625rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+
+  /* Bento 卡片漸層背景 */
+  --bento-green: 160 60% 95%;
+  --bento-blue: 200 60% 95%;
+  --bento-yellow: 45 80% 95%;
+  --bento-pink: 350 60% 96%;
+  --bento-purple: 260 60% 96%;
 }
 
 @theme inline {
@@ -40,33 +74,60 @@
   --color-accent-foreground: hsl(var(--accent-foreground));
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Bento 卡片背景色 */
+  --color-bento-green: hsl(var(--bento-green));
+  --color-bento-blue: hsl(var(--bento-blue));
+  --color-bento-yellow: hsl(var(--bento-yellow));
+  --color-bento-pink: hsl(var(--bento-pink));
+  --color-bento-purple: hsl(var(--bento-purple));
+
+  /* 圓角變數 */
+  --radius-sm: var(--radius-sm);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 48%;
+  /* 深色模式 - 保持森林綠主題 */
+  --background: 160 15% 8%;
+  --foreground: 40 20% 95%;
+  --card: 160 12% 12%;
+  --card-foreground: 40 20% 95%;
+  --popover: 160 12% 12%;
+  --popover-foreground: 40 20% 95%;
+  --primary: 160 70% 45%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 160 10% 18%;
+  --secondary-foreground: 40 20% 90%;
+  --muted: 160 10% 18%;
+  --muted-foreground: 40 10% 60%;
+  --accent: 160 20% 20%;
+  --accent-foreground: 160 70% 60%;
+  --destructive: 0 62% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 160 70% 45%;
+  --warning: 38 80% 55%;
+  --border: 160 10% 20%;
+  --input: 160 10% 20%;
+  --ring: 160 70% 45%;
+
+  /* Bento 深色背景 */
+  --bento-green: 160 30% 15%;
+  --bento-blue: 200 30% 15%;
+  --bento-yellow: 45 30% 15%;
+  --bento-pink: 350 30% 15%;
+  --bento-purple: 260 30% 15%;
 }
 
 html {
@@ -95,3 +156,76 @@ body {
 .text-gray-600 {
   color: #1f2937 !important;
 }
+
+/* ===== 微動畫系統 ===== */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 動畫工具類 */
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background-size: 200% 100%;
+}
+
+/* 交錯動畫 - 用於列表 */
+.stagger-children > * {
+  animation: fadeInUp 0.3s ease-out both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
