@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { LogOut, Settings, UserCircle, Globe } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,32 +89,25 @@ export default function Header({ locale }: HeaderProps) {
   const avatarUrl = getImageUrl(userProfile?.avatar_url)
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-6">
-      <div className="flex items-center">
-        <h1 className="text-xl font-semibold text-foreground">
-          {locale === 'zh' ? '報價管理系統' : 'Quotation System'}
-        </h1>
-      </div>
-
-      <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-3 border-b border-slate-100 bg-white/80 backdrop-blur-xl px-6">
+      {/* 右側工具列 */}
+      <div className="flex items-center gap-3">
         {/* Company Selector */}
         <CompanySelector locale={locale} />
 
-        {/* Language Toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
+        {/* Language Toggle - 藥丸樣式 */}
+        <button
           onClick={toggleLocale}
-          className="gap-2"
+          className="flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition-all hover:bg-slate-200 hover:text-slate-800"
         >
           <Globe className="h-4 w-4" />
-          <span className="hidden sm:inline">{locale === 'en' ? '中文' : 'English'}</span>
-        </Button>
+          <span>{locale === 'en' ? '中文' : 'EN'}</span>
+        </button>
 
-        {/* User Menu */}
+        {/* User Menu - 更圓潤的樣式 */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="cursor-pointer">
+            <button className="flex items-center gap-2 rounded-full bg-slate-100 p-1.5 pr-4 transition-all hover:bg-slate-200 cursor-pointer">
               {avatarUrl ? (
                 <Image
                   src={avatarUrl}
@@ -126,40 +118,45 @@ export default function Header({ locale }: HeaderProps) {
                   unoptimized
                 />
               ) : (
-                <UserCircle className="h-6 w-6" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
+                  <UserCircle className="h-5 w-5 text-emerald-600" />
+                </div>
               )}
-            </Button>
+              <span className="text-sm font-medium text-slate-700 hidden sm:inline">
+                {displayName.length > 10 ? displayName.substring(0, 10) + '...' : displayName}
+              </span>
+            </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-normal">
+          <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2">
+            <DropdownMenuLabel className="font-normal px-3 py-2">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{displayName}</p>
-                <p className="text-xs leading-none text-muted-foreground">
+                <p className="text-sm font-medium leading-none text-slate-800">{displayName}</p>
+                <p className="text-xs leading-none text-slate-500">
                   {userEmail || (locale === 'zh' ? '未登錄' : 'Not logged in')}
                 </p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
-              className="cursor-pointer"
+              className="cursor-pointer rounded-xl px-3 py-2.5"
               onClick={() => router.push(`/${locale}/settings`)}
             >
-              <UserCircle className="mr-2 h-4 w-4" />
+              <UserCircle className="mr-3 h-4 w-4 text-slate-500" />
               <span>{locale === 'zh' ? '個人資料' : 'Profile'}</span>
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="cursor-pointer"
+              className="cursor-pointer rounded-xl px-3 py-2.5"
               onClick={() => router.push(`/${locale}/settings`)}
             >
-              <Settings className="mr-2 h-4 w-4" />
+              <Settings className="mr-3 h-4 w-4 text-slate-500" />
               <span>{locale === 'zh' ? '設定' : 'Settings'}</span>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem
-              className="cursor-pointer text-red-600"
+              className="cursor-pointer rounded-xl px-3 py-2.5 text-red-600 focus:text-red-600 focus:bg-red-50"
               onClick={handleSignOut}
             >
-              <LogOut className="mr-2 h-4 w-4" />
+              <LogOut className="mr-3 h-4 w-4" />
               <span>{locale === 'zh' ? '登出' : 'Sign Out'}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

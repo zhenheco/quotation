@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 
 export interface Column<T> {
   key: keyof T | string
@@ -52,13 +53,17 @@ export default function ResponsiveTable<T>({
   actions,
   className = '',
 }: ResponsiveTableProps<T>) {
+  // 載入中狀態 - 骨架屏
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-4 p-4">
-        <div className="h-10 bg-gray-200 rounded w-full"></div>
-        <div className="h-16 bg-gray-200 rounded w-full"></div>
-        <div className="h-16 bg-gray-200 rounded w-full"></div>
-        <div className="h-16 bg-gray-200 rounded w-full"></div>
+      <div className="space-y-3 p-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-16 bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 rounded-2xl animate-shimmer"
+            style={{ animationDelay: `${i * 100}ms` }}
+          />
+        ))}
       </div>
     )
   }
@@ -78,45 +83,54 @@ export default function ResponsiveTable<T>({
     return String(value)
   }
 
+  // 手機版卡片 - 現代圓潤設計
   const defaultMobileCard = (item: T) => {
     const visibleColumns = columns.filter((col) => !col.mobileHidden)
     const primaryColumn = visibleColumns[0]
     const secondaryColumns = visibleColumns.slice(1)
 
     return (
-      <div className="p-4 bg-white">
+      <div
+        className={cn(
+          'p-4 bg-white rounded-2xl border border-slate-100 shadow-sm',
+          'transition-all duration-200',
+          onRowClick && 'active:scale-[0.99] cursor-pointer'
+        )}
+        onClick={() => onRowClick?.(item)}
+      >
         <div className="flex items-start justify-between mb-3">
-          <div className="flex items-start space-x-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
             {selectable && onSelectChange && (
               <div className="mt-1">
                 <input
                   type="checkbox"
                   checked={selectedIds?.has(keyExtractor(item)) || false}
                   onChange={(e) => onSelectChange(keyExtractor(item), e.target.checked)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  className="h-5 w-5 rounded-lg border-2 border-slate-300 text-emerald-500 focus:ring-emerald-500/20 focus:ring-4 cursor-pointer"
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>
             )}
-            <div
-              className={onRowClick ? 'cursor-pointer' : ''}
-              onClick={() => onRowClick?.(item)}
-            >
+            <div className="min-w-0 flex-1">
               {primaryColumn && (
-                <h4 className="font-medium text-gray-900">
+                <h4 className="font-semibold text-slate-800 truncate">
                   {renderCellContent(item, primaryColumn)}
                 </h4>
               )}
             </div>
           </div>
-          {actions && <div className="flex-shrink-0">{actions(item)}</div>}
+          {actions && (
+            <div className="flex-shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+              {actions(item)}
+            </div>
+          )}
         </div>
 
-        <div className="space-y-2 text-sm">
+        <div className="grid grid-cols-2 gap-2 text-sm">
           {secondaryColumns.map((column, index) => (
-            <div key={index} className="flex justify-between">
-              <span className="text-gray-500">{column.mobileLabel || column.header}</span>
-              <span className="text-gray-900">{renderCellContent(item, column)}</span>
+            <div key={index} className="flex flex-col">
+              <span className="text-slate-400 text-xs">{column.mobileLabel || column.header}</span>
+              <span className="text-slate-700 font-medium truncate">{renderCellContent(item, column)}</span>
             </div>
           ))}
         </div>
@@ -126,64 +140,75 @@ export default function ResponsiveTable<T>({
 
   return (
     <div className={className}>
-      {/* Desktop Table */}
+      {/* Desktop Table - 現代無線框設計 */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-100">
               {selectable && (
-                <th className="px-6 py-3 text-left w-12">
+                <th className="px-6 py-4 text-left w-12">
                   <input
                     type="checkbox"
                     checked={allSelected}
                     onChange={(e) => onSelectAll?.(e.target.checked)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    className="h-5 w-5 rounded-lg border-2 border-slate-300 text-emerald-500 focus:ring-emerald-500/20 focus:ring-4 cursor-pointer"
                   />
                 </th>
               )}
               {columns.map((column, index) => (
                 <th
                   key={index}
-                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.headerClassName || ''}`}
+                  className={cn(
+                    'px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider',
+                    column.headerClassName
+                  )}
                 >
                   {column.header}
                 </th>
               ))}
               {actions && (
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Actions
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {data.map((item) => (
+          <tbody>
+            {data.map((item, rowIndex) => (
               <tr
                 key={keyExtractor(item)}
-                className={`hover:bg-gray-50 ${onRowClick ? 'cursor-pointer' : ''}`}
+                className={cn(
+                  'group transition-colors duration-150',
+                  'hover:bg-slate-50',
+                  onRowClick && 'cursor-pointer',
+                  rowIndex !== data.length - 1 && 'border-b border-slate-50'
+                )}
                 onClick={() => onRowClick?.(item)}
               >
                 {selectable && (
-                  <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-6 py-5" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedIds?.has(keyExtractor(item)) || false}
                       onChange={(e) => onSelectChange?.(keyExtractor(item), e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      className="h-5 w-5 rounded-lg border-2 border-slate-300 text-emerald-500 focus:ring-emerald-500/20 focus:ring-4 cursor-pointer"
                     />
                   </td>
                 )}
                 {columns.map((column, index) => (
                   <td
                     key={index}
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${column.className || ''}`}
+                    className={cn(
+                      'px-6 py-5 text-sm text-slate-700',
+                      column.className
+                    )}
                   >
                     {renderCellContent(item, column)}
                   </td>
                 ))}
                 {actions && (
                   <td
-                    className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                    className="px-6 py-5 text-right text-sm"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {actions(item)}
@@ -195,17 +220,17 @@ export default function ResponsiveTable<T>({
         </table>
       </div>
 
-      {/* Mobile Cards */}
-      <div className="md:hidden divide-y divide-gray-200">
+      {/* Mobile Cards - 卡片列表 */}
+      <div className="md:hidden space-y-3 p-3">
         {selectable && onSelectAll && data.length > 0 && (
-          <div className="p-3 bg-gray-50 flex items-center gap-2">
+          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
             <input
               type="checkbox"
               checked={allSelected}
               onChange={(e) => onSelectAll(e.target.checked)}
-              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              className="h-5 w-5 rounded-lg border-2 border-slate-300 text-emerald-500 focus:ring-emerald-500/20 focus:ring-4 cursor-pointer"
             />
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-slate-600 font-medium">
               {allSelected ? 'Deselect All' : 'Select All'}
             </span>
           </div>

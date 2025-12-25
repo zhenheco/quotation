@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { AlertTriangle } from 'lucide-react'
 
 interface DeleteConfirmModalProps {
   isOpen: boolean
@@ -64,9 +65,9 @@ export default function DeleteConfirmModal({
         zIndex: 9999
       }}
     >
-      {/* 背景遮罩 */}
+      {/* 背景遮罩 - 毛玻璃效果 */}
       <div
-        className="absolute inset-0 bg-black bg-opacity-50"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
         style={{
           position: 'absolute',
@@ -77,51 +78,52 @@ export default function DeleteConfirmModal({
         }}
       />
 
-      {/* 對話框內容 */}
+      {/* 對話框內容 - 現代圓潤設計 */}
       <div
-        className="relative bg-white rounded-lg shadow-xl"
+        className="relative bg-white rounded-3xl shadow-2xl animate-scale-in"
         style={{
           position: 'relative',
           zIndex: 10000,
           backgroundColor: 'white',
-          width: '320px',
+          width: '360px',
           maxWidth: '90vw'
         }}
       >
-        <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-          <div className="sm:flex sm:items-start">
-            <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-              </svg>
-            </div>
-            <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                {title}
-              </h3>
-              <div className="mt-2">
-                <p className="text-sm text-gray-500">{description}</p>
-              </div>
+        <div className="p-6">
+          {/* 圖標區 - 漸層背景 */}
+          <div className="flex justify-center mb-5">
+            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-red-100 to-red-50">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>
           </div>
-        </div>
-        <div className="bg-gray-50 px-4 py-3 flex flex-col gap-2">
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={onConfirm}
-            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isLoading ? '刪除中...' : confirmText}
-          </button>
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={onClose}
-            className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {cancelText}
-          </button>
+
+          {/* 文字區 */}
+          <div className="text-center mb-6">
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+              {title}
+            </h3>
+            <p className="text-sm text-slate-500">{description}</p>
+          </div>
+
+          {/* 按鈕區 - 垂直排列 */}
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={onConfirm}
+              className="w-full px-6 py-3 bg-red-500 text-white rounded-2xl font-medium shadow-lg shadow-red-500/25 hover:bg-red-600 hover:shadow-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? '刪除中...' : confirmText}
+            </button>
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={onClose}
+              className="w-full px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl font-medium hover:bg-slate-200 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {cancelText}
+            </button>
+          </div>
         </div>
       </div>
     </div>
