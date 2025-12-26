@@ -1,12 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 import PageHeader from '@/components/ui/PageHeader'
-import JournalList from './JournalList'
+import JournalForm from '../JournalForm'
 
 export const dynamic = 'force-dynamic'
 
-export default async function JournalsPage({
+export default async function NewJournalPage({
   params,
 }: {
   params: Promise<{ locale: string }>
@@ -25,17 +25,9 @@ export default async function JournalsPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t('accounting.journals.title')}
-        action={{
-          label: t('accounting.journals.addNew'),
-          href: `/${locale}/accounting/journals/new`,
-        }}
-      />
+      <PageHeader title={t('accounting.journals.addNew')} />
 
-      <div className="bg-white rounded-lg shadow">
-        <JournalList locale={locale} />
-      </div>
+      <JournalForm locale={locale} />
     </div>
   )
 }

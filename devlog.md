@@ -1,5 +1,38 @@
 # Development Log
 
+## 2025-12-26: 修復會計系統前端 i18n 和新增頁面
+
+### 問題
+會計系統前端有多個問題導致無法正常使用：
+1. i18n 翻譯鍵缺失（顯示 `MISSING_MESSAGE: common.noData`）
+2. 新增發票/傳票頁面不存在（返回 404）
+3. 翻譯鍵名稱不一致（頁面用 `createNew` 但翻譯檔定義 `addNew`）
+
+### 解決方案
+
+**i18n 修復**：
+- `messages/zh.json` - 新增 `common.noData: "無資料"`
+- `messages/en.json` - 新增 `common.noData: "No data"`
+- 修正頁面翻譯鍵：`createNew` → `addNew`
+
+**新增發票頁面**：
+- `app/[locale]/accounting/invoices/new/page.tsx` - Server component
+- `app/[locale]/accounting/invoices/InvoiceForm.tsx` - 發票表單（類型、金額、稅額自動計算）
+
+**新增傳票頁面**：
+- `app/[locale]/accounting/journals/new/page.tsx` - Server component
+- `app/[locale]/accounting/journals/JournalForm.tsx` - 傳票表單（動態分錄行、借貸平衡驗證）
+
+**表單翻譯鍵**：
+- 在 `accounting.form` 區塊新增 18 個翻譯鍵（中/英）
+
+### 影響範圍
+- 發票管理頁面：新增按鈕可正常導向表單
+- 會計傳票頁面：新增按鈕可正常導向表單
+- i18n：`common.noData` 顯示正確翻譯
+
+---
+
 ## 2025-12-26: 修復會計系統 RPC 函數與資料表結構不匹配問題
 
 ### 問題
