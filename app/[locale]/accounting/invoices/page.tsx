@@ -28,7 +28,7 @@ export default async function InvoicesPage({
       <PageHeader
         title={t('accounting.invoices.title')}
         action={{
-          label: t('accounting.invoices.createNew'),
+          label: t('accounting.invoices.addNew'),
           href: `/${locale}/accounting/invoices/new`,
         }}
       />
