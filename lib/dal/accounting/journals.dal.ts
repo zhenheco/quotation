@@ -626,6 +626,7 @@ export async function deleteJournalEntry(
 
 /**
  * 建立傳票（RPC 版本 - 原子性操作）
+ * 修正：使用與資料表一致的欄位（invoice_id, is_auto_generated）
  */
 export async function createJournalWithTransactionsRpc(
   db: SupabaseClient,
@@ -634,16 +635,14 @@ export async function createJournalWithTransactionsRpc(
     date: string
     description?: string
     source_type?: TransactionSource
-    source_id?: string
-    created_by?: string
+    invoice_id?: string
+    is_auto_generated?: boolean
   },
   transactions: Array<{
     account_id: string
     description?: string
     debit: number
     credit: number
-    tax_code_id?: string
-    counterparty_id?: string
   }>
 ): Promise<{ id: string; journal_number: string; status: JournalStatus }> {
   const { data, error } = await db.rpc('create_journal_with_transactions', {

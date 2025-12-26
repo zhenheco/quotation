@@ -128,9 +128,8 @@ export async function POST(request: NextRequest) {
       company_id: body.company_id,
       date: body.date,
       description: body.description,
-      source_type: body.source_type,
+      source_type: body.source_type || 'MANUAL',
       transactions: body.transactions,
-      created_by: user.id,
     })
 
     return NextResponse.json(journal, { status: 201 })

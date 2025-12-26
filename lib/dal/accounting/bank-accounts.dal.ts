@@ -42,6 +42,11 @@ export interface BankTransaction {
   balance: number
   reconciliation_status: ReconciliationStatus
   matched_invoice_id: string | null
+  // 傳票對帳欄位（Migration 048 新增）
+  matched_journal_entry_id: string | null
+  matched_at: string | null
+  matched_by: string | null
+  // 配對信心指數
   match_confidence: number | null
   match_method: string | null
   created_at: string
