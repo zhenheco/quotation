@@ -38,6 +38,15 @@ export interface AccInvoice {
   status: InvoiceStatus
   verified_at: string | null
   verified_by: string | null
+  // 過帳相關欄位（Migration 048 新增）
+  journal_entry_id: string | null
+  posted_at: string | null
+  posted_by: string | null
+  // 作廢相關欄位（Migration 048 新增）
+  voided_at: string | null
+  voided_by: string | null
+  void_reason: string | null
+  // 付款追蹤
   payment_status: PaymentStatus
   payment_method: PaymentMethod
   paid_amount: number

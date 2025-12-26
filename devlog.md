@@ -1,5 +1,44 @@
 # Development Log
 
+## 2025-12-26: 修復會計系統 RPC 函數與資料表結構不匹配問題
+
+### 問題
+會計系統從 account 專案 migration 過來時，RPC 函數 (Migration 047) 與實際資料表結構 (Migration 044) 完全不匹配，導致所有 RPC 函數執行失敗。
+
+### 根本原因
+RPC 函數是基於舊版 schema 設計，使用了多個不存在的欄位：
+- `journal_entries`: `source_id`, `total_amount`, `created_by` ❌
+- `acc_invoices`: `journal_entry_id`, `posted_at`, `posted_by`, `voided_at`, `voided_by`, `void_reason` ❌
+- `bank_transactions`: `matched_journal_entry_id`, `matched_at`, `matched_by` ❌
+- `invoice_payments` 表完全不存在 ❌
+- 類型 `journal_source_type` 不存在（實際是 `transaction_source`）
+
+### 解決方案
+
+**遷移 048**：`migrations/048_fix_accounting_schema.sql`
+- 補充 `acc_invoices` 表 6 個欄位
+- 補充 `bank_transactions` 表 3 個欄位
+- 新建 `invoice_payments` 表（含 RLS 政策和權限）
+
+**遷移 049**：`migrations/049_rewrite_accounting_rpc.sql`
+- 重寫所有 8 個 RPC 函數，與新 schema 一致
+
+**DAL 層更新**：
+- `lib/dal/accounting/invoices.dal.ts` - 新增 6 個欄位類型
+- `lib/dal/accounting/journals.dal.ts` - 修正 RPC 參數（`invoice_id`, `is_auto_generated`）
+- `lib/dal/accounting/bank-accounts.dal.ts` - 新增 3 個欄位類型
+
+**Service 層更新**：
+- `lib/services/accounting/journal.service.ts` - 更新 `CreateJournalRequest` 接口
+- `app/api/accounting/journals/route.ts` - 移除不存在的 `created_by` 參數
+
+### 驗證結果
+- ✅ TypeScript 類型檢查通過
+- ✅ Migration 048 執行成功
+- ✅ Migration 049 執行成功
+
+---
+
 ## 2025-12-24: 修復 Supabase Security Advisor 報告的 6 個錯誤
 
 ### 問題

@@ -45,15 +45,14 @@ export interface CreateJournalRequest {
   date: string
   description?: string
   source_type?: TransactionSource
+  invoice_id?: string
+  is_auto_generated?: boolean
   transactions: Array<{
     account_id: string
     description?: string
     debit: number
     credit: number
-    tax_code_id?: string
-    counterparty_id?: string
   }>
-  created_by?: string
 }
 
 // ============================================
@@ -183,7 +182,8 @@ export async function createNewJournal(
         date: request.date,
         description: request.description,
         source_type: request.source_type,
-        created_by: request.created_by,
+        invoice_id: request.invoice_id,
+        is_auto_generated: request.is_auto_generated,
       },
       request.transactions
     )
