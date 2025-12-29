@@ -337,6 +337,7 @@
     "status": "狀態",
     "currency": "幣別",
     "subtotal": "小計",
+    "itemsSubtotal": "品項小計",
     "tax": "稅金",
     "taxRate": "稅率",
     "total": "總計",

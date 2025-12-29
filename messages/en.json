@@ -337,7 +337,9 @@
     "status": "Status",
     "currency": "Currency",
     "subtotal": "Subtotal",
+    "itemsSubtotal": "Items Subtotal",
     "tax": "Tax",
+    "taxRate": "Tax Rate",
     "total": "Total",
     "showTaxOnDocument": "Show tax on document",
     "overallDiscount": "Overall Discount",
@@ -895,7 +897,9 @@
       }
     },
     "markedAsOverdue": "Marked as overdue",
-    "markOverdueError": "Failed to mark as overdue"
+    "markOverdueError": "Failed to mark as overdue",
+    "upcomingReminders": "Upcoming Reminders",
+    "daysUntilDue": "Days Until Due"
   },
   "product": {
     "title": "Services/Items",
@@ -907,12 +911,24 @@
     "cost": "Cost",
     "cost_price": "Cost Price",
     "cost_currency": "Cost Currency",
+    "costPrice": "Cost Price",
+    "costCurrency": "Cost Currency",
     "profit_margin": "Profit Margin",
+    "profitMargin": "Profit Margin",
     "profit_amount": "Profit Amount",
+    "profitMarginHint": "Profit margin is calculated automatically based on cost and selling price. You can also enter profit margin to auto-calculate selling price.",
     "supplier": "Supplier",
     "supplier_code": "Supplier Code",
+    "supplierCode": "Supplier Code",
+    "sku": "SKU",
     "currency": "Currency",
     "category": "Category",
+    "allCategories": "All Categories",
+    "listView": "List View",
+    "cardView": "Card View",
+    "basicInfo": "Basic Information",
+    "costInfo": "Cost Information",
+    "costReadOnly": "Read Only (requires permission to modify)",
     "namePlaceholder": {
       "zh": "Service/Item Name (Chinese)",
       "en": "Service/Item Name (English)"
@@ -922,6 +938,15 @@
       "en": "Service/Item Description (English)"
     },
     "categoryPlaceholder": "e.g., Software, Hardware, Service",
+    "skuPlaceholder": "Product number or stock code",
+    "supplierPlaceholder": "Supplier name",
+    "supplierCodePlaceholder": "Supplier product number",
+    "createSuccess": "Service/Item created successfully",
+    "updateSuccess": "Service/Item updated successfully",
+    "deleteSuccess": "Service/Item deleted successfully",
+    "saveFailed": "Failed to save service/item",
+    "deleteFailed": "Failed to delete service/item",
+    "invalidPrice": "Please enter a valid price",
     "emptyState": {
       "title": "No services/items yet",
       "description": "Create your first service/item to get started."
