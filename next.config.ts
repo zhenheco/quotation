@@ -21,10 +21,6 @@ const nextConfig: NextConfig = {
       exclude: ['error', 'warn']
     } : false
   },
-  // 排除大型套件以減少 bundle 大小
-  serverExternalPackages: [
-    '@react-pdf/renderer',
-  ],
   experimental: {
     // 優化 bundle 大小
     optimizePackageImports: [
