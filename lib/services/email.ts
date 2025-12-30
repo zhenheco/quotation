@@ -1,4 +1,13 @@
-import nodemailer from 'nodemailer'
+/**
+ * Email Service - 使用 Brevo REST API
+ *
+ * 兼容 Cloudflare Workers（純 HTTP，無需 Node.js APIs）
+ *
+ * 環境變數：
+ * - BREVO_API_KEY: Brevo API 金鑰
+ * - BREVO_SENDER_EMAIL: 寄件人 email（需在 Brevo 驗證）
+ * - BREVO_SENDER_NAME: 寄件人名稱（可選）
+ */
 
 export interface EmailOptions {
   to: string
@@ -13,51 +22,87 @@ export interface EmailResult {
   error?: string
 }
 
+interface BrevoSendEmailPayload {
+  sender: {
+    email: string
+    name?: string
+  }
+  to: Array<{ email: string; name?: string }>
+  subject: string
+  htmlContent: string
+  textContent?: string
+}
+
+interface BrevoSuccessResponse {
+  messageId: string
+}
+
+interface BrevoErrorResponse {
+  code: string
+  message: string
+}
+
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
+
 class EmailService {
-  private transporter: nodemailer.Transporter | null = null
+  private getConfig() {
+    const apiKey = process.env.BREVO_API_KEY?.trim()
+    const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim()
+    const senderName = process.env.BREVO_SENDER_NAME?.trim()
 
-  private async getTransporter(): Promise<nodemailer.Transporter> {
-    if (this.transporter) {
-      return this.transporter
+    if (!apiKey) {
+      throw new Error('BREVO_API_KEY environment variable is not configured')
     }
 
-    const user = process.env.GMAIL_USER
-    const pass = process.env.GMAIL_APP_PASSWORD
-
-    if (!user || !pass) {
-      throw new Error('Email configuration is missing. Please set GMAIL_USER and GMAIL_APP_PASSWORD environment variables.')
+    if (!senderEmail) {
+      throw new Error('BREVO_SENDER_EMAIL environment variable is not configured')
     }
 
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user,
-        pass,
-      },
-    })
-
-    await this.transporter.verify()
-
-    return this.transporter
+    return { apiKey, senderEmail, senderName }
   }
 
   async sendEmail(options: EmailOptions): Promise<EmailResult> {
     try {
-      const transporter = await this.getTransporter()
+      const { apiKey, senderEmail, senderName } = this.getConfig()
 
-      const mailOptions = {
-        from: process.env.GMAIL_USER,
-        to: options.to,
+      const payload: BrevoSendEmailPayload = {
+        sender: {
+          email: senderEmail,
+          name: senderName || senderEmail,
+        },
+        to: [{ email: options.to }],
         subject: options.subject,
-        html: options.html,
-        text: options.text || options.html.replace(/<[^>]*>/g, ''),
+        htmlContent: options.html,
       }
 
-      const info = await transporter.sendMail(mailOptions)
+      if (options.text) {
+        payload.textContent = options.text
+      }
+
+      const response = await fetch(BREVO_API_URL, {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json() as BrevoErrorResponse
+        console.error('Brevo API error:', errorData)
+        return {
+          success: false,
+          error: errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+        }
+      }
+
+      const data = await response.json() as BrevoSuccessResponse
 
       return {
         success: true,
-        messageId: info.messageId,
+        messageId: data.messageId,
       }
     } catch (error: unknown) {
       console.error('Email send error:', error)
@@ -75,6 +120,7 @@ class EmailService {
       const result = await this.sendEmail(email)
       results.push(result)
 
+      // Brevo 免費方案每日 300 封，加入小延遲避免 rate limit
       await new Promise(resolve => setTimeout(resolve, 100))
     }
 
