@@ -22,8 +22,7 @@
     "strictFunctionTypes": false,
     "strictPropertyInitialization": false,
     "types": [
-      "node",
-      "@cloudflare/workers-types"
+      "node"
     ],
     "plugins": [
       {
@@ -48,6 +47,7 @@
     "tests/**/*",
     "examples/**/*",
     "scripts/**/*",
-    "legacy_backup/**/*"
+    "legacy_backup/**/*",
+    "workers/**/*"
   ]
 }

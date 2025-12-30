@@ -8,3 +8,6 @@ export * from './invoice.service'
 
 // 傳票服務
 export * from './journal.service'
+
+// 營業稅申報服務
+export * from './tax-report.service'

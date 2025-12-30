@@ -11,14 +11,12 @@ import {
   setPreferredSupplier
 } from '@/lib/dal/product-supplier-costs'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  const { env } = await getCloudflareContext()
   const { id: productId } = await params
 
   try {
@@ -29,7 +27,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'products:read_cost')
@@ -47,7 +45,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  const { env } = await getCloudflareContext()
   const { id: productId } = await params
 
   try {
@@ -58,7 +55,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'products:write_cost')
@@ -105,7 +102,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  const { env } = await getCloudflareContext()
   await params
 
   try {
@@ -116,7 +112,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'products:write_cost')
@@ -164,7 +160,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const { env } = await getCloudflareContext()
   await params
 
   try {
@@ -175,7 +170,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'products:write_cost')
@@ -200,7 +195,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { env } = await getCloudflareContext()
   const { id: productId } = await params
 
   try {
@@ -211,7 +205,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'products:write_cost')

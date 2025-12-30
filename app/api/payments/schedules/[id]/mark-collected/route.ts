@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createApiClient } from '@/lib/supabase/api'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
@@ -52,7 +51,6 @@ export async function POST(
 ) {
   try {
     const { id: scheduleId } = await params
-    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const {
@@ -64,7 +62,7 @@ export async function POST(
     }
 
     const db = getSupabaseClient()
-    const kv = getKVCache(env)
+    const kv = getKVCache()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'payments:write')
     if (!hasPermission) {

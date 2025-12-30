@@ -1,7 +1,6 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 const ALLOWED_TYPES = ['logo', 'signature', 'passbook'] as const
 type FileType = typeof ALLOWED_TYPES[number]
@@ -49,14 +48,18 @@ export async function POST(request: NextRequest) {
 
     const arrayBuffer = await file.arrayBuffer()
 
-    // 使用 Cloudflare R2 上傳檔案
-    const { env } = getCloudflareContext()
-
-    await env.R2_BUCKET.put(filePath, arrayBuffer, {
-      httpMetadata: {
+    // TODO: Migrated from Cloudflare R2 to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('company-files')
+      .upload(filePath, arrayBuffer, {
         contentType: file.type,
-      },
-    })
+        upsert: true,
+      })
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError)
+      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
+    }
 
     const apiUrl = `/api/storage/company-files?path=${encodeURIComponent(filePath)}`
 

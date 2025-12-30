@@ -5,10 +5,7 @@ import { createApiClient } from '@/lib/supabase/api';
 import { getSupabaseClient } from '@/lib/db/supabase-client';
 import { getKVCache } from '@/lib/cache/kv-cache';
 import { checkPermission } from '@/lib/cache/services';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { getErrorMessage } from '@/app/api/utils/error-handler';
-
-// Note: Edge runtime removed for OpenNext compatibility;
 
 /**
  * PUT /api/quotations/[id]/payment-terms/[termId]
@@ -27,7 +24,6 @@ export async function PUT(
 ) {
   try {
     const { id, termId } = await params;
-    const { env } = await getCloudflareContext();
     const supabase = createApiClient(request);
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -39,7 +35,7 @@ export async function PUT(
     }
 
     const db = getSupabaseClient();
-    const kv = getKVCache(env);
+    const kv = getKVCache();
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write');
     if (!hasPermission) {
@@ -88,7 +84,6 @@ export async function DELETE(
 ) {
   try {
     const { id, termId } = await params;
-    const { env } = await getCloudflareContext();
     const supabase = createApiClient(request);
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -100,7 +95,7 @@ export async function DELETE(
     }
 
     const db = getSupabaseClient();
-    const kv = getKVCache(env);
+    const kv = getKVCache();
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:delete');
     if (!hasPermission) {

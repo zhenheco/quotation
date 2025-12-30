@@ -6,14 +6,11 @@ import { getKVCache } from '@/lib/cache/kv-cache'
 import { getPaymentTerms, batchCreatePaymentTerms, deletePaymentTerm } from '@/lib/dal/payment-terms'
 import { syncQuotationToPaymentSchedules } from '@/lib/dal/payments'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -24,7 +21,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:read')
@@ -45,8 +42,6 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -57,7 +52,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')

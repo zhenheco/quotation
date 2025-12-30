@@ -12,7 +12,6 @@ import {
   deleteQuotationImage
 } from '@/lib/dal/quotation-images'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -24,8 +23,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -38,7 +35,7 @@ export async function GET(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:read')
@@ -63,8 +60,6 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -77,7 +72,7 @@ export async function POST(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')
@@ -163,8 +158,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -177,7 +170,7 @@ export async function DELETE(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')

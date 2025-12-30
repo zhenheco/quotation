@@ -5,7 +5,6 @@ import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { scanBusinessCard, type BusinessCardData } from '@/lib/services/business-card-ocr'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 /**
  * 名片 OCR API 請求格式
@@ -31,8 +30,6 @@ const MAX_IMAGE_SIZE = 2 * 1024 * 1024
  * POST /api/ocr/business-card - 掃描名片並識別聯絡資訊
  */
 export async function POST(request: NextRequest): Promise<NextResponse<OcrResponse>> {
-  const { env } = await getCloudflareContext()
-
   try {
     // 驗證使用者
     const supabase = createApiClient(request)
@@ -46,7 +43,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<OcrRespon
     }
 
     // 檢查權限（需要有客戶寫入權限才能使用此功能）
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'customers:write')

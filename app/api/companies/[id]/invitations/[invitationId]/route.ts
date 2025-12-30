@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
@@ -22,7 +21,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; invitationId: string }> }
 ) {
   try {
-    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -34,7 +32,7 @@ export async function DELETE(
     }
 
     const db = getSupabaseClient()
-    const kv = getKVCache(env)
+    const kv = getKVCache()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'users:write')
     if (!hasPermission) {

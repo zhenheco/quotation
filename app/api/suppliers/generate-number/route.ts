@@ -5,14 +5,11 @@ import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { generateSupplierNumber } from '@/lib/dal/suppliers'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 /**
  * GET /api/suppliers/generate-number - 預先生成供應商編號
  */
 export async function GET(request: NextRequest) {
-  const { env } = await getCloudflareContext()
-
   try {
     // 驗證使用者
     const supabase = createApiClient(request)
@@ -23,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'suppliers:write')

@@ -4,7 +4,6 @@ import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import type { QuotationVersion } from '@/types/models'
 
 /**
@@ -14,8 +13,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -28,7 +25,7 @@ export async function GET(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:read')

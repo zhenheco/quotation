@@ -5,15 +5,12 @@ import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { generateCustomerNumber } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 /**
  * GET /api/customers/generate-number - 預先生成客戶編號
  * Query params: company_id (required)
  */
 export async function GET(request: NextRequest) {
-  const { env } = await getCloudflareContext()
-
   try {
     // 驗證使用者
     const supabase = createApiClient(request)
@@ -24,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'customers:write')
