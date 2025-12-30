@@ -115,7 +115,7 @@ export default function OwnerSelect({
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
-      className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 ${className}`}
+      className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`}
     >
       <option value="">{t('selectOwner')}</option>
       {members.map((member) => (
