@@ -1,109 +1,18 @@
 /**
  * 快取服務層
  *
- * 提供業務邏輯的快取服務：
- * 1. 匯率快取（24小時）
- * 2. 使用者權限快取（1小時）
- * 3. 公司設定快取（2小時）
+ * 注意：此模組已簡化，移除了 KV 快取依賴。
+ * 所有函數現在直接查詢資料庫。
+ *
+ * 對於需要快取的場景，建議：
+ * - 使用 HTTP 快取標頭（Cache-Control）
+ * - 使用 React Query / TanStack Query 的客戶端快取
  */
 
-import { KVCache } from './kv-cache'
 import { SupabaseClient } from '@/lib/db/supabase-client'
 import { getUserPermissions, Permission, ensureUserHasRole } from '@/lib/dal/rbac'
 import { getCompanyById, Company } from '@/lib/dal/companies'
 import { getAllExchangeRates, ExchangeRate } from '@/lib/dal/exchange-rates'
-
-/**
- * 快取鍵生成器
- */
-export const CacheKeys = {
-  userPermissions: (userId: string) => `user:${userId}:permissions`,
-  company: (companyId: string) => `company:${companyId}`,
-  exchangeRates: () => 'exchange-rates:all',
-  exchangeRate: (base: string, target: string) => `exchange-rate:${base}:${target}`
-}
-
-/**
- * TTL 設定（秒）
- */
-export const CacheTTL = {
-  userPermissions: 3600, // 1小時
-  company: 7200, // 2小時
-  exchangeRates: 86400 // 24小時
-}
-
-/**
- * 取得使用者權限（帶快取）
- */
-export async function getCachedUserPermissions(
-  kv: KVCache,
-  db: SupabaseClient,
-  userId: string
-): Promise<Permission[]> {
-  return await kv.getCached(
-    CacheKeys.userPermissions(userId),
-    async () => await getUserPermissions(db, userId),
-    { ttl: CacheTTL.userPermissions }
-  )
-}
-
-/**
- * 失效使用者權限快取
- */
-export async function invalidateUserPermissions(
-  kv: KVCache,
-  userId: string
-): Promise<void> {
-  await kv.delete(CacheKeys.userPermissions(userId))
-}
-
-/**
- * 取得公司設定（帶快取）
- */
-export async function getCachedCompany(
-  kv: KVCache,
-  db: SupabaseClient,
-  companyId: string
-): Promise<Company | null> {
-  return await kv.getCached(
-    CacheKeys.company(companyId),
-    async () => await getCompanyById(db, companyId),
-    { ttl: CacheTTL.company }
-  )
-}
-
-/**
- * 失效公司設定快取
- */
-export async function invalidateCompany(
-  kv: KVCache,
-  companyId: string
-): Promise<void> {
-  await kv.delete(CacheKeys.company(companyId))
-}
-
-/**
- * 取得所有匯率（帶快取）
- */
-export async function getCachedExchangeRates(
-  kv: KVCache,
-  db: SupabaseClient
-): Promise<ExchangeRate[]> {
-  return await kv.getCached(
-    CacheKeys.exchangeRates(),
-    async () => await getAllExchangeRates(db),
-    { ttl: CacheTTL.exchangeRates }
-  )
-}
-
-/**
- * 失效匯率快取
- */
-export async function invalidateExchangeRates(kv: KVCache): Promise<void> {
-  // 失效所有匯率快取
-  const keys = await kv.list('exchange-rate:')
-  await kv.deleteMany([...keys, CacheKeys.exchangeRates()])
-}
 
 /**
  * 權限名稱映射：API 格式 -> 資料庫格式
@@ -116,22 +25,51 @@ const permissionMapping: Record<string, string[]> = {
 }
 
 /**
- * 檢查使用者是否有權限（帶快取）
+ * 取得使用者權限（直接查詢資料庫）
  */
-export async function checkPermission(
-  kv: KVCache,
+export async function getUserPermissionsFromDb(
+  db: SupabaseClient,
+  userId: string
+): Promise<Permission[]> {
+  return await getUserPermissions(db, userId)
+}
+
+/**
+ * 取得公司設定（直接查詢資料庫）
+ */
+export async function getCompanyFromDb(
+  db: SupabaseClient,
+  companyId: string
+): Promise<Company | null> {
+  return await getCompanyById(db, companyId)
+}
+
+/**
+ * 取得所有匯率（直接查詢資料庫）
+ */
+export async function getExchangeRatesFromDb(
+  db: SupabaseClient
+): Promise<ExchangeRate[]> {
+  return await getAllExchangeRates(db)
+}
+
+/**
+ * 檢查使用者是否有權限（直接查詢資料庫）
+ *
+ * @param db - Supabase 客戶端
+ * @param userId - 使用者 ID
+ * @param permissionName - 權限名稱
+ * @returns 是否有權限
+ */
+export async function checkPermissionDirect(
   db: SupabaseClient,
   userId: string,
   permissionName: string
 ): Promise<boolean> {
   // 確保使用者有角色（如果沒有會自動分配）
-  const roleAssigned = await ensureUserHasRole(db, userId)
-  if (roleAssigned) {
-    // 如果剛分配了角色，清除快取以獲取最新權限
-    await invalidateUserPermissions(kv, userId)
-  }
+  await ensureUserHasRole(db, userId)
 
-  const permissions = await getCachedUserPermissions(kv, db, userId)
+  const permissions = await getUserPermissions(db, userId)
 
   // 先嘗試直接匹配
   if (permissions.some(p => p.name === permissionName)) {
@@ -147,4 +85,105 @@ export async function checkPermission(
   }
 
   return false
+}
+
+// =============================================================================
+// 舊版 API（向後相容）
+// 這些函數保留 KVCache 參數簽名，但實際上忽略 KV 並直接查詢資料庫
+// 逐步遷移到使用 withAuth middleware 或 checkPermissionDirect 後可移除
+// =============================================================================
+
+/**
+ * @deprecated 請使用 withAuth middleware 或 checkPermissionDirect
+ * 此函數保留是為了向後相容，KV 參數會被忽略
+ */
+export async function checkPermission(
+  _kv: unknown,
+  db: SupabaseClient,
+  userId: string,
+  permissionName: string
+): Promise<boolean> {
+  return checkPermissionDirect(db, userId, permissionName)
+}
+
+/**
+ * @deprecated 請使用 getUserPermissionsFromDb
+ * 此函數保留是為了向後相容，KV 參數會被忽略
+ */
+export async function getCachedUserPermissions(
+  _kv: unknown,
+  db: SupabaseClient,
+  userId: string
+): Promise<Permission[]> {
+  return getUserPermissionsFromDb(db, userId)
+}
+
+/**
+ * @deprecated 已無作用（KV 快取已移除）
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function invalidateUserPermissions(_kv: unknown, _userId: string): Promise<void> {
+  // No-op: KV 快取已移除
+}
+
+/**
+ * @deprecated 請使用 getCompanyFromDb
+ * 此函數保留是為了向後相容，KV 參數會被忽略
+ */
+export async function getCachedCompany(
+  _kv: unknown,
+  db: SupabaseClient,
+  companyId: string
+): Promise<Company | null> {
+  return getCompanyFromDb(db, companyId)
+}
+
+/**
+ * @deprecated 已無作用（KV 快取已移除）
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function invalidateCompany(_kv: unknown, _companyId: string): Promise<void> {
+  // No-op: KV 快取已移除
+}
+
+/**
+ * @deprecated 請使用 getExchangeRatesFromDb
+ * 此函數保留是為了向後相容，KV 參數會被忽略
+ */
+export async function getCachedExchangeRates(
+  _kv: unknown,
+  db: SupabaseClient
+): Promise<ExchangeRate[]> {
+  return getExchangeRatesFromDb(db)
+}
+
+/**
+ * @deprecated 已無作用（KV 快取已移除）
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function invalidateExchangeRates(_kv: unknown): Promise<void> {
+  // No-op: KV 快取已移除
+}
+
+// =============================================================================
+// 舊的常數（保留以防其他地方使用）
+// =============================================================================
+
+/**
+ * @deprecated 不再使用
+ */
+export const CacheKeys = {
+  userPermissions: (userId: string) => `user:${userId}:permissions`,
+  company: (companyId: string) => `company:${companyId}`,
+  exchangeRates: () => 'exchange-rates:all',
+  exchangeRate: (base: string, target: string) => `exchange-rate:${base}:${target}`
+}
+
+/**
+ * @deprecated 不再使用
+ */
+export const CacheTTL = {
+  userPermissions: 3600,
+  company: 7200,
+  exchangeRates: 86400
 }

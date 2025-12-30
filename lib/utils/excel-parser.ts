@@ -25,10 +25,8 @@ export async function parseExcelFile(file: File): Promise<ExcelParseResult> {
   const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true })
 
   // 嘗試找「發票資料」工作表，否則使用第一個
-  let sheetName = workbook.SheetNames.find((name) => name === '發票資料')
-  if (!sheetName) {
-    sheetName = workbook.SheetNames[0]
-  }
+  const sheetName =
+    workbook.SheetNames.find((name) => name === '發票資料') ?? workbook.SheetNames[0] ?? ''
 
   const worksheet = workbook.Sheets[sheetName]
 

@@ -5,9 +5,6 @@ import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { getCompanyById, updateCompany, deleteCompany, isCompanyMember } from '@/lib/dal/companies'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
-
-// Note: Edge runtime removed for OpenNext compatibility
 
 interface UpdateCompanyRequestBody {
   name_zh?: string;
@@ -35,8 +32,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -49,7 +44,7 @@ export async function GET(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'companies:read')
@@ -84,8 +79,6 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -98,7 +91,7 @@ export async function PUT(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'companies:write')
@@ -171,8 +164,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -185,7 +176,7 @@ export async function DELETE(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'companies:delete')

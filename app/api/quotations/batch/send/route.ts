@@ -8,9 +8,6 @@ import { getErrorMessage } from '@/app/api/utils/error-handler'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
-
-// Note: Cannot use edge runtime because emailService uses nodemailer which requires Node.js APIs
 
 const MAX_BATCH_SIZE = 50
 
@@ -31,7 +28,6 @@ interface BatchSendBody {
 
 export async function POST(request: NextRequest) {
   try {
-    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const {
@@ -46,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getSupabaseClient()
-    const kv = getKVCache(env)
+    const kv = getKVCache()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')
     if (!hasPermission) {

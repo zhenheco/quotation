@@ -178,15 +178,70 @@ export class KVCache {
 }
 
 /**
+ * No-op KV 快取實作（用於非 Cloudflare 環境）
+ * 所有方法都是空操作或直接返回預設值
+ */
+class NoOpKVCache extends KVCache {
+  constructor() {
+    // 使用空的 proxy 作為 KV namespace
+    const noOpKV = new Proxy({} as KVNamespace, {
+      get() {
+        return async () => null
+      }
+    })
+    super(noOpKV)
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async get<T = unknown>(key: string): Promise<T | null> {
+    return null
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async set<T = unknown>(key: string, value: T, options?: KVCacheOptions): Promise<void> {
+    // No-op - 不做任何存儲
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async delete(key: string): Promise<void> {
+    // No-op - 不做任何刪除
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async deleteMany(keys: string[]): Promise<void> {
+    // No-op - 不做任何批量刪除
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async list(prefix?: string, limit = 1000): Promise<string[]> {
+    return []
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async getCached<T>(key: string, fetcher: () => Promise<T>, options?: KVCacheOptions): Promise<T> {
+    // 直接執行 fetcher，不做快取
+    return await fetcher()
+  }
+}
+
+// 單例 no-op 快取
+let noOpCacheInstance: NoOpKVCache | null = null
+
+/**
  * 從環境中取得 KV 快取客戶端
+ *
+ * 如果 KV namespace 不可用（例如在 Vercel 上），
+ * 會返回一個 no-op 實作，所有操作都會直接跳過或執行 fetcher。
  */
 export function getKVCache(env?: { KV?: KVNamespace }): KVCache {
   const kv = env?.KV || (global as Record<string, unknown>).KV as KVNamespace | undefined || (process.env as Record<string, unknown>).KV as KVNamespace | undefined
 
   if (!kv) {
-    throw new Error(
-      'KV namespace not found. Make sure you have configured kv_namespaces in wrangler.jsonc'
-    )
+    // 返回 no-op 實作
+    if (!noOpCacheInstance) {
+      noOpCacheInstance = new NoOpKVCache()
+    }
+    return noOpCacheInstance
   }
 
   return new KVCache(kv)

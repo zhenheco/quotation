@@ -1,13 +1,10 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
 import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-
-// Note: Cannot use edge runtime because rate-limiter uses crypto which requires Node.js APIs
 
 type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'approved'
 
@@ -19,7 +16,6 @@ interface BatchStatusBody {
 export async function POST(request: NextRequest) {
   return batchRateLimiter(request, async () => {
     try {
-    const { env } = await getCloudflareContext()
     const supabase = createApiClient(request)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -31,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getSupabaseClient()
-    const kv = getKVCache(env)
+    const kv = getKVCache()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')
     if (!hasPermission) {

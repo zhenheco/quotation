@@ -6,15 +6,12 @@
  * 此 API 只接收 JSON 格式的發票資料
  */
 
-import { createApiClient } from '@/lib/supabase/api'
-import { NextRequest, NextResponse } from 'next/server'
-import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getSupabaseClient } from '@/lib/db/supabase-client'
-import { getKVCache } from '@/lib/cache/kv-cache'
-import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/api/middleware'
 import { createInvoice, getInvoiceByNumber } from '@/lib/dal/accounting/invoices.dal'
+import { getErrorMessage } from '@/app/api/utils/error-handler'
 import type { ParsedInvoiceRow } from '@/lib/services/accounting/invoice-template.service'
+import type { SupabaseClient } from '@/lib/db/supabase-client'
 
 export interface ImportResponse {
   success: boolean
@@ -42,114 +39,62 @@ interface ImportRequestBody {
  *   data: ParsedInvoiceRow[]
  * }
  */
-export async function POST(request: NextRequest): Promise<NextResponse<ImportResponse>> {
-  const { env } = await getCloudflareContext()
-
-  try {
-    const supabase = createApiClient(request)
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          totalRows: 0,
-          importedCount: 0,
-          skippedCount: 0,
-          errors: [{ row: 0, column: '', message: 'Unauthorized' }],
-        },
-        { status: 401 }
-      )
-    }
-
-    const kv = getKVCache(env)
-    const db = getSupabaseClient()
-
-    // 檢查權限
-    const hasPermission = await checkPermission(kv, db, user.id, 'invoices:write')
-    if (!hasPermission) {
-      return NextResponse.json(
-        {
-          success: false,
-          totalRows: 0,
-          importedCount: 0,
-          skippedCount: 0,
-          errors: [{ row: 0, column: '', message: 'Forbidden' }],
-        },
-        { status: 403 }
-      )
-    }
-
-    // 只接收 JSON 格式
-    const contentType = request.headers.get('content-type') || ''
-    if (!contentType.includes('application/json')) {
-      return NextResponse.json(
-        {
-          success: false,
-          totalRows: 0,
-          importedCount: 0,
-          skippedCount: 0,
-          errors: [{ row: 0, column: '', message: '請使用 JSON 格式提交資料' }],
-        },
-        { status: 400 }
-      )
-    }
-
-    const body = (await request.json()) as ImportRequestBody
-
-    if (!body.company_id) {
-      return NextResponse.json(
-        {
-          success: false,
-          totalRows: 0,
-          importedCount: 0,
-          skippedCount: 0,
-          errors: [{ row: 0, column: '', message: 'company_id is required' }],
-        },
-        { status: 400 }
-      )
-    }
-
-    if (!Array.isArray(body.data) || body.data.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          totalRows: 0,
-          importedCount: 0,
-          skippedCount: 0,
-          errors: [{ row: 0, column: '', message: '無資料可匯入' }],
-        },
-        { status: 400 }
-      )
-    }
-
-    // 批次匯入
-    const result = await batchImportInvoices(db, body.company_id, body.data)
-    return NextResponse.json(result, {
-      status: result.success ? 200 : 400,
-    })
-  } catch (error: unknown) {
-    console.error('Error importing invoices:', error)
+export const POST = withAuth('invoices:write')(async (request, { db }) => {
+  // 只接收 JSON 格式
+  const contentType = request.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) {
     return NextResponse.json(
       {
         success: false,
         totalRows: 0,
         importedCount: 0,
         skippedCount: 0,
-        errors: [{ row: 0, column: '', message: getErrorMessage(error) }],
+        errors: [{ row: 0, column: '', message: '請使用 JSON 格式提交資料' }],
       },
-      { status: 500 }
+      { status: 400 }
     )
   }
-}
+
+  const body = (await request.json()) as ImportRequestBody
+
+  if (!body.company_id) {
+    return NextResponse.json(
+      {
+        success: false,
+        totalRows: 0,
+        importedCount: 0,
+        skippedCount: 0,
+        errors: [{ row: 0, column: '', message: 'company_id is required' }],
+      },
+      { status: 400 }
+    )
+  }
+
+  if (!Array.isArray(body.data) || body.data.length === 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        totalRows: 0,
+        importedCount: 0,
+        skippedCount: 0,
+        errors: [{ row: 0, column: '', message: '無資料可匯入' }],
+      },
+      { status: 400 }
+    )
+  }
+
+  // 批次匯入
+  const result = await batchImportInvoices(db, body.company_id, body.data)
+  return NextResponse.json(result, {
+    status: result.success ? 200 : 400,
+  })
+})
 
 /**
  * 批次匯入發票
  */
 async function batchImportInvoices(
-  db: Awaited<ReturnType<typeof getSupabaseClient>>,
+  db: SupabaseClient,
   companyId: string,
   data: ParsedInvoiceRow[]
 ): Promise<ImportResponse> {

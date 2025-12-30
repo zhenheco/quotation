@@ -6,18 +6,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { createApiClient } from '@/lib/supabase/api'
 import { getCollectedPayments } from '@/lib/dal/payments';
 
-// Note: Edge runtime removed for OpenNext compatibility
-
 export async function GET(req: NextRequest) {
   try {
-    const { env } = await getCloudflareContext()
     const supabase = createApiClient(req)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -29,7 +25,7 @@ export async function GET(req: NextRequest) {
     }
 
     const db = getSupabaseClient()
-    const kv = getKVCache(env)
+    const kv = getKVCache()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'payments:read')
     if (!hasPermission) {

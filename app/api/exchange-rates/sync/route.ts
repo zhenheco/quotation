@@ -5,8 +5,6 @@ import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { upsertExchangeRate, SUPPORTED_CURRENCIES, Currency } from '@/lib/dal/exchange-rates'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
-// Note: Edge runtime removed for OpenNext compatibility;
 
 
 interface ExchangeRateAPIResponse {
@@ -72,8 +70,6 @@ async function syncRatesToD1(
  * POST /api/exchange-rates/sync - 手動同步匯率到 D1
  */
 export async function POST(request: NextRequest) {
-  const { env } = await getCloudflareContext()
-
   try {
     // 驗證使用者
     const supabase = createApiClient(request)
@@ -84,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'exchange_rates:write')
@@ -92,8 +88,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // 取得 API Key
-    const apiKey = env.EXCHANGE_RATE_API_KEY as string | undefined
+    // 取得 API Key (從 process.env 而非 Cloudflare env)
+    const apiKey = process.env.EXCHANGE_RATE_API_KEY?.trim()
     if (!apiKey) {
       return NextResponse.json(
         {

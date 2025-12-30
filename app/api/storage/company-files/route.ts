@@ -1,6 +1,5 @@
 import { createApiClient } from '@/lib/supabase/api'
 import { NextRequest, NextResponse } from 'next/server'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 const MIME_TYPES: Record<string, string> = {
   'png': 'image/png',
@@ -30,18 +29,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // 使用 Cloudflare R2 讀取檔案
-    const { env } = getCloudflareContext()
-    const object = await env.R2_BUCKET.get(path)
+    // TODO: Migrate from Cloudflare R2 to Supabase Storage
+    // For now, use Supabase Storage as fallback
+    const { data, error } = await supabase.storage
+      .from('company-files')
+      .download(path)
 
-    if (!object) {
+    if (error || !data) {
+      console.error('Storage download error:', error)
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
     }
 
     const ext = path.split('.').pop()?.toLowerCase() || 'png'
-    const contentType = object.httpMetadata?.contentType || MIME_TYPES[ext] || 'application/octet-stream'
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream'
 
-    const arrayBuffer = await object.arrayBuffer()
+    const arrayBuffer = await data.arrayBuffer()
 
     return new NextResponse(arrayBuffer, {
       headers: {

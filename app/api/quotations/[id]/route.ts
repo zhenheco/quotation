@@ -15,8 +15,6 @@ import {
 import { syncQuotationToPaymentSchedules } from '@/lib/dal/payments'
 import { getCustomerById } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
-// Note: Edge runtime removed for OpenNext compatibility;
 
 
 /**
@@ -26,8 +24,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -40,7 +36,7 @@ export async function GET(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:read')
@@ -79,8 +75,6 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -93,7 +87,7 @@ export async function PUT(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')
@@ -219,8 +213,6 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -233,7 +225,7 @@ export async function PATCH(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:write')
@@ -292,8 +284,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
-
   try {
     const { id } = await params
 
@@ -306,7 +296,7 @@ export async function DELETE(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'quotations:delete')

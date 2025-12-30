@@ -5,7 +5,6 @@ import { getUserRoles, assignRoleToUser, getRoleByName } from '@/lib/dal/rbac'
 import { validateUrlSafety } from '@/lib/security/url-validator'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { warmUserCache } from '@/lib/cache/warm-cache'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
@@ -92,8 +91,7 @@ export async function GET(request: Request) {
 
         // 預熱用戶權限快取，加速首屏載入
         try {
-          const { env } = await getCloudflareContext()
-          const kv = getKVCache(env)
+          const kv = getKVCache()
           await warmUserCache(kv, db, user.id)
           console.log(`✅ Warmed cache for user: ${user.email}`)
         } catch (cacheError) {

@@ -91,7 +91,7 @@ export async function PATCH(
     if (company_id) {
       // 這部分應該使用 company API，而非直接在這裡處理
       return NextResponse.json(
-        { error: 'Company role changes should use /api/company/[id]/members/[userId] endpoint' },
+        { error: 'Company role changes should use /api/companies/[id]/members/[userId] endpoint' },
         { status: 400 }
       );
     }

@@ -5,7 +5,6 @@ import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { getSupplierById, updateSupplier, deleteSupplier } from '@/lib/dal/suppliers'
 import { checkPermission } from '@/lib/cache/services'
-import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 /**
  * GET /api/suppliers/[id] - 取得單一供應商
@@ -14,7 +13,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
   const { id } = await params
 
   try {
@@ -27,7 +25,7 @@ export async function GET(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'suppliers:read')
@@ -56,7 +54,6 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
   const { id } = await params
 
   try {
@@ -69,7 +66,7 @@ export async function PUT(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'suppliers:write')
@@ -130,7 +127,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { env } = await getCloudflareContext()
   const { id } = await params
 
   try {
@@ -143,7 +139,7 @@ export async function DELETE(
     }
 
     // 檢查權限
-    const kv = getKVCache(env)
+    const kv = getKVCache()
     const db = getSupabaseClient()
 
     const hasPermission = await checkPermission(kv, db, user.id, 'suppliers:delete')
