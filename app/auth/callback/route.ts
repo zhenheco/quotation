@@ -6,8 +6,10 @@ import { validateUrlSafety } from '@/lib/security/url-validator'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { warmUserCache } from '@/lib/cache/warm-cache'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
+import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
+  console.log('🔄 [Auth Callback] Processing OAuth callback...')
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const redirectParam = searchParams.get('redirect')
@@ -36,6 +38,7 @@ export async function GET(request: Request) {
   }
 
   if (code) {
+    console.log('🔑 [Auth Callback] Exchanging code for session...')
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
@@ -43,7 +46,18 @@ export async function GET(request: Request) {
       const user = data.session.user
       const isNewUser = user.created_at === user.last_sign_in_at
 
-      console.log(`✅ User ${isNewUser ? 'registered' : 'logged in'}: ${user.email}`)
+      console.log(`✅ [Auth Callback] Session exchanged successfully for: ${user.email}`)
+      console.log(`📊 [Auth Callback] Session info: { isNewUser: ${isNewUser}, hasAccessToken: ${!!data.session.access_token}, hasRefreshToken: ${!!data.session.refresh_token} }`)
+
+      // 驗證 cookies 是否被設定（診斷用）
+      try {
+        const cookieStore = await cookies()
+        const allCookies = cookieStore.getAll()
+        const authCookies = allCookies.filter(c => c.name.startsWith('sb-'))
+        console.log(`📦 [Auth Callback] Auth cookies set: ${authCookies.length} (${authCookies.map(c => c.name).join(', ')})`)
+      } catch (cookieError) {
+        console.warn('⚠️ [Auth Callback] Could not verify cookies:', cookieError)
+      }
 
       // 同步 user_profiles
       try {
@@ -139,9 +153,12 @@ export async function GET(request: Request) {
     }
 
     if (error) {
-      console.error('Auth error:', error.message)
+      console.error('🔴 [Auth Callback] Session exchange failed:', error.message, error)
     }
+  } else {
+    console.warn('⚠️ [Auth Callback] No code parameter in callback URL')
   }
 
+  console.log('🔴 [Auth Callback] Redirecting to error page')
   return NextResponse.redirect(`${origin}/auth/auth-code-error`)
 }
