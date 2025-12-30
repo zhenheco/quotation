@@ -336,6 +336,16 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
         skippedCount: number
       }
 
+      // 檢查 HTTP 狀態碼
+      if (!response.ok) {
+        if (result.errors && result.errors.length > 0) {
+          setErrors(result.errors)
+        }
+        toast.error(t('accounting.import.importError'))
+        setStep('preview')
+        return
+      }
+
       if (result.errors && result.errors.length > 0) {
         setErrors(result.errors)
       }
@@ -350,6 +360,9 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
       if (result.importedCount > 0) {
         toast.success(t('accounting.import.importSuccess', { count: result.importedCount }))
         onSuccess?.()
+      } else if (result.skippedCount > 0) {
+        // 當全部跳過時顯示警告訊息
+        toast.warning(t('accounting.import.allSkipped'))
       }
     } catch (error) {
       console.error('Import error:', error)

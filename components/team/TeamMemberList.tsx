@@ -122,9 +122,9 @@ export default function TeamMemberList({
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
+          <tbody className="divide-y divide-gray-200 bg-white">
             {members.map((member) => (
-              <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+              <tr key={member.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300">

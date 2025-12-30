@@ -49,6 +49,8 @@ const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'CNY']
 
 interface QuotationItem {
   product_id: string
+  image_url?: string
+  image_file?: File
   quantity: number
   unit_price: number
   discount: number
@@ -319,6 +321,8 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
       ...items,
       {
         product_id: '',
+        image_url: undefined,
+        image_file: undefined,
         quantity: 1,
         unit_price: 0,
         discount: 0,
@@ -399,6 +403,44 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
     if (field === 'product_id') {
       handleProductChange(index, value as string)
       return
+    }
+
+    setItems(newItems)
+  }
+
+  // 處理自訂品項圖片上傳
+  const handleItemImageChange = (index: number, file: File | null) => {
+    const newItems = [...items]
+
+    if (file) {
+      // 驗證檔案類型
+      if (!file.type.startsWith('image/')) {
+        toast.error(t('quotation.invalidImageType'))
+        return
+      }
+      // 驗證檔案大小 (2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error(t('quotation.imageSizeError'))
+        return
+      }
+
+      // 創建預覽 URL
+      const previewUrl = URL.createObjectURL(file)
+      newItems[index] = {
+        ...newItems[index],
+        image_file: file,
+        image_url: previewUrl,
+      }
+    } else {
+      // 清除圖片
+      if (newItems[index].image_url?.startsWith('blob:')) {
+        URL.revokeObjectURL(newItems[index].image_url!)
+      }
+      newItems[index] = {
+        ...newItems[index],
+        image_file: undefined,
+        image_url: undefined,
+      }
     }
 
     setItems(newItems)
@@ -787,7 +829,7 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
         <div className="space-y-3">
           {items.map((item, index) => (
             <div key={index} className="border border-gray-200 rounded-lg p-3">
-              <div className="grid grid-cols-6 gap-3 items-start">
+              <div className="grid grid-cols-7 gap-3 items-start">
                 <div className="col-span-2">
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-sm font-medium text-gray-700">
@@ -867,6 +909,57 @@ export default function QuotationForm({ locale, quotationId }: QuotationFormProp
                       })}
                     </select>
                   )}
+                </div>
+
+                {/* 產品圖片欄位 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('quotation.productImage')}
+                  </label>
+                  <div className="relative w-20 h-20 border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                    {item.image_url ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element -- blob URLs not supported by next/image */}
+                        <img
+                          src={item.image_url}
+                          alt={t('quotation.productImage')}
+                          className="w-full h-full object-cover"
+                        />
+                        {item.is_custom && (
+                          <button
+                            type="button"
+                            onClick={() => handleItemImageChange(index, null)}
+                            className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </>
+                    ) : item.is_custom ? (
+                      <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-gray-100">
+                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-xs text-gray-400 mt-1">{t('quotation.uploadImage')}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleItemImageChange(index, file)
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center w-full h-full text-gray-400">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-xs mt-1">{t('quotation.noImage')}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
