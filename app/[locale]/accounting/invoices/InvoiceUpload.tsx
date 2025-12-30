@@ -1,0 +1,603 @@
+'use client'
+
+import { useState, useCallback, useRef } from 'react'
+import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
+import { useCompany } from '@/hooks/useCompany'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import type { ParsedInvoiceRow } from '@/lib/services/accounting/invoice-template.service'
+
+interface InvoiceUploadProps {
+  onSuccess?: () => void
+}
+
+interface ValidationError {
+  row: number
+  column: string
+  message: string
+}
+
+interface PreviewData extends ParsedInvoiceRow {
+  _rowNumber: number
+}
+
+type UploadStep = 'select' | 'preview' | 'importing' | 'complete'
+
+/**
+ * 發票 Excel 上傳元件
+ * 支援拖曳上傳、檔案預覽、錯誤提示、進度顯示
+ */
+export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
+  const t = useTranslations()
+  const { company } = useCompany()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [step, setStep] = useState<UploadStep>('select')
+  const [isDragging, setIsDragging] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [previewData, setPreviewData] = useState<PreviewData[]>([])
+  const [errors, setErrors] = useState<ValidationError[]>([])
+  const [importResult, setImportResult] = useState<{
+    importedCount: number
+    skippedCount: number
+  } | null>(null)
+
+  // 下載範本
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await fetch('/api/accounting/invoices/template')
+      if (!response.ok) throw new Error('Download failed')
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `invoice-import-template-${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast.success(t('accounting.import.templateDownloaded'))
+    } catch (error) {
+      console.error('Download template error:', error)
+      toast.error(t('accounting.import.templateDownloadError'))
+    }
+  }
+
+  // 處理檔案選擇
+  const handleFileSelect = useCallback(
+    async (file: File) => {
+      if (!company?.id) {
+        toast.error(t('common.selectCompanyFirst'))
+        return
+      }
+
+      // 驗證檔案類型
+      if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+        toast.error(t('accounting.import.invalidFileType'))
+        return
+      }
+
+      setSelectedFile(file)
+      setIsUploading(true)
+      setErrors([])
+
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('company_id', company.id)
+        formData.append('action', 'preview')
+
+        const response = await fetch('/api/accounting/invoices/import', {
+          method: 'POST',
+          body: formData,
+        })
+
+        const result = (await response.json()) as {
+          previewData?: ParsedInvoiceRow[]
+          errors?: ValidationError[]
+        }
+
+        if (result.previewData) {
+          // 加入行號供顯示
+          const dataWithRowNumbers = result.previewData.map(
+            (row: ParsedInvoiceRow, index: number) => ({
+              ...row,
+              _rowNumber: index + 2, // Excel 從第 2 行開始是資料
+            })
+          )
+          setPreviewData(dataWithRowNumbers)
+        }
+
+        if (result.errors && result.errors.length > 0) {
+          setErrors(result.errors)
+        }
+
+        setStep('preview')
+      } catch (error) {
+        console.error('Parse error:', error)
+        toast.error(t('accounting.import.parseError'))
+      } finally {
+        setIsUploading(false)
+      }
+    },
+    [company?.id, t]
+  )
+
+  // 拖曳事件處理
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }, [])
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setIsDragging(false)
+
+      const files = e.dataTransfer.files
+      if (files.length > 0) {
+        handleFileSelect(files[0])
+      }
+    },
+    [handleFileSelect]
+  )
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files
+      if (files && files.length > 0) {
+        handleFileSelect(files[0])
+      }
+    },
+    [handleFileSelect]
+  )
+
+  // 確認匯入
+  const handleConfirmImport = async () => {
+    if (!company?.id || previewData.length === 0) return
+
+    setStep('importing')
+
+    try {
+      // 移除 _rowNumber，只保留資料欄位
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const dataToImport = previewData.map(({ _rowNumber, ...rest }) => rest)
+
+      const response = await fetch('/api/accounting/invoices/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_id: company.id,
+          data: dataToImport,
+        }),
+      })
+
+      const result = (await response.json()) as {
+        errors?: ValidationError[]
+        importedCount: number
+        skippedCount: number
+      }
+
+      if (result.errors && result.errors.length > 0) {
+        setErrors(result.errors)
+      }
+
+      setImportResult({
+        importedCount: result.importedCount,
+        skippedCount: result.skippedCount,
+      })
+
+      setStep('complete')
+
+      if (result.importedCount > 0) {
+        toast.success(
+          t('accounting.import.importSuccess', { count: result.importedCount })
+        )
+        onSuccess?.()
+      }
+    } catch (error) {
+      console.error('Import error:', error)
+      toast.error(t('accounting.import.importError'))
+      setStep('preview')
+    }
+  }
+
+  // 重置
+  const handleReset = () => {
+    setStep('select')
+    setSelectedFile(null)
+    setPreviewData([])
+    setErrors([])
+    setImportResult(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // 渲染上傳區域
+  const renderUploadArea = () => (
+    <div className="space-y-6">
+      {/* 下載範本按鈕 */}
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
+          <svg
+            className="w-4 h-4 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+          {t('accounting.import.downloadTemplate')}
+        </Button>
+      </div>
+
+      {/* 拖曳上傳區域 */}
+      <div
+        className={`
+          border-2 border-dashed rounded-2xl p-8 text-center transition-all
+          ${
+            isDragging
+              ? 'border-emerald-500 bg-emerald-50'
+              : 'border-slate-200 hover:border-slate-300'
+          }
+          ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        `}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => !isUploading && fileInputRef.current?.click()}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={handleInputChange}
+          className="hidden"
+          disabled={isUploading}
+        />
+
+        <div className="flex flex-col items-center gap-4">
+          {isUploading ? (
+            <>
+              <svg
+                className="w-12 h-12 text-emerald-500 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              <p className="text-slate-600">{t('accounting.import.parsing')}</p>
+            </>
+          ) : (
+            <>
+              <svg
+                className="w-12 h-12 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+              <div>
+                <p className="text-slate-700 font-medium">
+                  {t('accounting.import.dragDropHint')}
+                </p>
+                <p className="text-slate-500 text-sm mt-1">
+                  {t('accounting.import.orClickToSelect')}
+                </p>
+              </div>
+              <p className="text-slate-400 text-xs">
+                {t('accounting.import.acceptedFormats')}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  // 渲染預覽表格
+  const renderPreviewTable = () => (
+    <div className="space-y-4">
+      {/* 檔案資訊 */}
+      <div className="flex items-center justify-between bg-slate-50 rounded-xl p-4">
+        <div className="flex items-center gap-3">
+          <svg
+            className="w-8 h-8 text-emerald-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <div>
+            <p className="font-medium text-slate-700">{selectedFile?.name}</p>
+            <p className="text-sm text-slate-500">
+              {t('accounting.import.recordCount', { count: previewData.length })}
+            </p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleReset}>
+          {t('accounting.import.selectAnother')}
+        </Button>
+      </div>
+
+      {/* 錯誤訊息 */}
+      {errors.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <h4 className="font-medium text-red-700 mb-2">
+            {t('accounting.import.validationErrors', { count: errors.length })}
+          </h4>
+          <ul className="text-sm text-red-600 space-y-1 max-h-32 overflow-auto">
+            {errors.slice(0, 10).map((error, index) => (
+              <li key={index}>
+                {t('accounting.import.errorRow', { row: error.row })}: {error.message}
+              </li>
+            ))}
+            {errors.length > 10 && (
+              <li className="text-red-500">
+                {t('accounting.import.moreErrors', { count: errors.length - 10 })}
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+
+      {/* 預覽表格 */}
+      {previewData.length > 0 && (
+        <div className="border rounded-xl overflow-hidden">
+          <div className="overflow-x-auto max-h-64">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50 sticky top-0">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                    #
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                    {t('accounting.invoices.invoiceNumber')}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                    {t('accounting.invoices.type')}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                    {t('accounting.invoices.date')}
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">
+                    {t('accounting.form.totalAmount')}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                    {t('accounting.invoices.counterparty')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-slate-200">
+                {previewData.slice(0, 10).map((row, index) => (
+                  <tr key={index} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 text-sm text-slate-500">{row._rowNumber}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-slate-700">
+                      {row.number}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          row.type === 'OUTPUT'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}
+                      >
+                        {row.type === 'OUTPUT'
+                          ? t('accounting.invoiceTypes.output')
+                          : t('accounting.invoiceTypes.input')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{row.date}</td>
+                    <td className="px-4 py-3 text-sm text-right font-medium text-slate-700">
+                      {row.total_amount.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {row.counterparty_name || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {previewData.length > 10 && (
+            <div className="bg-slate-50 px-4 py-2 text-center text-sm text-slate-500">
+              {t('accounting.import.showingPreview', {
+                shown: 10,
+                total: previewData.length,
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 操作按鈕 */}
+      <div className="flex justify-end gap-3 pt-4 border-t">
+        <Button variant="outline" onClick={handleReset}>
+          {t('common.cancel')}
+        </Button>
+        <Button
+          onClick={handleConfirmImport}
+          disabled={previewData.length === 0 || errors.length > 0}
+        >
+          {t('accounting.import.confirmImport', { count: previewData.length })}
+        </Button>
+      </div>
+    </div>
+  )
+
+  // 渲染匯入中
+  const renderImporting = () => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <svg
+        className="w-16 h-16 text-emerald-500 animate-spin"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+        />
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        />
+      </svg>
+      <p className="mt-4 text-lg font-medium text-slate-700">
+        {t('accounting.import.importing')}
+      </p>
+      <p className="text-slate-500">{t('accounting.import.pleaseWait')}</p>
+    </div>
+  )
+
+  // 渲染完成結果
+  const renderComplete = () => (
+    <div className="space-y-6">
+      {/* 結果摘要 */}
+      <div
+        className={`rounded-xl p-6 text-center ${
+          importResult?.importedCount && importResult.importedCount > 0
+            ? 'bg-emerald-50'
+            : 'bg-amber-50'
+        }`}
+      >
+        {importResult?.importedCount && importResult.importedCount > 0 ? (
+          <>
+            <svg
+              className="w-16 h-16 mx-auto text-emerald-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 className="mt-4 text-lg font-medium text-emerald-700">
+              {t('accounting.import.importComplete')}
+            </h3>
+          </>
+        ) : (
+          <>
+            <svg
+              className="w-16 h-16 mx-auto text-amber-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <h3 className="mt-4 text-lg font-medium text-amber-700">
+              {t('accounting.import.noRecordsImported')}
+            </h3>
+          </>
+        )}
+
+        <div className="mt-4 flex justify-center gap-8">
+          <div>
+            <p className="text-2xl font-bold text-emerald-600">
+              {importResult?.importedCount || 0}
+            </p>
+            <p className="text-sm text-slate-500">{t('accounting.import.imported')}</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-amber-600">
+              {importResult?.skippedCount || 0}
+            </p>
+            <p className="text-sm text-slate-500">{t('accounting.import.skipped')}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 錯誤詳情 */}
+      {errors.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <h4 className="font-medium text-red-700 mb-2">
+            {t('accounting.import.skippedDetails')}
+          </h4>
+          <ul className="text-sm text-red-600 space-y-1 max-h-32 overflow-auto">
+            {errors.map((error, index) => (
+              <li key={index}>
+                {error.row > 0
+                  ? `${t('accounting.import.errorRow', { row: error.row })}: `
+                  : ''}
+                {error.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 操作按鈕 */}
+      <div className="flex justify-center gap-3 pt-4 border-t">
+        <Button variant="outline" onClick={handleReset}>
+          {t('accounting.import.uploadAnother')}
+        </Button>
+      </div>
+    </div>
+  )
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        {step === 'select' && renderUploadArea()}
+        {step === 'preview' && renderPreviewTable()}
+        {step === 'importing' && renderImporting()}
+        {step === 'complete' && renderComplete()}
+      </CardContent>
+    </Card>
+  )
+}
