@@ -6,16 +6,25 @@ import { toast } from 'sonner'
 import { useCompany } from '@/hooks/useCompany'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import type { ParsedInvoiceRow } from '@/lib/services/accounting/invoice-template.service'
-
-interface InvoiceUploadProps {
-  onSuccess?: () => void
-}
+import { parseExcelFile, formatDateString } from '@/lib/utils/excel-parser'
 
 interface ValidationError {
   row: number
   column: string
   message: string
+}
+
+interface ParsedInvoiceRow {
+  number: string
+  type: 'OUTPUT' | 'INPUT'
+  date: string
+  untaxed_amount: number
+  tax_amount: number
+  total_amount: number
+  counterparty_name?: string
+  counterparty_tax_id?: string
+  description?: string
+  due_date?: string
 }
 
 interface PreviewData extends ParsedInvoiceRow {
@@ -25,8 +34,148 @@ interface PreviewData extends ParsedInvoiceRow {
 type UploadStep = 'select' | 'preview' | 'importing' | 'complete'
 
 /**
+ * 驗證發票資料行（客戶端驗證）
+ */
+function validateInvoiceRow(
+  row: Record<string, unknown>,
+  rowNumber: number
+): { data: ParsedInvoiceRow | null; errors: ValidationError[] } {
+  const errors: ValidationError[] = []
+
+  // 驗證發票號碼
+  const number = String(row['發票號碼'] || row['發票號碼 *'] || row.number || '').trim()
+  if (!number) {
+    errors.push({ row: rowNumber, column: '發票號碼', message: '發票號碼為必填欄位' })
+  }
+
+  // 驗證類型
+  const rawType = String(row['類型'] || row['類型 *'] || row.type || '').trim().toUpperCase()
+  if (!rawType) {
+    errors.push({ row: rowNumber, column: '類型', message: '類型為必填欄位' })
+  } else if (rawType !== 'OUTPUT' && rawType !== 'INPUT') {
+    errors.push({
+      row: rowNumber,
+      column: '類型',
+      message: '類型必須為 OUTPUT 或 INPUT',
+    })
+  }
+  const type = rawType as 'OUTPUT' | 'INPUT'
+
+  // 驗證日期
+  const rawDate = row['日期'] || row['日期 *'] || row.date
+  const date = formatDateString(rawDate)
+  if (!date) {
+    errors.push({ row: rowNumber, column: '日期', message: '日期為必填欄位' })
+  } else if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    errors.push({
+      row: rowNumber,
+      column: '日期',
+      message: '日期格式必須為 YYYY-MM-DD',
+    })
+  }
+
+  // 驗證金額
+  const untaxedAmount = parseFloat(
+    String(row['未稅金額'] || row['未稅金額 *'] || row.untaxed_amount || '0')
+  )
+  if (isNaN(untaxedAmount) || untaxedAmount < 0) {
+    errors.push({ row: rowNumber, column: '未稅金額', message: '未稅金額必須為正數' })
+  }
+
+  const taxAmount = parseFloat(String(row['稅額'] || row['稅額 *'] || row.tax_amount || '0'))
+  if (isNaN(taxAmount) || taxAmount < 0) {
+    errors.push({ row: rowNumber, column: '稅額', message: '稅額必須為非負數' })
+  }
+
+  const totalAmount = parseFloat(
+    String(row['含稅金額'] || row['含稅金額 *'] || row.total_amount || '0')
+  )
+  if (isNaN(totalAmount) || totalAmount < 0) {
+    errors.push({ row: rowNumber, column: '含稅金額', message: '含稅金額必須為正數' })
+  }
+
+  // 驗證金額計算
+  if (errors.length === 0 && Math.abs(untaxedAmount + taxAmount - totalAmount) > 1) {
+    errors.push({
+      row: rowNumber,
+      column: '含稅金額',
+      message: `金額計算有誤：未稅(${untaxedAmount}) + 稅額(${taxAmount}) ≠ 含稅(${totalAmount})`,
+    })
+  }
+
+  // 選填欄位
+  const counterpartyName = String(row['交易對象'] || row.counterparty_name || '').trim() || undefined
+  const counterpartyTaxId =
+    String(row['統一編號'] || row.counterparty_tax_id || '').trim() || undefined
+  const description = String(row['摘要'] || row.description || '').trim() || undefined
+
+  // 到期日（選填）
+  const rawDueDate = row['到期日'] || row.due_date
+  let dueDate: string | undefined = undefined
+  if (rawDueDate) {
+    const dueDateStr = formatDateString(rawDueDate)
+    if (dueDateStr && !/^\d{4}-\d{2}-\d{2}$/.test(dueDateStr)) {
+      errors.push({
+        row: rowNumber,
+        column: '到期日',
+        message: '到期日格式必須為 YYYY-MM-DD',
+      })
+    } else if (dueDateStr) {
+      dueDate = dueDateStr
+    }
+  }
+
+  if (errors.length > 0) {
+    return { data: null, errors }
+  }
+
+  return {
+    data: {
+      number,
+      type,
+      date,
+      untaxed_amount: untaxedAmount,
+      tax_amount: taxAmount,
+      total_amount: totalAmount,
+      counterparty_name: counterpartyName,
+      counterparty_tax_id: counterpartyTaxId,
+      description,
+      due_date: dueDate,
+    },
+    errors: [],
+  }
+}
+
+/**
+ * 檢查重複的發票號碼
+ */
+function checkDuplicateNumbers(data: ParsedInvoiceRow[]): ValidationError[] {
+  const errors: ValidationError[] = []
+  const seen = new Map<string, number>()
+
+  data.forEach((row, index) => {
+    const rowNumber = index + 2
+    if (seen.has(row.number)) {
+      errors.push({
+        row: rowNumber,
+        column: '發票號碼',
+        message: `發票號碼 ${row.number} 與第 ${seen.get(row.number)} 行重複`,
+      })
+    } else {
+      seen.set(row.number, rowNumber)
+    }
+  })
+
+  return errors
+}
+
+interface InvoiceUploadProps {
+  onSuccess?: () => void
+}
+
+/**
  * 發票 Excel 上傳元件
- * 支援拖曳上傳、檔案預覽、錯誤提示、進度顯示
+ * 使用客戶端 Excel 解析，減少伺服器端 bundle 大小
  */
 export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
   const t = useTranslations()
@@ -66,7 +215,7 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
     }
   }
 
-  // 處理檔案選擇
+  // 處理檔案選擇（客戶端解析）
   const handleFileSelect = useCallback(
     async (file: File) => {
       if (!company?.id) {
@@ -85,36 +234,35 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
       setErrors([])
 
       try {
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('company_id', company.id)
-        formData.append('action', 'preview')
+        // 客戶端解析 Excel
+        const parseResult = await parseExcelFile(file)
 
-        const response = await fetch('/api/accounting/invoices/import', {
-          method: 'POST',
-          body: formData,
+        const allErrors: ValidationError[] = []
+        const validData: ParsedInvoiceRow[] = []
+
+        // 驗證每一行
+        parseResult.data.forEach((row, index) => {
+          const rowNumber = index + 2 // Excel 從第 2 行開始是資料
+          const { data, errors: rowErrors } = validateInvoiceRow(row, rowNumber)
+
+          if (data) {
+            validData.push(data)
+          }
+          allErrors.push(...rowErrors)
         })
 
-        const result = (await response.json()) as {
-          previewData?: ParsedInvoiceRow[]
-          errors?: ValidationError[]
-        }
+        // 檢查重複發票號碼
+        const duplicateErrors = checkDuplicateNumbers(validData)
+        allErrors.push(...duplicateErrors)
 
-        if (result.previewData) {
-          // 加入行號供顯示
-          const dataWithRowNumbers = result.previewData.map(
-            (row: ParsedInvoiceRow, index: number) => ({
-              ...row,
-              _rowNumber: index + 2, // Excel 從第 2 行開始是資料
-            })
-          )
-          setPreviewData(dataWithRowNumbers)
-        }
+        // 加入行號供顯示
+        const dataWithRowNumbers = validData.map((row, index) => ({
+          ...row,
+          _rowNumber: index + 2,
+        }))
 
-        if (result.errors && result.errors.length > 0) {
-          setErrors(result.errors)
-        }
-
+        setPreviewData(dataWithRowNumbers)
+        setErrors(allErrors)
         setStep('preview')
       } catch (error) {
         console.error('Parse error:', error)
@@ -160,7 +308,7 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
     [handleFileSelect]
   )
 
-  // 確認匯入
+  // 確認匯入（發送 JSON 到 API）
   const handleConfirmImport = async () => {
     if (!company?.id || previewData.length === 0) return
 
@@ -200,9 +348,7 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
       setStep('complete')
 
       if (result.importedCount > 0) {
-        toast.success(
-          t('accounting.import.importSuccess', { count: result.importedCount })
-        )
+        toast.success(t('accounting.import.importSuccess', { count: result.importedCount }))
         onSuccess?.()
       }
     } catch (error) {

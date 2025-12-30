@@ -1,6 +1,9 @@
 /**
  * 發票批次匯入 API
- * POST /api/accounting/invoices/import - 解析並匯入 Excel 發票資料
+ * POST /api/accounting/invoices/import - 匯入已解析的發票 JSON 資料
+ *
+ * 注意：Excel 解析已移至客戶端（使用 SheetJS），
+ * 此 API 只接收 JSON 格式的發票資料
  */
 
 import { createApiClient } from '@/lib/supabase/api'
@@ -10,10 +13,6 @@ import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
-import {
-  parseInvoiceExcel,
-  checkDuplicateNumbers,
-} from '@/lib/services/accounting/invoice-import.service'
 import { createInvoice, getInvoiceByNumber } from '@/lib/dal/accounting/invoices.dal'
 import type { ParsedInvoiceRow } from '@/lib/services/accounting/invoice-template.service'
 
@@ -29,12 +28,19 @@ export interface ImportResponse {
   }>
 }
 
+interface ImportRequestBody {
+  company_id: string
+  data: ParsedInvoiceRow[]
+}
+
 /**
  * POST /api/accounting/invoices/import - 批次匯入發票
  *
- * 支援兩種模式：
- * 1. 上傳 Excel 檔案 (multipart/form-data)
- * 2. 傳送已解析的資料 (application/json)
+ * 請求格式：application/json
+ * {
+ *   company_id: string,
+ *   data: ParsedInvoiceRow[]
+ * }
  */
 export async function POST(request: NextRequest): Promise<NextResponse<ImportResponse>> {
   const { env } = await getCloudflareContext()
@@ -76,152 +82,54 @@ export async function POST(request: NextRequest): Promise<NextResponse<ImportRes
       )
     }
 
+    // 只接收 JSON 格式
     const contentType = request.headers.get('content-type') || ''
-
-    // 處理 JSON 資料（預覽後確認匯入）
-    if (contentType.includes('application/json')) {
-      const body = (await request.json()) as {
-        company_id: string
-        data: ParsedInvoiceRow[]
-      }
-
-      if (!body.company_id) {
-        return NextResponse.json(
-          {
-            success: false,
-            totalRows: 0,
-            importedCount: 0,
-            skippedCount: 0,
-            errors: [{ row: 0, column: '', message: 'company_id is required' }],
-          },
-          { status: 400 }
-        )
-      }
-
-      if (!Array.isArray(body.data) || body.data.length === 0) {
-        return NextResponse.json(
-          {
-            success: false,
-            totalRows: 0,
-            importedCount: 0,
-            skippedCount: 0,
-            errors: [{ row: 0, column: '', message: '無資料可匯入' }],
-          },
-          { status: 400 }
-        )
-      }
-
-      // 批次匯入
-      const result = await batchImportInvoices(db, body.company_id, body.data)
-      return NextResponse.json(result, {
-        status: result.success ? 200 : 400,
-      })
-    }
-
-    // 處理 Excel 檔案上傳
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await request.formData()
-      const file = formData.get('file') as File | null
-      const companyId = formData.get('company_id') as string | null
-      const action = formData.get('action') as string | null // 'preview' 或 'import'
-
-      if (!file) {
-        return NextResponse.json(
-          {
-            success: false,
-            totalRows: 0,
-            importedCount: 0,
-            skippedCount: 0,
-            errors: [{ row: 0, column: '', message: '請上傳檔案' }],
-          },
-          { status: 400 }
-        )
-      }
-
-      if (!companyId) {
-        return NextResponse.json(
-          {
-            success: false,
-            totalRows: 0,
-            importedCount: 0,
-            skippedCount: 0,
-            errors: [{ row: 0, column: '', message: 'company_id is required' }],
-          },
-          { status: 400 }
-        )
-      }
-
-      // 驗證檔案類型
-      if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-        return NextResponse.json(
-          {
-            success: false,
-            totalRows: 0,
-            importedCount: 0,
-            skippedCount: 0,
-            errors: [{ row: 0, column: '', message: '請上傳 Excel 檔案 (.xlsx 或 .xls)' }],
-          },
-          { status: 400 }
-        )
-      }
-
-      // 解析 Excel
-      const arrayBuffer = await file.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
-      const parseResult = await parseInvoiceExcel(buffer)
-
-      // 檢查匯入資料內重複的發票號碼
-      const duplicateErrors = checkDuplicateNumbers(parseResult.data)
-      if (duplicateErrors.length > 0) {
-        parseResult.errors.push(...duplicateErrors)
-        parseResult.success = false
-        parseResult.invalidRows += duplicateErrors.length
-      }
-
-      // 如果只是預覽，回傳解析結果
-      if (action === 'preview') {
-        return NextResponse.json({
-          success: parseResult.success,
-          totalRows: parseResult.totalRows,
+    if (!contentType.includes('application/json')) {
+      return NextResponse.json(
+        {
+          success: false,
+          totalRows: 0,
           importedCount: 0,
-          skippedCount: parseResult.invalidRows,
-          errors: parseResult.errors,
-          // 額外回傳解析的資料供預覽
-          previewData: parseResult.data,
-        })
-      }
-
-      // 如果解析有錯誤，不進行匯入
-      if (!parseResult.success) {
-        return NextResponse.json(
-          {
-            success: false,
-            totalRows: parseResult.totalRows,
-            importedCount: 0,
-            skippedCount: parseResult.invalidRows,
-            errors: parseResult.errors,
-          },
-          { status: 400 }
-        )
-      }
-
-      // 執行批次匯入
-      const importResult = await batchImportInvoices(db, companyId, parseResult.data)
-      return NextResponse.json(importResult, {
-        status: importResult.success ? 200 : 400,
-      })
+          skippedCount: 0,
+          errors: [{ row: 0, column: '', message: '請使用 JSON 格式提交資料' }],
+        },
+        { status: 400 }
+      )
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        totalRows: 0,
-        importedCount: 0,
-        skippedCount: 0,
-        errors: [{ row: 0, column: '', message: '不支援的請求格式' }],
-      },
-      { status: 400 }
-    )
+    const body = (await request.json()) as ImportRequestBody
+
+    if (!body.company_id) {
+      return NextResponse.json(
+        {
+          success: false,
+          totalRows: 0,
+          importedCount: 0,
+          skippedCount: 0,
+          errors: [{ row: 0, column: '', message: 'company_id is required' }],
+        },
+        { status: 400 }
+      )
+    }
+
+    if (!Array.isArray(body.data) || body.data.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          totalRows: 0,
+          importedCount: 0,
+          skippedCount: 0,
+          errors: [{ row: 0, column: '', message: '無資料可匯入' }],
+        },
+        { status: 400 }
+      )
+    }
+
+    // 批次匯入
+    const result = await batchImportInvoices(db, body.company_id, body.data)
+    return NextResponse.json(result, {
+      status: result.success ? 200 : 400,
+    })
   } catch (error: unknown) {
     console.error('Error importing invoices:', error)
     return NextResponse.json(

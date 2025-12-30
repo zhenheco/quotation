@@ -1,37 +1,23 @@
 /**
  * 發票匯入範本下載 API
- * GET /api/accounting/invoices/template - 下載 Excel 範本
+ * GET /api/accounting/invoices/template - 重定向到靜態範本檔案
+ *
+ * 範本檔案由 scripts/generate-invoice-template.ts 預先產生
+ * 存放於 /public/templates/invoice-template.xlsx
  */
 
 import { NextResponse } from 'next/server'
-import { generateInvoiceTemplate } from '@/lib/services/accounting/invoice-template.service'
 
 /**
- * GET /api/accounting/invoices/template - 下載發票匯入範本
+ * GET /api/accounting/invoices/template - 重定向到靜態範本檔案
+ *
+ * 使用靜態檔案而非動態產生，以減少伺服器端 bundle 大小
  */
 export async function GET() {
-  try {
-    // 產生 Excel 範本
-    const buffer = await generateInvoiceTemplate()
-
-    // 設定檔案名稱（包含日期）
-    const today = new Date().toISOString().split('T')[0]
-    const filename = `invoice-import-template-${today}.xlsx`
-
-    // 回傳 Excel 檔案（轉為 Uint8Array 供 Response 使用）
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-      },
-    })
-  } catch (error) {
-    console.error('Error generating invoice template:', error)
-    return NextResponse.json(
-      { error: '範本產生失敗' },
-      { status: 500 }
-    )
-  }
+  // 重定向到靜態範本檔案
+  // Next.js 會自動從 public 目錄提供此檔案
+  return NextResponse.redirect(
+    new URL('/templates/invoice-template.xlsx', process.env.NEXT_PUBLIC_APP_URL || 'https://quote24.cc'),
+    { status: 302 }
+  )
 }
