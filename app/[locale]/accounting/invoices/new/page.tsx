@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import PageHeader from '@/components/ui/PageHeader'
-import InvoiceForm from '../InvoiceForm'
+import InvoiceFormTabs from '../components/InvoiceFormTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +27,7 @@ export default async function NewInvoicePage({
     <div className="space-y-6">
       <PageHeader title={t('accounting.invoices.addNew')} />
 
-      <InvoiceForm locale={locale} />
+      <InvoiceFormTabs locale={locale} />
     </div>
   )
 }
