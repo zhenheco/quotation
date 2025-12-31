@@ -78,6 +78,7 @@ interface CompanySettingsProps {
 export default function CompanySettings({ locale, triggerCreate }: CompanySettingsProps) {
   const t = useTranslations('common');
   const tTeam = useTranslations('team');
+  const tSettings = useTranslations('settings');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -212,7 +213,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
         await uploadPendingFiles(data.id);
       }
 
-      alert(locale === 'zh' ? '保存成功！' : 'Saved successfully!');
+      alert(tSettings('saveSuccess'));
       await fetchCompanies();
       loadCompany(data.id);
       setIsCreating(false);
@@ -290,10 +291,10 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
       await apiPut(`/api/companies/${selectedCompany.id}`, updateData);
       await loadCompany(selectedCompany.id);
-      alert(locale === 'zh' ? '上傳成功！' : 'Uploaded successfully!');
+      alert(tSettings('uploadSuccess'));
     } catch (error) {
       console.error('Upload error:', error);
-      alert(locale === 'zh' ? '上傳失敗' : 'Upload failed');
+      alert(tSettings('uploadFailed'));
     } finally {
       setUploading(prev => ({ ...prev, [type]: false }));
     }
@@ -308,7 +309,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
       {/* Company List */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">
-          {locale === 'zh' ? '我的公司' : 'My Companies'}
+          {tSettings('myCompanies')}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -316,7 +317,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
             const primaryName = company.name?.zh || company.name?.en || '';
             const secondaryName = company.name?.en && company.name?.zh !== company.name?.en ? company.name.en : '';
             const isSelected = selectedCompany?.id === company.id;
-            const ariaLabel = `${locale === 'zh' ? '選擇公司' : 'Select company'}: ${primaryName}`;
+            const ariaLabel = `${tSettings('selectCompany')}: ${primaryName}`;
 
             return (
               <div
@@ -362,7 +363,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                     </div>
                     {company.tax_id && (
                       <div className="text-sm font-normal text-gray-600 mt-0.5">
-                        ({locale === 'zh' ? '統編' : 'Tax ID'}: {company.tax_id})
+                        ({tSettings('tax_id')}: {company.tax_id})
                       </div>
                     )}
                     {secondaryName && (
@@ -382,16 +383,14 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
       {selectedCompany && (
         <form onSubmit={handleSaveCompany} className="bg-white rounded-lg shadow p-6 space-y-6">
           <h2 className="text-xl font-semibold">
-            {isCreating
-              ? (locale === 'zh' ? '新增公司' : 'Create Company')
-              : (locale === 'zh' ? '編輯公司' : 'Edit Company')}
+            {isCreating ? tSettings('createCompany') : tSettings('editCompany')}
           </h2>
 
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {locale === 'zh' ? '公司名稱（中文）' : 'Company Name (Chinese)'}
+                {tSettings('company_name_zh_label')}
               </label>
               <input
                 type="text"
@@ -406,7 +405,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {locale === 'zh' ? '公司名稱（英文）' : 'Company Name (English)'}
+                {tSettings('company_name_en_label')}
               </label>
               <input
                 type="text"
@@ -421,7 +420,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {locale === 'zh' ? '統一編號' : 'Tax ID'}
+                {tSettings('tax_id_label')}
               </label>
               <input
                 type="text"
@@ -433,7 +432,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {locale === 'zh' ? '電話' : 'Phone'}
+                {tSettings('phone')}
               </label>
               <input
                 type="tel"
@@ -445,7 +444,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {locale === 'zh' ? '電子郵件' : 'Email'}
+                {tSettings('email')}
               </label>
               <input
                 type="email"
@@ -457,7 +456,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {locale === 'zh' ? '網站' : 'Website'}
+                {tSettings('website')}
               </label>
               <input
                 type="url"
@@ -472,7 +471,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {locale === 'zh' ? '地址（中文）' : 'Address (Chinese)'}
+                {tSettings('address_zh_label')}
               </label>
               <textarea
                 value={selectedCompany.address?.zh || ''}
@@ -487,7 +486,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {locale === 'zh' ? '地址（英文）' : 'Address (English)'}
+                {tSettings('address_en_label')}
               </label>
               <textarea
                 value={selectedCompany.address?.en || ''}
@@ -504,12 +503,12 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
           {/* Bank Info */}
           <div className="border-t pt-6">
             <h3 className="text-lg font-medium mb-4">
-              {locale === 'zh' ? '銀行資訊' : 'Bank Information'}
+              {tSettings('bank_info_section')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {locale === 'zh' ? '銀行名稱' : 'Bank Name'}
+                  {tSettings('bank_name')}
                 </label>
                 <input
                   type="text"
@@ -521,7 +520,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {locale === 'zh' ? '銀行代碼' : 'Bank Code'}
+                  {tSettings('bank_code')}
                 </label>
                 <input
                   type="text"
@@ -533,7 +532,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {locale === 'zh' ? '銀行帳號' : 'Bank Account'}
+                  {tSettings('bank_account')}
                 </label>
                 <input
                   type="text"
@@ -549,7 +548,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
           {!isCreating && selectedCompany.id && (
             <div className="border-t pt-6">
               <h3 className="text-lg font-medium mb-4">
-                {locale === 'zh' ? '團隊成員' : 'Team Members'}
+                {tSettings('teamMembers')}
               </h3>
 
               {/* Tab 切換 */}
@@ -616,13 +615,13 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
           {/* File Uploads */}
           <div className="border-t pt-6">
             <h3 className="text-lg font-medium mb-4">
-              {locale === 'zh' ? '檔案上傳' : 'File Uploads'}
+              {tSettings('fileUploads')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Logo */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {locale === 'zh' ? '公司 Logo' : 'Company Logo'}
+                    {tSettings('companyLogo')}
                   </label>
                   {(getImageUrl(selectedCompany.logo_url) || pendingFiles.logo) && (
                     <Image
@@ -655,7 +654,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                 {/* Signature */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {locale === 'zh' ? '負責人簽名' : 'Signature'}
+                    {tSettings('signature')}
                   </label>
                   {(getImageUrl(selectedCompany.signature_url) || pendingFiles.signature) && (
                     <Image
@@ -688,7 +687,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
                 {/* Passbook */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {locale === 'zh' ? '存摺封面' : 'Passbook'}
+                    {tSettings('passbook')}
                   </label>
                   {(getImageUrl(selectedCompany.passbook_url) || pendingFiles.passbook) && (
                     <Image
@@ -727,7 +726,7 @@ export default function CompanySettings({ locale, triggerCreate }: CompanySettin
               disabled={saving}
               className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
-              {saving ? (locale === 'zh' ? '保存中...' : 'Saving...') : (locale === 'zh' ? '保存' : 'Save')}
+              {saving ? tSettings('saving') : tSettings('save')}
             </button>
           </div>
         </form>

@@ -18,9 +18,9 @@ export default function SettingsPage() {
     <>
       <PageHeader
         title={t('title')}
-        description={locale === 'zh' ? '管理您的公司資訊、成員和設定' : 'Manage your company information, members, and settings'}
+        description={t('description')}
         action={{
-          label: locale === 'zh' ? '新增公司' : 'Add Company',
+          label: t('addCompany'),
           onClick: handleCreateCompany
         }}
       />

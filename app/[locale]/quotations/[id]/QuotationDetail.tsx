@@ -46,9 +46,9 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
     if (!quotation) return
     try {
       await generatePDF(quotation, paymentTerms, pdfLocale)
-      toast.success(pdfLocale === 'zh' ? 'PDF 下載成功' : 'PDF downloaded successfully')
+      toast.success(t('quotation.pdfDownloadSuccess'))
     } catch {
-      toast.error(pdfLocale === 'zh' ? 'PDF 生成失敗' : 'PDF generation failed')
+      toast.error(t('quotation.pdfGenerationFailed'))
     }
   }
 
@@ -150,7 +150,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  {locale === 'zh' ? '下載 PDF' : 'Download PDF'}
+                  {t('quotation.downloadPdf')}
                 </>
               )}
             </button>
@@ -207,7 +207,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
       <div className="bg-white rounded-lg shadow overflow-hidden print:shadow-none total-section">
         <div className="p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            {locale === 'zh' ? '報價項目' : 'Quotation Items'}
+            {t('quotation.quotationItems')}
           </h3>
         </div>
 
@@ -227,7 +227,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                     {t('quotation.item.unitPrice')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {locale === 'zh' ? '金額' : 'Amount'}
+                    {t('quotation.amount')}
                   </th>
                 </tr>
               </thead>
@@ -285,13 +285,13 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
         {paymentTerms && paymentTerms.length > 0 && (
           <div className="px-6 pb-6 pt-2 border-t">
             <h4 className="text-sm font-medium text-gray-700 mb-3">
-              {locale === 'zh' ? '付款條件' : 'Payment Terms'}
+              {t('quotation.paymentTerms')}
             </h4>
             <div className="space-y-2">
               {paymentTerms.map((term: PaymentTerm) => (
                 <div key={term.id} className="flex flex-col sm:flex-row sm:justify-between text-sm gap-1 sm:gap-0">
                   <span className="text-gray-600 break-words">
-                    {locale === 'zh' ? `第 ${term.term_number} 期` : `Term ${term.term_number}`}
+                    {t('quotation.termNumber', { number: term.term_number })}
                     {' '}({term.percentage}%)
                     {term.due_date && (
                       <span className="sm:ml-2 block sm:inline mt-0.5 sm:mt-0">
@@ -333,7 +333,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                 }}
               />
               <span className="text-xs text-gray-500 mt-1 print:hidden">
-                {locale === 'zh' ? '報價專用章' : 'Official Quotation Stamp'}
+                {t('quotation.officialStamp')}
               </span>
             </div>
           </div>
@@ -380,7 +380,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
       {/* Contract Upload */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">
-          {locale === 'zh' ? '合約檔案' : 'Contract File'}
+          {t('quotation.contractFile')}
         </h3>
         <div className="space-y-4">
           {quotation.contract_file_url ? (
@@ -391,7 +391,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                 </svg>
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    {locale === 'zh' ? '已上傳合約' : 'Contract Uploaded'}
+                    {t('quotation.contractUploaded')}
                   </p>
                   <p className="text-xs text-gray-500">
                     {new Date().toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US')}
@@ -405,17 +405,17 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                   rel="noopener noreferrer"
                   className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                 >
-                  {locale === 'zh' ? '檢視' : 'View'}
+                  {t('quotation.view')}
                 </a>
                 <button
                   onClick={() => {
-                    if (confirm(locale === 'zh' ? '確定要刪除合約檔案？' : 'Delete contract file?')) {
+                    if (confirm(t('quotation.deleteContractConfirm'))) {
                       // TODO: Implement delete
                     }
                   }}
                   className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                 >
-                  {locale === 'zh' ? '刪除' : 'Delete'}
+                  {t('quotation.delete')}
                 </button>
               </div>
             </div>
@@ -425,7 +425,7 @@ export default function QuotationDetail({ quotationId, locale }: QuotationDetail
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <p className="mt-4 text-sm text-gray-500">
-                {locale === 'zh' ? '尚未上傳合約' : 'No contract uploaded'}
+                {t('quotation.noContractUploaded')}
               </p>
             </div>
           )}
