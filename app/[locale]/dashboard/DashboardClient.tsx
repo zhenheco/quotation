@@ -200,9 +200,9 @@ export default function DashboardClient({ locale }: { locale: string }) {
   // 取得問候語
   const getGreeting = () => {
     const hour = new Date().getHours()
-    if (hour < 12) return locale === 'zh' ? '早安' : 'Good morning'
-    if (hour < 18) return locale === 'zh' ? '午安' : 'Good afternoon'
-    return locale === 'zh' ? '晚安' : 'Good evening'
+    if (hour < 12) return t('dashboard.goodMorning')
+    if (hour < 18) return t('dashboard.goodAfternoon')
+    return t('dashboard.goodEvening')
   }
 
   if (dashboardData.isLoading) {
@@ -248,7 +248,7 @@ export default function DashboardClient({ locale }: { locale: string }) {
             <div>
               <p className="text-emerald-700 font-medium">{getGreeting()}!</p>
               <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mt-1">
-                {locale === 'zh' ? '歡迎回來' : 'Welcome back'}
+                {t('dashboard.welcomeBack')}
               </h1>
               <p className="text-slate-500 mt-2">
                 {new Date().toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US', {
