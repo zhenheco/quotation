@@ -1,10 +1,10 @@
 # Ralph Fix Plan - Vercel 遷移
 
-> **狀態**：✅ 程式碼遷移完成
+> **狀態**：✅ 全部完成
 > **目標**：將應用程式從 Cloudflare Workers 遷移至 Vercel
 > **原因**：Bundle 大小（13 MiB）超過 Workers 限制（10 MiB）
 > **驗證結果**：`pnpm run build` ✅ | `pnpm run lint` ✅ | `pnpm run typecheck` ✅
-> **最後更新**：2025-12-30
+> **最後更新**：2025-12-31
 
 ---
 
@@ -89,9 +89,9 @@ CF_AIG_TOKEN=<Cloudflare AI Gateway Token>
 
 - [x] 所有 Cloudflare 程式碼已移除
 - [x] Build/Lint/TypeCheck 通過
-- [ ] Vercel 專案已建立並連接 GitHub
-- [ ] 環境變數已設定
-- [ ] 自定義域名 quote24.cc 已設定
-- [ ] Supabase OAuth redirect URLs 已更新
-- [ ] 部署成功
-- [ ] 登入功能正常
+- [x] Vercel 專案已建立並連接 GitHub
+- [x] 環境變數已設定
+- [x] 自定義域名 quote24.cc 已設定
+- [x] Supabase OAuth redirect URLs 已更新
+- [x] 部署成功
+- [x] 登入功能正常
