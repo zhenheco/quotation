@@ -26,14 +26,10 @@ export default function InvoiceList({ locale }: InvoiceListProps) {
   const t = useTranslations()
   const { company } = useCompany()
   const [page, setPage] = useState(1)
-  const [typeFilter, setTypeFilter] = useState<string>('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
 
   const { data, isLoading, error } = useInvoices(
     {
       companyId: company?.id || '',
-      type: typeFilter as 'OUTPUT' | 'INPUT' | undefined,
-      status: statusFilter as 'DRAFT' | 'VERIFIED' | 'POSTED' | 'VOIDED' | undefined,
       page,
       pageSize: 20,
     },
@@ -117,40 +113,6 @@ export default function InvoiceList({ locale }: InvoiceListProps) {
 
   return (
     <div className="space-y-6">
-      {/* 篩選器 */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg">{t('accounting.invoices.filters')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="">{t('accounting.invoices.allTypes')}</option>
-              <option value="OUTPUT">{t('accounting.invoiceTypes.output')}</option>
-              <option value="INPUT">{t('accounting.invoiceTypes.input')}</option>
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="">{t('accounting.invoices.allStatus')}</option>
-              <option value="DRAFT">{t('accounting.status.draft')}</option>
-              <option value="VERIFIED">{t('accounting.status.verified')}</option>
-              <option value="POSTED">{t('accounting.status.posted')}</option>
-              <option value="VOIDED">{t('accounting.status.voided')}</option>
-            </select>
-            <Button variant="outline" size="sm">
-              {t('accounting.invoices.addNew')}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* 發票列表 */}
       <Card>
         <CardHeader>

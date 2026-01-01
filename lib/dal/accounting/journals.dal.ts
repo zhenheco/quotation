@@ -52,8 +52,18 @@ export interface AccTransaction {
   deleted_at: string | null
 }
 
+// 包含科目資訊的分錄（用於傳票詳情顯示）
+export interface AccTransactionWithAccount extends AccTransaction {
+  account?: {
+    id: string
+    code: string
+    name: string
+    category: string
+  } | null
+}
+
 export interface JournalEntryWithTransactions extends JournalEntry {
-  transactions: AccTransaction[]
+  transactions: AccTransactionWithAccount[]
 }
 
 export interface CreateJournalInput {
@@ -190,7 +200,7 @@ export async function getJournalEntries(
 }
 
 /**
- * 根據 ID 取得單一傳票（含分錄）
+ * 根據 ID 取得單一傳票（含分錄與科目資訊）
  */
 export async function getJournalEntryById(
   db: SupabaseClient,
@@ -211,9 +221,18 @@ export async function getJournalEntryById(
     return null
   }
 
+  // 取得分錄並 join 科目資訊
   const { data: transactions, error: txError } = await db
     .from('acc_transactions')
-    .select('*')
+    .select(`
+      *,
+      account:accounts!account_id (
+        id,
+        code,
+        name,
+        category
+      )
+    `)
     .eq('journal_entry_id', journalId)
     .is('deleted_at', null)
     .order('id', { ascending: true })
@@ -224,7 +243,7 @@ export async function getJournalEntryById(
 
   return {
     ...journal,
-    transactions: transactions || [],
+    transactions: (transactions || []) as AccTransactionWithAccount[],
   }
 }
 
