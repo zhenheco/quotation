@@ -7,8 +7,23 @@ import { createClient } from '@supabase/supabase-js'
 import * as fs from 'fs'
 import * as path from 'path'
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://oubsycwrxzkuviakzahi.supabase.co'
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || ''
+// 從 .env.local 載入環境變數
+function loadEnv() {
+  const envPath = path.join(process.cwd(), '.env.local')
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, 'utf8')
+    content.split('\n').forEach(line => {
+      const match = line.match(/^([^=]+)=(.*)$/)
+      if (match && !process.env[match[1]]) {
+        process.env[match[1]] = match[2]
+      }
+    })
+  }
+}
+loadEnv()
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || 'https://oubsycwrxzkuviakzahi.supabase.co'
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || ''
 
 // 從 DAL 層定義的表和欄位
 const EXPECTED_SCHEMA: Record<string, string[]> = {
