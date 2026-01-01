@@ -1,4 +1,5 @@
 import { createApiClient } from '@/lib/supabase/api'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { NextRequest, NextResponse } from 'next/server'
 
 const MIME_TYPES: Record<string, string> = {
@@ -12,8 +13,9 @@ const MIME_TYPES: Record<string, string> = {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createApiClient(request)
-    const { data: { user } } = await supabase.auth.getUser()
+    // 使用 API client 驗證用戶身份
+    const authClient = createApiClient(request)
+    const { data: { user } } = await authClient.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -29,9 +31,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // TODO: Migrate from Cloudflare R2 to Supabase Storage
-    // For now, use Supabase Storage as fallback
-    const { data, error } = await supabase.storage
+    // 使用 Service Role client 進行 Storage 操作（繞過 RLS）
+    // 安全性由上面的路徑所有權驗證保證
+    const storageClient = getSupabaseClient()
+    const { data, error } = await storageClient.storage
       .from('company-files')
       .download(path)
 
