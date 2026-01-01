@@ -1,4 +1,5 @@
 import { createApiClient } from '@/lib/supabase/api'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { NextRequest, NextResponse } from 'next/server'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
 
@@ -10,8 +11,9 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createApiClient(request)
-    const { data: { user } } = await supabase.auth.getUser()
+    // 使用 API client 驗證用戶身份
+    const authClient = createApiClient(request)
+    const { data: { user } } = await authClient.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -48,8 +50,10 @@ export async function POST(request: NextRequest) {
 
     const arrayBuffer = await file.arrayBuffer()
 
-    // TODO: Migrated from Cloudflare R2 to Supabase Storage
-    const { error: uploadError } = await supabase.storage
+    // 使用 Service Role client 進行 Storage 操作（繞過 RLS）
+    // 安全性由 API 層的認證和路徑驗證保證
+    const storageClient = getSupabaseClient()
+    const { error: uploadError } = await storageClient.storage
       .from('company-files')
       .upload(filePath, arrayBuffer, {
         contentType: file.type,

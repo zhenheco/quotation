@@ -38,6 +38,37 @@ export function resetQueryBuilder() {
 // 初始化 queryBuilder
 resetQueryBuilder()
 
+// Storage Mock
+export const storageBucket = {
+  upload: vi.fn(),
+  download: vi.fn(),
+  remove: vi.fn(),
+  list: vi.fn(),
+  getPublicUrl: vi.fn(),
+}
+
+export const storageMock = {
+  getBucket: vi.fn(),
+  createBucket: vi.fn(),
+  listBuckets: vi.fn(),
+  from: vi.fn(() => storageBucket),
+}
+
+export function resetStorageMock() {
+  storageMock.getBucket.mockReset()
+  storageMock.createBucket.mockReset()
+  storageMock.listBuckets.mockReset()
+  storageMock.from.mockReset().mockImplementation(() => storageBucket)
+  storageBucket.upload.mockReset()
+  storageBucket.download.mockReset()
+  storageBucket.remove.mockReset()
+  storageBucket.list.mockReset()
+  storageBucket.getPublicUrl.mockReset()
+}
+
+// 初始化 storage mock
+resetStorageMock()
+
 export const mockSupabaseClient = {
   auth: {
     getUser: vi.fn(),
@@ -45,6 +76,7 @@ export const mockSupabaseClient = {
     signOut: vi.fn(),
   },
   from: vi.fn(() => queryBuilder),
+  storage: storageMock,
 }
 
 export const createMockUser = (overrides = {}) => ({

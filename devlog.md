@@ -1,5 +1,87 @@
 # Development Log
 
+## 2026-01-01: 修復 Logo 上傳失敗問題（Storage Bucket 不存在）
+
+### 問題描述
+用戶反映上傳 logo 時出現 500 錯誤。Console 顯示：
+- `StorageApiError: Bucket not found (status 404)`
+- `user_profiles?select=company_id` 400 錯誤
+- `/api/upload/company-files` 500 錯誤
+
+### 根本原因
+程式碼從 Cloudflare R2 遷移到 Supabase Storage 時，**漏掉創建 `company-files` bucket**。
+- `app/api/upload/company-files/route.ts` 和 `app/api/storage/company-files/route.ts` 都嘗試存取不存在的 bucket
+- 原本使用 `createApiClient(request)`（anon key），需要 RLS policies 才能存取 Storage
+
+### 解決方案
+
+#### 1. 創建 Storage Bucket
+新增 `scripts/setup-company-files-bucket.ts`：
+```bash
+npx tsx scripts/setup-company-files-bucket.ts
+```
+
+Bucket 設定：
+- Name: `company-files`
+- Public: `false`（私有）
+- File Size Limit: `5MB`
+- Allowed MIME Types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`
+
+#### 2. 修改 API 使用 Service Role（繞過 RLS）
+因為 API 層已有安全檢查，改用 Service Role key 更簡單：
+
+**`app/api/upload/company-files/route.ts`**：
+```typescript
+// 使用 API client 驗證用戶身份
+const authClient = createApiClient(request)
+const { data: { user } } = await authClient.auth.getUser()
+
+// 使用 Service Role client 進行 Storage 操作（繞過 RLS）
+const storageClient = getSupabaseClient()
+const { error: uploadError } = await storageClient.storage
+  .from('company-files')
+  .upload(filePath, arrayBuffer, { ... })
+```
+
+**`app/api/storage/company-files/route.ts`**：
+```typescript
+// 安全性由上面的路徑所有權驗證保證
+if (!path.startsWith(user.id + '/')) {
+  return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+}
+
+const storageClient = getSupabaseClient()
+const { data, error } = await storageClient.storage
+  .from('company-files')
+  .download(path)
+```
+
+### 新增/修改檔案
+
+| 檔案 | 變更 |
+|------|------|
+| `scripts/setup-company-files-bucket.ts` | 新增：Bucket 設定腳本 |
+| `app/api/upload/company-files/route.ts` | 修改：使用 Service Role |
+| `app/api/storage/company-files/route.ts` | 修改：使用 Service Role |
+| `tests/mocks/supabase.ts` | 修改：新增 Storage mock |
+| `tests/integration/storage/company-files-bucket.test.ts` | 新增：Bucket 存在性測試 |
+| `tests/unit/upload-company-files.test.ts` | 新增：上傳驗證邏輯測試 |
+| `tests/unit/storage-company-files.test.ts` | 新增：下載驗證邏輯測試 |
+
+### 驗證結果
+- ✅ Bucket 創建成功
+- ✅ 所有 131 個測試通過
+- ✅ TypeScript 檢查通過
+- ⏳ 待手動測試：用戶上傳 logo 並顯示
+
+### 經驗教訓
+1. 遷移 Storage provider 時，**必須確認 bucket 已創建**
+2. 使用 Service Role 繞過 RLS 是有效方案，但需確保 API 層有足夠的安全檢查
+3. `createApiClient(request)` 使用 anon key + user session，需要 RLS policies
+4. `getSupabaseClient()` 使用 Service Role key，繞過 RLS
+
+---
+
 ## 2025-12-28: 建立會計系統測試資料
 
 ### 目的
