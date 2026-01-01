@@ -6,10 +6,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import {
-  getJournalDetail,
-  deleteJournalById,
-} from '@/lib/services/accounting'
+import { getJournalDetail, deleteJournalById } from '@/lib/services/accounting'
 
 /**
  * GET /api/accounting/journals/[id] - 取得傳票詳情
