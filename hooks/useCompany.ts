@@ -32,34 +32,33 @@ export function useCompany() {
         throw new Error('未登入')
       }
 
-      // 取得使用者的公司
-      const { data: userProfile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('company_id')
+      // 透過 company_members 取得使用者的公司
+      const { data: membership, error: memberError } = await supabase
+        .from('company_members')
+        .select(`
+          company_id,
+          is_owner,
+          companies:company_id (*)
+        `)
         .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('is_owner', { ascending: false }) // 優先取得 owner 的公司
+        .limit(1)
         .single()
 
-      if (profileError) {
-        // 可能是新用戶，還沒有設定公司
+      if (memberError) {
+        // 可能是新用戶，還沒有加入任何公司
+        console.log('[useCompany] No company membership found:', memberError.message)
         return null
       }
 
-      if (!userProfile?.company_id) {
+      // companies 是嵌套查詢的結果（單一物件，因為是 foreign key）
+      const company = membership.companies as unknown as Company | null
+      if (!company) {
         return null
       }
 
-      // 取得公司資訊
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', userProfile.company_id)
-        .single()
-
-      if (companyError) {
-        throw companyError
-      }
-
-      return company as Company
+      return company
     },
     staleTime: 5 * 60 * 1000, // 5 分鐘
     retry: 1,

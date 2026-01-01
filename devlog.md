@@ -1,5 +1,57 @@
 # Development Log
 
+## 2026-01-01: 修復 useCompany hook 無法取得公司資料問題
+
+### 問題描述
+用戶反映在會計發票頁面看不到任何資料。
+
+### 根本原因
+`hooks/useCompany.ts` 嘗試查詢 `user_profiles.company_id` 欄位，但該欄位在資料庫中**不存在**。
+
+正確的用戶-公司關聯是透過 `company_members` 表建立的，不是 `user_profiles.company_id`。
+
+```
+錯誤設計：
+user_profiles.company_id → companies.id  ❌ (欄位不存在)
+
+正確設計：
+company_members.user_id → users
+company_members.company_id → companies  ✅
+```
+
+### 解決方案
+修改 `hooks/useCompany.ts`，改為查詢 `company_members` 表：
+
+```typescript
+// 透過 company_members 取得使用者的公司
+const { data: membership } = await supabase
+  .from('company_members')
+  .select(`
+    company_id,
+    is_owner,
+    companies:company_id (*)
+  `)
+  .eq('user_id', user.id)
+  .eq('is_active', true)
+  .order('is_owner', { ascending: false })
+  .limit(1)
+  .single()
+```
+
+### 影響範圍
+所有使用 `useCompany()` hook 的頁面：
+- 會計發票頁面
+- 會計傳票頁面
+- 財務報表頁面
+- 公司設定頁面
+
+### 經驗教訓
+1. 資料庫 schema 與前端 hook 必須同步驗證
+2. 多表關聯時，確認正確的 join path
+3. `user_profiles` 表沒有 `company_id`，公司關聯在 `company_members`
+
+---
+
 ## 2026-01-01: 修復 Logo 上傳失敗問題（Storage Bucket 不存在）
 
 ### 問題描述
