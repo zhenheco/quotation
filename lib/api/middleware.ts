@@ -27,11 +27,42 @@ export interface ApiContext {
 
 /**
  * 權限名稱映射：API 格式 -> 資料庫格式
+ *
+ * 背景說明：
+ * - API 路由使用簡短的權限名稱（如 invoices:read）
+ * - 資料庫權限表使用完整名稱（如 acc_invoices:read）
+ * - 此映射表用於轉換 API 權限名稱到資料庫權限名稱
+ *
+ * 參考：migrations/044_accounting_core_tables.sql
  */
 const permissionMapping: Record<string, string[]> = {
+  // 公司相關
   'companies:read': ['companies:read', 'company_settings:read'],
   'companies:write': ['companies:write', 'company_settings:write'],
   'exchange_rates:read': ['exchange_rates:read'],
+
+  // 會計發票（API: invoices → DB: acc_invoices）
+  'invoices:read': ['acc_invoices:read'],
+  'invoices:write': ['acc_invoices:write'],
+  'invoices:delete': ['acc_invoices:delete'],
+  'invoices:post': ['acc_invoices:post'],
+  'invoices:verify': ['acc_invoices:write'], // verify 使用 write 權限
+  'invoices:void': ['acc_invoices:write'], // void 使用 write 權限
+
+  // 會計傳票（API: journals → DB: journal_entries）
+  'journals:read': ['journal_entries:read'],
+  'journals:write': ['journal_entries:write'],
+  'journals:delete': ['journal_entries:delete'],
+  'journals:post': ['journal_entries:post'],
+  'journals:void': ['journal_entries:write'], // void 使用 write 權限
+
+  // 財務報表（需要讀取傳票和發票權限）
+  'reports:read': ['journal_entries:read', 'acc_invoices:read'],
+
+  // 會計科目
+  'accounts:read': ['accounts:read'],
+  'accounts:write': ['accounts:write'],
+  'accounts:delete': ['accounts:delete'],
 }
 
 /**

@@ -30,7 +30,8 @@
     "hide": "Hide",
     "chooseFile": "Choose File",
     "uploading": "Uploading...",
-    "selectCompanyFirst": "Please select a company first"
+    "selectCompanyFirst": "Please select a company first",
+    "error": "Error"
   },
   "auth": {
     "signInWithGoogle": "Sign in / Sign up with Google",
