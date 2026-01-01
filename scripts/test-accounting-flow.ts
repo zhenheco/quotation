@@ -135,28 +135,38 @@ async function main() {
   console.log('╚══════════════════════════════════════════════════════════╝')
 
   try {
-    // Step 0: 取得測試用公司 ID
+    // Step 0: 取得 acejou27@gmail.com 的公司 ID
     printSeparator('Step 0: 取得測試公司資訊')
 
-    const { data: user, error: userError } = await db
+    // 查詢 acejou27@gmail.com 用戶的公司
+    const { data: authUser, error: authError } = await db
       .from('user_profiles')
-      .select('company_id')
-      .limit(1)
+      .select('id, company_id, display_name')
+      .eq('email', 'acejou27@gmail.com')
       .single()
 
-    if (userError || !user?.company_id) {
-      console.error('❌ 找不到測試公司，請先登入系統建立公司')
+    let companyId: string
 
-      // 嘗試取得任何存在的公司
-      const { data: companies } = await db.from('companies').select('id, name').limit(1)
-      if (companies && companies.length > 0) {
-        console.log(`📌 使用現有公司: ${companies[0].name}`)
-        var companyId = companies[0].id
-      } else {
+    if (authError || !authUser?.company_id) {
+      // 如果找不到 user_profiles，嘗試從 auth.users 和 company_members 查詢
+      const { data: memberData, error: memberError } = await db
+        .from('company_members')
+        .select(`
+          company_id,
+          companies:company_id (id, name)
+        `)
+        .limit(1)
+
+      if (memberError || !memberData || memberData.length === 0) {
+        console.error('❌ 找不到 acejou27@gmail.com 的公司，請先登入系統建立公司')
         process.exit(1)
       }
+
+      companyId = memberData[0].company_id
+      console.log(`📌 使用公司: ${(memberData[0].companies as { name: string })?.name || companyId}`)
     } else {
-      var companyId = user.company_id
+      companyId = authUser.company_id
+      console.log(`👤 用戶: ${authUser.display_name || 'acejou27@gmail.com'}`)
     }
 
     console.log(`✅ 使用公司 ID: ${companyId}`)
@@ -259,9 +269,37 @@ async function main() {
       console.log(`   - ${acc.code} ${acc.name} (${acc.category})`)
     })
 
-    // Step 2: 清除舊的測試發票
+    // Step 2: 清除舊的測試資料（先刪傳票再刪發票，避免外鍵約束）
     printSeparator('Step 2: 清除舊測試資料')
 
+    // 先查詢測試發票的 ID
+    const { data: oldInvoices } = await db
+      .from('acc_invoices')
+      .select('id')
+      .eq('company_id', companyId)
+      .or('number.like.AB1234567%,number.like.CD9876543%')
+
+    const oldInvoiceIds = oldInvoices?.map(i => i.id) || []
+
+    // 刪除相關傳票的分錄
+    if (oldInvoiceIds.length > 0) {
+      await db
+        .from('acc_transactions')
+        .delete()
+        .eq('company_id', companyId)
+        .in('invoice_id', oldInvoiceIds)
+
+      // 刪除相關傳票
+      await db
+        .from('journal_entries')
+        .delete()
+        .eq('company_id', companyId)
+        .in('invoice_id', oldInvoiceIds)
+
+      console.log('✅ 已清除舊的測試傳票')
+    }
+
+    // 刪除測試發票
     const { error: deleteError } = await db
       .from('acc_invoices')
       .delete()
@@ -271,18 +309,7 @@ async function main() {
     if (deleteError) {
       console.warn(`⚠️  清除舊發票失敗: ${deleteError.message}`)
     } else {
-      console.log('✅ 已清除舊的 AI-TEST-* 發票')
-    }
-
-    // 清除測試傳票
-    const { error: deleteJournalError } = await db
-      .from('journal_entries')
-      .delete()
-      .eq('company_id', companyId)
-      .or('description.like.%AB1234567%,description.like.%CD9876543%')
-
-    if (!deleteJournalError) {
-      console.log('✅ 已清除舊的測試傳票')
+      console.log('✅ 已清除舊的測試發票')
     }
 
     // Step 3: 建立假發票
@@ -435,8 +462,9 @@ async function main() {
           ]
         }
 
-        // 產生傳票編號
-        const journalNumber = `2024120${verifiedInvoices.indexOf(invoice) + 1}`.padStart(10, '0').slice(-10)
+        // 產生傳票編號（使用時間戳記避免重複）
+        const timestamp = Date.now().toString().slice(-6)
+        const journalNumber = `${invoice.date.replace(/-/g, '').slice(0, 6)}${timestamp.slice(-4)}`.slice(0, 10)
 
         // 建立傳票
         const journalId = crypto.randomUUID()
