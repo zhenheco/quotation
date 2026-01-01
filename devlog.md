@@ -1,5 +1,79 @@
 # Development Log
 
+## 2026-01-01: 修復會計系統 API 403 Forbidden 錯誤
+
+### 問題描述
+會計發票和傳票頁面返回 403 Forbidden 錯誤，Console 顯示：
+- `GET /api/accounting/invoices?company_id=xxx 403 (Forbidden)`
+- `GET /api/accounting/journals?company_id=xxx 403 (Forbidden)`
+- `MISSING_MESSAGE: common.error (zh)`
+
+### 根本原因
+**權限名稱不匹配**：API 路由使用的權限名稱與資料庫定義的權限名稱不一致。
+
+| API 路由使用 | 資料庫定義 |
+|-------------|-----------|
+| `invoices:read` | `acc_invoices:read` |
+| `journals:read` | `journal_entries:read` |
+
+`lib/api/middleware.ts` 的 `permissionMapping` 只有 3 個映射，缺少所有會計相關映射。
+
+### 權限檢查流程分析
+```
+API 請求 → withAuth('invoices:read')
+       ↓
+checkPermission() 查詢用戶權限（如 acc_invoices:read）
+       ↓
+直接匹配 'invoices:read' ❌ 找不到
+       ↓
+查找 permissionMapping['invoices:read'] ❌ 沒有此映射
+       ↓
+return false → 403 Forbidden
+```
+
+### 解決方案
+在 `lib/api/middleware.ts` 的 `permissionMapping` 補充會計權限映射：
+
+```typescript
+const permissionMapping: Record<string, string[]> = {
+  // 現有映射...
+
+  // 會計發票（API: invoices → DB: acc_invoices）
+  'invoices:read': ['acc_invoices:read'],
+  'invoices:write': ['acc_invoices:write'],
+  'invoices:delete': ['acc_invoices:delete'],
+  'invoices:post': ['acc_invoices:post'],
+
+  // 會計傳票（API: journals → DB: journal_entries）
+  'journals:read': ['journal_entries:read'],
+  'journals:write': ['journal_entries:write'],
+  // ...
+}
+```
+
+同時添加缺失的翻譯鍵 `common.error`。
+
+### 修改的檔案
+| 檔案 | 修改內容 |
+|-----|---------|
+| `lib/api/middleware.ts` | 添加 15 個會計權限映射 |
+| `messages/zh.json` | 添加 `"error": "錯誤"` |
+| `messages/en.json` | 添加 `"error": "Error"` |
+
+### 排錯指南（未來遇到 403 問題時）
+1. 確認 `withAuth('xxx:read')` 中的權限名稱
+2. 檢查 `permissionMapping` 是否有對應映射
+3. 確認資料庫 `permissions` 表中是否有該權限
+4. 驗證用戶角色權限：
+```sql
+SELECT p.name FROM user_roles ur
+JOIN role_permissions rp ON ur.role_id = rp.role_id
+JOIN permissions p ON rp.permission_id = p.id
+WHERE ur.user_id = '用戶UUID';
+```
+
+---
+
 ## 2026-01-01: 修復 useCompany hook 無法取得公司資料問題
 
 ### 問題描述
