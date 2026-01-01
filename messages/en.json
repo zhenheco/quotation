@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Quotation System",
+    "appName": "Quote24",
     "save": "Save",
     "saving": "Saving...",
     "cancel": "Cancel",
@@ -119,7 +119,7 @@
       "linkCopied": "Copied!"
     },
     "sidebar": {
-      "title": "Quotation System",
+      "title": "Quote24",
       "subtitle": "Professional quotation management tool",
       "quotationsCreated": "Quotations Created",
       "happyCustomers": "Happy Customers",
@@ -140,7 +140,7 @@
     }
   },
   "login": {
-    "title": "Quotation System",
+    "title": "Quote24",
     "subtitle": "Sign in or register to manage your quotations",
     "googleSignIn": "Sign in / Sign up with Google",
     "emailSignIn": "Sign in with Email",
@@ -1049,137 +1049,136 @@
   },
   "terms": {
     "title": "Terms of Service",
-    "description": "Quotation System Terms of Service",
+    "description": "Quote24 Terms of Service",
     "heading": "Terms of Service",
-    "lastUpdated": "Last Updated: October 2025",
+    "lastUpdated": "Last Updated: January 2026",
     "backToRegister": "Back to Register",
     "acceptAndRegister": "Accept and Register",
     "backToLogin": "Back to Login",
     "section1": {
       "title": "1. Acceptance of Terms",
-      "content1": "Welcome to the Quotation System (\"the System\"). By using this System, you agree to comply with the following terms of service. If you do not agree to these terms, please do not use the System.",
-      "content2": "We reserve the right to modify these terms at any time. Any modifications will be posted on this page and will take effect immediately upon posting. Continued use of the System constitutes acceptance of the modified terms."
+      "content1": "Quote24 is a service provided by our company in accordance with these terms (hereinafter referred to as \"the Service\"). By using Quote24, you acknowledge that you have read, understood, and agree to accept all the terms and conditions herein. If you are under eighteen years of age, you may only use the Service after your parent or guardian has read, understood, and agreed that you will comply with all the terms.",
+      "content2": "You must agree to these terms before using the Service. If you do not accept these terms, you may not use the Service. You understand and agree that when using the Service, your actions such as clicking agree or confirm buttons on various service and feature pages constitute your formal expression of intent. We may modify or change the content of these terms due to adjustments in service content and changes in relevant regulations."
     },
     "section2": {
       "title": "2. Service Description",
-      "content": "The System provides the following features and services:",
+      "content": "The Quote24 service is designed to improve your business efficiency, providing the following services:",
       "list": {
-        "item1": "Create, manage, and send quotations",
-        "item2": "Customer data management",
-        "item3": "Service/item management",
-        "item4": "Multi-currency support and exchange rate management"
+        "item1": "Quotation creation, management, and delivery",
+        "item2": "Customer data management and address book",
+        "item3": "Service/item and supplier management",
+        "item4": "Multi-currency support and payment tracking"
       }
     },
     "section3": {
-      "title": "3. User Responsibilities",
-      "content": "As a user of the System, you agree to:",
+      "title": "3. Account, Password, and Security",
+      "content": "When applying for membership, you should provide accurate personal information. You agree and warrant that:",
       "list": {
-        "item1": "Provide accurate and complete registration information and keep it updated",
-        "item2": "Protect the security of your account and password, and not share with others",
-        "item3": "Be responsible for all activities under your account",
-        "item4": "Not use the System for any illegal or unauthorized activities"
+        "item1": "Your user account and password for this Service are set by you. Once set, you have the obligation to properly manage and keep them confidential.",
+        "item2": "We will use your account and password to verify your identity. You are responsible for all actions performed through your account and password.",
+        "item3": "To protect your rights, please do not share your account and password with others. We are not responsible for any losses caused by sharing your account and password with others."
       }
     },
     "section4": {
-      "title": "4. Data and Privacy",
-      "content": "We value your privacy and commit to:",
+      "title": "4. User Obligations and Commitments",
+      "content": "Members or non-member users must comply with current laws when using this Service. If you are found to have committed any of the following acts, we may suspend providing services to you:",
       "list": {
-        "item1": "Use your data solely for providing services and improving user experience",
-        "item2": "Take appropriate security measures to protect your data",
-        "item3": "Not sell or share your personal data with third parties without your consent"
+        "item1": "Infringing upon others' reputation, privacy rights, trade secrets, trademarks, copyrights, patents, other intellectual property rights, and other rights.",
+        "item2": "Using the Service under someone else's name or transmitting computer viruses.",
+        "item3": "Engaging in any activities that interfere with or damage the Service (or servers and networks connected to the Service)."
       }
     },
     "section5": {
-      "title": "5. Intellectual Property Rights",
-      "content": "The System and all its content (including but not limited to software, design, text, graphics) are owned by us or our licensors. You may not copy, modify, distribute, or otherwise use this content without written authorization."
+      "title": "5. Subscription and Payment",
+      "content": "Subscriptions are billed monthly or annually. Monthly and annual plans will automatically renew unless cancelled. You may cancel your subscription at any time, but no refunds will be given for fees already paid. Prices may be adjusted with advance notice to users. Payment information is processed by third-party payment service providers, and we do not store complete payment information."
     },
     "section6": {
-      "title": "6. Service Changes and Termination",
-      "content": "We reserve the right to modify, suspend, or terminate the System or any part of it at any time without notice. We are not liable for any losses resulting from any modification, suspension, or termination of services."
+      "title": "6. Intellectual Property Rights",
+      "content": "User-generated content belongs to the user. Quote24 retains ownership of the platform and services. Users must ensure that content produced using this Service does not infringe upon others' intellectual property rights."
     },
     "section7": {
-      "title": "7. Disclaimer",
-      "content": "The System is provided \"as is\" without any express or implied warranties. We do not guarantee that the service will be uninterrupted or error-free. To the maximum extent permitted by law, we are not liable for any direct, indirect, incidental, or consequential damages arising from use or inability to use the System."
+      "title": "7. Service Limitations and Disclaimer",
+      "content": "This Service is provided \"as is\" without any express or implied warranties. We do not guarantee that the service will be uninterrupted or error-free, and are not responsible for indirect losses. To the maximum extent permitted by law, we are not liable for any direct, indirect, incidental, or consequential damages arising from use or inability to use this System."
     },
     "section8": {
-      "title": "8. Contact Information",
-      "content": "If you have any questions about these terms, please contact us via email at service@quote24.cc."
+      "title": "8. Contact Us",
+      "content": "If you have any questions about the Terms of Service, please contact us at: Email: service@quote24.cc. The interpretation and application of these Terms of Service, as well as disputes related to these Terms, shall be governed by the laws of the Republic of China (Taiwan), and the Taipei District Court shall be the court of first instance with exclusive jurisdiction."
     }
   },
   "privacy": {
     "title": "Privacy Policy",
-    "description": "Quotation System Privacy Policy",
+    "description": "Quote24 Privacy Policy",
     "heading": "Privacy Policy",
-    "lastUpdated": "Last Updated: November 2025",
+    "lastUpdated": "Last Updated: January 2026",
     "backToLogin": "Back to Login",
-    "intro": "The Quotation System (\"the System\") is committed to protecting your personal information. This Privacy Policy explains how we collect, use, and protect your data. By using this System, you agree to the terms of this policy.",
+    "intro": "Our company (Quote24 service provider, hereinafter referred to as \"we\") appreciates your trust. We highly value the protection of your personal data and comply with privacy protection and relevant laws and regulations including the Personal Data Protection Act. By using the Quote24 service, you acknowledge and agree to be protected by this policy.",
     "section1": {
-      "title": "1. Data Collection",
-      "content": "We collect the following types of data:",
+      "title": "1. Personal Data and Other Information We Collect",
+      "content": "When you register as a member, we collect the following data:",
       "list": {
-        "item1": "Registration information: email address, username",
-        "item2": "Third-party login information: basic profile data when signing in via Google",
-        "item3": "Business data: customer information, quotation content, product/service data",
-        "item4": "Usage records: IP address, browser type, visit history, operation logs"
+        "item1": "Registration information: login name and email address",
+        "item2": "Third-party login information: if you register using Google, we will collect your name, profile picture, email address, etc.",
+        "item3": "Business data: customer information, quotation content, product/service data, payment records",
+        "item4": "Technical data: URL, IP address, browser type, operating system data, language, visit time and location, etc."
       }
     },
     "section2": {
-      "title": "2. Data Usage",
-      "content": "The data we collect is used for the following purposes:",
+      "title": "2. How We Use Your Information",
+      "content": "The personal data we collect will be used for the following services:",
       "list": {
-        "item1": "User identification and account management",
-        "item2": "Providing quotation management services",
-        "item3": "System notifications and important update alerts",
-        "item4": "Service improvement and internal analysis"
+        "item1": "Identifying member identity, contacting you, completing transactions, sending receipts, providing services, or related update notifications",
+        "item2": "Using your personal data to send newsletters and occasional marketing activity notifications",
+        "item3": "Improving services, developing new services, communicating with members, including internal auditing, research, and analysis",
+        "item4": "We will not use your personal data for purposes not specified in this policy unless there are additional needs and your written consent is obtained"
       }
     },
     "section3": {
-      "title": "3. User Rights",
+      "title": "3. How You Can Use Your Information",
       "content": "You have the following rights regarding your personal data:",
       "list": {
-        "item1": "Access: You can request to view the personal data we hold about you at any time",
-        "item2": "Correction: You can request correction of inaccurate or incomplete data",
-        "item3": "Deletion: You can request deletion of your account and related data, but you will no longer be able to use the service after deletion"
+        "item1": "Access and View: You can query, view, change, update, or copy your personal data by logging into the system",
+        "item2": "Termination and Deletion: You can request to terminate use or delete your personal data; however, once terminated or deleted, you will no longer be able to use this Service",
+        "item3": "Right to Refuse: If your request to change, update, or delete your personal data may harm major national interests, hinder government agencies from performing legal duties, or harm major interests of third parties, we have the right to refuse your request"
       }
     },
     "section4": {
-      "title": "4. Security Measures",
-      "content": "We take the following measures to protect your data:",
+      "title": "4. Personal Data Security",
+      "content": "We take the following measures to protect your data security:",
       "list": {
-        "item1": "SSL/TLS encrypted transmission",
-        "item2": "Regular security audits and updates",
-        "item3": "Access control and permission management"
+        "item1": "Data encryption transmission (SSL/TLS), secure database storage, and regular security audits",
+        "item2": "We only store your personal data for the purposes stated above. Therefore, we will delete your personal data when you terminate the use of the Service",
+        "item3": "You agree that when using this Service, the data you provide and use is legal, does not infringe upon third-party rights, violate third-party agreements, or involve any illegal activities"
       }
     },
     "section5": {
       "title": "5. Third-Party Services",
-      "content": "This System uses the following third-party service providers:",
+      "content": "This System uses the following third-party services:",
       "list": {
-        "item1": "Supabase: User authentication and partial data storage",
-        "item2": "Cloudflare: Website hosting, CDN, and database services",
-        "item3": "Google: OAuth login service"
+        "item1": "Supabase - Database and authentication services",
+        "item2": "Cloudflare - Website hosting and CDN services",
+        "item3": "Google - OAuth login service"
       }
     },
     "section6": {
-      "title": "6. Cookie Usage",
-      "content": "We use cookies to provide the following functions:",
+      "title": "6. Cookies",
+      "content": "We use Cookies to:",
       "list": {
-        "item1": "Maintaining login status",
-        "item2": "Remembering user preferences",
-        "item3": "Basic traffic analysis"
+        "item1": "Maintain login status",
+        "item2": "Remember user preferences",
+        "item3": "Analyze website traffic and improve user experience"
       }
     },
     "section7": {
-      "title": "7. Policy Updates",
-      "content": "We reserve the right to update this Privacy Policy at any time. Any significant changes will be announced on this page. Continued use of this System constitutes acceptance of the revised policy."
+      "title": "7. Privacy Policy Amendments and Effectiveness",
+      "content": "We will update this policy from time to time in compliance with local privacy protection and personal data protection laws. When we make significant changes, we will announce them on the official website. This Privacy and Personal Data Protection Policy constitutes part of the Terms of Service. If you do not agree with any terms or changes to this policy, please stop using this Service immediately."
     },
     "section8": {
-      "title": "8. Contact Information",
-      "content": "If you have any questions about this Privacy Policy, please contact us via email at service@quote24.cc."
+      "title": "8. Contact Us",
+      "content": "If you have any questions about our privacy or personal data protection policy, please contact us at: Email: service@quote24.cc"
     }
   },
   "onboarding": {
-    "welcome": "Welcome to Quotation System",
+    "welcome": "Welcome to Quote24",
     "welcomeDescription": "Choose how you want to get started",
     "createCompany": "Create New Company",
     "createCompanyDescription": "Create your own company and start using the system",
