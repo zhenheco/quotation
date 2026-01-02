@@ -3,7 +3,8 @@
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useJournal } from '@/hooks/accounting'
+import { toast } from 'sonner'
+import { useJournal, usePostJournal } from '@/hooks/accounting'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -29,6 +30,20 @@ export default function JournalDetailClient({ journalId, locale }: JournalDetail
   const t = useTranslations()
   const router = useRouter()
   const { data: journal, isLoading, error } = useJournal(journalId)
+  const postJournal = usePostJournal()
+
+  // 過帳傳票
+  const handlePost = async () => {
+    if (!confirm(t('accounting.confirmPost'))) return
+
+    try {
+      await postJournal.mutateAsync(journalId)
+      toast.success(t('accounting.postSuccess'))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('accounting.postFailed')
+      toast.error(message)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -90,19 +105,30 @@ export default function JournalDetailClient({ journalId, locale }: JournalDetail
 
   return (
     <div className="space-y-6">
-      {/* 標頭與返回按鈕 */}
+      {/* 標頭與操作按鈕 */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={() => router.back()}>
           ← {t('common.back')}
         </Button>
-        {/* 編輯按鈕（僅草稿狀態顯示） */}
-        {journal.status === 'DRAFT' && (
-          <Button asChild>
-            <Link href={`/${locale}/accounting/journals/${journalId}/edit`}>
-              {t('accounting.journals.edit')}
-            </Link>
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {/* 編輯按鈕（僅草稿狀態顯示） */}
+          {journal.status === 'DRAFT' && (
+            <Button variant="outline" asChild>
+              <Link href={`/${locale}/accounting/journals/${journalId}/edit`}>
+                {t('accounting.journals.edit')}
+              </Link>
+            </Button>
+          )}
+          {/* 過帳按鈕（草稿狀態） */}
+          {journal.status === 'DRAFT' && (
+            <Button
+              onClick={handlePost}
+              disabled={postJournal.isPending || !isBalanced}
+            >
+              {postJournal.isPending ? t('common.loading') : t('accounting.post')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* 傳票基本資訊 */}

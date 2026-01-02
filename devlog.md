@@ -1,5 +1,73 @@
 # Development Log
 
+## 2026-01-02: 會計模組功能完善（第二階段）
+
+### 問題描述
+1. 財務報表無資料顯示（即使有已過帳傳票）
+2. 缺失 i18n 翻譯鍵：`common.back`、審核/過帳相關鍵
+3. 列表頁缺少編輯按鈕
+4. 缺少審核（Verify）和過帳（Post）按鈕
+
+### 根本原因
+
+#### 財務報表無資料
+RPC 函數返回的欄位名稱與 TypeScript 類型定義不匹配：
+
+| RPC 返回欄位 | TypeScript 期望欄位 |
+|-------------|-------------------|
+| `category` | `account_category` |
+| `debit_total` | `closing_debit` |
+| `credit_total` | `closing_credit` |
+
+這導致服務層過濾時 `item.account_category === undefined`，所有資料被過濾掉。
+
+### 解決方案
+
+#### 1. 修復財務報表資料流
+修改 `lib/dal/accounting/journals.dal.ts` 的 `getTrialBalanceRpc()` 函數，新增欄位映射：
+```typescript
+return (data || []).map((item: Record<string, unknown>) => ({
+  account_category: item.category as string,     // category → account_category
+  closing_debit: Number(item.debit_total) || 0,  // debit_total → closing_debit
+  closing_credit: Number(item.credit_total) || 0, // credit_total → closing_credit
+  // ...
+}))
+```
+
+#### 2. 補齊 i18n 翻譯鍵
+修改 `messages/zh.json` 和 `messages/en.json`：
+- `common.back`: 返回
+- `accounting.verify`: 審核
+- `accounting.post`: 過帳
+- `accounting.confirmVerify`, `accounting.confirmPost`: 確認訊息
+- `accounting.journals.total`, `transactionDescription`, `postingInfo` 等
+
+#### 3. 列表頁新增編輯按鈕
+修改檔案：
+- `app/[locale]/accounting/invoices/InvoiceList.tsx`
+- `app/[locale]/accounting/journals/JournalList.tsx`
+
+邏輯：
+- 發票：非作廢狀態顯示編輯按鈕
+- 傳票：僅草稿狀態顯示編輯按鈕
+
+#### 4. 新增審核/過帳按鈕
+**詳情頁：**
+- `InvoiceDetailClient.tsx` - 草稿顯示審核按鈕，已審核顯示過帳按鈕
+- `JournalDetailClient.tsx` - 草稿顯示過帳按鈕
+
+**列表頁：**
+- `InvoiceList.tsx` - 同上邏輯
+- `JournalList.tsx` - 草稿顯示過帳按鈕
+
+### 影響範圍
+- 財務報表（試算表、損益表、資產負債表）現可正常顯示資料
+- 發票與傳票列表頁新增編輯、審核、過帳操作
+- 發票與傳票詳情頁新增審核、過帳操作
+- i18n 翻譯完整
+
+---
+
 ## 2026-01-02: 新增發票/傳票編輯功能與修復財務報表錯誤
 
 ### 問題描述

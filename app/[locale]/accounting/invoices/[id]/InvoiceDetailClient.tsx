@@ -3,7 +3,8 @@
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useInvoice } from '@/hooks/accounting'
+import { toast } from 'sonner'
+import { useInvoice, useVerifyInvoice, usePostInvoice } from '@/hooks/accounting'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +29,34 @@ export default function InvoiceDetailClient({ invoiceId, locale }: InvoiceDetail
   const t = useTranslations()
   const router = useRouter()
   const { data: invoice, isLoading, error } = useInvoice(invoiceId)
+  const verifyInvoice = useVerifyInvoice()
+  const postInvoice = usePostInvoice()
+
+  // 審核發票
+  const handleVerify = async () => {
+    if (!confirm(t('accounting.confirmVerify'))) return
+
+    try {
+      await verifyInvoice.mutateAsync(invoiceId)
+      toast.success(t('accounting.verifySuccess'))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('accounting.verifyFailed')
+      toast.error(message)
+    }
+  }
+
+  // 過帳發票
+  const handlePost = async () => {
+    if (!confirm(t('accounting.confirmPost'))) return
+
+    try {
+      await postInvoice.mutateAsync(invoiceId)
+      toast.success(t('accounting.postSuccess'))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('accounting.postFailed')
+      toast.error(message)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -108,13 +137,35 @@ export default function InvoiceDetailClient({ invoiceId, locale }: InvoiceDetail
         <Button variant="ghost" onClick={() => router.back()}>
           ← {t('common.back')}
         </Button>
-        {invoice.status !== 'VOIDED' && (
-          <Button asChild>
-            <Link href={`/${locale}/accounting/invoices/${invoiceId}/edit`}>
-              {t('accounting.invoices.edit')}
-            </Link>
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {/* 編輯按鈕（非作廢狀態） */}
+          {invoice.status !== 'VOIDED' && (
+            <Button variant="outline" asChild>
+              <Link href={`/${locale}/accounting/invoices/${invoiceId}/edit`}>
+                {t('accounting.invoices.edit')}
+              </Link>
+            </Button>
+          )}
+          {/* 審核按鈕（草稿狀態） */}
+          {invoice.status === 'DRAFT' && (
+            <Button
+              variant="secondary"
+              onClick={handleVerify}
+              disabled={verifyInvoice.isPending}
+            >
+              {verifyInvoice.isPending ? t('common.loading') : t('accounting.verify')}
+            </Button>
+          )}
+          {/* 過帳按鈕（已審核狀態） */}
+          {invoice.status === 'VERIFIED' && (
+            <Button
+              onClick={handlePost}
+              disabled={postInvoice.isPending}
+            >
+              {postInvoice.isPending ? t('common.loading') : t('accounting.post')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* 發票基本資訊 */}

@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
-import { useInvoices } from '@/hooks/accounting'
+import { toast } from 'sonner'
+import { useInvoices, useVerifyInvoice, usePostInvoice } from '@/hooks/accounting'
 import { useCompany } from '@/hooks/useCompany'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,6 +27,34 @@ export default function InvoiceList({ locale }: InvoiceListProps) {
   const t = useTranslations()
   const { company } = useCompany()
   const [page, setPage] = useState(1)
+  const verifyInvoice = useVerifyInvoice()
+  const postInvoice = usePostInvoice()
+
+  // 審核發票
+  const handleVerify = async (id: string) => {
+    if (!confirm(t('accounting.confirmVerify'))) return
+
+    try {
+      await verifyInvoice.mutateAsync(id)
+      toast.success(t('accounting.verifySuccess'))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('accounting.verifyFailed')
+      toast.error(message)
+    }
+  }
+
+  // 過帳發票
+  const handlePost = async (id: string) => {
+    if (!confirm(t('accounting.confirmPost'))) return
+
+    try {
+      await postInvoice.mutateAsync(id)
+      toast.success(t('accounting.postSuccess'))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('accounting.postFailed')
+      toast.error(message)
+    }
+  }
 
   const { data, isLoading, error } = useInvoices(
     {
@@ -170,11 +199,39 @@ export default function InvoiceList({ locale }: InvoiceListProps) {
                       {getPaymentBadge(invoice.payment_status)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/${locale}/accounting/invoices/${invoice.id}`}>
-                          {t('common.view')}
-                        </Link>
-                      </Button>
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/${locale}/accounting/invoices/${invoice.id}`}>
+                            {t('common.view')}
+                          </Link>
+                        </Button>
+                        {invoice.status !== 'VOIDED' && (
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/${locale}/accounting/invoices/${invoice.id}/edit`}>
+                              {t('common.edit')}
+                            </Link>
+                          </Button>
+                        )}
+                        {invoice.status === 'DRAFT' && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleVerify(invoice.id)}
+                            disabled={verifyInvoice.isPending}
+                          >
+                            {t('accounting.verify')}
+                          </Button>
+                        )}
+                        {invoice.status === 'VERIFIED' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handlePost(invoice.id)}
+                            disabled={postInvoice.isPending}
+                          >
+                            {t('accounting.post')}
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

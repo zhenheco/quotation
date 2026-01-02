@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
-import { useJournals } from '@/hooks/accounting'
+import { toast } from 'sonner'
+import { useJournals, usePostJournal } from '@/hooks/accounting'
 import { useCompany } from '@/hooks/useCompany'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,6 +20,20 @@ export default function JournalList({ locale }: JournalListProps) {
   const t = useTranslations()
   const { company } = useCompany()
   const [page, setPage] = useState(1)
+  const postJournal = usePostJournal()
+
+  // 過帳傳票
+  const handlePost = async (id: string) => {
+    if (!confirm(t('accounting.confirmPost'))) return
+
+    try {
+      await postJournal.mutateAsync(id)
+      toast.success(t('accounting.postSuccess'))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('accounting.postFailed')
+      toast.error(message)
+    }
+  }
 
   const { data, isLoading, error } = useJournals(
     {
@@ -133,11 +148,29 @@ export default function JournalList({ locale }: JournalListProps) {
                       {getStatusBadge(journal.status)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/${locale}/accounting/journals/${journal.id}`}>
-                          {t('common.view')}
-                        </Link>
-                      </Button>
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/${locale}/accounting/journals/${journal.id}`}>
+                            {t('common.view')}
+                          </Link>
+                        </Button>
+                        {journal.status === 'DRAFT' && (
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/${locale}/accounting/journals/${journal.id}/edit`}>
+                              {t('common.edit')}
+                            </Link>
+                          </Button>
+                        )}
+                        {journal.status === 'DRAFT' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handlePost(journal.id)}
+                            disabled={postJournal.isPending}
+                          >
+                            {t('accounting.post')}
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

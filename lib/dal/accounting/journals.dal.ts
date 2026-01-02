@@ -814,6 +814,7 @@ export async function voidJournalEntryRpc(
 
 /**
  * 取得試算表（RPC 版本）
+ * 注意：RPC 返回的欄位名稱與 TrialBalanceItem 不同，需要做映射
  */
 export async function getTrialBalanceRpc(
   db: SupabaseClient,
@@ -831,5 +832,19 @@ export async function getTrialBalanceRpc(
     throw new Error(`取得試算表失敗 (RPC): ${error.message}`)
   }
 
-  return data || []
+  // 欄位映射：RPC 返回欄位 → TypeScript TrialBalanceItem 期望欄位
+  // RPC 返回: category, debit_total, credit_total, balance
+  // TypeScript 期望: account_category, closing_debit, closing_credit 等
+  return (data || []).map((item: Record<string, unknown>) => ({
+    account_id: item.account_id as string,
+    account_code: item.account_code as string,
+    account_name: item.account_name as string,
+    account_category: item.category as string,
+    opening_debit: 0,
+    opening_credit: 0,
+    period_debit: Number(item.debit_total) || 0,
+    period_credit: Number(item.credit_total) || 0,
+    closing_debit: Number(item.debit_total) || 0,
+    closing_credit: Number(item.credit_total) || 0,
+  }))
 }
