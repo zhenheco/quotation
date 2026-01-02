@@ -1,5 +1,97 @@
 # Development Log
 
+## 2026-01-02: 新增發票/傳票編輯功能與修復財務報表錯誤
+
+### 問題描述
+會計模組存在以下問題：
+1. 財務報表顯示 `Cannot read properties of undefined (reading 'map')` 錯誤
+2. 發票管理缺少編輯功能（只有檢視）
+3. 傳票管理缺少編輯功能（只有檢視）
+4. 發票/傳票詳情頁缺少部分 i18n 翻譯
+
+### 根本原因
+
+#### 財務報表錯誤
+服務層返回格式與前端期望不匹配：
+
+| 服務層返回 | 前端期望 |
+|-----------|---------|
+| `{ revenue: TrialBalanceItem[], ... }` | `{ revenue: { items: [...], total }, ... }` |
+
+#### 編輯功能缺失
+- 發票：API 和 Hook 已存在，但缺少編輯頁面 UI
+- 傳票：API、Hook 和編輯頁面 UI 皆未實作
+
+### 解決方案
+
+#### 1. 修復財務報表（API 格式調整）
+修改 `lib/services/accounting/journal.service.ts`：
+- `generateIncomeStatement()` 返回 `{ revenue: { items, total }, expenses: { items, total }, netIncome }`
+- `generateBalanceSheet()` 返回 `{ assets: { items, total }, liabilities: { items, total }, equity: { items, total } }`
+
+#### 2. 新增發票編輯功能
+**新增檔案：**
+- `app/[locale]/accounting/invoices/[id]/edit/page.tsx`
+- `app/[locale]/accounting/invoices/[id]/edit/InvoiceEditClient.tsx`
+
+**修改檔案：**
+- `app/[locale]/accounting/invoices/[id]/InvoiceDetailClient.tsx` - 加入編輯按鈕
+- `lib/dal/accounting/invoices.dal.ts` - 修改 `updateInvoice()` 權限邏輯
+
+**編輯權限：**
+| 狀態 | 可編輯欄位 |
+|------|-----------|
+| VOIDED | 不可編輯 |
+| DRAFT | 所有欄位 |
+| VERIFIED/POSTED | 僅 description、due_date |
+
+#### 3. 新增傳票編輯功能
+**新增檔案：**
+- `app/[locale]/accounting/journals/[id]/edit/page.tsx`
+- `app/[locale]/accounting/journals/[id]/edit/JournalEditClient.tsx`
+
+**修改檔案：**
+- `app/[locale]/accounting/journals/[id]/JournalDetailClient.tsx` - 加入編輯按鈕（僅草稿顯示）
+- `lib/dal/accounting/journals.dal.ts` - 新增 `updateJournalEntry()` 函數
+- `app/api/accounting/journals/[id]/route.ts` - 新增 PUT handler
+- `hooks/accounting/use-journals.ts` - 新增 `useUpdateJournal` hook
+
+**編輯權限：**
+- 只有 DRAFT 狀態可編輯
+- 已過帳/已作廢需透過作廢+新建處理
+
+#### 4. 補齊 i18n 翻譯
+在 `messages/zh.json` 和 `messages/en.json` 新增：
+- `accounting.invoices.detail/edit/partialEdit/editNotAllowed`
+- `accounting.journals.detail/edit/draftOnly/balanced/imbalanced`
+- 其他欄位標籤翻譯
+
+### 修改的檔案清單
+
+| 檔案 | 變更內容 |
+|------|---------|
+| `lib/services/accounting/journal.service.ts` | 修復報表返回格式 |
+| `lib/dal/accounting/invoices.dal.ts` | 修改 updateInvoice 權限邏輯 |
+| `lib/dal/accounting/journals.dal.ts` | 新增 updateJournalEntry 函數 |
+| `app/api/accounting/journals/[id]/route.ts` | 新增 PUT handler |
+| `hooks/accounting/use-journals.ts` | 新增 useUpdateJournal hook |
+| `hooks/accounting/index.ts` | 匯出 useUpdateJournal |
+| `app/[locale]/accounting/invoices/[id]/InvoiceDetailClient.tsx` | 加入編輯按鈕 |
+| `app/[locale]/accounting/invoices/[id]/edit/page.tsx` | 新增 |
+| `app/[locale]/accounting/invoices/[id]/edit/InvoiceEditClient.tsx` | 新增 |
+| `app/[locale]/accounting/journals/[id]/JournalDetailClient.tsx` | 加入編輯按鈕 |
+| `app/[locale]/accounting/journals/[id]/edit/page.tsx` | 新增 |
+| `app/[locale]/accounting/journals/[id]/edit/JournalEditClient.tsx` | 新增 |
+| `messages/zh.json` | 補齊翻譯 |
+| `messages/en.json` | 補齊翻譯 |
+
+### 設計考量
+- **發票採用漸進式權限**：DRAFT 全開放 → 非草稿部分開放 → VOIDED 禁止
+- **傳票採用嚴格權限**：只有 DRAFT 可編輯，符合會計準則中對已過帳憑證不可修改的要求
+- **傳票編輯包含分錄管理**：支援新增/刪除分錄行、借貸平衡驗證
+
+---
+
 ## 2026-01-01: 修復會計系統 API 403 Forbidden 錯誤
 
 ### 問題描述
