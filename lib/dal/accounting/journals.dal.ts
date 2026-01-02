@@ -82,6 +82,12 @@ export interface CreateTransactionInput {
   credit: number
 }
 
+export interface UpdateJournalInput {
+  date?: string
+  description?: string
+  transactions?: CreateTransactionInput[]
+}
+
 export interface JournalQueryOptions {
   companyId: string
   status?: JournalStatus
@@ -637,6 +643,93 @@ export async function deleteJournalEntry(
   if (error) {
     throw new Error(`刪除傳票失敗: ${error.message}`)
   }
+}
+
+/**
+ * 更新傳票（僅限草稿狀態）
+ * 支援更新日期、摘要和分錄
+ */
+export async function updateJournalEntry(
+  db: SupabaseClient,
+  journalId: string,
+  input: UpdateJournalInput
+): Promise<JournalEntryWithTransactions> {
+  const existing = await getJournalEntryById(db, journalId)
+  if (!existing) {
+    throw new Error('傳票不存在')
+  }
+
+  if (existing.status !== 'DRAFT') {
+    throw new Error('只能修改草稿狀態的傳票')
+  }
+
+  // 更新傳票主表
+  const journalUpdateData: Record<string, unknown> = {}
+  if (input.date !== undefined) journalUpdateData.date = input.date
+  if (input.description !== undefined) journalUpdateData.description = input.description
+
+  if (Object.keys(journalUpdateData).length > 0) {
+    const { error: journalError } = await db
+      .from('journal_entries')
+      .update(journalUpdateData)
+      .eq('id', journalId)
+
+    if (journalError) {
+      throw new Error(`更新傳票失敗: ${journalError.message}`)
+    }
+  }
+
+  // 如果有分錄更新，重建分錄
+  if (input.transactions && input.transactions.length > 0) {
+    // 驗證借貸平衡
+    const totalDebit = input.transactions.reduce((sum, tx) => sum + tx.debit, 0)
+    const totalCredit = input.transactions.reduce((sum, tx) => sum + tx.credit, 0)
+
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+      throw new Error(`借貸不平衡：借方 ${totalDebit}，貸方 ${totalCredit}`)
+    }
+
+    // 軟刪除現有分錄
+    const now = new Date().toISOString()
+    await db
+      .from('acc_transactions')
+      .update({ deleted_at: now })
+      .eq('journal_entry_id', journalId)
+      .is('deleted_at', null)
+
+    // 建立新分錄
+    const date = input.date || existing.date
+    const transactionRecords = input.transactions.map((tx) => ({
+      id: crypto.randomUUID(),
+      company_id: existing.company_id,
+      journal_entry_id: journalId,
+      number: existing.journal_number,
+      date,
+      description: tx.description || null,
+      account_id: tx.account_id,
+      debit: tx.debit,
+      credit: tx.credit,
+      source_type: existing.source_type,
+      invoice_id: existing.invoice_id,
+      status: 'DRAFT',
+    }))
+
+    const { error: txError } = await db
+      .from('acc_transactions')
+      .insert(transactionRecords)
+
+    if (txError) {
+      throw new Error(`更新分錄失敗: ${txError.message}`)
+    }
+  }
+
+  // 返回更新後的傳票
+  const updated = await getJournalEntryById(db, journalId)
+  if (!updated) {
+    throw new Error('更新後無法取得傳票')
+  }
+
+  return updated
 }
 
 // ============================================

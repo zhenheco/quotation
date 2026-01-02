@@ -24,6 +24,7 @@ export {
   useJournals,
   useJournal,
   useCreateJournal,
+  useUpdateJournal,
   useDeleteJournal,
   usePostJournal,
   useVoidJournal,

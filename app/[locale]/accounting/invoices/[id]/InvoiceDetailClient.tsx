@@ -103,11 +103,18 @@ export default function InvoiceDetailClient({ invoiceId, locale }: InvoiceDetail
 
   return (
     <div className="space-y-6">
-      {/* 標頭與返回按鈕 */}
+      {/* 標頭與操作按鈕 */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={() => router.back()}>
           ← {t('common.back')}
         </Button>
+        {invoice.status !== 'VOIDED' && (
+          <Button asChild>
+            <Link href={`/${locale}/accounting/invoices/${invoiceId}/edit`}>
+              {t('accounting.invoices.edit')}
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* 發票基本資訊 */}

@@ -1280,6 +1280,8 @@
   "accounting": {
     "invoices": {
       "title": "Invoice Management",
+      "detail": "Invoice Detail",
+      "edit": "Edit Invoice",
       "filters": "Filters",
       "addNew": "Add Invoice",
       "invoiceNumber": "Invoice Number",
@@ -1291,7 +1293,23 @@
       "payment": "Payment",
       "allTypes": "All Types",
       "allStatus": "All Status",
-      "totalRecords": "{total} invoice records"
+      "totalRecords": "{total} invoice records",
+      "taxId": "Tax ID",
+      "accountCode": "Account Code",
+      "confidence": "Confidence",
+      "description": "Description",
+      "amountDetails": "Amount Details",
+      "untaxedAmount": "Untaxed Amount",
+      "taxAmount": "Tax Amount",
+      "totalAmount": "Total Amount",
+      "paymentInfo": "Payment Info",
+      "paymentStatus": "Payment Status",
+      "paidAmount": "Paid Amount",
+      "dueDate": "Due Date",
+      "relatedJournal": "Related Journal",
+      "viewJournal": "View Journal",
+      "editNotAllowed": "Only draft invoices can be fully edited",
+      "partialEdit": "Only description and due date can be edited"
     },
     "invoiceTypes": {
       "output": "Output Invoice",
@@ -1311,6 +1329,8 @@
     },
     "journals": {
       "title": "Journal Entries",
+      "detail": "Journal Detail",
+      "edit": "Edit Journal",
       "filters": "Filters",
       "addNew": "Add Journal",
       "journalNumber": "Journal Number",
@@ -1319,7 +1339,19 @@
       "source": "Source",
       "status": "Status",
       "actions": "Actions",
-      "totalRecords": "{total} journal records"
+      "totalRecords": "{total} journal records",
+      "transactions": "Transaction Lines",
+      "accountCode": "Account Code",
+      "accountName": "Account Name",
+      "debit": "Debit",
+      "credit": "Credit",
+      "totalDebit": "Total Debit",
+      "totalCredit": "Total Credit",
+      "balanced": "Balanced",
+      "imbalanced": "Imbalanced",
+      "relatedInvoice": "Related Invoice",
+      "viewInvoice": "View Invoice",
+      "draftOnly": "Only draft journals can be edited"
     },
     "journalSource": {
       "manual": "Manual",
