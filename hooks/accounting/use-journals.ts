@@ -121,6 +121,30 @@ async function voidJournal(id: string, reason: string): Promise<{ journal_id: st
   return response.json()
 }
 
+interface UpdateJournalInput {
+  date?: string
+  description?: string
+  transactions?: Array<{
+    account_id: string
+    description?: string
+    debit: number
+    credit: number
+  }>
+}
+
+async function updateJournal(id: string, input: UpdateJournalInput): Promise<JournalEntryWithTransactions> {
+  const response = await fetch(`/api/accounting/journals/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!response.ok) {
+    const data = await response.json() as ApiError
+    throw new Error(data.error || 'Failed to update journal')
+  }
+  return response.json()
+}
+
 // ============================================
 // React Query Hooks
 // ============================================
@@ -204,6 +228,22 @@ export function useVoidJournal() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: journalKeys.lists() })
       queryClient.invalidateQueries({ queryKey: journalKeys.detail(id) })
+    },
+  })
+}
+
+/**
+ * 更新傳票（僅限草稿）
+ */
+export function useUpdateJournal() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateJournalInput }) =>
+      updateJournal(id, input),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: journalKeys.lists() })
+      queryClient.setQueryData(journalKeys.detail(data.id), data)
     },
   })
 }

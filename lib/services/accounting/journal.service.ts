@@ -332,69 +332,139 @@ export function calculateAccountBalance(trialBalance: TrialBalanceItem[]): {
 }
 
 /**
+ * 損益表項目格式
+ */
+export interface IncomeStatementItem {
+  accountCode: string
+  accountName: string
+  amount: number
+}
+
+/**
+ * 損益表資料格式（符合前端期望）
+ */
+export interface IncomeStatementData {
+  revenue: { items: IncomeStatementItem[]; total: number }
+  expenses: { items: IncomeStatementItem[]; total: number }
+  netIncome: number
+}
+
+/**
  * 產生損益表資料
+ * 返回格式符合前端 ReportsDashboard 期望的結構
  */
 export async function generateIncomeStatement(
   db: SupabaseClient,
   companyId: string,
   startDate: string,
   endDate: string
-): Promise<{
-  revenue: TrialBalanceItem[]
-  expenses: TrialBalanceItem[]
-  totalRevenue: number
-  totalExpenses: number
-  netIncome: number
-}> {
+): Promise<IncomeStatementData> {
   const trialBalance = await getTrialBalanceReport(db, companyId, startDate, endDate)
 
-  const revenue = trialBalance.filter((item) => item.account_category === 'REVENUE')
-  const expenses = trialBalance.filter((item) => item.account_category === 'EXPENSE')
+  const revenueItems = trialBalance.filter((item) => item.account_category === 'REVENUE')
+  const expenseItems = trialBalance.filter((item) => item.account_category === 'EXPENSE')
 
-  const totalRevenue = revenue.reduce((sum, item) => sum + (item.closing_credit - item.closing_debit), 0)
-  const totalExpenses = expenses.reduce((sum, item) => sum + (item.closing_debit - item.closing_credit), 0)
+  // 計算收入總額（貸方餘額為正）
+  const totalRevenue = revenueItems.reduce((sum, item) => sum + (item.closing_credit - item.closing_debit), 0)
+  // 計算費用總額（借方餘額為正）
+  const totalExpenses = expenseItems.reduce((sum, item) => sum + (item.closing_debit - item.closing_credit), 0)
+
+  // 轉換為前端期望的格式
+  const revenue = {
+    items: revenueItems.map((item) => ({
+      accountCode: item.account_code,
+      accountName: item.account_name,
+      amount: item.closing_credit - item.closing_debit,
+    })),
+    total: totalRevenue,
+  }
+
+  const expenses = {
+    items: expenseItems.map((item) => ({
+      accountCode: item.account_code,
+      accountName: item.account_name,
+      amount: item.closing_debit - item.closing_credit,
+    })),
+    total: totalExpenses,
+  }
 
   return {
     revenue,
     expenses,
-    totalRevenue,
-    totalExpenses,
     netIncome: totalRevenue - totalExpenses,
   }
 }
 
 /**
+ * 資產負債表項目格式
+ */
+export interface BalanceSheetItem {
+  accountCode: string
+  accountName: string
+  balance: number
+}
+
+/**
+ * 資產負債表資料格式（符合前端期望）
+ */
+export interface BalanceSheetData {
+  assets: { items: BalanceSheetItem[]; total: number }
+  liabilities: { items: BalanceSheetItem[]; total: number }
+  equity: { items: BalanceSheetItem[]; total: number }
+}
+
+/**
  * 產生資產負債表資料
+ * 返回格式符合前端 ReportsDashboard 期望的結構
  */
 export async function generateBalanceSheet(
   db: SupabaseClient,
   companyId: string,
   asOfDate: string
-): Promise<{
-  assets: TrialBalanceItem[]
-  liabilities: TrialBalanceItem[]
-  equity: TrialBalanceItem[]
-  totalAssets: number
-  totalLiabilities: number
-  totalEquity: number
-}> {
+): Promise<BalanceSheetData> {
   // 資產負債表是累計至某日期的餘額
   const trialBalance = await getTrialBalanceReport(db, companyId, '1900-01-01', asOfDate)
 
-  const assets = trialBalance.filter((item) => item.account_category === 'ASSET')
-  const liabilities = trialBalance.filter((item) => item.account_category === 'LIABILITY')
-  const equity = trialBalance.filter((item) => item.account_category === 'EQUITY')
+  const assetItems = trialBalance.filter((item) => item.account_category === 'ASSET')
+  const liabilityItems = trialBalance.filter((item) => item.account_category === 'LIABILITY')
+  const equityItems = trialBalance.filter((item) => item.account_category === 'EQUITY')
 
-  const totalAssets = assets.reduce((sum, item) => sum + (item.closing_debit - item.closing_credit), 0)
-  const totalLiabilities = liabilities.reduce((sum, item) => sum + (item.closing_credit - item.closing_debit), 0)
-  const totalEquity = equity.reduce((sum, item) => sum + (item.closing_credit - item.closing_debit), 0)
+  // 計算總額
+  const totalAssets = assetItems.reduce((sum, item) => sum + (item.closing_debit - item.closing_credit), 0)
+  const totalLiabilities = liabilityItems.reduce((sum, item) => sum + (item.closing_credit - item.closing_debit), 0)
+  const totalEquity = equityItems.reduce((sum, item) => sum + (item.closing_credit - item.closing_debit), 0)
+
+  // 轉換為前端期望的格式
+  const assets = {
+    items: assetItems.map((item) => ({
+      accountCode: item.account_code,
+      accountName: item.account_name,
+      balance: item.closing_debit - item.closing_credit,
+    })),
+    total: totalAssets,
+  }
+
+  const liabilities = {
+    items: liabilityItems.map((item) => ({
+      accountCode: item.account_code,
+      accountName: item.account_name,
+      balance: item.closing_credit - item.closing_debit,
+    })),
+    total: totalLiabilities,
+  }
+
+  const equity = {
+    items: equityItems.map((item) => ({
+      accountCode: item.account_code,
+      accountName: item.account_name,
+      balance: item.closing_credit - item.closing_debit,
+    })),
+    total: totalEquity,
+  }
 
   return {
     assets,
     liabilities,
     equity,
-    totalAssets,
-    totalLiabilities,
-    totalEquity,
   }
 }

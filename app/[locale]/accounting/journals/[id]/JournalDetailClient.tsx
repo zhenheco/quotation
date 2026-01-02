@@ -95,6 +95,14 @@ export default function JournalDetailClient({ journalId, locale }: JournalDetail
         <Button variant="ghost" onClick={() => router.back()}>
           ← {t('common.back')}
         </Button>
+        {/* 編輯按鈕（僅草稿狀態顯示） */}
+        {journal.status === 'DRAFT' && (
+          <Button asChild>
+            <Link href={`/${locale}/accounting/journals/${journalId}/edit`}>
+              {t('accounting.journals.edit')}
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* 傳票基本資訊 */}

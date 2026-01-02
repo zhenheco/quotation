@@ -1281,6 +1281,8 @@
   "accounting": {
     "invoices": {
       "title": "發票管理",
+      "detail": "發票詳情",
+      "edit": "編輯發票",
       "filters": "篩選條件",
       "addNew": "新增發票",
       "invoiceNumber": "發票號碼",
@@ -1292,7 +1294,23 @@
       "payment": "付款",
       "allTypes": "全部類型",
       "allStatus": "全部狀態",
-      "totalRecords": "共 {total} 筆發票記錄"
+      "totalRecords": "共 {total} 筆發票記錄",
+      "taxId": "統一編號",
+      "accountCode": "會計科目",
+      "confidence": "信心度",
+      "description": "備註說明",
+      "amountDetails": "金額明細",
+      "untaxedAmount": "未稅金額",
+      "taxAmount": "稅額",
+      "totalAmount": "總金額",
+      "paymentInfo": "付款資訊",
+      "paymentStatus": "付款狀態",
+      "paidAmount": "已付金額",
+      "dueDate": "到期日",
+      "relatedJournal": "相關傳票",
+      "viewJournal": "查看傳票",
+      "editNotAllowed": "僅草稿狀態可完整編輯",
+      "partialEdit": "僅可編輯備註和到期日"
     },
     "invoiceTypes": {
       "output": "銷項發票",
@@ -1312,6 +1330,8 @@
     },
     "journals": {
       "title": "會計傳票",
+      "detail": "傳票詳情",
+      "edit": "編輯傳票",
       "filters": "篩選條件",
       "addNew": "新增傳票",
       "journalNumber": "傳票編號",
@@ -1320,7 +1340,19 @@
       "source": "來源",
       "status": "狀態",
       "actions": "操作",
-      "totalRecords": "共 {total} 筆傳票記錄"
+      "totalRecords": "共 {total} 筆傳票記錄",
+      "transactions": "分錄明細",
+      "accountCode": "科目代碼",
+      "accountName": "科目名稱",
+      "debit": "借方",
+      "credit": "貸方",
+      "totalDebit": "借方合計",
+      "totalCredit": "貸方合計",
+      "balanced": "借貸平衡",
+      "imbalanced": "借貸不平衡",
+      "relatedInvoice": "相關發票",
+      "viewInvoice": "查看發票",
+      "draftOnly": "僅草稿可編輯"
     },
     "journalSource": {
       "manual": "手動輸入",

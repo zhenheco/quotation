@@ -359,43 +359,72 @@ export async function createInvoice(
 
 /**
  * 更新發票
+ * - 草稿狀態：可編輯所有欄位
+ * - 非草稿狀態：只能編輯 description 和 due_date
  */
 export async function updateInvoice(
   db: SupabaseClient,
   invoiceId: string,
   input: UpdateInvoiceInput
 ): Promise<AccInvoice> {
-  // 只能更新草稿狀態的發票
   const existing = await getInvoiceById(db, invoiceId)
   if (!existing) {
     throw new Error('發票不存在')
   }
 
-  if (existing.status !== 'DRAFT') {
-    throw new Error('只能修改草稿狀態的發票')
+  // 已作廢的發票不能編輯
+  if (existing.status === 'VOIDED') {
+    throw new Error('已作廢的發票不能修改')
   }
 
   const updateData: Record<string, unknown> = {}
+  const isDraft = existing.status === 'DRAFT'
 
-  if (input.number !== undefined) updateData.number = input.number
-  if (input.date !== undefined) updateData.date = input.date
-  if (input.untaxed_amount !== undefined) updateData.untaxed_amount = input.untaxed_amount
-  if (input.tax_amount !== undefined) updateData.tax_amount = input.tax_amount
-  if (input.total_amount !== undefined) updateData.total_amount = input.total_amount
-  if (input.counterparty_id !== undefined) updateData.counterparty_id = input.counterparty_id
-  if (input.counterparty_tax_id !== undefined)
-    updateData.counterparty_tax_id = input.counterparty_tax_id
-  if (input.counterparty_name !== undefined) updateData.counterparty_name = input.counterparty_name
-  if (input.tax_code_id !== undefined) updateData.tax_code_id = input.tax_code_id
-  if (input.description !== undefined) updateData.description = input.description
-  if (input.account_id !== undefined) updateData.account_id = input.account_id
-  if (input.account_code !== undefined) updateData.account_code = input.account_code
-  if (input.due_date !== undefined) updateData.due_date = input.due_date
-  if (input.attachment_url !== undefined) updateData.attachment_url = input.attachment_url
-  if (input.payment_status !== undefined) updateData.payment_status = input.payment_status
-  if (input.payment_method !== undefined) updateData.payment_method = input.payment_method
-  if (input.paid_amount !== undefined) updateData.paid_amount = input.paid_amount
-  if (input.paid_date !== undefined) updateData.paid_date = input.paid_date
+  // 非草稿狀態只能編輯 description 和 due_date
+  if (!isDraft) {
+    if (input.description !== undefined) updateData.description = input.description
+    if (input.due_date !== undefined) updateData.due_date = input.due_date
+
+    // 檢查是否有嘗試修改不允許的欄位
+    const restrictedFields = [
+      'number', 'date', 'untaxed_amount', 'tax_amount', 'total_amount',
+      'counterparty_id', 'counterparty_tax_id', 'counterparty_name',
+      'tax_code_id', 'account_id', 'account_code', 'attachment_url',
+      'payment_status', 'payment_method', 'paid_amount', 'paid_date',
+    ] as const
+    const attemptedRestrictedFields = restrictedFields.filter(
+      (field) => input[field] !== undefined
+    )
+    if (attemptedRestrictedFields.length > 0) {
+      throw new Error(`非草稿狀態只能修改備註和到期日，不能修改: ${attemptedRestrictedFields.join(', ')}`)
+    }
+  } else {
+    // 草稿狀態可編輯所有欄位
+    if (input.number !== undefined) updateData.number = input.number
+    if (input.date !== undefined) updateData.date = input.date
+    if (input.untaxed_amount !== undefined) updateData.untaxed_amount = input.untaxed_amount
+    if (input.tax_amount !== undefined) updateData.tax_amount = input.tax_amount
+    if (input.total_amount !== undefined) updateData.total_amount = input.total_amount
+    if (input.counterparty_id !== undefined) updateData.counterparty_id = input.counterparty_id
+    if (input.counterparty_tax_id !== undefined)
+      updateData.counterparty_tax_id = input.counterparty_tax_id
+    if (input.counterparty_name !== undefined) updateData.counterparty_name = input.counterparty_name
+    if (input.tax_code_id !== undefined) updateData.tax_code_id = input.tax_code_id
+    if (input.description !== undefined) updateData.description = input.description
+    if (input.account_id !== undefined) updateData.account_id = input.account_id
+    if (input.account_code !== undefined) updateData.account_code = input.account_code
+    if (input.due_date !== undefined) updateData.due_date = input.due_date
+    if (input.attachment_url !== undefined) updateData.attachment_url = input.attachment_url
+    if (input.payment_status !== undefined) updateData.payment_status = input.payment_status
+    if (input.payment_method !== undefined) updateData.payment_method = input.payment_method
+    if (input.paid_amount !== undefined) updateData.paid_amount = input.paid_amount
+    if (input.paid_date !== undefined) updateData.paid_date = input.paid_date
+  }
+
+  // 如果沒有要更新的資料，直接返回現有記錄
+  if (Object.keys(updateData).length === 0) {
+    return existing
+  }
 
   const { data, error } = await db
     .from('acc_invoices')
