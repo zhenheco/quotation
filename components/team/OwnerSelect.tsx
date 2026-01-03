@@ -49,25 +49,11 @@ export default function OwnerSelect({
       }
 
       try {
+        // getCompanyMembers API 已包含 user_profile，不需額外呼叫
         const data = await apiGet<Member[]>(`/api/companies/${companyId}/members`)
         const activeMembers = data.filter((m) => m.is_active)
 
-        const membersWithProfiles = await Promise.all(
-          activeMembers.map(async (member) => {
-            try {
-              const profile = await apiGet<{
-                full_name: string
-                display_name: string
-                email?: string
-              }>(`/api/users/${member.user_id}/profile`)
-              return { ...member, user_profile: profile }
-            } catch {
-              return member
-            }
-          })
-        )
-
-        setMembers(membersWithProfiles)
+        setMembers(activeMembers)
       } catch (error) {
         console.error('Error fetching members:', error)
         setMembers([])

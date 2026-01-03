@@ -13,7 +13,7 @@ import {
   validateCustomerOwnership
 } from '@/lib/dal/quotations'
 import { syncQuotationToPaymentSchedules } from '@/lib/dal/payments'
-import { getCustomerById } from '@/lib/dal/customers'
+import { getCustomerByIdOnly } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
 
 
@@ -51,8 +51,8 @@ export async function GET(
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     }
 
-    // 載入客戶名稱
-    const customer = await getCustomerById(db, user.id, quotation.customer_id)
+    // 載入客戶名稱（使用不限制 user_id 的查詢，支援同公司跨用戶查看）
+    const customer = await getCustomerByIdOnly(db, quotation.customer_id)
 
     // 載入報價單項目
     const items = await getQuotationItems(db, id)
