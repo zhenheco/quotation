@@ -97,6 +97,10 @@ export async function getCustomerById(
 
 /**
  * 根據 ID 取得客戶（不限制 user_id，用於跨用戶查詢同公司資料）
+ *
+ * ⚠️ 安全警告：此函數不驗證用戶權限，僅應在以下情況使用：
+ * - 已通過其他方式驗證用戶有權訪問相關資料（如：報價單授權後查詢其客戶名稱）
+ * - 用於內部資料關聯，不直接暴露給 API
  */
 export async function getCustomerByIdOnly(
   db: SupabaseClient,
