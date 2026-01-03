@@ -10,10 +10,9 @@ export const GET = withAuth('customers:read')(async (_request, { user, db }) => 
   // 取得客戶資料（使用 DAL）
   const customers = await getCustomers(db, user.id)
 
-  // 設定快取：私有快取 60 秒，過期後允許返回舊資料 120 秒
-  const response = NextResponse.json(customers)
-  response.headers.set('Cache-Control', 'private, s-maxage=60, stale-while-revalidate=120')
-  return response
+  // 不設定 HTTP 快取，確保更新後立即反映
+  // React Query 已在前端處理快取，不需要 HTTP 層快取
+  return NextResponse.json(customers)
 })
 
 /**

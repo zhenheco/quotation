@@ -95,6 +95,26 @@ export async function getCustomerById(
   return data
 }
 
+/**
+ * 根據 ID 取得客戶（不限制 user_id，用於跨用戶查詢同公司資料）
+ */
+export async function getCustomerByIdOnly(
+  db: SupabaseClient,
+  customerId: string
+): Promise<Customer | null> {
+  const { data, error } = await db
+    .from('customers')
+    .select('*')
+    .eq('id', customerId)
+    .single()
+
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(`Failed to get customer: ${error.message}`)
+  }
+
+  return data
+}
+
 export async function createCustomer(
   db: SupabaseClient,
   userId: string,
