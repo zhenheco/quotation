@@ -101,6 +101,26 @@ async function downloadXml(params: TaxReportParams, form: '401' | '403'): Promis
   return response.blob()
 }
 
+/**
+ * 下載媒體申報檔
+ */
+async function downloadMediaFile(params: TaxReportParams): Promise<Blob> {
+  const searchParams = new URLSearchParams({
+    company_id: params.companyId,
+    tax_id: params.taxId,
+    company_name: params.companyName,
+    year: params.year.toString(),
+    bi_month: params.biMonth.toString(),
+  })
+
+  const response = await fetch(`/api/accounting/reports/tax/media?${searchParams}`)
+  if (!response.ok) {
+    const data = (await response.json()) as { error?: string }
+    throw new Error(data.error || '媒體檔下載失敗')
+  }
+  return response.blob()
+}
+
 async function fetchInvoiceDetails(
   companyId: string,
   type: 'OUTPUT' | 'INPUT',
@@ -201,6 +221,27 @@ export function useInvoiceDetails(
     queryFn: () => fetchInvoiceDetails(companyId, type, startDate, endDate),
     enabled: enabled && !!companyId && !!startDate && !!endDate,
     staleTime: 60 * 1000, // 1 分鐘
+  })
+}
+
+/**
+ * 下載 401 媒體申報檔
+ */
+export function useDownloadMediaFile() {
+  return useMutation({
+    mutationFn: async ({ params }: { params: TaxReportParams }) => {
+      const blob = await downloadMediaFile(params)
+      // 觸發下載
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${params.taxId}.TXT`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      return true
+    },
   })
 }
 

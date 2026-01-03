@@ -6,7 +6,15 @@ import { toast } from 'sonner'
 import { useCompany } from '@/hooks/useCompany'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { parseExcelFile, formatDateString } from '@/lib/utils/excel-parser'
+import {
+  parseMofExcel,
+  detectImportMode,
+  type ImportMode,
+  type ParsedMofInvoice,
+} from '@/lib/services/accounting/mof-excel-parser'
 
 interface ValidationError {
   row: number
@@ -32,6 +40,9 @@ interface PreviewData extends ParsedInvoiceRow {
 }
 
 type UploadStep = 'select' | 'preview' | 'importing' | 'complete'
+
+/** 使用者選擇的匯入模式 */
+type UserImportMode = 'auto' | 'standard' | 'mof_purchase' | 'mof_sales'
 
 /**
  * 驗證發票資料行（客戶端驗證）
@@ -192,6 +203,8 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
     importedCount: number
     skippedCount: number
   } | null>(null)
+  const [importMode, setImportMode] = useState<UserImportMode>('auto')
+  const [detectedMode, setDetectedMode] = useState<ImportMode | null>(null)
 
   // 下載範本
   const handleDownloadTemplate = async () => {
@@ -215,6 +228,24 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
     }
   }
 
+  /**
+   * 將 MOF 解析結果轉換為標準格式
+   */
+  const convertMofToStandardFormat = (
+    mofData: ParsedMofInvoice[]
+  ): ParsedInvoiceRow[] => {
+    return mofData.map((invoice) => ({
+      number: invoice.number,
+      type: invoice.type,
+      date: invoice.date,
+      untaxed_amount: invoice.untaxed_amount,
+      tax_amount: invoice.tax_amount,
+      total_amount: invoice.total_amount,
+      counterparty_name: invoice.counterparty_name,
+      counterparty_tax_id: invoice.counterparty_tax_id,
+    }))
+  }
+
   // 處理檔案選擇（客戶端解析）
   const handleFileSelect = useCallback(
     async (file: File) => {
@@ -232,28 +263,70 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
       setSelectedFile(file)
       setIsUploading(true)
       setErrors([])
+      setDetectedMode(null)
 
       try {
         // 客戶端解析 Excel
         const parseResult = await parseExcelFile(file)
 
-        const allErrors: ValidationError[] = []
-        const validData: ParsedInvoiceRow[] = []
+        // 決定使用哪種解析器
+        let effectiveMode: ImportMode | 'standard' = 'standard'
 
-        // 驗證每一行
-        parseResult.data.forEach((row, index) => {
-          const rowNumber = index + 2 // Excel 從第 2 行開始是資料
-          const { data, errors: rowErrors } = validateInvoiceRow(row, rowNumber)
+        if (importMode === 'auto') {
+          // 自動偵測模式
+          const detected = detectImportMode(parseResult.headers)
+          setDetectedMode(detected)
+          effectiveMode = detected
+        } else if (importMode === 'mof_purchase' || importMode === 'mof_sales') {
+          effectiveMode = importMode
+          setDetectedMode(importMode)
+        }
 
-          if (data) {
-            validData.push(data)
+        let validData: ParsedInvoiceRow[] = []
+        let allErrors: ValidationError[] = []
+
+        if (effectiveMode === 'mof_purchase' || effectiveMode === 'mof_sales') {
+          // 使用 MOF 解析器
+          const mofResult = parseMofExcel(
+            parseResult.data as Record<string, unknown>[],
+            parseResult.headers,
+            effectiveMode
+          )
+
+          if (mofResult.mode === 'standard') {
+            // 無法識別，回退到標準模式或顯示錯誤
+            toast.error(t('accounting.import.modeDetectFailed'))
+            setIsUploading(false)
+            return
           }
-          allErrors.push(...rowErrors)
-        })
 
-        // 檢查重複發票號碼
-        const duplicateErrors = checkDuplicateNumbers(validData)
-        allErrors.push(...duplicateErrors)
+          validData = convertMofToStandardFormat(mofResult.data)
+          allErrors = mofResult.errors
+
+          // 顯示偵測結果
+          if (importMode === 'auto') {
+            const modeLabel =
+              mofResult.mode === 'mof_purchase'
+                ? t('accounting.import.modeDetectedPurchase')
+                : t('accounting.import.modeDetectedSales')
+            toast.success(t('accounting.import.modeDetected', { mode: modeLabel }))
+          }
+        } else {
+          // 使用標準解析器
+          parseResult.data.forEach((row, index) => {
+            const rowNumber = index + 2 // Excel 從第 2 行開始是資料
+            const { data, errors: rowErrors } = validateInvoiceRow(row, rowNumber)
+
+            if (data) {
+              validData.push(data)
+            }
+            allErrors.push(...rowErrors)
+          })
+
+          // 檢查重複發票號碼
+          const duplicateErrors = checkDuplicateNumbers(validData)
+          allErrors.push(...duplicateErrors)
+        }
 
         // 加入行號供顯示
         const dataWithRowNumbers = validData.map((row, index) => ({
@@ -271,7 +344,7 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
         setIsUploading(false)
       }
     },
-    [company?.id, t]
+    [company?.id, t, importMode]
   )
 
   // 拖曳事件處理
@@ -378,6 +451,7 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
     setPreviewData([])
     setErrors([])
     setImportResult(null)
+    setDetectedMode(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -386,25 +460,84 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
   // 渲染上傳區域
   const renderUploadArea = () => (
     <div className="space-y-6">
-      {/* 下載範本按鈕 */}
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
-          <svg
-            className="w-4 h-4 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
-          {t('accounting.import.downloadTemplate')}
-        </Button>
+      {/* 匯入模式選擇 */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium text-slate-700">
+          {t('accounting.import.modeLabel')}
+        </Label>
+        <RadioGroup
+          value={importMode}
+          onValueChange={(value) => setImportMode(value as UserImportMode)}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+        >
+          <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-slate-50 cursor-pointer">
+            <RadioGroupItem value="auto" id="mode-auto" className="mt-0.5" />
+            <Label htmlFor="mode-auto" className="flex-1 cursor-pointer">
+              <span className="font-medium text-slate-700">
+                {t('accounting.import.modeAutoDetect')}
+              </span>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {t('accounting.import.modeAutoDetectDesc')}
+              </p>
+            </Label>
+          </div>
+          <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-slate-50 cursor-pointer">
+            <RadioGroupItem value="standard" id="mode-standard" className="mt-0.5" />
+            <Label htmlFor="mode-standard" className="flex-1 cursor-pointer">
+              <span className="font-medium text-slate-700">
+                {t('accounting.import.modeStandard')}
+              </span>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {t('accounting.import.modeStandardDesc')}
+              </p>
+            </Label>
+          </div>
+          <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-slate-50 cursor-pointer">
+            <RadioGroupItem value="mof_purchase" id="mode-mof-purchase" className="mt-0.5" />
+            <Label htmlFor="mode-mof-purchase" className="flex-1 cursor-pointer">
+              <span className="font-medium text-slate-700">
+                {t('accounting.import.modeMofPurchase')}
+              </span>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {t('accounting.import.modeMofPurchaseDesc')}
+              </p>
+            </Label>
+          </div>
+          <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-slate-50 cursor-pointer">
+            <RadioGroupItem value="mof_sales" id="mode-mof-sales" className="mt-0.5" />
+            <Label htmlFor="mode-mof-sales" className="flex-1 cursor-pointer">
+              <span className="font-medium text-slate-700">
+                {t('accounting.import.modeMofSales')}
+              </span>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {t('accounting.import.modeMofSalesDesc')}
+              </p>
+            </Label>
+          </div>
+        </RadioGroup>
       </div>
+
+      {/* 下載範本按鈕 - 只在標準模式顯示 */}
+      {importMode === 'standard' && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+            </svg>
+            {t('accounting.import.downloadTemplate')}
+          </Button>
+        </div>
+      )}
 
       {/* 拖曳上傳區域 */}
       <div
@@ -488,6 +621,18 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
     </div>
   )
 
+  // 取得模式標籤
+  const getModeLabel = (mode: ImportMode | null): string => {
+    switch (mode) {
+      case 'mof_purchase':
+        return t('accounting.import.modeMofPurchase')
+      case 'mof_sales':
+        return t('accounting.import.modeMofSales')
+      default:
+        return t('accounting.import.modeStandard')
+    }
+  }
+
   // 渲染預覽表格
   const renderPreviewTable = () => (
     <div className="space-y-4">
@@ -509,6 +654,11 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
           </svg>
           <div>
             <p className="font-medium text-slate-700">{selectedFile?.name}</p>
+            {detectedMode && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 mr-2">
+                {getModeLabel(detectedMode)}
+              </span>
+            )}
             <p className="text-sm text-slate-500">
               {t('accounting.import.recordCount', { count: previewData.length })}
             </p>

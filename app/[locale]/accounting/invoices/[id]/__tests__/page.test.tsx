@@ -40,6 +40,29 @@ const mockInvoice = {
   created_at: '2024-12-01T00:00:00Z',
 }
 
+// 通用 mock 函數，包含所有必要的 hooks
+const createAccountingMock = (invoiceOverrides: {
+  data?: typeof mockInvoice | null
+  isLoading?: boolean
+  error?: Error | null
+}) => ({
+  useInvoice: () => ({
+    data: invoiceOverrides.data ?? mockInvoice,
+    isLoading: invoiceOverrides.isLoading ?? false,
+    error: invoiceOverrides.error ?? null,
+  }),
+  useVerifyInvoice: () => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
+  usePostInvoice: () => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
+})
+
 describe('InvoiceDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -48,12 +71,10 @@ describe('InvoiceDetailPage', () => {
 
   it('should show loading state while fetching', async () => {
     // Arrange: Mock useInvoice 為 loading 狀態
-    vi.doMock('@/hooks/accounting', () => ({
-      useInvoice: () => ({
-        data: undefined,
-        isLoading: true,
-        error: null,
-      }),
+    vi.doMock('@/hooks/accounting', () => createAccountingMock({
+      data: undefined,
+      isLoading: true,
+      error: null,
     }))
 
     // Act: 動態載入元件
@@ -66,12 +87,10 @@ describe('InvoiceDetailPage', () => {
 
   it('should render invoice details correctly', async () => {
     // Arrange: Mock useInvoice 返回發票資料
-    vi.doMock('@/hooks/accounting', () => ({
-      useInvoice: () => ({
-        data: mockInvoice,
-        isLoading: false,
-        error: null,
-      }),
+    vi.doMock('@/hooks/accounting', () => createAccountingMock({
+      data: mockInvoice,
+      isLoading: false,
+      error: null,
     }))
 
     // Act
@@ -88,12 +107,10 @@ describe('InvoiceDetailPage', () => {
 
   it('should handle invoice not found', async () => {
     // Arrange: Mock useInvoice 返回錯誤
-    vi.doMock('@/hooks/accounting', () => ({
-      useInvoice: () => ({
-        data: null,
-        isLoading: false,
-        error: new Error('Invoice not found'),
-      }),
+    vi.doMock('@/hooks/accounting', () => createAccountingMock({
+      data: null,
+      isLoading: false,
+      error: new Error('Invoice not found'),
     }))
 
     // Act
@@ -108,12 +125,10 @@ describe('InvoiceDetailPage', () => {
 
   it('should display correct invoice type badge for OUTPUT', async () => {
     // Arrange
-    vi.doMock('@/hooks/accounting', () => ({
-      useInvoice: () => ({
-        data: { ...mockInvoice, type: 'OUTPUT' },
-        isLoading: false,
-        error: null,
-      }),
+    vi.doMock('@/hooks/accounting', () => createAccountingMock({
+      data: { ...mockInvoice, type: 'OUTPUT' },
+      isLoading: false,
+      error: null,
     }))
 
     // Act
@@ -128,12 +143,10 @@ describe('InvoiceDetailPage', () => {
 
   it('should display correct invoice type badge for INPUT', async () => {
     // Arrange
-    vi.doMock('@/hooks/accounting', () => ({
-      useInvoice: () => ({
-        data: { ...mockInvoice, type: 'INPUT' },
-        isLoading: false,
-        error: null,
-      }),
+    vi.doMock('@/hooks/accounting', () => createAccountingMock({
+      data: { ...mockInvoice, type: 'INPUT' },
+      isLoading: false,
+      error: null,
     }))
 
     // Act
@@ -148,12 +161,10 @@ describe('InvoiceDetailPage', () => {
 
   it('should display amount labels', async () => {
     // Arrange
-    vi.doMock('@/hooks/accounting', () => ({
-      useInvoice: () => ({
-        data: mockInvoice,
-        isLoading: false,
-        error: null,
-      }),
+    vi.doMock('@/hooks/accounting', () => createAccountingMock({
+      data: mockInvoice,
+      isLoading: false,
+      error: null,
     }))
 
     // Act

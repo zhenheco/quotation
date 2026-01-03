@@ -5,6 +5,13 @@
 
 import { SupabaseClient } from '@/lib/db/supabase-client'
 import { AccInvoice, getInvoices } from '@/lib/dal/accounting'
+import {
+  generateMediaFile,
+  invoiceDetailToMediaData,
+  type MediaFileResult,
+  type MediaInvoiceData,
+  type MediaFileOptions,
+} from './media-file-generator'
 
 // ============================================
 // 類型定義
@@ -624,4 +631,65 @@ export async function getInvoiceDetailList(
   )
 
   return { invoices: details, summary }
+}
+
+// ============================================
+// 401 媒體申報檔
+// ============================================
+
+/**
+ * 從 Form401Data 產生 401 媒體申報檔
+ *
+ * @param form401Data - Form401 申報書資料
+ * @param taxRegistrationNumber - 稅籍編號（統編8碼+分支碼1碼）
+ * @returns 媒體檔產生結果
+ */
+export function generateMediaFile401(
+  form401Data: Form401Data,
+  taxRegistrationNumber?: string
+): MediaFileResult {
+  // 如果沒有提供稅籍編號，使用公司統編 + 0（總公司）
+  const taxRegNum = taxRegistrationNumber || form401Data.companyInfo.taxId + '0'
+
+  // 轉換發票資料為媒體檔格式
+  const mediaInvoices: MediaInvoiceData[] = []
+
+  // 銷項發票（應稅）
+  for (const inv of form401Data.sales.taxable.invoices) {
+    mediaInvoices.push(invoiceDetailToMediaData(inv, 'OUTPUT'))
+  }
+
+  // 銷項發票（零稅率）
+  for (const inv of form401Data.sales.zeroRated.invoices) {
+    mediaInvoices.push(invoiceDetailToMediaData(inv, 'OUTPUT'))
+  }
+
+  // 銷項發票（免稅）
+  for (const inv of form401Data.sales.exempt.invoices) {
+    mediaInvoices.push(invoiceDetailToMediaData(inv, 'OUTPUT'))
+  }
+
+  // 進項發票（可扣抵）
+  for (const inv of form401Data.purchases.deductible.invoices) {
+    const mediaData = invoiceDetailToMediaData(inv, 'INPUT')
+    mediaData.isDeductible = true
+    mediaInvoices.push(mediaData)
+  }
+
+  // 進項發票（不可扣抵）
+  for (const inv of form401Data.purchases.nonDeductible.invoices) {
+    const mediaData = invoiceDetailToMediaData(inv, 'INPUT')
+    mediaData.isDeductible = false
+    mediaInvoices.push(mediaData)
+  }
+
+  // 媒體檔產生選項
+  const options: MediaFileOptions = {
+    taxRegistrationNumber: taxRegNum,
+    year: form401Data.period.year,
+    biMonth: form401Data.period.biMonth,
+  }
+
+  // 產生媒體檔
+  return generateMediaFile(mediaInvoices, options)
 }
