@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { useCompany } from '@/hooks/useCompany'
-import { useForm401, useDownloadTaxXml, type TaxReportParams } from '@/hooks/accounting'
+import { useForm401, useDownloadTaxXml, useDownloadMediaFile, type TaxReportParams } from '@/hooks/accounting'
 import { formatAmount } from '@/lib/utils/formatters'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -77,6 +77,9 @@ export default function TaxReportDashboard() {
   // XML 下載
   const downloadXml = useDownloadTaxXml()
 
+  // 媒體檔下載
+  const downloadMedia = useDownloadMediaFile()
+
   // 雙月期選項
   const biMonthOptions = [
     { value: 1, label: t('accounting.tax.biMonth1') },
@@ -93,6 +96,11 @@ export default function TaxReportDashboard() {
   const handleDownloadXml = () => {
     if (!taxReportParams) return
     downloadXml.mutate({ params: taxReportParams, form: '401' })
+  }
+
+  const handleDownloadMedia = () => {
+    if (!taxReportParams) return
+    downloadMedia.mutate({ params: taxReportParams })
   }
 
   if (!company?.id) {
@@ -159,6 +167,16 @@ export default function TaxReportDashboard() {
               {downloadXml.isPending
                 ? t('common.downloading')
                 : t('accounting.tax.downloadXml')}
+            </Button>
+            <Button
+              onClick={handleDownloadMedia}
+              variant="outline"
+              size="sm"
+              disabled={!form401 || downloadMedia.isPending}
+            >
+              {downloadMedia.isPending
+                ? t('common.downloading')
+                : t('accounting.tax.downloadMedia')}
             </Button>
           </div>
         </CardContent>
