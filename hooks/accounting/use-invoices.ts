@@ -4,6 +4,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiClient } from '@/lib/api-client'
 import type {
   AccInvoice,
   CreateInvoiceInput,
@@ -12,14 +13,6 @@ import type {
   InvoiceStatus,
 } from '@/lib/dal/accounting'
 import type { InvoiceListResult, InvoiceSummary } from '@/lib/services/accounting/invoice.service'
-
-// ============================================
-// 類型定義
-// ============================================
-
-interface ApiError {
-  error?: string
-}
 
 // ============================================
 // Query Keys
@@ -61,21 +54,11 @@ async function fetchInvoices(params: ListInvoicesParams): Promise<InvoiceListRes
     page_size: String(params.pageSize || 20),
   })
 
-  const response = await fetch(`/api/accounting/invoices?${searchParams}`)
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to fetch invoices')
-  }
-  return response.json()
+  return apiClient.get<InvoiceListResult>(`/api/accounting/invoices?${searchParams}`)
 }
 
 async function fetchInvoice(id: string): Promise<AccInvoice> {
-  const response = await fetch(`/api/accounting/invoices/${id}`)
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to fetch invoice')
-  }
-  return response.json()
+  return apiClient.get<AccInvoice>(`/api/accounting/invoices/${id}`)
 }
 
 async function fetchInvoiceSummary(
@@ -90,83 +73,36 @@ async function fetchInvoiceSummary(
     summary: 'true',
   })
 
-  const response = await fetch(`/api/accounting/invoices?${searchParams}`)
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to fetch invoice summary')
-  }
-  return response.json()
+  return apiClient.get<InvoiceSummary>(`/api/accounting/invoices?${searchParams}`)
 }
 
 async function createInvoice(input: CreateInvoiceInput): Promise<AccInvoice> {
-  const response = await fetch('/api/accounting/invoices', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to create invoice')
-  }
-  return response.json()
+  return apiClient.post<AccInvoice>('/api/accounting/invoices', input)
 }
 
 async function updateInvoice(id: string, input: UpdateInvoiceInput): Promise<AccInvoice> {
-  const response = await fetch(`/api/accounting/invoices/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to update invoice')
-  }
-  return response.json()
+  return apiClient.put<AccInvoice>(`/api/accounting/invoices/${id}`, input)
 }
 
 async function deleteInvoice(id: string): Promise<void> {
-  const response = await fetch(`/api/accounting/invoices/${id}`, {
-    method: 'DELETE',
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to delete invoice')
-  }
+  return apiClient.delete<void>(`/api/accounting/invoices/${id}`)
 }
 
 async function verifyInvoice(id: string): Promise<AccInvoice> {
-  const response = await fetch(`/api/accounting/invoices/${id}/verify`, {
-    method: 'POST',
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to verify invoice')
-  }
-  return response.json()
+  return apiClient.post<AccInvoice>(`/api/accounting/invoices/${id}/verify`)
 }
 
 async function postInvoice(id: string): Promise<{ invoice_id: string; journal_entry_id: string; status: string }> {
-  const response = await fetch(`/api/accounting/invoices/${id}/post`, {
-    method: 'POST',
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to post invoice')
-  }
-  return response.json()
+  return apiClient.post<{ invoice_id: string; journal_entry_id: string; status: string }>(
+    `/api/accounting/invoices/${id}/post`
+  )
 }
 
 async function voidInvoice(id: string, reason: string): Promise<{ invoice_id: string; status: string }> {
-  const response = await fetch(`/api/accounting/invoices/${id}/void`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reason }),
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to void invoice')
-  }
-  return response.json()
+  return apiClient.post<{ invoice_id: string; status: string }>(
+    `/api/accounting/invoices/${id}/void`,
+    { reason }
+  )
 }
 
 interface RecordPaymentInput {
@@ -180,21 +116,15 @@ interface RecordPaymentInput {
 async function recordPayment(
   input: RecordPaymentInput
 ): Promise<{ invoice_id: string; total_paid: number; payment_status: string }> {
-  const response = await fetch(`/api/accounting/invoices/${input.id}/payment`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  return apiClient.post<{ invoice_id: string; total_paid: number; payment_status: string }>(
+    `/api/accounting/invoices/${input.id}/payment`,
+    {
       amount: input.amount,
       payment_date: input.paymentDate,
       payment_method: input.paymentMethod,
       reference: input.reference,
-    }),
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to record payment')
-  }
-  return response.json()
+    }
+  )
 }
 
 // ============================================

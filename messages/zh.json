@@ -1522,7 +1522,16 @@
       "monthlyTrend": "月度趨勢",
       "noTrendData": "無趨勢資料",
       "debit": "借方",
-      "credit": "貸方"
+      "credit": "貸方",
+      "accountCategory": {
+        "ASSET": "資產",
+        "LIABILITY": "負債",
+        "EQUITY": "權益",
+        "REVENUE": "收入",
+        "COST": "成本",
+        "EXPENSE": "費用",
+        "Other": "其他"
+      }
     },
     "tax": {
       "title": "營業稅申報",

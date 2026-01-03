@@ -1521,7 +1521,16 @@
       "monthlyTrend": "Monthly Trend",
       "noTrendData": "No trend data available",
       "debit": "Debit",
-      "credit": "Credit"
+      "credit": "Credit",
+      "accountCategory": {
+        "ASSET": "Assets",
+        "LIABILITY": "Liabilities",
+        "EQUITY": "Equity",
+        "REVENUE": "Revenue",
+        "COST": "Cost of Goods Sold",
+        "EXPENSE": "Expenses",
+        "Other": "Other"
+      }
     },
     "tax": {
       "title": "VAT Filing",
