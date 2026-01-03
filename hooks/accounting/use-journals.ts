@@ -4,20 +4,13 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiClient } from '@/lib/api-client'
 import type {
   JournalEntryWithTransactions,
   JournalStatus,
   TransactionSource,
 } from '@/lib/dal/accounting'
 import type { JournalListResult, CreateJournalRequest } from '@/lib/services/accounting/journal.service'
-
-// ============================================
-// 類型定義
-// ============================================
-
-interface ApiError {
-  error?: string
-}
 
 // ============================================
 // Query Keys
@@ -57,68 +50,32 @@ async function fetchJournals(params: ListJournalsParams): Promise<JournalListRes
     page_size: String(params.pageSize || 20),
   })
 
-  const response = await fetch(`/api/accounting/journals?${searchParams}`)
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to fetch journals')
-  }
-  return response.json()
+  return apiClient.get<JournalListResult>(`/api/accounting/journals?${searchParams}`)
 }
 
 async function fetchJournal(id: string): Promise<JournalEntryWithTransactions> {
-  const response = await fetch(`/api/accounting/journals/${id}`)
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to fetch journal')
-  }
-  return response.json()
+  return apiClient.get<JournalEntryWithTransactions>(`/api/accounting/journals/${id}`)
 }
 
 async function createJournal(input: CreateJournalRequest): Promise<JournalEntryWithTransactions> {
-  const response = await fetch('/api/accounting/journals', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to create journal')
-  }
-  return response.json()
+  return apiClient.post<JournalEntryWithTransactions>('/api/accounting/journals', input)
 }
 
 async function deleteJournal(id: string): Promise<void> {
-  const response = await fetch(`/api/accounting/journals/${id}`, {
-    method: 'DELETE',
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to delete journal')
-  }
+  return apiClient.delete<void>(`/api/accounting/journals/${id}`)
 }
 
 async function postJournal(id: string): Promise<{ journal_id: string; status: string }> {
-  const response = await fetch(`/api/accounting/journals/${id}/post`, {
-    method: 'POST',
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to post journal')
-  }
-  return response.json()
+  return apiClient.post<{ journal_id: string; status: string }>(
+    `/api/accounting/journals/${id}/post`
+  )
 }
 
 async function voidJournal(id: string, reason: string): Promise<{ journal_id: string; status: string }> {
-  const response = await fetch(`/api/accounting/journals/${id}/void`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reason }),
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to void journal')
-  }
-  return response.json()
+  return apiClient.post<{ journal_id: string; status: string }>(
+    `/api/accounting/journals/${id}/void`,
+    { reason }
+  )
 }
 
 interface UpdateJournalInput {
@@ -133,16 +90,7 @@ interface UpdateJournalInput {
 }
 
 async function updateJournal(id: string, input: UpdateJournalInput): Promise<JournalEntryWithTransactions> {
-  const response = await fetch(`/api/accounting/journals/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
-  if (!response.ok) {
-    const data = await response.json() as ApiError
-    throw new Error(data.error || 'Failed to update journal')
-  }
-  return response.json()
+  return apiClient.put<JournalEntryWithTransactions>(`/api/accounting/journals/${id}`, input)
 }
 
 // ============================================

@@ -330,12 +330,12 @@ function TrialBalanceAnalysis({ data, t }: { data: TrialBalanceItem[]; t: Return
       categories[category].debit += item.closing_debit || 0
       categories[category].credit += item.closing_credit || 0
     })
-    return Object.entries(categories).map(([name, values]) => ({
-      name,
+    return Object.entries(categories).map(([category, values]) => ({
+      name: t(`accounting.reports.accountCategory.${category}`) || category,
       debit: values.debit,
       credit: values.credit,
     }))
-  }, [data])
+  }, [data, t])
 
   return (
     <Card>
