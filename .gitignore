@@ -64,3 +64,6 @@ status.json
 AGENT.md
 PROMPT.md
 logs/
+
+# Playwright MCP
+.playwright-mcp/

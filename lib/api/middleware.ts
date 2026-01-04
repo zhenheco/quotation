@@ -4,6 +4,7 @@
  * 提供統一的認證、授權、錯誤處理包裝
  *
  * 簡化版：直接使用 Supabase 進行認證和權限檢查
+ * 擴展版：支援訂閱功能存取檢查
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -11,6 +12,11 @@ import { createApiClient } from '@/lib/supabase/api'
 import { getSupabaseClient, SupabaseClient } from '@/lib/db/supabase-client'
 import { getUserPermissions, ensureUserHasRole } from '@/lib/dal/rbac'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import {
+  hasFeatureAccess,
+  FeatureNotAvailableError,
+  UsageLimitExceededError,
+} from '@/lib/services/subscription'
 
 /**
  * API 請求上下文
@@ -240,6 +246,279 @@ export function withAuthOnly<TParams = void>(handler: ApiHandler<TParams>) {
     } catch (error: unknown) {
       console.error('API Error [auth-only]:', error)
       return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+    }
+  }
+}
+
+// ============================================================================
+// SUBSCRIPTION-AWARE AUTH OPTIONS
+// ============================================================================
+
+/**
+ * 訂閱功能檢查選項
+ */
+export interface SubscriptionOptions {
+  /** 需要的訂閱功能代碼 (如 'media_401', 'ai_cash_flow') */
+  requiredFeature?: string
+  /** 從請求中取得 company_id 的方式 */
+  getCompanyId?: (request: NextRequest, params?: unknown) => string | Promise<string>
+}
+
+/**
+ * 擴展的 API 請求上下文（含 company_id）
+ */
+export interface ApiContextWithCompany extends ApiContext {
+  /** 公司 ID (如果有提供 getCompanyId) */
+  companyId?: string
+}
+
+/**
+ * 帶上下文的 API Handler 類型（含 company_id）
+ */
+type ApiHandlerWithCompany<TParams = void> = (
+  request: NextRequest,
+  context: ApiContextWithCompany,
+  params: TParams
+) => Promise<NextResponse>
+
+/**
+ * 處理訂閱相關錯誤，回傳適當的 HTTP 回應
+ */
+function handleSubscriptionError(error: unknown): NextResponse | null {
+  if (error instanceof FeatureNotAvailableError) {
+    return NextResponse.json(
+      {
+        error: 'Feature not available',
+        message: error.message,
+        feature_code: error.featureCode,
+        current_tier: error.currentTier,
+        upgrade_required: true,
+      },
+      { status: 402 }
+    )
+  }
+
+  if (error instanceof UsageLimitExceededError) {
+    return NextResponse.json(
+      {
+        error: 'Usage limit exceeded',
+        message: error.message,
+        feature_code: error.featureCode,
+        current_usage: error.currentUsage,
+        quota_limit: error.quotaLimit,
+        upgrade_required: true,
+      },
+      { status: 402 }
+    )
+  }
+
+  return null
+}
+
+/**
+ * 建立需要認證、授權和訂閱功能檢查的 API Route 包裝器
+ *
+ * @param permission - 需要的權限名稱（如 'quotations:read', 'products:write'）
+ * @param options - 訂閱功能檢查選項
+ * @returns 包裝函數
+ *
+ * @example
+ * ```typescript
+ * // 檢查訂閱功能 (從 query 參數取得 company_id)
+ * export const GET = withAuthAndSubscription('reports:read', {
+ *   requiredFeature: 'media_401',
+ *   getCompanyId: (req) => req.nextUrl.searchParams.get('company_id') || '',
+ * })(async (request, { user, db, companyId }) => {
+ *   const report = await generateReport(db, companyId)
+ *   return NextResponse.json(report)
+ * })
+ *
+ * // 從 body 取得 company_id
+ * export const POST = withAuthAndSubscription('invoices:write', {
+ *   requiredFeature: 'income_tax',
+ *   getCompanyId: async (req) => {
+ *     const body = await req.clone().json()
+ *     return body.company_id
+ *   },
+ * })(async (request, { user, db, companyId }) => {
+ *   // ...
+ * })
+ * ```
+ */
+export function withAuthAndSubscription(
+  permission: string,
+  options?: SubscriptionOptions
+) {
+  return function <TParams = void>(handler: ApiHandlerWithCompany<TParams>) {
+    return async function (
+      request: NextRequest,
+      routeContext?: RouteParams<TParams>
+    ): Promise<NextResponse> {
+      try {
+        // 取得資料庫客戶端
+        const db = getSupabaseClient()
+
+        // 驗證使用者
+        const user = await getAuthenticatedUser(request)
+
+        if (!user) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // 檢查權限
+        const hasPermission = await checkPermission(db, user.id, permission)
+        if (!hasPermission) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
+        // 解析動態路由參數
+        const params = routeContext?.params ? await routeContext.params : (undefined as TParams)
+
+        // 取得 company_id (如果有提供 getCompanyId)
+        let companyId: string | undefined
+
+        if (options?.getCompanyId) {
+          companyId = await options.getCompanyId(request, params)
+
+          if (!companyId) {
+            return NextResponse.json(
+              { error: 'company_id is required for this operation' },
+              { status: 400 }
+            )
+          }
+        }
+
+        // 檢查訂閱功能 (如果有要求)
+        if (options?.requiredFeature && companyId) {
+          const hasAccess = await hasFeatureAccess(companyId, options.requiredFeature, db)
+
+          if (!hasAccess) {
+            return NextResponse.json(
+              {
+                error: 'Feature not available',
+                message: `This feature requires an upgraded subscription plan`,
+                feature_code: options.requiredFeature,
+                upgrade_required: true,
+              },
+              { status: 402 }
+            )
+          }
+        }
+
+        // 建立上下文並呼叫實際的 handler
+        const context: ApiContextWithCompany = {
+          user: {
+            id: user.id,
+            email: user.email,
+          },
+          db,
+          companyId,
+        }
+
+        return await handler(request, context, params)
+      } catch (error: unknown) {
+        // 優先處理訂閱相關錯誤
+        const subscriptionError = handleSubscriptionError(error)
+        if (subscriptionError) {
+          return subscriptionError
+        }
+
+        console.error(`API Error [${permission}]:`, error)
+        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+      }
+    }
+  }
+}
+
+/**
+ * 建立只需要認證和訂閱功能檢查的 API Route 包裝器（不需要特定權限）
+ *
+ * @param options - 訂閱功能檢查選項
+ * @returns 包裝函數
+ *
+ * @example
+ * ```typescript
+ * export const GET = withAuthOnlyAndSubscription({
+ *   requiredFeature: 'ai_cash_flow',
+ *   getCompanyId: (req) => req.nextUrl.searchParams.get('company_id') || '',
+ * })(async (request, { user, db, companyId }) => {
+ *   const analysis = await getAIAnalysis(db, companyId)
+ *   return NextResponse.json(analysis)
+ * })
+ * ```
+ */
+export function withAuthOnlyAndSubscription(options?: SubscriptionOptions) {
+  return function <TParams = void>(handler: ApiHandlerWithCompany<TParams>) {
+    return async function (
+      request: NextRequest,
+      routeContext?: RouteParams<TParams>
+    ): Promise<NextResponse> {
+      try {
+        // 取得資料庫客戶端
+        const db = getSupabaseClient()
+
+        // 驗證使用者
+        const user = await getAuthenticatedUser(request)
+
+        if (!user) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // 解析動態路由參數
+        const params = routeContext?.params ? await routeContext.params : (undefined as TParams)
+
+        // 取得 company_id (如果有提供 getCompanyId)
+        let companyId: string | undefined
+
+        if (options?.getCompanyId) {
+          companyId = await options.getCompanyId(request, params)
+
+          if (!companyId) {
+            return NextResponse.json(
+              { error: 'company_id is required for this operation' },
+              { status: 400 }
+            )
+          }
+        }
+
+        // 檢查訂閱功能 (如果有要求)
+        if (options?.requiredFeature && companyId) {
+          const hasAccess = await hasFeatureAccess(companyId, options.requiredFeature, db)
+
+          if (!hasAccess) {
+            return NextResponse.json(
+              {
+                error: 'Feature not available',
+                message: `This feature requires an upgraded subscription plan`,
+                feature_code: options.requiredFeature,
+                upgrade_required: true,
+              },
+              { status: 402 }
+            )
+          }
+        }
+
+        // 建立上下文並呼叫實際的 handler
+        const context: ApiContextWithCompany = {
+          user: {
+            id: user.id,
+            email: user.email,
+          },
+          db,
+          companyId,
+        }
+
+        return await handler(request, context, params)
+      } catch (error: unknown) {
+        // 優先處理訂閱相關錯誤
+        const subscriptionError = handleSubscriptionError(error)
+        if (subscriptionError) {
+          return subscriptionError
+        }
+
+        console.error('API Error [auth-only-subscription]:', error)
+        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+      }
     }
   }
 }
