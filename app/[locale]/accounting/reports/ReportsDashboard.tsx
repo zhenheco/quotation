@@ -9,7 +9,6 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
 
 // 動態載入 TaxReportDashboard 以減少初始 bundle
 const TaxReportDashboard = lazy(() => import('./TaxReportDashboard'))
@@ -97,9 +96,6 @@ export default function ReportsDashboard() {
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
-            <Button variant="outline" size="sm">
-              {t('accounting.reports.exportExcel')}
-            </Button>
           </div>
         </CardContent>
       </Card>
