@@ -11,6 +11,7 @@ import type {
   PaymentTransactionStatus,
 } from '@/types/extended.types'
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api-client'
+import { STALE_TIME } from '@/lib/api/queryClient'
 
 // ============================================================================
 // Types
@@ -229,7 +230,7 @@ export function usePayments(filters?: PaymentFilters) {
   return useQuery({
     queryKey: ['payments', filters],
     queryFn: () => fetchPayments(filters),
-    staleTime: 2 * 60 * 1000, // 2 分鐘
+    staleTime: STALE_TIME.DYNAMIC
   })
 }
 
@@ -258,7 +259,7 @@ export function useCollectedPayments() {
   return useQuery({
     queryKey: ['payments', 'collected'],
     queryFn: fetchCollectedPayments,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME.DYNAMIC,
   })
 }
 
@@ -284,7 +285,7 @@ export function useUnpaidPayments() {
   return useQuery({
     queryKey: ['payments', 'unpaid'],
     queryFn: fetchUnpaidPayments,
-    staleTime: 2 * 60 * 1000,
+    staleTime: STALE_TIME.DYNAMIC,
     // 自動定時重新取得（每 5 分鐘）
     refetchInterval: 5 * 60 * 1000,
   })
@@ -314,7 +315,7 @@ export function usePaymentReminders() {
   return useQuery({
     queryKey: ['payments', 'reminders'],
     queryFn: fetchPaymentReminders,
-    staleTime: 2 * 60 * 1000,
+    staleTime: STALE_TIME.DYNAMIC,
     refetchInterval: 5 * 60 * 1000,
   })
 }
@@ -417,7 +418,7 @@ export function usePaymentStatistics() {
   return useQuery({
     queryKey: ['payments', 'statistics'],
     queryFn: fetchPaymentStatistics,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME.DYNAMIC,
     // 定時更新統計
     refetchInterval: 10 * 60 * 1000, // 10 分鐘
   })
@@ -452,7 +453,7 @@ export function useCurrentMonthReceivables(month?: string) {
   return useQuery({
     queryKey: ['payments', 'current-month-receivables', month],
     queryFn: () => fetchCurrentMonthReceivables(month),
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME.DYNAMIC,
     refetchOnWindowFocus: false,
   })
 }

@@ -8,6 +8,7 @@ import type {
   UpdateProductData
 } from '@/types/models'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api-client'
+import { STALE_TIME } from '@/lib/api/queryClient'
 
 // ============================================================================
 // Types
@@ -118,7 +119,7 @@ export function useProducts() {
   const query = useQuery({
     queryKey: ['products'],
     queryFn: fetchProducts,
-    staleTime: 5 * 60 * 1000, // 5 分鐘
+    staleTime: STALE_TIME.STATIC
   })
 
   return {
@@ -161,7 +162,7 @@ export function useProduct(id: string) {
     queryKey: ['products', id],
     queryFn: () => fetchProduct(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME.STATIC,
   })
 
   return {
