@@ -575,10 +575,48 @@ ${invoiceItems}
 }
 
 /**
+ * 從可能是物件或字串的公司名稱中提取字串
+ * 處理多語言物件 {en: 'xxx', zh: 'xxx'} 或嵌套結構
+ */
+function ensureString(value: unknown, locale: string = 'zh'): string {
+  // 已經是字串，直接返回
+  if (typeof value === 'string') return value
+
+  // 是物件，嘗試提取
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>
+
+    // 優先嘗試當前語系
+    if (locale in obj && typeof obj[locale] === 'string') {
+      return obj[locale] as string
+    }
+
+    // 回退到中文
+    if ('zh' in obj && typeof obj.zh === 'string') {
+      return obj.zh as string
+    }
+
+    // 回退到英文
+    if ('en' in obj && typeof obj.en === 'string') {
+      return obj.en as string
+    }
+
+    // 嘗試 name 屬性
+    if ('name' in obj && typeof obj.name === 'string') {
+      return obj.name as string
+    }
+  }
+
+  return ''
+}
+
+/**
  * XML 特殊字元跳脫
  */
-function escapeXml(str: string): string {
-  return str
+function escapeXml(str: unknown): string {
+  // 確保輸入是字串
+  const safeStr = ensureString(str)
+  return safeStr
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

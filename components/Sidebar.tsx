@@ -19,6 +19,8 @@ import {
   Factory,
   UserCheck,
   Wallet,
+  Landmark,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -88,7 +90,17 @@ const navigation: NavigationItem[] = [
         href: '/accounting/reports',
         icon: BarChart3,
       },
+      {
+        name: { en: 'Income Tax', zh: '營所稅申報' },
+        href: '/accounting/income-tax',
+        icon: Landmark,
+      },
     ],
+  },
+  {
+    name: { en: 'Guide', zh: '教學' },
+    href: '/guide',
+    icon: BookOpen,
   },
   {
     name: { en: 'Settings', zh: '系統設定' },

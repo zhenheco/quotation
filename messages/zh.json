@@ -1599,7 +1599,10 @@
       "deductibility": "扣抵狀態",
       "noInvoices": "無發票資料",
       "loadError": "載入申報資料失敗",
-      "noData": "請選擇申報期間後產生申報書"
+      "noData": "請選擇申報期間後產生申報書",
+      "downloadSuccess": "下載成功",
+      "downloadFailed": "下載失敗",
+      "noDataToDownload": "請先產生申報資料"
     },
     "incomeTax": {
       "title": "營所稅申報",
@@ -1855,5 +1858,18 @@
     "previous": "上一頁",
     "next": "下一頁",
     "showing": "顯示 {shown} 筆，共 {total} 筆"
+  },
+  "guide": {
+    "title": "教學指南",
+    "description": "學習如何使用報價系統的各項功能",
+    "steps": "個步驟",
+    "step": "步驟",
+    "stepOf": "步驟 {current} / {total}",
+    "startLearning": "開始學習",
+    "backToCategories": "返回類別",
+    "previous": "上一步",
+    "next": "下一步",
+    "complete": "完成",
+    "tips": "小提示"
   }
 }

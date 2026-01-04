@@ -1598,7 +1598,10 @@
       "deductibility": "Deductibility",
       "noInvoices": "No invoices",
       "loadError": "Failed to load filing data",
-      "noData": "Please select a period and generate the return"
+      "noData": "Please select a period and generate the return",
+      "downloadSuccess": "Download successful",
+      "downloadFailed": "Download failed",
+      "noDataToDownload": "Please generate filing data first"
     },
     "incomeTax": {
       "title": "Corporate Income Tax",
@@ -1855,5 +1858,18 @@
     "previous": "Previous",
     "next": "Next",
     "showing": "Showing {shown} of {total}"
+  },
+  "guide": {
+    "title": "User Guide",
+    "description": "Learn how to use the quotation system features",
+    "steps": "steps",
+    "step": "Step",
+    "stepOf": "Step {current} of {total}",
+    "startLearning": "Start Learning",
+    "backToCategories": "Back to Categories",
+    "previous": "Previous",
+    "next": "Next",
+    "complete": "Complete",
+    "tips": "Tips"
   }
 }

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import { useCompany } from '@/hooks/useCompany'
 import { useForm401, useDownloadTaxXml, useDownloadMediaFile, type TaxReportParams } from '@/hooks/accounting'
 import { formatAmount } from '@/lib/utils/formatters'
@@ -43,6 +44,49 @@ const COLORS = {
 }
 
 /**
+ * 從可能是物件或字串的公司名稱中提取字串
+ * 處理多語言物件 {en: 'xxx', zh: 'xxx'} 或嵌套結構
+ */
+function getCompanyNameString(name: unknown, locale: string = 'zh'): string {
+  // 已經是字串，直接返回
+  if (typeof name === 'string') return name
+
+  // 是物件，嘗試提取
+  if (name && typeof name === 'object') {
+    const obj = name as Record<string, unknown>
+
+    // 優先嘗試當前語系
+    if (locale in obj && typeof obj[locale] === 'string') {
+      return obj[locale] as string
+    }
+
+    // 回退到中文
+    if ('zh' in obj && typeof obj.zh === 'string') {
+      return obj.zh as string
+    }
+
+    // 回退到英文
+    if ('en' in obj && typeof obj.en === 'string') {
+      return obj.en as string
+    }
+
+    // 嘗試 name 屬性
+    if ('name' in obj && typeof obj.name === 'string') {
+      return obj.name as string
+    }
+
+    // 嘗試取第一個字串值
+    for (const key of Object.keys(obj)) {
+      if (typeof obj[key] === 'string') {
+        return obj[key] as string
+      }
+    }
+  }
+
+  return ''
+}
+
+/**
  * 營業稅申報儀表板
  */
 export default function TaxReportDashboard() {
@@ -62,10 +106,8 @@ export default function TaxReportDashboard() {
   // 申報參數
   const taxReportParams: TaxReportParams | null = useMemo(() => {
     if (!company?.id) return null
-    // 安全處理 companyName - 確保是字串而非物件
-    const companyName = typeof company.name === 'string'
-      ? company.name
-      : (company.name ? String(company.name) : '')
+    // 使用輔助函數安全提取公司名稱（處理多語言物件）
+    const companyName = getCompanyNameString(company.name, 'zh')
     return {
       companyId: company.id,
       taxId: company.tax_id || '',
@@ -98,13 +140,41 @@ export default function TaxReportDashboard() {
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i)
 
   const handleDownloadXml = () => {
-    if (!taxReportParams) return
-    downloadXml.mutate({ params: taxReportParams, form: '401' })
+    if (!taxReportParams) {
+      toast.error(t('accounting.tax.noDataToDownload'))
+      return
+    }
+    downloadXml.mutate(
+      { params: taxReportParams, form: '401' },
+      {
+        onSuccess: () => {
+          toast.success(t('accounting.tax.downloadSuccess'))
+        },
+        onError: (error) => {
+          console.error('XML 下載失敗:', error)
+          toast.error(t('accounting.tax.downloadFailed') + ': ' + (error as Error).message)
+        },
+      }
+    )
   }
 
   const handleDownloadMedia = () => {
-    if (!taxReportParams) return
-    downloadMedia.mutate({ params: taxReportParams })
+    if (!taxReportParams) {
+      toast.error(t('accounting.tax.noDataToDownload'))
+      return
+    }
+    downloadMedia.mutate(
+      { params: taxReportParams },
+      {
+        onSuccess: () => {
+          toast.success(t('accounting.tax.downloadSuccess'))
+        },
+        onError: (error) => {
+          console.error('媒體檔下載失敗:', error)
+          toast.error(t('accounting.tax.downloadFailed') + ': ' + (error as Error).message)
+        },
+      }
+    )
   }
 
   if (!company?.id) {
@@ -715,10 +785,8 @@ function XmlPreviewSection({
   const formatAmount = (n: number): string => Math.round(n).toString()
 
   // 產生簡化的 XML 預覽
-  // 安全處理 companyName - 確保是字串
-  const safeCompanyName = typeof data.companyInfo.companyName === 'string'
-    ? data.companyInfo.companyName
-    : String(data.companyInfo.companyName || '')
+  // 使用輔助函數安全提取公司名稱
+  const safeCompanyName = getCompanyNameString(data.companyInfo.companyName, 'zh')
   const xmlPreview = `<?xml version="1.0" encoding="UTF-8"?>
 <VAT401>
   <Header>
