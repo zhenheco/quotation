@@ -4,6 +4,7 @@ import { setRequestLocale } from 'next-intl/server'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import MobileNav from '@/components/MobileNav'
+import GuideWrapper from '@/components/guide/GuideWrapper'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +44,9 @@ export default async function DashboardLayout({
 
       {/* Mobile Nav */}
       <MobileNav locale={locale} />
+
+      {/* Guide FAB + Modal */}
+      <GuideWrapper locale={locale} />
     </div>
   )
 }
