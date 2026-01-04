@@ -17,3 +17,6 @@ export * from './media-file-generator'
 
 // 財政部 Excel 解析器
 export * from './mof-excel-parser'
+
+// 營所稅擴大書審計算器
+export * from './expanded-audit-calculator'
