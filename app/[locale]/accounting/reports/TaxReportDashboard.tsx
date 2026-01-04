@@ -62,17 +62,21 @@ export default function TaxReportDashboard() {
   // 申報參數
   const taxReportParams: TaxReportParams | null = useMemo(() => {
     if (!company?.id) return null
+    // 安全處理 companyName - 確保是字串而非物件
+    const companyName = typeof company.name === 'string'
+      ? company.name
+      : (company.name ? String(company.name) : '')
     return {
       companyId: company.id,
       taxId: company.tax_id || '',
-      companyName: company.name || '',
+      companyName,
       year,
       biMonth,
     }
   }, [company, year, biMonth])
 
   // 取得 401 申報資料
-  const { data: form401, isLoading, error, refetch } = useForm401(taxReportParams, !!company?.id)
+  const { data: form401, isLoading, error, refetch, isFetching } = useForm401(taxReportParams, !!company?.id)
 
   // XML 下載
   const downloadXml = useDownloadTaxXml()
@@ -155,8 +159,13 @@ export default function TaxReportDashboard() {
                 ))}
               </select>
             </div>
-            <Button onClick={() => refetch()} variant="outline" size="sm">
-              {t('accounting.tax.generate')}
+            <Button
+              onClick={() => refetch()}
+              variant="outline"
+              size="sm"
+              disabled={isLoading || isFetching}
+            >
+              {isFetching ? t('common.loading') : t('accounting.tax.generate')}
             </Button>
             <Button
               onClick={handleDownloadXml}
@@ -706,13 +715,17 @@ function XmlPreviewSection({
   const formatAmount = (n: number): string => Math.round(n).toString()
 
   // 產生簡化的 XML 預覽
+  // 安全處理 companyName - 確保是字串
+  const safeCompanyName = typeof data.companyInfo.companyName === 'string'
+    ? data.companyInfo.companyName
+    : String(data.companyInfo.companyName || '')
   const xmlPreview = `<?xml version="1.0" encoding="UTF-8"?>
 <VAT401>
   <Header>
     <Year>${data.period.year}</Year>
     <Period>${String(data.period.biMonth).padStart(2, '0')}</Period>
     <TaxId>${data.companyInfo.taxId}</TaxId>
-    <CompanyName>${data.companyInfo.companyName}</CompanyName>
+    <CompanyName>${safeCompanyName}</CompanyName>
   </Header>
   <Sales>
     <Taxable>
