@@ -588,6 +588,8 @@ export async function ensureFreeSubscription(
     current_period_end: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString(),
   })
 
-  console.log(`[Subscription] Created FREE subscription for company ${companyId}`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Subscription] Created FREE subscription for company ${companyId}`)
+  }
   return subscription
 }

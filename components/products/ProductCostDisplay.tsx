@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
 import { useCanViewCost } from '@/hooks/usePermission'
 import PermissionGuard from './PermissionGuard'
 import { safeToLocaleString } from '@/lib/utils/formatters'
@@ -21,7 +20,6 @@ export default function ProductCostDisplay({
   currency,
   showCalculations = false,
 }: ProductCostDisplayProps) {
-  const t = useTranslations()
   const { hasPermission, loading } = useCanViewCost()
 
   // Calculate profit if cost is available
@@ -32,7 +30,7 @@ export default function ProductCostDisplay({
     <PermissionGuard hasPermission={hasPermission} loading={loading}>
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">{t('product.cost_price')}</span>
+          <span className="text-gray-600">成本價</span>
           <span className="font-medium">
             {costPrice ? `${safeToLocaleString(costPrice)} ${costCurrency || currency}` : '-'}
           </span>
@@ -41,14 +39,14 @@ export default function ProductCostDisplay({
         {showCalculations && profitAmount !== null && profitMargin !== null && (
           <>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">{t('product.profit_amount')}</span>
+              <span className="text-gray-600">利潤金額</span>
               <span className={`font-medium ${profitAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {safeToLocaleString(profitAmount)} {currency}
               </span>
             </div>
 
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">{t('product.profit_margin')}</span>
+              <span className="text-gray-600">利潤率</span>
               <span className={`font-semibold ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {profitMargin.toFixed(1)}%
               </span>

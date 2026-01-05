@@ -4,6 +4,7 @@
  */
 
 import { SupabaseClient } from '@/lib/db/supabase-client'
+import { sanitizeSearchQuery } from '@/lib/security'
 
 // ============================================
 // 類型定義
@@ -93,7 +94,11 @@ export async function getCounterparties(
   }
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,tax_id.ilike.%${search}%`)
+    // 安全：清理搜尋輸入防止 filter injection
+    const safeSearch = sanitizeSearchQuery(search)
+    if (safeSearch) {
+      query = query.or(`name.ilike.%${safeSearch}%,tax_id.ilike.%${safeSearch}%`)
+    }
   }
 
   const { data, error } = await query

@@ -1,7 +1,6 @@
 'use client'
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { useTranslations } from 'next-intl'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface StatusChartProps {
@@ -21,9 +20,16 @@ interface TooltipProps {
   label?: string;
 }
 
-export default function StatusChart({ data, currency }: StatusChartProps) {
-  const t = useTranslations()
+// 狀態翻譯對照表
+const STATUS_LABELS: Record<string, string> = {
+  draft: '草稿',
+  sent: '已發送',
+  accepted: '已接受',
+  expired: '已過期',
+  rejected: '已拒絕',
+}
 
+export default function StatusChart({ data, currency }: StatusChartProps) {
   // 格式化貨幣
   const formatCurrency = (value: number | undefined | null) => {
     return `${currency} ${safeToLocaleString(value)}`
@@ -31,7 +37,7 @@ export default function StatusChart({ data, currency }: StatusChartProps) {
 
   // 翻譯狀態名稱
   const translateStatus = (status: string) => {
-    return t(`status.${status}`)
+    return STATUS_LABELS[status] || status
   }
 
   // 準備圖表數據
@@ -47,10 +53,10 @@ export default function StatusChart({ data, currency }: StatusChartProps) {
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
           <p className="text-sm font-medium text-gray-900">{label}</p>
           <p className="text-sm text-gray-600">
-            {t('charts.quotationCount')}: {payload[0].value}
+            報價單數: {payload[0].value}
           </p>
           <p className="text-sm text-gray-600">
-            {t('charts.totalValue')}: {formatCurrency(payload[1].value)}
+            總金額: {formatCurrency(payload[1].value)}
           </p>
         </div>
       )
@@ -77,7 +83,7 @@ export default function StatusChart({ data, currency }: StatusChartProps) {
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        {t('charts.statusTitle')}
+        狀態統計
       </h3>
 
       <ResponsiveContainer width="100%" height={350}>
@@ -118,14 +124,14 @@ export default function StatusChart({ data, currency }: StatusChartProps) {
             yAxisId="left"
             dataKey="count"
             fill="#6366f1"
-            name={t('charts.quotationCount')}
+            name="報價單數"
             radius={[8, 8, 0, 0]}
           />
           <Bar
             yAxisId="right"
             dataKey="value"
             fill="#10b981"
-            name={t('charts.totalValue')}
+            name="總金額"
             radius={[8, 8, 0, 0]}
           />
         </BarChart>

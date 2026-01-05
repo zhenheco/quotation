@@ -5,14 +5,13 @@ import { cn } from '@/lib/utils'
 
 interface GuideFABProps {
   onClick: () => void
-  locale: string
 }
 
 /**
  * 教學浮動按鈕 (Floating Action Button)
  * 固定於右下角，點擊開啟教學 Modal
  */
-export default function GuideFAB({ onClick, locale }: GuideFABProps) {
+export default function GuideFAB({ onClick }: GuideFABProps) {
   return (
     <button
       onClick={onClick}
@@ -35,8 +34,8 @@ export default function GuideFAB({ onClick, locale }: GuideFABProps) {
         // 無障礙
         'focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2'
       )}
-      title={locale === 'zh' ? '開啟教學指南' : 'Open Guide'}
-      aria-label={locale === 'zh' ? '開啟教學指南' : 'Open Guide'}
+      title="開啟教學指南"
+      aria-label="開啟教學指南"
     >
       <BookOpen className="h-6 w-6" />
     </button>

@@ -1,7 +1,6 @@
 'use client'
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { useTranslations } from 'next-intl'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface RevenueChartProps {
@@ -22,7 +21,6 @@ interface TooltipProps {
 }
 
 export default function RevenueChart({ data, currency }: RevenueChartProps) {
-  const t = useTranslations()
 
   // 格式化貨幣
   const formatCurrency = (value: number | undefined | null) => {
@@ -36,10 +34,10 @@ export default function RevenueChart({ data, currency }: RevenueChartProps) {
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
           <p className="text-sm font-medium text-gray-900">{label}</p>
           <p className="text-sm text-gray-600">
-            {t('charts.revenue')}: {formatCurrency(payload[0].value)}
+            營收: {formatCurrency(payload[0].value)}
           </p>
           <p className="text-sm text-gray-600">
-            {t('charts.quotationCount')}: {payload[1].value}
+            報價單數: {payload[1].value}
           </p>
         </div>
       )
@@ -50,7 +48,7 @@ export default function RevenueChart({ data, currency }: RevenueChartProps) {
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        {t('charts.revenueTitle')}
+        營收趨勢
       </h3>
 
       <ResponsiveContainer width="100%" height={350}>
@@ -95,7 +93,7 @@ export default function RevenueChart({ data, currency }: RevenueChartProps) {
             strokeWidth={2}
             dot={{ fill: '#2563eb', r: 4 }}
             activeDot={{ r: 6 }}
-            name={t('charts.revenue')}
+            name="營收"
           />
           <Line
             yAxisId="right"
@@ -105,7 +103,7 @@ export default function RevenueChart({ data, currency }: RevenueChartProps) {
             strokeWidth={2}
             dot={{ fill: '#10b981', r: 4 }}
             activeDot={{ r: 6 }}
-            name={t('charts.quotationCount')}
+            name="報價單數"
           />
         </LineChart>
       </ResponsiveContainer>

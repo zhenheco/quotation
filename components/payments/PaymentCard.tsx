@@ -1,18 +1,44 @@
 'use client'
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
 import type { CollectedPaymentRecord, UnpaidPaymentRecord } from '@/types/extended.types'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 
-interface CollectedPaymentCardProps {
-  payment: CollectedPaymentRecord
-  locale: string
+// 付款頻率標籤
+const PAYMENT_FREQUENCY_LABELS: Record<string, string> = {
+  one_time: '一次性',
+  monthly: '每月',
+  quarterly: '每季',
+  semi_annually: '每半年',
+  annually: '每年',
 }
 
-export function CollectedPaymentCard({ payment, locale }: CollectedPaymentCardProps) {
-  const t = useTranslations()
-  const customerName = locale === 'zh' ? payment.customer_name_zh : payment.customer_name_en
+// 付款方式標籤
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: '現金',
+  transfer: '轉帳',
+  check: '支票',
+  credit_card: '信用卡',
+}
+
+// 付款條款標籤
+const PAYMENT_TERMS_LABELS: Record<string, string> = {
+  net_30: '30 天內付款',
+  net_60: '60 天內付款',
+  net_90: '90 天內付款',
+  due_on_receipt: '收到即付',
+  monthly: '每月付款',
+  quarterly: '每季付款',
+}
+
+interface CollectedPaymentCardProps {
+  payment: CollectedPaymentRecord
+}
+
+export function CollectedPaymentCard({ payment }: CollectedPaymentCardProps) {
+  // 固定使用繁體中文
+  const locale = 'zh'
+  const customerName = payment.customer_name_zh
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 hover:shadow-md transition-shadow">
@@ -30,30 +56,30 @@ export function CollectedPaymentCard({ payment, locale }: CollectedPaymentCardPr
 
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">{t('payments.payment_date')}</span>
+          <span className="text-gray-600">付款日期</span>
           <span className="font-medium">
             {new Date(payment.payment_date).toLocaleDateString(locale)}
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">{t('payments.amount')}</span>
+          <span className="text-gray-600">金額</span>
           <span className="font-semibold text-green-600">
             {safeToLocaleString(payment.amount)} {payment.currency}
           </span>
         </div>
         {payment.payment_frequency && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">{t('payments.payment_frequency.title')}</span>
+            <span className="text-gray-600">付款頻率</span>
             <span className="text-gray-900">
-              {t(`payments.payment_frequency.${payment.payment_frequency}`)}
+              {PAYMENT_FREQUENCY_LABELS[payment.payment_frequency] || payment.payment_frequency}
             </span>
           </div>
         )}
         {payment.payment_method && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">{t('payments.payment_method')}</span>
+            <span className="text-gray-600">付款方式</span>
             <span className="text-gray-900">
-              {t(`payments.payment_method.${payment.payment_method}`)}
+              {PAYMENT_METHOD_LABELS[payment.payment_method] || payment.payment_method}
             </span>
           </div>
         )}
@@ -64,7 +90,6 @@ export function CollectedPaymentCard({ payment, locale }: CollectedPaymentCardPr
 
 interface UnpaidPaymentCardProps {
   payment: UnpaidPaymentRecord
-  locale: string
   onRecordPayment: () => void
   onSendReminder: () => void
   onMarkOverdue: () => void
@@ -72,13 +97,13 @@ interface UnpaidPaymentCardProps {
 
 export function UnpaidPaymentCard({
   payment,
-  locale,
   onRecordPayment,
   onSendReminder,
   onMarkOverdue,
 }: UnpaidPaymentCardProps) {
-  const t = useTranslations()
-  const customerName = locale === 'zh' ? payment.customer_name_zh : payment.customer_name_en
+  // 固定使用繁體中文
+  const locale = 'zh'
+  const customerName = payment.customer_name_zh
   const isOverdue = payment.days_overdue > 0
 
   return (
@@ -92,29 +117,29 @@ export function UnpaidPaymentCard({
         </div>
         {isOverdue && (
           <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
-            {t('payments.overdue')}: {payment.days_overdue}d
+            逾期: {payment.days_overdue} 天
           </span>
         )}
       </div>
 
       <div className="space-y-2 mb-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">{t('payments.due_date')}</span>
+          <span className="text-gray-600">到期日</span>
           <span className={`font-medium ${isOverdue ? 'text-red-600' : 'text-gray-900'}`}>
             {new Date(payment.due_date).toLocaleDateString(locale)}
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">{t('payments.amount')}</span>
+          <span className="text-gray-600">金額</span>
           <span className={`font-semibold ${isOverdue ? 'text-red-600' : 'text-yellow-600'}`}>
             {safeToLocaleString(payment.amount)} {payment.currency}
           </span>
         </div>
         {payment.payment_terms && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">{t('contracts.payment_frequency')}</span>
+            <span className="text-gray-600">付款頻率</span>
             <span className="text-gray-900">
-              {t(`contracts.payment_terms.${payment.payment_terms}`)}
+              {PAYMENT_TERMS_LABELS[payment.payment_terms] || payment.payment_terms}
             </span>
           </div>
         )}
@@ -125,20 +150,20 @@ export function UnpaidPaymentCard({
           onClick={onRecordPayment}
           className="flex-1 px-3 py-2 text-xs font-medium text-green-700 bg-green-50 rounded hover:bg-green-100 transition-colors"
         >
-          {t('payments.record_payment')}
+          記錄付款
         </button>
         <button
           onClick={onSendReminder}
           className="px-3 py-2 text-xs font-medium text-blue-700 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
         >
-          {t('payments.send_reminder')}
+          發送提醒
         </button>
         {!isOverdue && (
           <button
             onClick={onMarkOverdue}
             className="px-3 py-2 text-xs font-medium text-red-700 bg-red-50 rounded hover:bg-red-100 transition-colors"
           >
-            {t('payments.mark_overdue')}
+            標記逾期
           </button>
         )}
       </div>

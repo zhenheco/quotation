@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
 import type { QuotationWithCustomer } from '@/hooks/useQuotations'
 
 interface SendQuotationModalProps {
@@ -9,7 +8,6 @@ interface SendQuotationModalProps {
   onClose: () => void
   onConfirm: (data: { subject: string; content: string }) => Promise<void>
   quotation: QuotationWithCustomer | null
-  locale: string
   isLoading?: boolean
   isBatch?: boolean
   selectedCount?: number
@@ -20,20 +18,21 @@ export default function SendQuotationModal({
   onClose,
   onConfirm,
   quotation,
-  locale,
   isLoading = false,
   isBatch = false,
   selectedCount = 0,
 }: SendQuotationModalProps) {
-  const t = useTranslations()
-
   const defaultSubject = quotation
-    ? `${t('quotation.sendConfirm.defaultSubject')} ${quotation.quotation_number}`
-    : t('quotation.sendConfirm.batchSubject')
+    ? `報價單 ${quotation.quotation_number}`
+    : '批次報價單'
 
-  const defaultContent = locale === 'zh'
-    ? `親愛的客戶，\n\n感謝您的詢價。請查看附件中的報價單。\n\n如有任何問題，歡迎隨時與我們聯繫。\n\n祝商祺`
-    : `Dear Customer,\n\nThank you for your inquiry. Please find the quotation attached.\n\nIf you have any questions, please feel free to contact us.\n\nBest regards`
+  const defaultContent = `親愛的客戶，
+
+感謝您的詢價。請查看附件中的報價單。
+
+如有任何問題，歡迎隨時與我們聯繫。
+
+祝商祺`
 
   const [subject, setSubject] = useState(defaultSubject)
   const [content, setContent] = useState(defaultContent)
@@ -49,13 +48,11 @@ export default function SendQuotationModal({
       <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-900">
-            {isBatch
-              ? t('batch.sendConfirm.title')
-              : t('quotation.sendConfirm.title')}
+            {isBatch ? '批次發送確認' : '發送報價單確認'}
           </h3>
           {isBatch && (
             <p className="text-sm text-gray-600 mt-2">
-              {t('batch.sendConfirm.description', { count: selectedCount })}
+              即將發送 {selectedCount} 份報價單
             </p>
           )}
         </div>
@@ -65,7 +62,7 @@ export default function SendQuotationModal({
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
                 <span className="font-medium text-gray-700">
-                  {t('quotation.quotationNumber')}:
+                  報價單號:
                 </span>
                 <span className="ml-2 text-gray-900">
                   {quotation.quotation_number}
@@ -73,17 +70,15 @@ export default function SendQuotationModal({
               </div>
               <div>
                 <span className="font-medium text-gray-700">
-                  {t('quotation.customer')}:
+                  客戶:
                 </span>
                 <span className="ml-2 text-gray-900">
-                  {locale === 'zh'
-                    ? quotation.customer_name?.zh
-                    : quotation.customer_name?.en}
+                  {quotation.customer_name?.zh}
                 </span>
               </div>
               <div className="col-span-2">
                 <span className="font-medium text-gray-700">
-                  {t('quotation.sendConfirm.customerEmail')}:
+                  客戶信箱:
                 </span>
                 <span className="ml-2 text-gray-900">
                   {quotation.customer_email}
@@ -95,7 +90,7 @@ export default function SendQuotationModal({
 
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('quotation.sendConfirm.emailSubject')}
+            信件主旨
           </label>
           <input
             type="text"
@@ -108,7 +103,7 @@ export default function SendQuotationModal({
 
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('quotation.sendConfirm.emailContent')}
+            信件內容
           </label>
           <textarea
             value={content}
@@ -125,16 +120,14 @@ export default function SendQuotationModal({
             disabled={isLoading}
             className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 disabled:opacity-50 cursor-pointer"
           >
-            {t('common.cancel')}
+            取消
           </button>
           <button
             onClick={handleConfirm}
             disabled={isLoading}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
           >
-            {isLoading
-              ? t('quotation.sendConfirm.sending')
-              : t('quotation.sendConfirm.send')}
+            {isLoading ? '發送中...' : '發送'}
           </button>
         </div>
       </div>

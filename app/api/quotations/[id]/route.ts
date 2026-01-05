@@ -15,6 +15,7 @@ import {
 import { syncQuotationToPaymentSchedules } from '@/lib/dal/payments'
 import { getCustomerByIdOnly } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
+import { isValidUUID } from '@/lib/security'
 
 
 /**
@@ -26,6 +27,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+
+    // 安全：驗證 UUID 格式
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: 'Invalid quotation ID format' }, { status: 400 })
+    }
 
     // 驗證使用者
     const supabase = createApiClient(request)
@@ -52,14 +58,18 @@ export async function GET(
     }
 
     // 載入客戶名稱（使用不限制 user_id 的查詢，支援同公司跨用戶查看）
+    // 安全驗證：確保 customer 屬於同一公司
     const customer = await getCustomerByIdOnly(db, quotation.customer_id)
+    const customerName = (customer && customer.company_id === quotation.company_id)
+      ? customer.name
+      : null
 
     // 載入報價單項目
     const items = await getQuotationItems(db, id)
 
     return NextResponse.json({
       ...quotation,
-      customer_name: customer?.name || null,
+      customer_name: customerName,
       items
     })
   } catch (error: unknown) {

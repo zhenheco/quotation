@@ -119,10 +119,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate amount
+    // Validate amount (with maximum limit to prevent overflow/abuse)
+    const MAX_PAYMENT_AMOUNT = 9999999999; // 約 100 億 TWD
     if (typeof body.amount !== 'number' || body.amount <= 0) {
       return NextResponse.json(
         { error: 'Amount must be a positive number' },
+        { status: 400 }
+      );
+    }
+    if (body.amount > MAX_PAYMENT_AMOUNT) {
+      return NextResponse.json(
+        { error: '金額超過系統上限' },
         { status: 400 }
       );
     }

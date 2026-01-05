@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
 import { apiGet } from '@/lib/api-client'
 
 interface Member {
@@ -28,6 +27,14 @@ interface OwnerSelectProps {
   className?: string
 }
 
+// 角色翻譯
+const ROLE_LABELS: Record<string, string> = {
+  owner: '擁有者',
+  sales_manager: '經理',
+  salesperson: '業務',
+  accountant: '會計',
+}
+
 export default function OwnerSelect({
   companyId,
   value,
@@ -35,8 +42,6 @@ export default function OwnerSelect({
   disabled = false,
   className = '',
 }: OwnerSelectProps) {
-  const t = useTranslations('team')
-  const locale = useLocale()
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -74,16 +79,10 @@ export default function OwnerSelect({
 
   const getRoleBadge = (member: Member): string => {
     if (member.is_owner) {
-      return locale === 'zh' ? '擁有者' : 'Owner'
+      return '擁有者'
     }
-    if (member.role_name === 'sales_manager') {
-      return locale === 'zh' ? '經理' : 'Manager'
-    }
-    if (member.role_name === 'salesperson') {
-      return locale === 'zh' ? '業務' : 'Sales'
-    }
-    if (member.role_name === 'accountant') {
-      return locale === 'zh' ? '會計' : 'Accountant'
+    if (member.role_name) {
+      return ROLE_LABELS[member.role_name] || ''
     }
     return ''
   }
@@ -103,7 +102,7 @@ export default function OwnerSelect({
       disabled={disabled}
       className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`}
     >
-      <option value="">{t('selectOwner')}</option>
+      <option value="">選擇負責人</option>
       {members.map((member) => (
         <option key={member.user_id} value={member.user_id}>
           {getDisplayName(member)}

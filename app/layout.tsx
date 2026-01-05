@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./prevent-overscroll.css";
+import { Providers } from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,7 +25,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "報價單系統",
-  description: "多幣別報價單系統，支援中英文雙語",
+  description: "專業報價單管理系統",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -44,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="zh-TW"
       style={{
         overscrollBehavior: 'none',
         overflowX: 'hidden',
@@ -60,7 +61,7 @@ export default function RootLayout({
           position: 'relative'
         }}
       >
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

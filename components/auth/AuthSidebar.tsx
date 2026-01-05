@@ -1,27 +1,22 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
-
 export default function AuthSidebar() {
-  const t = useTranslations('auth.sidebar')
-
   const stats = [
-    { value: '10,000+', labelKey: 'quotationsCreated' },
-    { value: '500+', labelKey: 'happyCustomers' },
-    { value: '99.9%', labelKey: 'uptime' },
+    { value: '10,000+', label: '已建立報價單' },
+    { value: '500+', label: '滿意客戶' },
+    { value: '99.9%', label: '系統可用率' },
   ]
 
-  const testimonials = [
-    {
-      quote: 'testimonial1.quote',
-      author: 'testimonial1.author',
-      role: 'testimonial1.role',
-    },
-    {
-      quote: 'testimonial2.quote',
-      author: 'testimonial2.author',
-      role: 'testimonial2.role',
-    },
+  const testimonial = {
+    quote: '這個系統徹底改變了我們的報價流程，現在可以在幾分鐘內完成以前需要幾小時的工作。',
+    author: '王經理',
+    role: '科技公司業務總監',
+  }
+
+  const features = [
+    '快速建立專業報價單',
+    '即時追蹤報價狀態',
+    '智慧客戶管理系統',
   ]
 
   return (
@@ -47,8 +42,8 @@ export default function AuthSidebar() {
       <div className="relative z-10 flex flex-col justify-center px-12 py-16 text-white">
         {/* Logo and tagline */}
         <div className="mb-12">
-          <h2 className="text-3xl font-bold mb-3">{t('title')}</h2>
-          <p className="text-lg text-cyan-100">{t('subtitle')}</p>
+          <h2 className="text-3xl font-bold mb-3">專業報價管理系統</h2>
+          <p className="text-lg text-cyan-100">簡化您的報價流程，提升業務效率</p>
         </div>
 
         {/* Stats */}
@@ -56,7 +51,7 @@ export default function AuthSidebar() {
           {stats.map((stat, index) => (
             <div key={index} className="text-center">
               <div className="text-3xl font-bold mb-1">{stat.value}</div>
-              <div className="text-sm text-cyan-200">{t(stat.labelKey)}</div>
+              <div className="text-sm text-cyan-200">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -71,23 +66,23 @@ export default function AuthSidebar() {
             <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
           </svg>
           <p className="text-lg mb-4 leading-relaxed">
-            {t(testimonials[0].quote)}
+            {testimonial.quote}
           </p>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-teal-400 rounded-full flex items-center justify-center text-white font-bold">
-              {t(testimonials[0].author).charAt(0)}
+              {testimonial.author.charAt(0)}
             </div>
             <div>
-              <div className="font-semibold">{t(testimonials[0].author)}</div>
-              <div className="text-sm text-cyan-200">{t(testimonials[0].role)}</div>
+              <div className="font-semibold">{testimonial.author}</div>
+              <div className="text-sm text-cyan-200">{testimonial.role}</div>
             </div>
           </div>
         </div>
 
         {/* Features list */}
         <div className="mt-12 space-y-3">
-          {['feature1', 'feature2', 'feature3'].map((key) => (
-            <div key={key} className="flex items-center gap-3">
+          {features.map((feature, index) => (
+            <div key={index} className="flex items-center gap-3">
               <svg
                 className="w-5 h-5 text-green-400 flex-shrink-0"
                 fill="currentColor"
@@ -99,7 +94,7 @@ export default function AuthSidebar() {
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="text-teal-100">{t(key)}</span>
+              <span className="text-teal-100">{feature}</span>
             </div>
           ))}
         </div>

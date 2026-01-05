@@ -5,6 +5,7 @@ import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
 import { markScheduleAsCollected } from '@/lib/dal/payments'
+import { isValidUUID } from '@/lib/security'
 
 interface MarkCollectedInput {
   payment_date: string
@@ -51,6 +52,12 @@ export async function POST(
 ) {
   try {
     const { id: scheduleId } = await params
+
+    // 安全：驗證 UUID 格式
+    if (!isValidUUID(scheduleId)) {
+      return NextResponse.json({ error: 'Invalid schedule ID format' }, { status: 400 })
+    }
+
     const supabase = createApiClient(request)
 
     const {

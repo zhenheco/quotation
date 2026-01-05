@@ -263,30 +263,6 @@ test.describe('教學截圖採集', () => {
     console.log('✅ 13-新增產品');
   });
 
-  test('14-供應商成本', async ({ page }) => {
-    await login(page, baseURL);
-
-    // 取得第一個產品
-    await page.goto(`${baseURL}/products`);
-    await page.waitForLoadState('networkidle');
-
-    const productLink = page.locator('a[href^="/products/"]').first();
-    const href = await productLink.getAttribute('href');
-
-    if (href) {
-      await page.goto(`${baseURL}${href}`);
-      await page.waitForLoadState('networkidle');
-
-      await page.screenshot({
-        ...SCREENSHOT_CONFIG,
-        path: 'docs/screenshots-tutorial/screenshots/14-product-supplier-cost.png',
-      });
-      console.log('✅ 14-供應商成本');
-    } else {
-      console.log('⚠️ 14-沒有產品，跳過供應商成本截圖');
-    }
-  });
-
   // ============================================
   // 客戶管理 (15-17)
   // ============================================
@@ -315,25 +291,6 @@ test.describe('教學截圖採集', () => {
     console.log('✅ 16-新增客戶');
   });
 
-  test('17-名片掃描', async ({ page }) => {
-    await login(page, baseURL);
-    await page.goto(`${baseURL}/customers`);
-    await page.waitForLoadState('networkidle');
-
-    // 嘗試點擊掃描按鈕或顯示掃描功能
-    const scanButton = page.locator('button:has-text("掃描"), button:has-text("名片")').first();
-    if (await scanButton.isVisible()) {
-      await scanButton.click();
-      await page.waitForTimeout(1000);
-    }
-
-    await page.screenshot({
-      ...SCREENSHOT_CONFIG,
-      path: 'docs/screenshots-tutorial/screenshots/17-customer-card-scan.png',
-    });
-    console.log('✅ 17-名片掃描');
-  });
-
   // ============================================
   // 會計功能 (18-22)
   // ============================================
@@ -348,18 +305,6 @@ test.describe('教學截圖採集', () => {
       path: 'docs/screenshots-tutorial/screenshots/18-invoices-list.png',
     });
     console.log('✅ 18-發票列表');
-  });
-
-  test('19-新增發票', async ({ page }) => {
-    await login(page, baseURL);
-    await page.goto(`${baseURL}/accounting/invoices/new`);
-    await page.waitForLoadState('networkidle');
-
-    await page.screenshot({
-      ...SCREENSHOT_CONFIG,
-      path: 'docs/screenshots-tutorial/screenshots/19-invoice-new.png',
-    });
-    console.log('✅ 19-新增發票');
   });
 
   test('20-分錄列表', async ({ page }) => {
@@ -412,37 +357,6 @@ test.describe('教學截圖採集', () => {
       path: 'docs/screenshots-tutorial/screenshots/23-payments-list.png',
     });
     console.log('✅ 23-付款列表');
-  });
-
-  test('24-新增付款', async ({ page }) => {
-    await login(page, baseURL);
-    await page.goto(`${baseURL}/payments`);
-    await page.waitForLoadState('networkidle');
-
-    // 嘗試點擊新增付款按鈕
-    const addButton = page.locator('button:has-text("新增"), button:has-text("添加")').first();
-    if (await addButton.isVisible()) {
-      await addButton.click();
-      await page.waitForTimeout(1000);
-    }
-
-    await page.screenshot({
-      ...SCREENSHOT_CONFIG,
-      path: 'docs/screenshots-tutorial/screenshots/24-payment-new.png',
-    });
-    console.log('✅ 24-新增付款');
-  });
-
-  test('25-付款排程', async ({ page }) => {
-    await login(page, baseURL);
-    await page.goto(`${baseURL}/payments`);
-    await page.waitForLoadState('networkidle');
-
-    await page.screenshot({
-      ...SCREENSHOT_CONFIG,
-      path: 'docs/screenshots-tutorial/screenshots/25-payment-schedule.png',
-    });
-    console.log('✅ 25-付款排程');
   });
 
   // ============================================
@@ -501,25 +415,6 @@ test.describe('教學截圖採集', () => {
     console.log('✅ 28-公司設定');
   });
 
-  test('29-團隊管理', async ({ page }) => {
-    await login(page, baseURL);
-    await page.goto(`${baseURL}/settings`);
-    await page.waitForLoadState('networkidle');
-
-    // 嘗試切換到團隊管理分頁
-    const teamTab = page.locator('button:has-text("團隊"), button:has-text("成員"), tab:has-text("團隊")').first();
-    if (await teamTab.isVisible()) {
-      await teamTab.click();
-      await page.waitForTimeout(500);
-    }
-
-    await page.screenshot({
-      ...SCREENSHOT_CONFIG,
-      path: 'docs/screenshots-tutorial/screenshots/29-settings-team.png',
-    });
-    console.log('✅ 29-團隊管理');
-  });
-
   test('30-訂閱方案', async ({ page }) => {
     await login(page, baseURL);
     await page.goto(`${baseURL}/pricing`);
@@ -536,7 +431,7 @@ test.describe('教學截圖採集', () => {
 /**
  * 輔助函數：登入
  */
-async function login(page: import('@playwright/test').Page, baseURL: string) {
+async function login(page: Page, baseURL: string) {
   await page.goto(`${baseURL}/login`);
   await page.fill('input[type="email"]', TEST_CREDENTIALS.email);
   await page.fill('input[type="password"]', TEST_CREDENTIALS.password);

@@ -72,14 +72,19 @@ export async function scanBusinessCard(imageBase64: string): Promise<BusinessCar
 
   for (const model of OCR_MODELS) {
     try {
-      console.log(`[OCR] 嘗試使用模型: ${model}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[OCR] 嘗試使用模型: ${model}`)
+      }
       const result = await callOpenRouter(model, imageBase64)
       if (result) {
-        console.log(`[OCR] 成功使用模型: ${model}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[OCR] 成功使用模型: ${model}`)
+        }
         return result
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error)
+      // 保留錯誤日誌（生產環境仍需追蹤失敗）
       console.error(`[OCR] ${model} 失敗:`, errorMsg)
       errors.push(`${model}: ${errorMsg}`)
     }
@@ -110,7 +115,9 @@ async function callOpenRouter(model: string, imageBase64: string): Promise<Busin
   headers['HTTP-Referer'] = process.env.NEXT_PUBLIC_SITE_URL || 'https://quote24.cc'
   headers['X-Title'] = 'Quotation System - Business Card OCR'
 
-  console.log(`[OCR] 使用 ${isGatewayEnabled() ? 'AI Gateway' : '直連'} 模式, URL: ${apiUrl}`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[OCR] 使用 ${isGatewayEnabled() ? 'AI Gateway' : '直連'} 模式, URL: ${apiUrl}`)
+  }
 
   // 自動偵測圖片格式
   const mimeType = detectImageMimeType(imageBase64)

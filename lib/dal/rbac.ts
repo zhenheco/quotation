@@ -183,7 +183,9 @@ export async function ensureUserHasRole(
   }
 
   await assignRoleToUser(db, userId, role.id)
-  console.log(`[RBAC] Assigned ${roleToAssign} role to user ${userId}`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[RBAC] Assigned ${roleToAssign} role to user ${userId}`)
+  }
   return true
 }
 

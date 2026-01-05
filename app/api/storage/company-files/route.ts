@@ -27,7 +27,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Path is required' }, { status: 400 })
     }
 
-    if (!path.startsWith(user.id + '/')) {
+    // 安全：正規化路徑防止目錄遍歷攻擊（如 ../）
+    const normalizedPath = path.split('/').filter(segment =>
+      segment !== '' && segment !== '.' && segment !== '..'
+    ).join('/')
+
+    // 驗證路徑屬於當前用戶
+    if (!normalizedPath.startsWith(user.id + '/')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -36,14 +42,14 @@ export async function GET(request: NextRequest) {
     const storageClient = getSupabaseClient()
     const { data, error } = await storageClient.storage
       .from('company-files')
-      .download(path)
+      .download(normalizedPath)
 
     if (error || !data) {
       console.error('Storage download error:', error)
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
     }
 
-    const ext = path.split('.').pop()?.toLowerCase() || 'png'
+    const ext = normalizedPath.split('.').pop()?.toLowerCase() || 'png'
     const contentType = MIME_TYPES[ext] || 'application/octet-stream'
 
     const arrayBuffer = await data.arrayBuffer()

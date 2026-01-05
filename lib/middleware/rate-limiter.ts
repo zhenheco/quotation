@@ -419,11 +419,8 @@ export function checkRateLimit(
     requestStore.set(key, record)
   }
 
-  // 增加計數
-  record.count++
-
-  // 檢查是否超過限制
-  if (record.count > maxRequests) {
+  // 檢查是否超過限制（先檢查再遞增，避免 off-by-one 錯誤）
+  if (record.count >= maxRequests) {
     const retryAfter = Math.ceil((record.resetTime - now) / 1000)
 
     logger.warn('Rate limit exceeded', {
@@ -441,6 +438,9 @@ export function checkRateLimit(
       retryAfter
     }
   }
+
+  // 通過檢查後再增加計數
+  record.count++
 
   return {
     limited: false,

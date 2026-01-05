@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { useTranslations } from 'next-intl'
 import {
   useCurrentMonthReceivables,
   useMarkScheduleAsCollected,
@@ -13,13 +12,20 @@ import { safeToLocaleString } from '@/lib/utils/formatters'
 import { toast } from 'sonner'
 import EditPaymentScheduleModal from './EditPaymentScheduleModal'
 
+// 付款狀態翻譯
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  pending: '待收款',
+  paid: '已收款',
+  overdue: '已逾期',
+}
+
 interface CurrentMonthReceivablesTableProps {
-  locale: string
   searchQuery?: string
 }
 
-export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: CurrentMonthReceivablesTableProps) {
-  const t = useTranslations()
+export function CurrentMonthReceivablesTable({ searchQuery = '' }: CurrentMonthReceivablesTableProps) {
+  // 固定使用繁體中文
+  const locale = 'zh'
   const { data, isLoading, error } = useCurrentMonthReceivables()
   const markAsCollected = useMarkScheduleAsCollected()
   const updateSchedule = useUpdatePaymentSchedule()
@@ -66,9 +72,9 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
             payment_id: null,
           },
         })
-        toast.success(t('payments.uncollect_success'))
+        toast.success('已取消收款')
       } catch (err) {
-        toast.error((err as Error).message || t('payments.uncollect_error'))
+        toast.error((err as Error).message || '取消收款失敗')
       }
     } else {
       try {
@@ -78,13 +84,13 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
             payment_date: new Date().toISOString(),
           },
         })
-        toast.success(t('payments.mark_collected_success'))
+        toast.success('已標記為已收款')
       } catch (err) {
         const errorMessage = (err as { response?: { status?: number } }).response?.status === 400
-          ? t('payments.already_paid')
+          ? '該排程已收款'
           : (err as { response?: { status?: number } }).response?.status === 404
-          ? t('payments.schedule_not_found')
-          : t('payments.mark_collected_error')
+          ? '找不到該排程'
+          : '標記收款失敗'
         toast.error(errorMessage)
       }
     }
@@ -93,10 +99,10 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
   const handleDelete = async (scheduleId: string) => {
     try {
       await deleteSchedule.mutateAsync(scheduleId)
-      toast.success(t('payments.delete_success'))
+      toast.success('已刪除排程')
       setDeletingScheduleId(null)
     } catch (err) {
-      toast.error((err as Error).message || t('payments.delete_error'))
+      toast.error((err as Error).message || '刪除排程失敗')
     }
   }
 
@@ -111,7 +117,7 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
           onChange={() => handleCheckboxChange(item)}
           disabled={isPending}
           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
-          aria-label={item.status === 'paid' ? t('payments.uncollect') : t('payments.mark_as_collected')}
+          aria-label={item.status === 'paid' ? '取消收款' : '標記為已收款'}
         />
       </td>
       <td className="px-4 py-4 text-sm text-gray-900">
@@ -121,10 +127,7 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
         {locale === 'zh' ? item.customer_name_zh : item.customer_name_en}
       </td>
       <td className="px-4 py-4 text-sm text-gray-600">
-        {t('payments.schedule_info', {
-          current: item.schedule_number,
-          total: item.total_schedules,
-        })}
+        第 {item.schedule_number} 期 / 共 {item.total_schedules} 期
       </td>
       <td className="px-4 py-4 text-sm font-medium text-gray-900">
         {safeToLocaleString(item.amount)} {item.currency}
@@ -142,7 +145,7 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
               : 'bg-yellow-100 text-yellow-800'
           }`}
         >
-          {t(`payments.status.${item.status}`)}
+          {PAYMENT_STATUS_LABELS[item.status] || item.status}
         </span>
       </td>
       <td className="px-4 py-4">
@@ -150,17 +153,17 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
           <button
             onClick={() => setEditingSchedule(item)}
             className="text-blue-600 hover:text-blue-800 text-sm"
-            title={t('payments.edit_schedule')}
+            title="編輯排程"
           >
-            {t('common.edit')}
+            編輯
           </button>
           {item.status !== 'paid' && (
             <button
               onClick={() => setDeletingScheduleId(item.id)}
               className="text-red-600 hover:text-red-800 text-sm"
-              title={t('payments.delete_schedule')}
+              title="刪除排程"
             >
-              {t('common.delete')}
+              刪除
             </button>
           )}
         </div>
@@ -199,27 +202,24 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
               : 'bg-yellow-100 text-yellow-800'
           }`}
         >
-          {t(`payments.status.${item.status}`)}
+          {PAYMENT_STATUS_LABELS[item.status] || item.status}
         </span>
       </div>
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">{t('payments.schedule')}</span>
+          <span className="text-gray-600">期數</span>
           <span className="text-gray-900">
-            {t('payments.schedule_info', {
-              current: item.schedule_number,
-              total: item.total_schedules,
-            })}
+            第 {item.schedule_number} 期 / 共 {item.total_schedules} 期
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">{t('payments.amount')}</span>
+          <span className="text-gray-600">金額</span>
           <span className="font-medium text-gray-900">
             {safeToLocaleString(item.amount)} {item.currency}
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">{t('payments.due_date')}</span>
+          <span className="text-gray-600">到期日</span>
           <span className="text-gray-900">
             {new Date(item.due_date).toLocaleDateString(locale)}
           </span>
@@ -230,14 +230,14 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
           onClick={() => setEditingSchedule(item)}
           className="text-blue-600 hover:text-blue-800 text-sm"
         >
-          {t('common.edit')}
+          編輯
         </button>
         {item.status !== 'paid' && (
           <button
             onClick={() => setDeletingScheduleId(item.id)}
             className="text-red-600 hover:text-red-800 text-sm"
           >
-            {t('common.delete')}
+            刪除
           </button>
         )}
       </div>
@@ -251,25 +251,25 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
           ✓
         </th>
         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {t('payments.quotation_number')}
+          報價單號
         </th>
         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {t('payments.customer_name')}
+          客戶名稱
         </th>
         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {t('payments.schedule')}
+          期數
         </th>
         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {t('payments.amount')}
+          金額
         </th>
         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {t('payments.due_date')}
+          到期日
         </th>
         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {t('payments.collection_status')}
+          收款狀態
         </th>
         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-          {t('common.actions')}
+          操作
         </th>
       </tr>
     </thead>
@@ -294,12 +294,12 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <div className="text-center py-8">
-          <p className="text-red-600 mb-4">{t('payments.load_error')}</p>
+          <p className="text-red-600 mb-4">載入資料時發生錯誤</p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            {t('common.retry')}
+            重試
           </button>
         </div>
       </div>
@@ -311,7 +311,7 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
       <div className="bg-white rounded-lg shadow p-6">
         <div className="text-center py-8">
           <div className="text-4xl mb-2">📄</div>
-          <p className="text-gray-600">{t('payments.no_receivables')}</p>
+          <p className="text-gray-600">本月無應收款項</p>
         </div>
       </div>
     )
@@ -321,14 +321,9 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
     <>
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b">
-          <h3 className="font-semibold text-lg">{t('payments.current_month_receivables')}</h3>
+          <h3 className="font-semibold text-lg">本月應收款項</h3>
           <p className="text-sm text-gray-600 mt-1">
-            {t('payments.receivables_summary', {
-              total: data.summary.total_count,
-              pending: data.summary.pending_count,
-              paid: data.summary.paid_count,
-              overdue: data.summary.overdue_count,
-            })}
+            總計 {data.summary.total_count} 筆，待收款 {data.summary.pending_count} 筆，已收款 {data.summary.paid_count} 筆，逾期 {data.summary.overdue_count} 筆
           </p>
         </div>
 
@@ -338,7 +333,7 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
             <div className="px-4 py-3 bg-yellow-50 border-b border-yellow-100">
               <h4 className="font-medium text-yellow-800 flex items-center gap-2">
                 <span className="text-lg">⏳</span>
-                {t('payments.unpaid_area')} ({unpaidItems.length})
+                未收款 ({unpaidItems.length})
               </h4>
             </div>
             <div className="hidden md:block overflow-x-auto">
@@ -361,7 +356,7 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
             <div className="px-4 py-3 bg-green-50 border-b border-green-100 border-t">
               <h4 className="font-medium text-green-800 flex items-center gap-2">
                 <span className="text-lg">✅</span>
-                {t('payments.collected_area')} ({paidItems.length})
+                已收款 ({paidItems.length})
               </h4>
             </div>
             <div className="hidden md:block overflow-x-auto">
@@ -381,7 +376,7 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
         {/* 如果沒有未收款和已收款項目 */}
         {unpaidItems.length === 0 && paidItems.length === 0 && (
           <div className="p-8 text-center text-gray-500">
-            {t('payments.no_receivables')}
+            本月無應收款項
           </div>
         )}
       </div>
@@ -389,7 +384,6 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
       {editingSchedule && (
         <EditPaymentScheduleModal
           schedule={editingSchedule}
-          locale={locale}
           onClose={() => setEditingSchedule(null)}
         />
       )}
@@ -397,22 +391,22 @@ export function CurrentMonthReceivablesTable({ locale, searchQuery = '' }: Curre
       {deletingScheduleId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">{t('payments.delete_confirm_title')}</h3>
-            <p className="text-gray-600 mb-6">{t('payments.delete_confirm_message')}</p>
+            <h3 className="text-lg font-semibold mb-4">確認刪除</h3>
+            <p className="text-gray-600 mb-6">確定要刪除此收款排程嗎？此操作無法復原。</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeletingScheduleId(null)}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
                 disabled={deleteSchedule.isPending}
               >
-                {t('common.cancel')}
+                取消
               </button>
               <button
                 onClick={() => handleDelete(deletingScheduleId)}
                 className="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700"
                 disabled={deleteSchedule.isPending}
               >
-                {deleteSchedule.isPending ? t('common.deleting') : t('common.delete')}
+                {deleteSchedule.isPending ? '刪除中...' : '刪除'}
               </button>
             </div>
           </div>

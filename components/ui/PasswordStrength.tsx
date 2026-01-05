@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useTranslations } from 'next-intl'
 
 interface PasswordStrengthProps {
   password: string
@@ -9,15 +8,16 @@ interface PasswordStrengthProps {
 
 interface PasswordRule {
   key: string
+  label: string
   test: (password: string) => boolean
 }
 
 const PASSWORD_RULES: PasswordRule[] = [
-  { key: 'minLength', test: (p) => p.length >= 8 },
-  { key: 'uppercase', test: (p) => /[A-Z]/.test(p) },
-  { key: 'lowercase', test: (p) => /[a-z]/.test(p) },
-  { key: 'number', test: (p) => /[0-9]/.test(p) },
-  { key: 'special', test: (p) => /[!@#$%^&*(),.?":{}|<>]/.test(p) },
+  { key: 'minLength', label: '至少 8 個字元', test: (p) => p.length >= 8 },
+  { key: 'uppercase', label: '包含大寫字母', test: (p) => /[A-Z]/.test(p) },
+  { key: 'lowercase', label: '包含小寫字母', test: (p) => /[a-z]/.test(p) },
+  { key: 'number', label: '包含數字', test: (p) => /[0-9]/.test(p) },
+  { key: 'special', label: '包含特殊字元', test: (p) => /[!@#$%^&*(),.?":{}|<>]/.test(p) },
 ]
 
 export function validatePassword(password: string): boolean {
@@ -25,11 +25,10 @@ export function validatePassword(password: string): boolean {
 }
 
 export default function PasswordStrength({ password }: PasswordStrengthProps) {
-  const t = useTranslations('auth.passwordStrength')
-
   const results = useMemo(() => {
     return PASSWORD_RULES.map((rule) => ({
       key: rule.key,
+      label: rule.label,
       passed: rule.test(password),
     }))
   }, [password])
@@ -62,7 +61,7 @@ export default function PasswordStrength({ password }: PasswordStrengthProps) {
 
       {/* Rules checklist */}
       <ul className="text-xs space-y-1">
-        {results.map(({ key, passed }) => (
+        {results.map(({ key, label, passed }) => (
           <li
             key={key}
             className={`flex items-center gap-1.5 ${passed ? 'text-green-600' : 'text-gray-500'}`}
@@ -80,7 +79,7 @@ export default function PasswordStrength({ password }: PasswordStrengthProps) {
                 <circle cx="10" cy="10" r="3" />
               </svg>
             )}
-            <span>{t(key)}</span>
+            <span>{label}</span>
           </li>
         ))}
       </ul>

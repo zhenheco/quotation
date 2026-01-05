@@ -89,7 +89,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<OcrRespon
     }
 
     // 呼叫 OCR 服務
-    console.log(`[API] 使用者 ${user.id} 請求名片 OCR`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[API] 使用者 ${user.id} 請求名片 OCR`)
+    }
     const result = await scanBusinessCard(imageBase64)
 
     return NextResponse.json({

@@ -3,7 +3,6 @@
 import RevenueChart from '@/components/charts/RevenueChart'
 import CurrencyChart from '@/components/charts/CurrencyChart'
 import StatusChart from '@/components/charts/StatusChart'
-import { useTranslations } from 'next-intl'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface DashboardChartsProps {
@@ -42,7 +41,6 @@ export default function DashboardCharts({
   summary,
   defaultCurrency = 'TWD'
 }: DashboardChartsProps) {
-  const t = useTranslations()
 
   // 格式化貨幣
   const formatCurrency = (amount: number | undefined | null) => {
@@ -59,7 +57,7 @@ export default function DashboardCharts({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
-                  {t('dashboard.monthlyRevenue')}
+                  本月營收
                 </p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {formatCurrency(summary.currentMonthRevenue)}
@@ -76,7 +74,7 @@ export default function DashboardCharts({
                 {summary.revenueGrowth >= 0 ? '↑' : '↓'} {Math.abs(summary.revenueGrowth)}%
               </span>
               <span className="text-sm text-gray-500 ml-2">
-                {t('dashboard.vsLastMonth')}
+                對比上月
               </span>
             </div>
           </div>
@@ -86,7 +84,7 @@ export default function DashboardCharts({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
-                  {t('dashboard.monthlyQuotations')}
+                  本月報價單
                 </p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {summary.currentMonthCount}
@@ -103,7 +101,7 @@ export default function DashboardCharts({
                 {summary.countGrowth >= 0 ? '↑' : '↓'} {Math.abs(summary.countGrowth)}%
               </span>
               <span className="text-sm text-gray-500 ml-2">
-                {t('dashboard.vsLastMonth')}
+                對比上月
               </span>
             </div>
           </div>
@@ -113,7 +111,7 @@ export default function DashboardCharts({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
-                  {t('dashboard.conversionRate')}
+                  轉換率
                 </p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {summary.conversionRate}%
@@ -126,7 +124,7 @@ export default function DashboardCharts({
               </div>
             </div>
             <div className="mt-4 text-sm text-gray-500">
-              {summary.acceptedCount} {t('dashboard.accepted')} / {summary.acceptedCount + summary.pendingCount} {t('dashboard.sent')}
+              {summary.acceptedCount} 已接受 / {summary.acceptedCount + summary.pendingCount} 已發送
             </div>
           </div>
 
@@ -135,7 +133,7 @@ export default function DashboardCharts({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
-                  {t('dashboard.pending')}
+                  待處理
                 </p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {summary.pendingCount}
@@ -148,7 +146,7 @@ export default function DashboardCharts({
               </div>
             </div>
             <div className="mt-4 text-sm text-gray-500">
-              {summary.draftCount} {t('dashboard.drafts')}
+              {summary.draftCount} 份草稿
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@
 
 import { SupabaseClient } from '@/lib/db/supabase-client'
 import { withRetry, RetryOptions } from '@/lib/utils/retry'
+import { sanitizeSearchQuery } from '@/lib/security'
 
 export interface Supplier {
   id: string
@@ -270,10 +271,14 @@ export async function searchSuppliers(
   query: string,
   companyId?: string
 ): Promise<Supplier[]> {
+  // 安全：清理搜尋輸入防止 filter injection
+  const safeQuery = sanitizeSearchQuery(query)
+  if (!safeQuery) return []
+
   let dbQuery = db
     .from('suppliers')
     .select('*')
-    .or(`name.ilike.%${query}%,code.ilike.%${query}%,email.ilike.%${query}%`)
+    .or(`name.ilike.%${safeQuery}%,code.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`)
     .eq('is_active', true)
     .order('name', { ascending: true })
     .limit(50)

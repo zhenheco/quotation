@@ -1,11 +1,26 @@
 'use client'
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
 import type { CustomerContractWithCustomer } from '@/types/extended.types'
 import PaymentProgressBar from './PaymentProgressBar'
 import { useContractProgress } from '@/hooks/useContracts'
 import { safeToLocaleString } from '@/lib/utils/formatters'
+
+// 合約狀態翻譯
+const CONTRACT_STATUS_LABELS: Record<string, string> = {
+  active: '進行中',
+  expired: '已過期',
+  terminated: '已終止',
+  draft: '草稿',
+}
+
+// 付款條件翻譯
+const PAYMENT_TERMS_LABELS: Record<string, string> = {
+  monthly: '每月',
+  quarterly: '每季',
+  yearly: '每年',
+  one_time: '一次性',
+}
 
 interface ContractCardProps {
   contract: CustomerContractWithCustomer
@@ -24,7 +39,6 @@ export default function ContractCard({
   onSendReminder,
   onDelete,
 }: ContractCardProps) {
-  const t = useTranslations()
 
   // Fetch payment progress for this contract
   const { data: progress } = useContractProgress(contract.id)
@@ -53,11 +67,11 @@ export default function ContractCard({
             contract.status === 'terminated' ? 'bg-red-100 text-red-800' :
             'bg-blue-100 text-blue-800'
           }`}>
-            {t(`contracts.status.${contract.status}`)}
+            {CONTRACT_STATUS_LABELS[contract.status] || contract.status}
           </span>
           {isOverdue && (
             <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
-              {t('contracts.overdue_days')}: {daysOverdue}
+              逾期天數: {daysOverdue}
             </span>
           )}
         </div>
@@ -76,28 +90,28 @@ export default function ContractCard({
 
       <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
         <div>
-          <p className="text-xs text-gray-500">{t('contracts.signed_date')}</p>
+          <p className="text-xs text-gray-500">簽約日期</p>
           <p className="text-sm font-medium">{new Date(contract.signed_date || contract.start_date).toLocaleDateString(locale)}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">{t('contracts.end_date')}</p>
+          <p className="text-xs text-gray-500">結束日期</p>
           <p className="text-sm font-medium">{new Date(contract.end_date).toLocaleDateString(locale)}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">{t('contracts.total_amount')}</p>
+          <p className="text-xs text-gray-500">合約金額</p>
           <p className="text-sm font-medium">{safeToLocaleString(contract.total_amount)} {contract.currency}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">{t('contracts.payment_frequency')}</p>
+          <p className="text-xs text-gray-500">付款頻率</p>
           <p className="text-sm font-medium">
-            {contract.payment_terms ? t(`contracts.payment_terms.${contract.payment_terms}`) : '-'}
+            {contract.payment_terms ? (PAYMENT_TERMS_LABELS[contract.payment_terms] || contract.payment_terms) : '-'}
           </p>
         </div>
       </div>
 
       {contract.next_collection_date && contract.next_collection_amount && (
         <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-          <p className="text-xs font-medium text-blue-900 mb-1">{t('contracts.next_collection')}</p>
+          <p className="text-xs font-medium text-blue-900 mb-1">下次收款</p>
           <div className="flex items-center justify-between">
             <span className="text-sm text-blue-800">
               {new Date(contract.next_collection_date).toLocaleDateString(locale)}
@@ -114,7 +128,7 @@ export default function ContractCard({
           onClick={onViewDetails}
           className="flex-1 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
         >
-          {t('contracts.view_details')}
+          查看詳情
         </button>
         {contract.status === 'active' && (
           <>
@@ -122,13 +136,13 @@ export default function ContractCard({
               onClick={onRecordPayment}
               className="flex-1 px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
             >
-              {t('contracts.record_payment')}
+              記錄收款
             </button>
             <button
               onClick={onSendReminder}
               className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
             >
-              {t('contracts.send_reminder')}
+              發送提醒
             </button>
           </>
         )}
@@ -137,7 +151,7 @@ export default function ContractCard({
             onClick={onDelete}
             className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
           >
-            {t('common.delete')}
+            刪除
           </button>
         )}
       </div>

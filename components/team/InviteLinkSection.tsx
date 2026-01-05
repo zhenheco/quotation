@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { apiGet, apiPost, apiDelete } from '@/lib/api-client'
 import type { CompanyInvitationWithDetails, CreateInvitationResponse } from '@/types/invitation.types'
@@ -15,17 +14,14 @@ interface Role {
 interface InviteLinkSectionProps {
   companyId: string
   roles: Role[]
-  locale: string
   canManage: boolean
 }
 
 export default function InviteLinkSection({
   companyId,
   roles,
-  locale,
   canManage,
 }: InviteLinkSectionProps) {
-  const t = useTranslations('team')
   const [invitations, setInvitations] = useState<CompanyInvitationWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -50,7 +46,7 @@ export default function InviteLinkSection({
 
   const handleCreateInvitation = async () => {
     if (!selectedRoleId) {
-      toast.error(t('selectRoleFirst'))
+      toast.error('請先選擇角色')
       return
     }
 
@@ -63,12 +59,12 @@ export default function InviteLinkSection({
       })
 
       await navigator.clipboard.writeText(result.invite_url)
-      toast.success(t('inviteLinkCreated'))
+      toast.success('邀請連結已建立並複製到剪貼簿')
       setShowCreateForm(false)
       fetchInvitations()
     } catch (error) {
       console.error('Error creating invitation:', error)
-      toast.error(t('inviteLinkCreateFailed'))
+      toast.error('建立邀請連結失敗')
     } finally {
       setCreating(false)
     }
@@ -76,19 +72,19 @@ export default function InviteLinkSection({
 
   const handleCopyLink = async (code: string) => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://quote24.cc'
-    const url = `${appUrl}/${locale}/invite/${code}`
+    const url = `${appUrl}/invite/${code}`
     await navigator.clipboard.writeText(url)
-    toast.success(t('linkCopied'))
+    toast.success('連結已複製')
   }
 
   const handleRevokeInvitation = async (invitationId: string) => {
     try {
       await apiDelete(`/api/companies/${companyId}/invitations/${invitationId}`)
-      toast.success(t('invitationRevoked'))
+      toast.success('邀請已撤銷')
       fetchInvitations()
     } catch (error) {
       console.error('Error revoking invitation:', error)
-      toast.error(t('invitationRevokeFailed'))
+      toast.error('撤銷邀請失敗')
     }
   }
 
@@ -96,7 +92,7 @@ export default function InviteLinkSection({
     if (!invitation.is_active) {
       return (
         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-          {t('revoked')}
+          已撤銷
         </span>
       )
     }
@@ -106,7 +102,7 @@ export default function InviteLinkSection({
     if (now > expiresAt) {
       return (
         <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600 dark:bg-red-900 dark:text-red-300">
-          {t('expired')}
+          已過期
         </span>
       )
     }
@@ -114,20 +110,20 @@ export default function InviteLinkSection({
     if (invitation.used_count >= invitation.max_uses) {
       return (
         <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300">
-          {t('usedUp')}
+          已用完
         </span>
       )
     }
 
     return (
       <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-600 dark:bg-green-900 dark:text-green-300">
-        {t('active')}
+        有效
       </span>
     )
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US', {
+    return new Date(dateString).toLocaleDateString('zh-TW', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -138,13 +134,13 @@ export default function InviteLinkSection({
 
   const getRoleDisplayName = (role: CompanyInvitationWithDetails['role']) => {
     if (!role) return '-'
-    return locale === 'zh' ? role.display_name.zh : role.display_name.en
+    return role.display_name.zh
   }
 
   if (!canManage) {
     return (
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center dark:border-gray-700 dark:bg-gray-800">
-        <p className="text-gray-500 dark:text-gray-400">{t('noPermissionToManageInvitations')}</p>
+        <p className="text-gray-500 dark:text-gray-400">您沒有管理邀請的權限</p>
       </div>
     )
   }
@@ -153,12 +149,12 @@ export default function InviteLinkSection({
     <div className="space-y-4">
       {/* 建立邀請連結 */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{t('invitations')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">邀請連結</h3>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          {t('generateLink')}
+          產生連結
         </button>
       </div>
 
@@ -167,7 +163,7 @@ export default function InviteLinkSection({
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('assignRole')}
+                指派角色
               </label>
               <select
                 value={selectedRoleId}
@@ -176,24 +172,24 @@ export default function InviteLinkSection({
               >
                 {roles.map((role) => (
                   <option key={role.id} value={role.id}>
-                    {locale === 'zh' ? role.display_name.zh : role.display_name.en}
+                    {role.display_name.zh}
                   </option>
                 ))}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('maxUses')}
+                使用次數上限
               </label>
               <select
                 value={maxUses}
                 onChange={(e) => setMaxUses(Number(e.target.value))}
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
               >
-                <option value={1}>{t('singleUse')}</option>
-                <option value={5}>5 {t('times')}</option>
-                <option value={10}>10 {t('times')}</option>
-                <option value={100}>{t('unlimited')}</option>
+                <option value={1}>單次使用</option>
+                <option value={5}>5 次</option>
+                <option value={10}>10 次</option>
+                <option value={100}>無限制</option>
               </select>
             </div>
             <div className="flex gap-2">
@@ -202,13 +198,13 @@ export default function InviteLinkSection({
                 disabled={creating}
                 className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {creating ? t('creating') : t('createAndCopy')}
+                {creating ? '建立中...' : '建立並複製'}
               </button>
               <button
                 onClick={() => setShowCreateForm(false)}
                 className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
               >
-                {t('cancel')}
+                取消
               </button>
             </div>
           </div>
@@ -222,7 +218,7 @@ export default function InviteLinkSection({
         </div>
       ) : invitations.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center dark:border-gray-700 dark:bg-gray-800">
-          <p className="text-gray-500 dark:text-gray-400">{t('noInvitations')}</p>
+          <p className="text-gray-500 dark:text-gray-400">尚無邀請連結</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
@@ -230,19 +226,19 @@ export default function InviteLinkSection({
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('status')}
+                  狀態
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('role')}
+                  角色
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('uses')}
+                  使用次數
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('expiresAt')}
+                  到期時間
                 </th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('actions')}
+                  操作
                 </th>
               </tr>
             </thead>
@@ -272,7 +268,7 @@ export default function InviteLinkSection({
                             onClick={() => handleCopyLink(invitation.invite_code)}
                             className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
                           >
-                            {t('copyLink')}
+                            複製連結
                           </button>
                         )}
                         {invitation.is_active && (
@@ -280,7 +276,7 @@ export default function InviteLinkSection({
                             onClick={() => handleRevokeInvitation(invitation.id)}
                             className="text-sm text-red-600 hover:text-red-800 dark:text-red-400"
                           >
-                            {t('revoke')}
+                            撤銷
                           </button>
                         )}
                       </div>

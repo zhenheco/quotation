@@ -13,10 +13,6 @@ interface Company {
   logo_url?: string | null;
 }
 
-interface CompanySelectorProps {
-  locale: string;
-}
-
 function getImageUrl(url: string | undefined | null): string | null {
   if (!url) return null;
   if (url.startsWith('/api/')) return url;
@@ -29,7 +25,7 @@ function getImageUrl(url: string | undefined | null): string | null {
   return url;
 }
 
-export default function CompanySelector({ locale }: CompanySelectorProps) {
+export default function CompanySelector() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,13 +85,11 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
   if (companies.length === 0) {
     return (
       <button
-        onClick={() => router.push(`/${locale}/settings`)}
+        onClick={() => router.push('/settings')}
         className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
       >
         <span className="text-xl">+</span>
-        <span className="text-sm font-medium">
-          {locale === 'zh' ? '創建公司' : 'Create Company'}
-        </span>
+        <span className="text-sm font-medium">創建公司</span>
       </button>
     );
   }
@@ -109,7 +103,7 @@ export default function CompanySelector({ locale }: CompanySelectorProps) {
       >
         {companies.map((company) => (
           <option key={company.id} value={company.id}>
-            {locale === 'zh' ? (company.name?.zh || '') : (company.name?.en || '')}
+            {company.name?.zh || ''}
           </option>
         ))}
       </select>
