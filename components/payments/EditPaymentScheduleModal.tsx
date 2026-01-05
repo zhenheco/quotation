@@ -1,23 +1,28 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
 import { useCustomers } from '@/hooks/useCustomers'
 import { useUpdatePaymentSchedule, type CurrentMonthReceivable } from '@/hooks/usePayments'
 import { toast } from 'sonner'
 
+// 狀態標籤對應
+const STATUS_LABELS: Record<string, string> = {
+  pending: '待收款',
+  paid: '已收款',
+  overdue: '已逾期',
+}
+
 interface EditPaymentScheduleModalProps {
   schedule: CurrentMonthReceivable
-  locale: string
   onClose: () => void
 }
 
 export default function EditPaymentScheduleModal({
   schedule,
-  locale,
   onClose,
 }: EditPaymentScheduleModalProps) {
-  const t = useTranslations()
+  // 固定使用繁體中文
+  const locale = 'zh'
   const { data: customers, isLoading: loadingCustomers } = useCustomers()
   const updateSchedule = useUpdatePaymentSchedule()
 
@@ -45,15 +50,15 @@ export default function EditPaymentScheduleModal({
     e.preventDefault()
 
     if (!formData.customer_id) {
-      toast.error(t('payments.addSchedule.errors.customerRequired'))
+      toast.error('請選擇客戶')
       return
     }
     if (!formData.due_date) {
-      toast.error(t('payments.addSchedule.errors.dueDateRequired'))
+      toast.error('請選擇到期日')
       return
     }
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      toast.error(t('payments.addSchedule.errors.amountRequired'))
+      toast.error('請輸入有效金額')
       return
     }
 
@@ -69,10 +74,10 @@ export default function EditPaymentScheduleModal({
           notes: formData.notes || undefined,
         },
       })
-      toast.success(t('payments.edit_success'))
+      toast.success('收款排程已更新')
       onClose()
     } catch (error) {
-      toast.error((error as Error).message || t('payments.edit_error'))
+      toast.error((error as Error).message || '更新收款排程失敗')
     }
   }
 
@@ -84,7 +89,7 @@ export default function EditPaymentScheduleModal({
         <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">
-              {t('payments.edit_schedule')}
+              編輯收款排程
             </h2>
             <button
               onClick={onClose}
@@ -99,7 +104,7 @@ export default function EditPaymentScheduleModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('payments.addSchedule.customer')} *
+                客戶 *
               </label>
               <select
                 value={formData.customer_id}
@@ -107,7 +112,7 @@ export default function EditPaymentScheduleModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={loadingCustomers}
               >
-                <option value="">{t('payments.addSchedule.selectCustomer')}</option>
+                <option value="">請選擇客戶</option>
                 {customers?.map((customer) => {
                   const displayName = typeof customer.name === 'object'
                     ? (locale === 'zh' ? customer.name.zh : customer.name.en)
@@ -123,7 +128,7 @@ export default function EditPaymentScheduleModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('payments.addSchedule.dueDate')} *
+                到期日 *
               </label>
               <input
                 type="date"
@@ -136,7 +141,7 @@ export default function EditPaymentScheduleModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('payments.addSchedule.amount')} *
+                  金額 *
                 </label>
                 <input
                   type="number"
@@ -150,7 +155,7 @@ export default function EditPaymentScheduleModal({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('payments.addSchedule.currency')}
+                  幣別
                 </label>
                 <select
                   value={formData.currency}
@@ -168,40 +173,40 @@ export default function EditPaymentScheduleModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('payments.addSchedule.description')}
+                說明
               </label>
               <input
                 type="text"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder={t('payments.addSchedule.descriptionPlaceholder')}
+                placeholder="輸入收款說明"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('payments.addSchedule.notes')}
+                備註
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={2}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder={t('payments.addSchedule.notesPlaceholder')}
+                placeholder="輸入備註"
               />
             </div>
 
             <div className="text-sm text-gray-500">
-              <p>{t('payments.status.label')}: <span className={`px-2 py-1 text-xs font-medium rounded ${
+              <p>狀態: <span className={`px-2 py-1 text-xs font-medium rounded ${
                 schedule.status === 'paid'
                   ? 'bg-green-100 text-green-800'
                   : schedule.status === 'overdue'
                   ? 'bg-red-100 text-red-800'
                   : 'bg-yellow-100 text-yellow-800'
-              }`}>{t(`payments.status.${schedule.status}`)}</span></p>
+              }`}>{STATUS_LABELS[schedule.status] || schedule.status}</span></p>
               {schedule.quotation_number && (
-                <p className="mt-1">{t('payments.quotation_number')}: {schedule.quotation_number}</p>
+                <p className="mt-1">報價單號: {schedule.quotation_number}</p>
               )}
             </div>
 
@@ -212,14 +217,14 @@ export default function EditPaymentScheduleModal({
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 disabled={updateSchedule.isPending}
               >
-                {t('common.cancel')}
+                取消
               </button>
               <button
                 type="submit"
                 className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                 disabled={updateSchedule.isPending}
               >
-                {updateSchedule.isPending ? t('common.saving') : t('common.save')}
+                {updateSchedule.isPending ? '儲存中...' : '儲存'}
               </button>
             </div>
           </form>

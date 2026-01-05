@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
 
 interface PermissionGuardProps {
   hasPermission: boolean
@@ -18,8 +17,6 @@ export default function PermissionGuard({
   fallback,
   showRestricted = true,
 }: PermissionGuardProps) {
-  const t = useTranslations()
-
   if (loading) {
     return (
       <div className="animate-pulse">
@@ -36,7 +33,7 @@ export default function PermissionGuard({
     if (showRestricted) {
       return (
         <span className="text-xs text-gray-400 italic">
-          {t('product.permission.costRestrictedShort')}
+          權限限制
         </span>
       )
     }

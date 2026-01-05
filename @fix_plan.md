@@ -4,6 +4,62 @@
 
 ---
 
+# ✅ 已完成：移除多語系，改為純繁體中文
+
+> **狀態**：✅ 已完成
+> **完成日期**：2026-01-04
+> **需求規格**：[specs/2026-01-04-remove-i18n-chinese-only.md](specs/2026-01-04-remove-i18n-chinese-only.md)
+> **目標**：移除 next-intl 多語系架構，改為純繁體中文
+> **背景**：稅務內容專屬台灣市場，簡化維護
+
+## ✅ 高優先
+
+### Phase 1: 配置修改
+- [x] **修改 `next.config.ts`**
+  - Done Criteria: 移除 next-intl 插件，添加 301 重定向
+- [x] **修改 `middleware.ts`**
+  - Done Criteria: 移除 i18n 中間件，保留認證邏輯
+
+### Phase 2: 路由結構遷移
+- [x] **移動 `app/[locale]/*` 到 `app/*`**
+  - Done Criteria: 所有頁面可在無 locale 前綴下訪問
+- [x] **更新根 `app/layout.tsx`**
+  - Done Criteria: 合併 locale layout，添加 Providers
+
+### Phase 3: 組件更新（~90 個檔案）
+- [x] **更新核心組件**
+  - Done Criteria: Sidebar, Header, MobileNav 移除 locale 參數
+- [x] **更新所有頁面**
+  - Done Criteria: 移除 useTranslations/getTranslations，硬編碼中文
+
+### Phase 4: 清理
+- [x] **刪除 i18n 相關檔案**
+  - Done Criteria: i18n/, messages/ 目錄已刪除
+- [x] **移除 next-intl 依賴**
+  - Done Criteria: `pnpm remove next-intl` 執行成功
+
+### Phase 5: 驗證
+- [x] **Build 成功**
+  - Done Criteria: `pnpm run build` 無錯誤
+- [x] **TypeCheck 通過**
+  - Done Criteria: `pnpm run typecheck` 無錯誤
+- [ ] **手動測試**
+  - Done Criteria: 登入、導覽、核心功能正常（待用戶驗證）
+
+---
+
+## ✅ 完成條件（Done Criteria）
+
+當滿足以下條件時，此任務視為 **Completed**：
+
+- [x] 所有頁面 URL 不再有 `/zh/` 或 `/en/` 前綴
+- [x] 舊連結自動 301 重定向
+- [x] 所有 UI 顯示繁體中文
+- [x] Build/TypeCheck/Lint 通過
+- [ ] 登入/登出流程正常（待用戶驗證）
+
+---
+
 # ✅ 已完成任務：營所稅申報 + 訂閱系統 + AI 財務分析
 
 > **狀態**：✅ 程式碼層全部完成，✅ 資料庫遷移 SQL 已產生
@@ -370,3 +426,32 @@ CF_AIG_TOKEN=<Cloudflare AI Gateway Token>
 - [x] Supabase OAuth redirect URLs 已更新
 - [x] 部署成功
 - [x] 登入功能正常
+
+---
+
+## 🐛 已知問題與解法
+
+### 報稅系統 - 公司名稱物件轉字串問題
+
+**問題**：營業稅申報和所得稅申報頁面中，`company.name` 是物件（如 `{en, zh}`），但 API 參數需要字串
+**原因**：移除 i18n 後，公司名稱欄位可能仍包含多語言物件格式，導致 URLSearchParams 將其轉換為 `[object Object]`
+**影響範圍**：
+- `app/accounting/reports/TaxReportDashboard.tsx:108` - 營業稅申報 ✅ 已修復
+- `app/accounting/income-tax/ExpandedAuditDashboard.tsx:74` - 所得稅申報 ❌ 待修復
+- `hooks/accounting/use-income-tax.ts:216` - fetchPreview 函數
+
+**解法**：使用與營業稅申報相同的 `getCompanyNameString` 輔助函數
+**修復狀態**：
+- ✅ `ExpandedAuditDashboard.tsx` 已修復 (本地)
+- ⚠️ **生產環境尚未部署** - 需要重新部署後才能生效
+
+**測試結果**（生產環境）：
+- 營業稅申報頁面：✅ 正常載入，UI 完整，所有標籤可切換
+- 所得稅申報頁面：❌ API 返回 402 + company_name 參數仍為 `[object Object]`（生產環境使用舊程式碼）
+
+**後續步驟**：
+1. 本地修復已完成 (`ExpandedAuditDashboard.tsx:117,159`)
+2. 需要部署到生產環境
+3. 部署後重新測試所得稅申報功能
+
+**日期**：2026-01-05

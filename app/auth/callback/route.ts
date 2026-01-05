@@ -43,19 +43,20 @@ export async function GET(request: Request) {
 
     if (!error && data.session) {
       const user = data.session.user
-      const isNewUser = user.created_at === user.last_sign_in_at
 
-      console.log(`✅ [Auth Callback] Session exchanged successfully for: ${user.email}`)
-      console.log(`📊 [Auth Callback] Session info: { isNewUser: ${isNewUser}, hasAccessToken: ${!!data.session.access_token}, hasRefreshToken: ${!!data.session.refresh_token} }`)
+      // 安全：僅記錄非敏感資訊（不包含 email 或 token）
+      console.log(`✅ [Auth Callback] Session exchanged successfully for user: ${user.id.slice(0, 8)}...`)
 
-      // 驗證 cookies 是否被設定（診斷用）
-      try {
-        const cookieStore = await cookies()
-        const allCookies = cookieStore.getAll()
-        const authCookies = allCookies.filter(c => c.name.startsWith('sb-'))
-        console.log(`📦 [Auth Callback] Auth cookies set: ${authCookies.length} (${authCookies.map(c => c.name).join(', ')})`)
-      } catch (cookieError) {
-        console.warn('⚠️ [Auth Callback] Could not verify cookies:', cookieError)
+      // 僅在開發環境驗證 cookies
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const cookieStore = await cookies()
+          const allCookies = cookieStore.getAll()
+          const authCookies = allCookies.filter(c => c.name.startsWith('sb-'))
+          console.log(`📦 [Auth Callback] Auth cookies set: ${authCookies.length}`)
+        } catch {
+          // 靜默處理
+        }
       }
 
       // 同步 user_profiles

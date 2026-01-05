@@ -465,10 +465,9 @@ export const guideCategories: GuideCategoryInfo[] = [
   },
 ]
 
-// 輔助函數：取得特定語系的類別資訊
+// 輔助函數：取得類別資訊（繁體中文）
 export function getCategoryInfo(
-  category: GuideCategory,
-  locale: 'en' | 'zh'
+  category: GuideCategory
 ): {
   title: string
   description: string
@@ -480,10 +479,10 @@ export function getCategoryInfo(
   if (!cat) return null
 
   return {
-    title: cat.title[locale],
-    description: cat.description[locale],
+    title: cat.title.zh,
+    description: cat.description.zh,
     icon: cat.icon,
     color: cat.color,
-    steps: cat.steps.map((s) => s[locale]),
+    steps: cat.steps.map((s) => s.zh),
   }
 }

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
 import { apiPut, apiDelete } from '@/lib/api-client'
@@ -35,7 +34,6 @@ interface TeamMemberListProps {
   roles: Role[]
   currentUserId: string
   isOwner: boolean
-  locale: string
   onMemberUpdated: () => void
 }
 
@@ -45,10 +43,8 @@ export default function TeamMemberList({
   roles,
   currentUserId,
   isOwner,
-  locale,
   onMemberUpdated,
 }: TeamMemberListProps) {
-  const t = useTranslations('team')
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null)
 
@@ -60,11 +56,11 @@ export default function TeamMemberList({
       await apiPut(`/api/companies/${companyId}/members/${member.user_id}`, {
         role_id: newRoleId,
       })
-      toast.success(t('roleUpdated'))
+      toast.success('角色已更新')
       onMemberUpdated()
     } catch (error) {
       console.error('Error updating role:', error)
-      toast.error(t('roleUpdateFailed'))
+      toast.error('更新角色失敗')
     } finally {
       setUpdatingRoleId(null)
     }
@@ -73,11 +69,11 @@ export default function TeamMemberList({
   const handleRemoveMember = async (member: Member) => {
     try {
       await apiDelete(`/api/companies/${companyId}/members/${member.user_id}`)
-      toast.success(t('memberRemoved'))
+      toast.success('成員已移除')
       onMemberUpdated()
     } catch (error) {
       console.error('Error removing member:', error)
-      toast.error(t('memberRemoveFailed'))
+      toast.error('移除成員失敗')
     } finally {
       setRemovingMemberId(null)
     }
@@ -87,13 +83,13 @@ export default function TeamMemberList({
     if (!roleName) return '-'
     const role = roles.find((r) => r.name === roleName)
     if (role) {
-      return locale === 'zh' ? role.display_name.zh : role.display_name.en
+      return role.display_name.zh
     }
     return roleName
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(locale === 'zh' ? 'zh-TW' : 'en-US', {
+    return new Date(dateString).toLocaleDateString('zh-TW', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -107,17 +103,17 @@ export default function TeamMemberList({
           <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
-                {t('member')}
+                成員
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
-                {t('role')}
+                角色
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
-                {t('joinedAt')}
+                加入日期
               </th>
               {isOwner && (
                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {t('actions')}
+                  操作
                 </th>
               )}
             </tr>
@@ -134,15 +130,15 @@ export default function TeamMemberList({
                     </div>
                     <div>
                       <div className="font-medium text-gray-900 dark:text-gray-100">
-                        {member.user_profile?.display_name || member.user_profile?.full_name || t('unknownUser')}
+                        {member.user_profile?.display_name || member.user_profile?.full_name || '未知使用者'}
                         {member.is_owner && (
                           <span className="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                            {t('owner')}
+                            擁有者
                           </span>
                         )}
                         {member.user_id === currentUserId && (
                           <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                            {t('you')}
+                            你
                           </span>
                         )}
                       </div>
@@ -162,7 +158,7 @@ export default function TeamMemberList({
                     >
                       {roles.map((role) => (
                         <option key={role.id} value={role.id}>
-                          {locale === 'zh' ? role.display_name.zh : role.display_name.en}
+                          {role.display_name.zh}
                         </option>
                       ))}
                     </select>
@@ -182,7 +178,7 @@ export default function TeamMemberList({
                         onClick={() => setRemovingMemberId(member.user_id)}
                         className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                       >
-                        {t('remove')}
+                        移除
                       </button>
                     )}
                   </td>
@@ -200,10 +196,10 @@ export default function TeamMemberList({
           const member = members.find((m) => m.user_id === removingMemberId)
           if (member) handleRemoveMember(member)
         }}
-        title={t('removeConfirmTitle')}
-        description={t('removeConfirmMessage')}
-        confirmText={t('remove')}
-        cancelText={t('cancel')}
+        title="確認移除成員"
+        description="確定要移除此成員嗎？此操作無法復原。"
+        confirmText="移除"
+        cancelText="取消"
       />
     </div>
   )

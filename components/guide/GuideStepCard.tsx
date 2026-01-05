@@ -10,7 +10,6 @@ interface GuideStepCardProps {
   step: GuideStep
   stepNumber: number
   totalSteps: number
-  locale: string
 }
 
 /**
@@ -22,7 +21,6 @@ export default function GuideStepCard({
   step,
   stepNumber,
   totalSteps,
-  locale,
 }: GuideStepCardProps) {
   const Icon = step.icon
 
@@ -37,7 +35,7 @@ export default function GuideStepCard({
           </div>
           <div>
             <div className="text-sm text-slate-500 font-medium">
-              {locale === 'zh' ? `步驟 ${stepNumber} / ${totalSteps}` : `Step ${stepNumber} of ${totalSteps}`}
+              步驟 {stepNumber} / {totalSteps}
             </div>
             <h3 className="text-xl font-semibold text-slate-800">
               {step.title}
@@ -55,7 +53,7 @@ export default function GuideStepCard({
           <div className="mt-auto bg-amber-50 border border-amber-200 rounded-2xl p-4">
             <div className="flex items-center gap-2 text-amber-700 font-medium mb-3">
               <Lightbulb className="w-5 h-5" />
-              <span>{locale === 'zh' ? '小提示' : 'Tips'}</span>
+              <span>小提示</span>
             </div>
             <ul className="space-y-2">
               {step.tips.map((tip, i) => (
@@ -93,9 +91,7 @@ export default function GuideStepCard({
             <div className="absolute inset-0 flex items-center justify-center bg-slate-100 text-slate-400">
               <div className="text-center">
                 <Icon className="w-16 h-16 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">
-                  {locale === 'zh' ? '截圖準備中...' : 'Screenshot loading...'}
-                </p>
+                <p className="text-sm">截圖準備中...</p>
               </div>
             </div>
           </div>
@@ -108,9 +104,7 @@ export default function GuideStepCard({
           )}>
             <div className="text-center text-slate-400">
               <Icon className="w-16 h-16 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">
-                {locale === 'zh' ? '此步驟無截圖' : 'No screenshot for this step'}
-              </p>
+              <p className="text-sm">此步驟無截圖</p>
             </div>
           </div>
         )}

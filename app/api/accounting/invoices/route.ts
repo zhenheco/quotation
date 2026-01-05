@@ -23,8 +23,10 @@ export const GET = withAuth('invoices:read')(async (request, { db }) => {
   const status = searchParams.get('status') as 'DRAFT' | 'VERIFIED' | 'POSTED' | 'VOIDED' | null
   const startDate = searchParams.get('start_date')
   const endDate = searchParams.get('end_date')
-  const page = parseInt(searchParams.get('page') || '1')
-  const pageSize = parseInt(searchParams.get('page_size') || '20')
+  // 安全：限制分頁參數避免 DoS
+  const MAX_PAGE_SIZE = 100
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1)
+  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(searchParams.get('page_size') || '20') || 20))
 
   if (!companyId) {
     return NextResponse.json({ error: 'company_id is required' }, { status: 400 })

@@ -8,7 +8,6 @@ import GuideModalContent from './GuideModalContent'
 interface GuideModalProps {
   isOpen: boolean
   onClose: () => void
-  locale: string
 }
 
 /**
@@ -16,7 +15,7 @@ interface GuideModalProps {
  * 使用 createPortal 渲染到 body，支援 ESC/背景點擊關閉
  * 桌面版保持側欄可見（Modal 從左側 72/288px 開始）
  */
-export default function GuideModal({ isOpen, onClose, locale }: GuideModalProps) {
+export default function GuideModal({ isOpen, onClose }: GuideModalProps) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -70,12 +69,12 @@ export default function GuideModal({ isOpen, onClose, locale }: GuideModalProps)
               id="guide-modal-title"
               className="text-xl font-semibold text-slate-800"
             >
-              {locale === 'zh' ? '📚 使用教學' : '📚 User Guide'}
+              📚 使用教學
             </h2>
             <button
               onClick={onClose}
               className="p-2 rounded-xl bg-white/80 hover:bg-white text-slate-500 hover:text-slate-700 transition-all duration-200 shadow-sm hover:shadow"
-              aria-label={locale === 'zh' ? '關閉' : 'Close'}
+              aria-label="關閉"
             >
               <X className="h-5 w-5" />
             </button>
@@ -83,7 +82,7 @@ export default function GuideModal({ isOpen, onClose, locale }: GuideModalProps)
 
           {/* 內容區 */}
           <div className="h-[calc(100%-72px)] overflow-y-auto">
-            <GuideModalContent locale={locale} onClose={onClose} />
+            <GuideModalContent onClose={onClose} />
           </div>
         </div>
       </div>

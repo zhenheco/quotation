@@ -1,7 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
-import createMiddleware from 'next-intl/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
-import { routing } from '@/i18n/routing'
 import { addSecurityHeaders } from '@/lib/security/headers'
 import { csrfProtection } from '@/lib/security/csrf'
 import {
@@ -9,36 +7,17 @@ import {
   createRateLimitResponse
 } from '@/lib/middleware/rate-limiter'
 
-// Environment variables from wrangler.jsonc vars (requires compatibility_date >= 2025-04-01)
+// Environment variables
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-const intlMiddleware = createMiddleware(routing)
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Step 1: Handle paths that don't need locale prefix
-  const shouldSkipIntl =
-    pathname.startsWith('/auth') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/admin') ||  // Admin console doesn't use i18n
-    pathname.startsWith('/test-send-api') ||  // Testing tool
-    pathname === '/' ||
-    pathname === '/login'  // Keep for redirect
-
-  // Step 2: For paths that need intl, let next-intl handle them first
-  let response: NextResponse
-
-  if (shouldSkipIntl) {
-    // Create a basic response for non-localized paths
-    response = NextResponse.next({
-      request,
-    })
-  } else {
-    // Let next-intl middleware handle the request
-    response = intlMiddleware(request)
-  }
+  // Create a basic response
+  const response = NextResponse.next({
+    request,
+  })
 
   // Step 3: Rate Limiting for API routes
   // 根據端點敏感度使用不同的速率限制
@@ -111,7 +90,18 @@ export async function middleware(request: NextRequest) {
 
   // Step 5: Trigger session refresh
   // Skip for API routes (they handle auth themselves) and public pages (no auth needed)
-  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/terms', '/privacy']
+  const publicPaths = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/terms',
+    '/privacy',
+    '/pricing',
+    '/guide',
+    '/invite/',      // 邀請連結頁面
+    '/onboarding',   // 新用戶引導頁面
+  ]
   const isPublicPath = publicPaths.some(p => pathname.includes(p))
 
   if (!pathname.startsWith('/api') && !isPublicPath) {

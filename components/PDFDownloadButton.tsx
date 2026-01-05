@@ -6,11 +6,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
 
 interface PDFDownloadButtonProps {
   quotationId: string
-  locale: 'zh' | 'en'
+  locale?: 'zh' | 'en'
   className?: string
   variant?: 'primary' | 'secondary' | 'outline'
   showLanguageOptions?: boolean
@@ -18,12 +17,11 @@ interface PDFDownloadButtonProps {
 
 export default function PDFDownloadButton({
   quotationId,
-  locale,
+  locale = 'zh',
   className = '',
   variant = 'primary',
   showLanguageOptions = true,
 }: PDFDownloadButtonProps) {
-  const t = useTranslations()
   const [isDownloading, setIsDownloading] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
 
@@ -75,7 +73,7 @@ export default function PDFDownloadButton({
     } catch (error) {
       console.error('Error downloading PDF:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to download PDF'
-      alert(`${t('quotation.downloadError')}: ${errorMessage}`)
+      alert(`下載 PDF 失敗: ${errorMessage}`)
     } finally {
       setIsDownloading(false)
     }
@@ -127,7 +125,7 @@ export default function PDFDownloadButton({
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               />
             </svg>
-            <span>{t('common.downloading')}</span>
+            <span>下載中...</span>
           </>
         ) : (
           <>
@@ -144,7 +142,7 @@ export default function PDFDownloadButton({
                 d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            <span>{t('quotation.downloadPDF')}</span>
+            <span>下載 PDF</span>
           </>
         )}
       </button>
@@ -181,7 +179,7 @@ export default function PDFDownloadButton({
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               />
             </svg>
-            <span>{t('common.downloading')}</span>
+            <span>下載中...</span>
           </>
         ) : (
           <>
@@ -198,7 +196,7 @@ export default function PDFDownloadButton({
                 d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            <span>{t('quotation.downloadPDF')}</span>
+            <span>下載 PDF</span>
             <svg
               className="h-4 w-4"
               fill="none"
@@ -232,14 +230,14 @@ export default function PDFDownloadButton({
                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
               >
                 <span>🇹🇼</span>
-                <span>{t('quotation.downloadChinesePDF')}</span>
+                <span>下載中文版 PDF</span>
               </button>
               <button
                 onClick={() => handleDownload('en')}
                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
               >
                 <span>🇬🇧</span>
-                <span>{t('quotation.downloadEnglishPDF')}</span>
+                <span>下載英文版 PDF</span>
               </button>
               <div className="border-t border-gray-100 my-1" />
               <button
@@ -247,7 +245,7 @@ export default function PDFDownloadButton({
                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
               >
                 <span>🌏</span>
-                <span>{t('quotation.downloadBilingualPDF')}</span>
+                <span>下載雙語版 PDF</span>
               </button>
             </div>
           </div>

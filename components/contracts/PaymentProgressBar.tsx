@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface PaymentProgressBarProps {
@@ -21,8 +20,6 @@ export default function PaymentProgressBar({
   currency,
   paymentCompletionRate,
 }: PaymentProgressBarProps) {
-  const t = useTranslations()
-
   const paidPercentage = (totalPaid / totalAmount) * 100
   const pendingPercentage = (totalPending / totalAmount) * 100
   const overduePercentage = (totalOverdue / totalAmount) * 100
@@ -30,7 +27,7 @@ export default function PaymentProgressBar({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between text-sm">
-        <span className="font-medium">{t('contracts.payment_progress')}</span>
+        <span className="font-medium">付款進度</span>
         <span className="font-semibold">{paymentCompletionRate.toFixed(1)}%</span>
       </div>
 
@@ -39,21 +36,21 @@ export default function PaymentProgressBar({
           <div
             className="bg-green-500 h-full"
             style={{ width: `${paidPercentage}%` }}
-            title={`${t('payments.received')}: ${safeToLocaleString(totalPaid)} ${currency}`}
+            title={`已收款: ${safeToLocaleString(totalPaid)} ${currency}`}
           />
         )}
         {overduePercentage > 0 && (
           <div
             className="bg-red-500 h-full"
             style={{ width: `${overduePercentage}%` }}
-            title={`${t('payments.overdue')}: ${safeToLocaleString(totalOverdue)} ${currency}`}
+            title={`已逾期: ${safeToLocaleString(totalOverdue)} ${currency}`}
           />
         )}
         {pendingPercentage > 0 && (
           <div
             className="bg-yellow-400 h-full"
             style={{ width: `${pendingPercentage}%` }}
-            title={`${t('payments.pending')}: ${safeToLocaleString(totalPending)} ${currency}`}
+            title={`待收款: ${safeToLocaleString(totalPending)} ${currency}`}
           />
         )}
       </div>
@@ -62,19 +59,19 @@ export default function PaymentProgressBar({
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-green-500" />
           <span className="text-gray-600">
-            {t('payments.received')}: {safeToLocaleString(totalPaid)} {currency}
+            已收款: {safeToLocaleString(totalPaid)} {currency}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-yellow-400" />
           <span className="text-gray-600">
-            {t('payments.pending')}: {safeToLocaleString(totalPending)} {currency}
+            待收款: {safeToLocaleString(totalPending)} {currency}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-red-500" />
           <span className="text-gray-600">
-            {t('payments.overdue')}: {safeToLocaleString(totalOverdue)} {currency}
+            已逾期: {safeToLocaleString(totalOverdue)} {currency}
           </span>
         </div>
       </div>

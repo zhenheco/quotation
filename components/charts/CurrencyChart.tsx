@@ -1,7 +1,6 @@
 'use client'
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
-import { useTranslations } from 'next-intl'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 
 interface CurrencyChartProps {
@@ -43,7 +42,6 @@ interface LegendProps {
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
 export default function CurrencyChart({ data }: CurrencyChartProps) {
-  const t = useTranslations()
 
   // 計算百分比
   const total = data.reduce((sum, item) => sum + item.value, 0)
@@ -90,13 +88,13 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
             {data.currency}
           </p>
           <p className="text-sm text-gray-600">
-            {t('charts.amount')}: {data.currency} {safeToLocaleString(data.value)}
+            金額: {data.currency} {safeToLocaleString(data.value)}
           </p>
           <p className="text-sm text-gray-600">
-            {t('charts.percentage')}: {data.percentage}%
+            佔比: {data.percentage}%
           </p>
           <p className="text-sm text-gray-600">
-            {t('charts.quotationCount')}: {data.count}
+            報價單數: {data.count}
           </p>
         </div>
       )
@@ -128,7 +126,7 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        {t('charts.currencyTitle')}
+        幣別分布
       </h3>
 
       <ResponsiveContainer width="100%" height={300}>

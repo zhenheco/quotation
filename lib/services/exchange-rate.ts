@@ -118,7 +118,9 @@ export async function syncRatesToDatabase(
       return false
     }
 
-    console.log(`✅ 成功同步 ${exchangeRates.length} 筆匯率 (${baseCurrency} 基準)`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ 成功同步 ${exchangeRates.length} 筆匯率 (${baseCurrency} 基準)`)
+    }
     return true
   } catch (error) {
     console.error('❌ 資料庫操作失敗:', error)
@@ -258,7 +260,9 @@ export async function getExchangeRates(
   }
 
   // 如果資料庫沒有資料，從 API 獲取並同步
-  console.log('⚠️  資料庫無匯率資料，從 API 獲取...')
+  if (process.env.NODE_ENV === 'development') {
+    console.log('⚠️  資料庫無匯率資料，從 API 獲取...')
+  }
   const apiData = await fetchLatestRates(baseCurrency)
 
   if (!apiData) {

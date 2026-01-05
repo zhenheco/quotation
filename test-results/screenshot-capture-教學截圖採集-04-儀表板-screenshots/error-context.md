@@ -1,0 +1,84 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - heading "登入帳號" [level=1] [ref=e9]
+        - paragraph [ref=e10]: 歡迎回來，請登入您的帳號
+      - button "使用 Google 帳號登入" [ref=e11]:
+        - img [ref=e12]
+        - generic [ref=e17]: 使用 Google 帳號登入
+      - generic [ref=e22]: 或使用電子郵件
+      - generic [ref=e23]:
+        - generic [ref=e24]: 電子郵件或密碼錯誤
+        - generic [ref=e25]:
+          - generic [ref=e26]: 電子郵件
+          - textbox "電子郵件" [ref=e27]:
+            - /placeholder: you@example.com
+            - text: test@example.com
+        - generic [ref=e28]:
+          - generic [ref=e29]:
+            - generic [ref=e30]: 密碼
+            - link "忘記密碼?" [ref=e31] [cursor=pointer]:
+              - /url: /forgot-password
+          - textbox "密碼" [ref=e32]:
+            - /placeholder: ••••••••
+            - text: Test1234!
+        - button "登入" [ref=e33]
+      - paragraph [ref=e34]:
+        - text: 還沒有帳號?
+        - link "立即註冊" [ref=e35] [cursor=pointer]:
+          - /url: /register
+      - paragraph [ref=e36]:
+        - text: 使用本服務即表示您同意我們的
+        - link "隱私政策" [ref=e37] [cursor=pointer]:
+          - /url: /privacy
+        - text: 和
+        - link "服務條款" [ref=e38] [cursor=pointer]:
+          - /url: /terms
+    - generic [ref=e39]:
+      - img [ref=e41]
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - heading "專業報價管理系統" [level=2] [ref=e45]
+          - paragraph [ref=e46]: 簡化您的報價流程，提升業務效率
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - generic [ref=e49]: 10,000+
+            - generic [ref=e50]: 已建立報價單
+          - generic [ref=e51]:
+            - generic [ref=e52]: 500+
+            - generic [ref=e53]: 滿意客戶
+          - generic [ref=e54]:
+            - generic [ref=e55]: 99.9%
+            - generic [ref=e56]: 系統可用率
+        - generic [ref=e57]:
+          - img [ref=e58]
+          - paragraph [ref=e60]: 這個系統徹底改變了我們的報價流程，現在可以在幾分鐘內完成以前需要幾小時的工作。
+          - generic [ref=e61]:
+            - generic [ref=e62]: 王
+            - generic [ref=e63]:
+              - generic [ref=e64]: 王經理
+              - generic [ref=e65]: 科技公司業務總監
+        - generic [ref=e66]:
+          - generic [ref=e67]:
+            - img [ref=e68]
+            - generic [ref=e70]: 快速建立專業報價單
+          - generic [ref=e71]:
+            - img [ref=e72]
+            - generic [ref=e74]: 即時追蹤報價狀態
+          - generic [ref=e75]:
+            - img [ref=e76]
+            - generic [ref=e78]: 智慧客戶管理系統
+  - region "Notifications alt+T"
+  - generic [ref=e79]:
+    - img [ref=e81]
+    - button "Open Tanstack query devtools" [ref=e129] [cursor=pointer]:
+      - img [ref=e130]
+  - button "Open Next.js Dev Tools" [ref=e183] [cursor=pointer]:
+    - img [ref=e184]
+  - alert [ref=e187]
+```

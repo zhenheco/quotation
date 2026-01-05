@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
-import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Trash2, Star, Plus, ExternalLink } from 'lucide-react'
 import {
@@ -30,10 +28,8 @@ export function SupplierCostEditor({
   basePrice,
   baseCurrency
 }: SupplierCostEditorProps) {
-  const t = useTranslations('products')
-  const tCommon = useTranslations('common')
-  const params = useParams()
-  const locale = (params.locale as string) || 'zh'
+  // 固定使用繁體中文
+  const locale = 'zh'
 
   const [isAdding, setIsAdding] = useState(false)
   const [newSupplier, setNewSupplier] = useState<CreateSupplierCostInput>({
@@ -121,7 +117,7 @@ export function SupplierCostEditor({
   const getSupplierDisplayName = (supplierCost: { supplier_id: string | null; supplier_name: string; supplier?: { name: { zh: string; en: string } } | null }) => {
     // 優先使用關聯的供應商名稱
     if (supplierCost.supplier?.name) {
-      return supplierCost.supplier.name[locale as 'zh' | 'en'] || supplierCost.supplier.name.zh
+      return supplierCost.supplier.name.zh
     }
     // 否則使用儲存的供應商名稱
     return supplierCost.supplier_name
@@ -130,13 +126,13 @@ export function SupplierCostEditor({
   if (!productId) {
     return (
       <div className="text-sm text-gray-500">
-        {t('saveProductFirst')}
+        請先儲存產品
       </div>
     )
   }
 
   if (isLoading) {
-    return <div className="text-sm text-gray-500">Loading...</div>
+    return <div className="text-sm text-gray-500">載入中...</div>
   }
 
   // 過濾已經新增的供應商
@@ -153,21 +149,21 @@ export function SupplierCostEditor({
           <div className="flex items-start gap-4">
             <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="text-xs text-gray-500">{t('supplierName')}</label>
+                <label className="text-xs text-gray-500">供應商名稱</label>
                 <div className="font-medium">{getSupplierDisplayName(supplier)}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">{t('supplierCode')}</label>
+                <label className="text-xs text-gray-500">供應商代碼</label>
                 <div className="font-medium">{supplier.supplier_code || supplier.supplier?.code || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">{t('costPrice')}</label>
+                <label className="text-xs text-gray-500">成本價</label>
                 <div className="font-medium">
                   {supplier.cost_currency} {supplier.cost_price.toLocaleString()}
                 </div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">{t('profitMargin')}</label>
+                <label className="text-xs text-gray-500">利潤率</label>
                 <div className="font-medium">
                   {calculateProfitMargin(supplier.cost_price, supplier.cost_currency)
                     ? `${calculateProfitMargin(supplier.cost_price, supplier.cost_currency)}%`
@@ -186,7 +182,7 @@ export function SupplierCostEditor({
                       ? 'bg-yellow-500 text-white'
                       : 'border border-gray-300 hover:bg-gray-50'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  title={t('setPreferred')}
+                  title="設為首選"
                 >
                   <Star className={`h-4 w-4 ${supplier.is_preferred ? 'fill-current' : ''}`} />
                 </button>
@@ -211,7 +207,7 @@ export function SupplierCostEditor({
           className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          {t('addSupplier')}
+          新增供應商
         </button>
       )}
 
@@ -221,7 +217,7 @@ export function SupplierCostEditor({
             {/* 供應商選擇下拉選單 */}
             <div className="md:col-span-2">
               <label htmlFor="new-supplier-select" className="block text-sm font-medium text-gray-700 mb-1">
-                {t('selectSupplier')}
+                選擇供應商
               </label>
               <div className="flex gap-2">
                 <select
@@ -231,7 +227,7 @@ export function SupplierCostEditor({
                   disabled={isLoadingSuppliers}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="">{t('selectSupplierPlaceholder')}</option>
+                  <option value="">請選擇供應商</option>
                   {availableSuppliers.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label} {option.code ? `(${option.code})` : ''}
@@ -239,20 +235,20 @@ export function SupplierCostEditor({
                   ))}
                 </select>
                 <Link
-                  href={`/${locale}/suppliers/new`}
+                  href="/suppliers/new"
                   className="inline-flex items-center gap-1 px-3 py-2 text-sm text-indigo-600 border border-indigo-300 rounded-lg hover:bg-indigo-50 transition-colors whitespace-nowrap"
-                  title={t('createNewSupplier')}
+                  title="建立新供應商"
                 >
                   <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">{tCommon('new')}</span>
+                  <span className="hidden sm:inline">新增</span>
                   <ExternalLink className="h-3 w-3" />
                 </Link>
               </div>
               {availableSuppliers.length === 0 && !isLoadingSuppliers && (
                 <p className="mt-1 text-sm text-gray-500">
                   {supplierOptions.length === 0
-                    ? t('noSuppliersAvailable')
-                    : t('allSuppliersAdded')
+                    ? '尚無可用供應商'
+                    : '所有供應商皆已新增'
                   }
                 </p>
               )}
@@ -263,7 +259,7 @@ export function SupplierCostEditor({
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('supplierName')}
+                    供應商名稱
                   </label>
                   <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
                     {newSupplier.supplier_name || '-'}
@@ -271,7 +267,7 @@ export function SupplierCostEditor({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('supplierCode')}
+                    供應商代碼
                   </label>
                   <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
                     {newSupplier.supplier_code || '-'}
@@ -282,7 +278,7 @@ export function SupplierCostEditor({
 
             <div>
               <label htmlFor="new-cost-price" className="block text-sm font-medium text-gray-700 mb-1">
-                {t('costPrice')}
+                成本價
               </label>
               <input
                 id="new-cost-price"
@@ -297,7 +293,7 @@ export function SupplierCostEditor({
             </div>
             <div>
               <label htmlFor="new-cost-currency" className="block text-sm font-medium text-gray-700 mb-1">
-                {t('costCurrency')}
+                成本幣別
               </label>
               <select
                 id="new-cost-currency"
@@ -322,7 +318,7 @@ export function SupplierCostEditor({
               className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
             <label htmlFor="new-is-preferred" className="text-sm text-gray-700">
-              {t('setAsPreferred')}
+              設為首選供應商
             </label>
           </div>
           <div className="flex gap-2">
@@ -332,14 +328,14 @@ export function SupplierCostEditor({
               disabled={createMutation.isPending || !newSupplier.supplier_id || newSupplier.cost_price <= 0}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {createMutation.isPending ? t('adding') : t('add')}
+              {createMutation.isPending ? '新增中...' : '新增'}
             </button>
             <button
               type="button"
               onClick={() => setIsAdding(false)}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              {t('cancel')}
+              取消
             </button>
           </div>
         </div>
@@ -347,7 +343,7 @@ export function SupplierCostEditor({
 
       {supplierCosts.length === 0 && !isAdding && (
         <div className="text-sm text-gray-500 text-center py-4">
-          {t('noSuppliers')}
+          尚無供應商
         </div>
       )}
     </div>

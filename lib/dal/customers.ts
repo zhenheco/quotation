@@ -4,6 +4,7 @@
 
 import { SupabaseClient } from '@/lib/db/supabase-client'
 import { withRetry, RetryOptions } from '@/lib/utils/retry'
+import { sanitizeSearchQuery } from '@/lib/security'
 
 export interface Customer {
   id: string
@@ -258,11 +259,15 @@ export async function searchCustomers(
   query: string,
   companyId?: string
 ): Promise<Customer[]> {
+  // 安全：清理搜尋輸入防止 filter injection
+  const safeQuery = sanitizeSearchQuery(query)
+  if (!safeQuery) return []
+
   let dbQuery = db
     .from('customers')
     .select('*')
     .eq('user_id', userId)
-    .or(`email.ilike.%${query}%,name.ilike.%${query}%`)
+    .or(`email.ilike.%${safeQuery}%,name.ilike.%${safeQuery}%`)
     .order('created_at', { ascending: false })
     .limit(50)
 

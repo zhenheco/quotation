@@ -7,7 +7,6 @@ import { guideCategories, getCategoryInfo, type GuideCategory } from './guide-da
 import GuideStepCard from './GuideStepCard'
 
 interface GuideModalContentProps {
-  locale: string
   onClose?: () => void
 }
 
@@ -15,14 +14,12 @@ interface GuideModalContentProps {
  * 教學 Modal 內容
  * 兩種視圖：類別選擇 / 步驟導覽
  */
-export default function GuideModalContent({ locale }: GuideModalContentProps) {
+export default function GuideModalContent({ onClose }: GuideModalContentProps) {
   const [selectedCategory, setSelectedCategory] = useState<GuideCategory | null>(null)
   const [currentStep, setCurrentStep] = useState(0)
 
-  const lang = (locale === 'zh' || locale === 'en') ? locale : 'zh'
-
   // 取得當前類別資訊
-  const categoryInfo = selectedCategory ? getCategoryInfo(selectedCategory, lang) : null
+  const categoryInfo = selectedCategory ? getCategoryInfo(selectedCategory) : null
 
   // 處理類別選擇
   const handleSelectCategory = (category: GuideCategory) => {
@@ -53,6 +50,9 @@ export default function GuideModalContent({ locale }: GuideModalContentProps) {
   // 完成教學
   const handleComplete = () => {
     handleBack()
+    if (onClose) {
+      onClose()
+    }
   }
 
   // 類別選擇視圖
@@ -62,12 +62,10 @@ export default function GuideModalContent({ locale }: GuideModalContentProps) {
         {/* 標題 */}
         <div className="text-center mb-8">
           <h3 className="text-2xl font-bold text-slate-800 mb-2">
-            {lang === 'zh' ? '選擇教學主題' : 'Select a Guide Topic'}
+            選擇教學主題
           </h3>
           <p className="text-slate-500">
-            {lang === 'zh'
-              ? '選擇您想學習的功能，我們將一步一步引導您'
-              : 'Choose what you want to learn, we will guide you step by step'}
+            選擇您想學習的功能，我們將一步一步引導您
           </p>
         </div>
 
@@ -101,18 +99,18 @@ export default function GuideModalContent({ locale }: GuideModalContentProps) {
 
                 {/* 標題 */}
                 <h4 className="text-lg font-semibold text-slate-800 mb-2">
-                  {category.title[lang]}
+                  {category.title.zh}
                 </h4>
 
                 {/* 描述 */}
                 <p className="text-sm text-slate-500 mb-4">
-                  {category.description[lang]}
+                  {category.description.zh}
                 </p>
 
                 {/* 步驟數 */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-slate-400">
-                    {category.steps.length} {lang === 'zh' ? '個步驟' : 'steps'}
+                    {category.steps.length} 個步驟
                   </span>
                   <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
                 </div>
@@ -139,7 +137,7 @@ export default function GuideModalContent({ locale }: GuideModalContentProps) {
           className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
-          <span>{lang === 'zh' ? '返回類別' : 'Back to Categories'}</span>
+          <span>返回類別</span>
         </button>
 
         <div className="flex items-center gap-2">
@@ -174,7 +172,6 @@ export default function GuideModalContent({ locale }: GuideModalContentProps) {
           step={categoryInfo.steps[currentStep]}
           stepNumber={currentStep + 1}
           totalSteps={categoryInfo.steps.length}
-          locale={lang}
         />
       </div>
 
@@ -191,7 +188,7 @@ export default function GuideModalContent({ locale }: GuideModalContentProps) {
           )}
         >
           <ChevronLeft className="w-5 h-5" />
-          <span>{lang === 'zh' ? '上一步' : 'Previous'}</span>
+          <span>上一步</span>
         </button>
 
         {isLastStep ? (
@@ -206,7 +203,7 @@ export default function GuideModalContent({ locale }: GuideModalContentProps) {
             )}
           >
             <CheckCircle className="w-5 h-5" />
-            <span>{lang === 'zh' ? '完成' : 'Complete'}</span>
+            <span>完成</span>
           </button>
         ) : (
           <button
@@ -219,7 +216,7 @@ export default function GuideModalContent({ locale }: GuideModalContentProps) {
               'transition-all duration-200'
             )}
           >
-            <span>{lang === 'zh' ? '下一步' : 'Next'}</span>
+            <span>下一步</span>
             <ChevronRight className="w-5 h-5" />
           </button>
         )}

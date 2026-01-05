@@ -402,7 +402,9 @@ export async function getOrCreateAnalysis<T>(
   // 2. 嘗試從快取取得
   const cached = await getCachedAnalysis<T>(companyId, analysisType, dataHash, client)
   if (cached) {
-    console.log(`[Cache] Hit for ${analysisType} (key: ${cached.cache_key})`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Cache] Hit for ${analysisType} (key: ${cached.cache_key})`)
+    }
     return {
       success: true,
       data: cached.result,
@@ -414,7 +416,9 @@ export async function getOrCreateAnalysis<T>(
   }
 
   // 3. 執行分析
-  console.log(`[Cache] Miss for ${analysisType}, running analysis...`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Cache] Miss for ${analysisType}, running analysis...`)
+  }
   const result = await analyzer()
 
   // 4. 儲存到快取（如果成功）

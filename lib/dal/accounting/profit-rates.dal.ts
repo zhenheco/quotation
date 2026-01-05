@@ -6,6 +6,7 @@
  */
 
 import { SupabaseClient } from '@/lib/db/supabase-client'
+import { sanitizeSearchQuery } from '@/lib/security'
 
 // ============================================================================
 // 類型定義
@@ -233,7 +234,11 @@ export async function getProfitRates(
     }
 
     if (search) {
-      query = query.or(`industry_code.ilike.%${search}%,industry_name.ilike.%${search}%`)
+      // 安全：清理搜尋輸入防止 filter injection
+      const safeSearch = sanitizeSearchQuery(search)
+      if (safeSearch) {
+        query = query.or(`industry_code.ilike.%${safeSearch}%,industry_name.ilike.%${safeSearch}%`)
+      }
     }
 
     const { data, error } = await query

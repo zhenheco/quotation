@@ -1,7 +1,4 @@
 import type { NextConfig } from "next";
-import createNextIntlPlugin from 'next-intl/plugin';
-
-const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
   eslint: {
@@ -24,6 +21,21 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-tabs',
     ],
   },
+  // 301 重定向：將舊的 locale 路徑重定向到新路徑
+  async redirects() {
+    return [
+      {
+        source: '/zh/:path*',
+        destination: '/:path*',
+        permanent: true,
+      },
+      {
+        source: '/en/:path*',
+        destination: '/:path*',
+        permanent: true,
+      },
+    ]
+  },
 };
 
-export default withNextIntl(nextConfig);
+export default nextConfig;

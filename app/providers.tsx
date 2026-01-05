@@ -1,38 +1,41 @@
-/**
- * 應用程式 Providers
- *
- * 包裝所有全域 providers，包含：
- * - React Query Provider
- * - React Query Devtools（開發環境）
- */
-
 'use client'
 
-import { QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { getQueryClient } from '@/lib/api/queryClient'
 import { useState } from 'react'
+import { Toaster } from 'sonner'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
-interface ProvidersProps {
-  children: React.ReactNode
-}
-
-/**
- * 應用程式 Providers
- */
-export function Providers({ children }: ProvidersProps) {
-  // 使用 useState 確保在客戶端只建立一次 QueryClient
-  const [queryClient] = useState(() => getQueryClient())
+export function Providers({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 5 * 60 * 1000,  // 5 分鐘
+            gcTime: 10 * 60 * 1000,    // 10 分鐘快取保留
+            refetchOnWindowFocus: false,
+            refetchOnReconnect: 'always',
+            retry: 1,
+          },
+        },
+      })
+  )
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-      {process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools
-          initialIsOpen={false}
-          buttonPosition="bottom-left"
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        {children}
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          toastOptions={{
+            duration: 3000,
+          }}
         />
-      )}
-    </QueryClientProvider>
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }

@@ -1,0 +1,361 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
+import PageHeader from '@/components/ui/PageHeader';
+import { createClient } from '@/lib/supabase/client';
+import { apiGet, apiPut, apiPost } from '@/lib/api-client';
+
+export default function CompanySettingsForm() {
+  const supabase = createClient();
+  const [settings, setSettings] = useState<{
+    company_name?: { zh: string; en: string };
+    tax_id?: string;
+    phone?: string;
+    email?: string;
+    bank_name?: string;
+    account_number?: string;
+    account_name?: string;
+    logo_url?: string;
+    signature_url?: string;
+    passbook_url?: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<{
+    logo?: boolean;
+    signature?: boolean;
+    passbook?: boolean;
+  }>({});
+
+  const loadSettings = useCallback(async () => {
+    try {
+      const data = await apiGet<typeof settings>('/api/company-settings');
+      setSettings(data);
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  async function uploadFile(file: File, type: 'logo' | 'signature' | 'passbook') {
+    try {
+      setUploading(prev => ({ ...prev, [type]: true }));
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${type}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error } = await supabase.storage
+        .from('company-files')
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: file.type
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('company-files')
+        .getPublicUrl(filePath);
+
+      // Update company settings with file URL
+      const updateData: Record<string, string> = {};
+      if (type === 'logo') updateData.logo_url = publicUrl;
+      if (type === 'signature') updateData.signature_url = publicUrl;
+      if (type === 'passbook') updateData.passbook_url = publicUrl;
+
+      const updated = await apiPut<typeof settings>('/api/company-settings', updateData);
+      setSettings(updated);
+      alert(`${type === 'logo' ? 'Logo' : type === 'signature' ? '簽章' : '存摺影本'}上傳成功`);
+    } catch (error) {
+      console.error(`Failed to upload ${type}:`, error);
+      alert(`上傳失敗：${error instanceof Error ? error.message : '未知錯誤'}`);
+    } finally {
+      setUploading(prev => ({ ...prev, [type]: false }));
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const formDataObj = new FormData(e.currentTarget);
+      const data = {
+        company_name: {
+          zh: formDataObj.get('company_name_zh'),
+          en: formDataObj.get('company_name_en'),
+        },
+        tax_id: formDataObj.get('tax_id'),
+        phone: formDataObj.get('phone'),
+        email: formDataObj.get('email'),
+        bank_name: formDataObj.get('bank_name'),
+        account_number: formDataObj.get('account_number'),
+        account_name: formDataObj.get('account_name'),
+      };
+
+      const updated = settings
+        ? await apiPut<typeof settings>('/api/company-settings', data)
+        : await apiPost<typeof settings>('/api/company-settings', data);
+
+      setSettings(updated);
+      alert('儲存成功');
+    } catch (error) {
+      console.error('Failed to save:', error);
+      alert('儲存失敗');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64">載入中...</div>;
+  }
+
+  const companyName = settings?.company_name || { zh: '', en: '' };
+
+  return (
+    <div>
+      <PageHeader
+        title="公司設定"
+        description="管理您的公司資訊和相關設定"
+      />
+
+      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-4">
+        {/* Company Information */}
+        <div className="bg-white shadow rounded-lg p-4">
+          <h2 className="text-lg font-medium mb-3">公司資訊</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                公司名稱（中文）
+              </label>
+              <input
+                type="text"
+                name="company_name_zh"
+                defaultValue={companyName.zh || ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="範例股份有限公司"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                公司名稱（英文）
+              </label>
+              <input
+                type="text"
+                name="company_name_en"
+                defaultValue={companyName.en || ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Acme Corporation"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                統一編號
+              </label>
+              <input
+                type="text"
+                name="tax_id"
+                defaultValue={settings?.tax_id || ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="12345678"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                電話
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                defaultValue={settings?.phone || ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="+886 2 1234 5678"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                電子郵件
+              </label>
+              <input
+                type="email"
+                name="email"
+                defaultValue={settings?.email || ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="contact@example.com"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* File Uploads */}
+        <div className="bg-white shadow rounded-lg p-4">
+          <h2 className="text-lg font-medium mb-3">檔案上傳</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Logo Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                上傳 Logo
+              </label>
+              {settings?.logo_url && (
+                <div className="mb-2">
+                  <Image
+                    src={settings.logo_url}
+                    alt="Company Logo"
+                    width={128}
+                    height={128}
+                    className="object-contain border rounded"
+                  />
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, 'logo');
+                }}
+                disabled={uploading.logo}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+              />
+              {uploading.logo && <p className="text-sm text-gray-500 mt-1">上傳中...</p>}
+            </div>
+
+            {/* Signature Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                上傳簽章
+              </label>
+              {settings?.signature_url && (
+                <div className="mb-2">
+                  <Image
+                    src={settings.signature_url}
+                    alt="Signature"
+                    width={128}
+                    height={128}
+                    className="object-contain border rounded"
+                  />
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, 'signature');
+                }}
+                disabled={uploading.signature}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+              />
+              {uploading.signature && <p className="text-sm text-gray-500 mt-1">上傳中...</p>}
+            </div>
+
+            {/* Passbook Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                上傳存摺影本
+              </label>
+              {settings?.passbook_url && (
+                <div className="mb-2">
+                  <Image
+                    src={settings.passbook_url}
+                    alt="Passbook"
+                    width={128}
+                    height={128}
+                    className="object-contain border rounded"
+                  />
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, 'passbook');
+                }}
+                disabled={uploading.passbook}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+              />
+              {uploading.passbook && <p className="text-sm text-gray-500 mt-1">上傳中...</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* Bank Information */}
+        <div className="bg-white shadow rounded-lg p-4">
+          <h2 className="text-lg font-medium mb-3">銀行資訊</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                銀行名稱
+              </label>
+              <input
+                type="text"
+                name="bank_name"
+                defaultValue={settings?.bank_name || ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="台灣銀行"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                帳號
+              </label>
+              <input
+                type="text"
+                name="account_number"
+                defaultValue={settings?.account_number || ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="1234567890"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                戶名
+              </label>
+              <input
+                type="text"
+                name="account_name"
+                defaultValue={settings?.account_name || ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="範例股份有限公司"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? '儲存中...' : '儲存'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

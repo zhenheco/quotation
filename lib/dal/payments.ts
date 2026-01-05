@@ -589,11 +589,14 @@ export async function markScheduleAsCollected(
     throw new Error('Schedule not found')
   }
 
-  console.log('[markScheduleAsCollected] Schedule state:', {
-    scheduleId,
-    status: schedule.status,
-    paymentId: schedule.payment_id,
-  })
+  // Debug: 僅開發環境輸出
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[markScheduleAsCollected] Schedule state:', {
+      scheduleId,
+      status: schedule.status,
+      paymentId: schedule.payment_id,
+    })
+  }
 
   if (schedule.status === 'paid') {
     throw new Error('Schedule already paid')
@@ -604,7 +607,9 @@ export async function markScheduleAsCollected(
   // 處理手動建立的收款單（沒有 quotation_id 和 contract_id）
   // 不需要建立 payment 記錄，直接更新 schedule 狀態
   if (!schedule.quotation_id && !schedule.contract_id) {
-    console.log('[markScheduleAsCollected] Manual schedule, skipping payment creation')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[markScheduleAsCollected] Manual schedule, skipping payment creation')
+    }
 
     const { error: updateError } = await db
       .from('payment_schedules')
@@ -686,16 +691,21 @@ export async function markScheduleAsCollected(
   }
 
   if (count === 0) {
-    console.log('[markScheduleAsCollected] Race condition detected, deleting orphaned payment:', payment.id)
+    // 警告：競態條件偵測到孤立付款記錄
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[markScheduleAsCollected] Race condition detected, deleting orphaned payment:', payment.id)
+    }
     await db.from('payments').delete().eq('id', payment.id)
     throw new Error('Schedule already paid')
   }
 
-  console.log('[markScheduleAsCollected] Payment created and linked:', {
-    paymentId: payment.id,
-    scheduleId,
-    updatedRows: count
-  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[markScheduleAsCollected] Payment created and linked:', {
+      paymentId: payment.id,
+      scheduleId,
+      updatedRows: count
+    })
+  }
 
   if (schedule.contract_id) {
     const { data: nextSchedule } = await db
@@ -1363,12 +1373,14 @@ export async function updatePaymentSchedule(
     throw new Error('Payment schedule not found')
   }
 
-  console.log('[updatePaymentSchedule] Schedule state:', {
-    scheduleId,
-    currentStatus: schedule.status,
-    newStatus: data.status,
-    paymentId: schedule.payment_id,
-  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[updatePaymentSchedule] Schedule state:', {
+      scheduleId,
+      currentStatus: schedule.status,
+      newStatus: data.status,
+      paymentId: schedule.payment_id,
+    })
+  }
 
   if (
     schedule.status === 'paid' &&
@@ -1376,12 +1388,16 @@ export async function updatePaymentSchedule(
     data.status !== 'paid' &&
     schedule.payment_id
   ) {
-    console.log('[updatePaymentSchedule] Deleting payment:', schedule.payment_id)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[updatePaymentSchedule] Deleting payment:', schedule.payment_id)
+    }
     const { error: deleteError } = await db
       .from('payments')
       .delete()
       .eq('id', schedule.payment_id)
-    console.log('[updatePaymentSchedule] Delete result:', { error: deleteError })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[updatePaymentSchedule] Delete result:', { error: deleteError })
+    }
   }
 
   const updateData: Record<string, unknown> = {

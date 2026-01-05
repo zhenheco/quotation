@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 
 interface NavigationItem {
-  name: { en: string; zh: string }
+  name: string
   href: string
   icon: LucideIcon
   children?: NavigationItem[]
@@ -34,86 +34,82 @@ interface NavigationItem {
 
 const navigation: NavigationItem[] = [
   {
-    name: { en: 'Dashboard', zh: '儀表板' },
+    name: '儀表板',
     href: '/dashboard',
     icon: LayoutDashboard,
   },
   {
-    name: { en: 'Products', zh: '服務/項目' },
+    name: '服務/項目',
     href: '/products',
     icon: Package,
   },
   {
-    name: { en: 'Suppliers', zh: '供應商' },
+    name: '供應商',
     href: '/suppliers',
     icon: Factory,
   },
   {
-    name: { en: 'Customers', zh: '客戶' },
+    name: '客戶',
     href: '/customers',
     icon: UserCheck,
   },
   {
-    name: { en: 'Quotations', zh: '報價管理' },
+    name: '報價管理',
     href: '/quotations',
     icon: FileText,
     children: [
       {
-        name: { en: 'All Quotations', zh: '所有報價單' },
+        name: '所有報價單',
         href: '/quotations',
         icon: List,
       },
       {
-        name: { en: 'Payments', zh: '收款管理' },
+        name: '收款管理',
         href: '/payments',
         icon: Wallet,
       },
     ],
   },
   {
-    name: { en: 'Accounting', zh: '會計系統' },
+    name: '會計系統',
     href: '/accounting',
     icon: Calculator,
     children: [
       {
-        name: { en: 'Invoices', zh: '發票管理' },
+        name: '發票管理',
         href: '/accounting/invoices',
         icon: Receipt,
       },
       {
-        name: { en: 'Journal Entries', zh: '會計傳票' },
+        name: '會計傳票',
         href: '/accounting/journals',
         icon: FileText,
       },
       {
-        name: { en: 'Financial Reports', zh: '財務報表' },
+        name: '財務報表',
         href: '/accounting/reports',
         icon: BarChart3,
       },
       {
-        name: { en: 'Income Tax', zh: '營所稅申報' },
+        name: '營所稅申報',
         href: '/accounting/income-tax',
         icon: Landmark,
       },
     ],
   },
   {
-    name: { en: 'Guide', zh: '教學' },
+    name: '教學',
     href: '/guide',
     icon: BookOpen,
   },
   {
-    name: { en: 'Settings', zh: '系統設定' },
+    name: '系統設定',
     href: '/settings',
     icon: Settings,
   },
 ]
 
-interface SidebarProps {
-  locale: string
-}
-
-export default function Sidebar({ locale }: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>(['/quotations', '/accounting'])
@@ -126,8 +122,6 @@ export default function Sidebar({ locale }: SidebarProps) {
     )
   }
 
-  const getName = (item: NavigationItem) => locale === 'en' ? item.name.en : item.name.zh
-
   return (
     <aside
       className={cn(
@@ -138,7 +132,7 @@ export default function Sidebar({ locale }: SidebarProps) {
       {/* Logo - 現代圓潤風格 */}
       <div className="flex h-20 items-center border-b border-slate-100 px-4">
         <Link
-          href={`/${locale}/dashboard`}
+          href="/dashboard"
           className={cn(
             'flex items-center gap-3 transition-transform hover:scale-[1.02]',
             isCollapsed && 'justify-center'
@@ -149,12 +143,8 @@ export default function Sidebar({ locale }: SidebarProps) {
           </div>
           {!isCollapsed && (
             <div className="flex flex-col">
-              <span className="text-lg font-bold text-slate-800">
-                {locale === 'zh' ? '報價系統' : 'Quote24'}
-              </span>
-              <span className="text-xs text-slate-400">
-                {locale === 'zh' ? '專業報價管理' : 'Professional Quotes'}
-              </span>
+              <span className="text-lg font-bold text-slate-800">報價系統</span>
+              <span className="text-xs text-slate-400">專業報價管理</span>
             </div>
           )}
         </Link>
@@ -163,16 +153,14 @@ export default function Sidebar({ locale }: SidebarProps) {
       {/* Navigation - 更大的觸控目標和更柔和的樣式 */}
       <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-6">
         {navigation.map((item) => {
-          const fullHref = `/${locale}${item.href}`
           const isActive = item.href === '/settings'
-            ? pathname === fullHref
-            : pathname.startsWith(fullHref)
+            ? pathname === item.href
+            : pathname.startsWith(item.href)
           const hasChildren = item.children && item.children.length > 0
           const isExpanded = expandedItems.includes(item.href)
-          const isChildActive = item.children?.some((child) => {
-            const childHref = `/${locale}${child.href}`
-            return pathname === childHref || pathname.startsWith(childHref)
-          })
+          const isChildActive = item.children?.some((child) =>
+            pathname === child.href || pathname.startsWith(child.href)
+          )
 
           return (
             <div key={item.href}>
@@ -187,7 +175,7 @@ export default function Sidebar({ locale }: SidebarProps) {
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 hover:scale-[1.02]',
                     isCollapsed && 'justify-center px-3'
                   )}
-                  title={isCollapsed ? getName(item) : undefined}
+                  title={isCollapsed ? item.name : undefined}
                 >
                   <div className={cn(
                     'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-colors',
@@ -202,7 +190,7 @@ export default function Sidebar({ locale }: SidebarProps) {
                   </div>
                   {!isCollapsed && (
                     <>
-                      <span className="flex-1 text-left">{getName(item)}</span>
+                      <span className="flex-1 text-left">{item.name}</span>
                       <ChevronDown
                         className={cn(
                           'h-4 w-4 text-slate-400 transition-transform duration-200',
@@ -214,7 +202,7 @@ export default function Sidebar({ locale }: SidebarProps) {
                 </button>
               ) : (
                 <Link
-                  href={fullHref}
+                  href={item.href}
                   className={cn(
                     'group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200',
                     isActive
@@ -222,7 +210,7 @@ export default function Sidebar({ locale }: SidebarProps) {
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 hover:scale-[1.02]',
                     isCollapsed && 'justify-center px-3'
                   )}
-                  title={isCollapsed ? getName(item) : undefined}
+                  title={isCollapsed ? item.name : undefined}
                 >
                   <div className={cn(
                     'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-colors',
@@ -235,7 +223,7 @@ export default function Sidebar({ locale }: SidebarProps) {
                       )}
                     />
                   </div>
-                  {!isCollapsed && <span>{getName(item)}</span>}
+                  {!isCollapsed && <span>{item.name}</span>}
                 </Link>
               )}
 
@@ -243,12 +231,11 @@ export default function Sidebar({ locale }: SidebarProps) {
               {hasChildren && isExpanded && !isCollapsed && (
                 <div className="mt-1.5 ml-6 space-y-1 border-l-2 border-slate-100 pl-4">
                   {item.children?.map((child) => {
-                    const childHref = `/${locale}${child.href}`
-                    const isChildItemActive = pathname === childHref
+                    const isChildItemActive = pathname === child.href
                     return (
                       <Link
                         key={child.href}
-                        href={childHref}
+                        href={child.href}
                         className={cn(
                           'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                           isChildItemActive
@@ -264,7 +251,7 @@ export default function Sidebar({ locale }: SidebarProps) {
                               : 'text-slate-400'
                           )}
                         />
-                        {getName(child)}
+                        {child.name}
                       </Link>
                     )
                   })}
@@ -283,14 +270,14 @@ export default function Sidebar({ locale }: SidebarProps) {
             'flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-slate-500 transition-all duration-200 hover:bg-slate-100 hover:text-slate-700',
             isCollapsed && 'justify-center'
           )}
-          title={isCollapsed ? (locale === 'zh' ? '展開側邊欄' : 'Expand Sidebar') : (locale === 'zh' ? '收合側邊欄' : 'Collapse Sidebar')}
+          title={isCollapsed ? '展開側邊欄' : '收合側邊欄'}
         >
           {isCollapsed ? (
             <ChevronRight className="h-5 w-5" />
           ) : (
             <>
               <ChevronLeft className="h-5 w-5" />
-              <span className="text-sm">{locale === 'zh' ? '收合側邊欄' : 'Collapse'}</span>
+              <span className="text-sm">收合側邊欄</span>
             </>
           )}
         </button>
