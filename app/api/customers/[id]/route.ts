@@ -99,11 +99,104 @@ export const PUT = withAuth('customers:write')<{ id: string }>(
 
 /**
  * DELETE /api/customers/[id] - 刪除客戶
+ * 支援 forceDelete 參數，可連同刪除關聯的報價單和付款紀錄
  */
 export const DELETE = withAuth('customers:delete')<{ id: string }>(
-  async (_request, { user, db }, { id }) => {
+  async (request, { user, db }, { id }) => {
+    // 解析 request body 取得 forceDelete 參數
+    let forceDelete = false
+    try {
+      const body = await request.json()
+      forceDelete = body?.forceDelete === true
+    } catch {
+      // 沒有 body 或解析失敗，使用預設值 false
+    }
+
+    // 如果 forceDelete，先刪除關聯的紀錄
+    if (forceDelete) {
+      // 刪除關聯的 payments
+      const { error: paymentsError } = await db
+        .from('payments')
+        .delete()
+        .eq('customer_id', id)
+
+      if (paymentsError) {
+        console.error('Error deleting related payments:', paymentsError)
+        return NextResponse.json({
+          error: '刪除關聯付款紀錄失敗'
+        }, { status: 500 })
+      }
+
+      // 刪除關聯的 payment_schedules
+      const { error: schedulesError } = await db
+        .from('payment_schedules')
+        .delete()
+        .eq('customer_id', id)
+
+      if (schedulesError) {
+        console.error('Error deleting related payment schedules:', schedulesError)
+        return NextResponse.json({
+          error: '刪除關聯付款排程失敗'
+        }, { status: 500 })
+      }
+
+      // 取得所有關聯的報價單
+      const { data: quotations } = await db
+        .from('quotations')
+        .select('id')
+        .eq('customer_id', id)
+
+      // 刪除每個報價單的項目
+      if (quotations && quotations.length > 0) {
+        for (const quotation of quotations) {
+          await db
+            .from('quotation_items')
+            .delete()
+            .eq('quotation_id', quotation.id)
+        }
+      }
+
+      // 刪除關聯的 quotations
+      const { error: quotationsError } = await db
+        .from('quotations')
+        .delete()
+        .eq('customer_id', id)
+
+      if (quotationsError) {
+        console.error('Error deleting related quotations:', quotationsError)
+        return NextResponse.json({
+          error: '刪除關聯報價單失敗'
+        }, { status: 500 })
+      }
+    }
+
     // 刪除客戶
-    await deleteCustomer(db, user.id, id)
+    try {
+      await deleteCustomer(db, user.id, id)
+    } catch (deleteError: unknown) {
+      const errorMessage = deleteError instanceof Error ? deleteError.message : String(deleteError)
+
+      // 檢測外鍵約束錯誤，提供友善訊息
+      if (errorMessage.includes('foreign key constraint') || errorMessage.includes('23503')) {
+        if (errorMessage.includes('payments')) {
+          return NextResponse.json({
+            error: '無法刪除此客戶，因為已有相關的付款紀錄。請勾選「連同刪除關聯紀錄」後再試。',
+            code: 'HAS_RELATED_PAYMENTS'
+          }, { status: 400 })
+        }
+        if (errorMessage.includes('quotations')) {
+          return NextResponse.json({
+            error: '無法刪除此客戶，因為已有相關的報價單。請勾選「連同刪除關聯紀錄」後再試。',
+            code: 'HAS_RELATED_QUOTATIONS'
+          }, { status: 400 })
+        }
+        return NextResponse.json({
+          error: '無法刪除此客戶，因為有其他資料正在使用此紀錄。',
+          code: 'HAS_RELATED_RECORDS'
+        }, { status: 400 })
+      }
+      throw deleteError
+    }
 
     return NextResponse.json({ message: 'Customer deleted successfully' })
   }

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
+import DeleteConfirmModal, { type RelatedRecordsInfo } from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
 import { useSearchCustomers, useDeleteCustomer } from '@/hooks/useCustomers'
 
@@ -13,7 +13,12 @@ export default function CustomerList() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; customerId: string | null }>({
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    customerId: string | null
+    relatedRecords?: RelatedRecordsInfo
+    isCheckingRelated?: boolean
+  }>({
     isOpen: false,
     customerId: null,
   })
@@ -22,12 +27,47 @@ export default function CustomerList() {
   const { data: customers, isLoading, error } = useSearchCustomers(searchTerm)
   const deleteCustomer = useDeleteCustomer()
 
+  // 點擊刪除時，先檢查是否有關聯紀錄
+  const handleDeleteClick = async (customerId: string) => {
+    setDeleteModal({
+      isOpen: true,
+      customerId,
+      isCheckingRelated: true,
+    })
+
+    try {
+      const response = await fetch(`/api/customers/${customerId}/related-payments`)
+      if (response.ok) {
+        const data = await response.json()
+        setDeleteModal(prev => ({
+          ...prev,
+          relatedRecords: data,
+          isCheckingRelated: false,
+        }))
+      } else {
+        setDeleteModal(prev => ({
+          ...prev,
+          isCheckingRelated: false,
+        }))
+      }
+    } catch (error) {
+      console.error('Error checking related records:', error)
+      setDeleteModal(prev => ({
+        ...prev,
+        isCheckingRelated: false,
+      }))
+    }
+  }
+
   // 刪除處理
-  const handleDelete = async () => {
+  const handleDelete = async (forceDelete?: boolean) => {
     if (!deleteModal.customerId) return
 
     try {
-      await deleteCustomer.mutateAsync(deleteModal.customerId)
+      await deleteCustomer.mutateAsync({
+        id: deleteModal.customerId,
+        forceDelete: forceDelete ?? false,
+      })
       toast.success('客戶已刪除')
       setDeleteModal({ isOpen: false, customerId: null })
     } catch (error) {
@@ -180,7 +220,7 @@ export default function CustomerList() {
                           編輯
                         </button>
                         <button
-                          onClick={() => setDeleteModal({ isOpen: true, customerId: customer.id })}
+                          onClick={() => handleDeleteClick(customer.id)}
                           className="text-red-600 hover:text-red-900 cursor-pointer"
                           disabled={deleteCustomer.isPending}
                         >
@@ -257,7 +297,7 @@ export default function CustomerList() {
                       編輯
                     </button>
                     <button
-                      onClick={() => setDeleteModal({ isOpen: true, customerId: customer.id })}
+                      onClick={() => handleDeleteClick(customer.id)}
                       disabled={deleteCustomer.isPending}
                       className="flex-1 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
                     >
@@ -281,10 +321,16 @@ export default function CustomerList() {
         onClose={() => setDeleteModal({ isOpen: false, customerId: null })}
         onConfirm={handleDelete}
         title="確認刪除"
-        description="確定要刪除此客戶嗎？此操作無法復原。"
+        description={
+          deleteModal.isCheckingRelated
+            ? '正在檢查關聯紀錄...'
+            : '確定要刪除此客戶嗎？此操作無法復原。'
+        }
         confirmText="刪除"
         cancelText="取消"
-        isLoading={deleteCustomer.isPending}
+        isLoading={deleteCustomer.isPending || deleteModal.isCheckingRelated}
+        relatedRecords={deleteModal.relatedRecords}
+        forceDeleteLabel="連同刪除所有關聯的報價單和付款紀錄"
       />
     </>
   )

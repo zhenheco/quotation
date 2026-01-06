@@ -135,8 +135,13 @@ async function updateQuotation(id: string, input: UpdateQuotationInput): Promise
   return apiPut<Quotation>(`/api/quotations/${id}`, input)
 }
 
-async function deleteQuotation(id: string): Promise<void> {
-  await apiDelete(`/api/quotations/${id}`)
+interface DeleteQuotationParams {
+  id: string
+  forceDelete?: boolean
+}
+
+async function deleteQuotation({ id, forceDelete = false }: DeleteQuotationParams): Promise<void> {
+  await apiDelete(`/api/quotations/${id}`, { forceDelete })
 }
 
 async function convertToContract(id: string): Promise<void> {
@@ -275,7 +280,7 @@ export function useDeleteQuotation() {
 
   return useMutation({
     mutationFn: deleteQuotation,
-    onMutate: async (id) => {
+    onMutate: async ({ id }) => {
       await queryClient.cancelQueries({ queryKey: ['quotations'] })
       const previousQuotations = queryClient.getQueryData<Quotation[]>(['quotations'])
 
@@ -285,7 +290,7 @@ export function useDeleteQuotation() {
 
       return { previousQuotations }
     },
-    onError: (err, id, context) => {
+    onError: (_err, _params, context) => {
       if (context?.previousQuotations) {
         queryClient.setQueryData(['quotations'], context.previousQuotations)
       }

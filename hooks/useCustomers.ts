@@ -65,8 +65,13 @@ async function updateCustomer(id: string, input: UpdateCustomerInput): Promise<C
   return apiPut<Customer>(`/api/customers/${id}`, input)
 }
 
-async function deleteCustomer(id: string): Promise<void> {
-  await apiDelete(`/api/customers/${id}`)
+interface DeleteCustomerParams {
+  id: string
+  forceDelete?: boolean
+}
+
+async function deleteCustomer({ id, forceDelete = false }: DeleteCustomerParams): Promise<void> {
+  await apiDelete(`/api/customers/${id}`, { forceDelete })
 }
 
 // ============================================================================
@@ -239,7 +244,7 @@ export function useDeleteCustomer() {
     mutationFn: deleteCustomer,
 
     // 樂觀更新：立即從 UI 移除
-    onMutate: async (id) => {
+    onMutate: async ({ id }) => {
       // 取消進行中的查詢
       await queryClient.cancelQueries({ queryKey: ['customers'] })
 
@@ -255,7 +260,7 @@ export function useDeleteCustomer() {
     },
 
     // 如果失敗，還原資料
-    onError: (err, id, context) => {
+    onError: (_err, _params, context) => {
       if (context?.previousCustomers) {
         queryClient.setQueryData(['customers'], context.previousCustomers)
       }

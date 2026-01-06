@@ -136,8 +136,11 @@ export async function apiPut<T = unknown>(
 /**
  * DELETE 請求
  */
-export async function apiDelete<T = unknown>(url: string): Promise<T> {
-  return apiFetch<T>(url, { method: 'DELETE' })
+export async function apiDelete<T = unknown>(
+  url: string,
+  body?: unknown
+): Promise<T> {
+  return apiFetch<T>(url, { method: 'DELETE', body })
 }
 
 /**
