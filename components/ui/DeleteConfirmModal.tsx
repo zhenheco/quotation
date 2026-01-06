@@ -4,15 +4,28 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle } from 'lucide-react'
 
+export interface RelatedRecordsInfo {
+  hasRelatedRecords: boolean
+  payments?: { id: string; amount: number; payment_date?: string }[]
+  schedules?: { id: string; amount: number; due_date?: string; status?: string }[]
+  quotations?: { id: string; quotation_number?: string; total_amount?: number; status?: string }[]
+  totalPaymentsAmount?: number
+  totalSchedulesAmount?: number
+  totalQuotationsAmount?: number
+}
+
 interface DeleteConfirmModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: () => void
+  onConfirm: (forceDelete?: boolean) => void
   title: string
   description: string
   confirmText: string
   cancelText: string
   isLoading?: boolean
+  // 擴展功能：顯示關聯紀錄
+  relatedRecords?: RelatedRecordsInfo
+  forceDeleteLabel?: string
 }
 
 export default function DeleteConfirmModal({
@@ -24,8 +37,18 @@ export default function DeleteConfirmModal({
   confirmText,
   cancelText,
   isLoading = false,
+  relatedRecords,
+  forceDeleteLabel = '連同刪除所有關聯的付款紀錄',
 }: DeleteConfirmModalProps) {
   const [mounted, setMounted] = useState(false)
+  const [forceDelete, setForceDelete] = useState(false)
+
+  // 重置 forceDelete 狀態當 modal 關閉時
+  useEffect(() => {
+    if (!isOpen) {
+      setForceDelete(false)
+    }
+  }, [isOpen])
 
   useEffect(() => {
     setMounted(true)
@@ -105,12 +128,73 @@ export default function DeleteConfirmModal({
             <p className="text-sm text-slate-500">{description}</p>
           </div>
 
+          {/* 關聯紀錄資訊 */}
+          {relatedRecords?.hasRelatedRecords && (
+            <div className="mb-6 p-4 bg-amber-50 rounded-2xl border border-amber-200">
+              <div className="flex items-start gap-2 mb-3">
+                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <span className="text-sm font-medium text-amber-800">
+                  此紀錄有以下關聯資料：
+                </span>
+              </div>
+              <ul className="space-y-1.5 text-sm text-amber-700 ml-7">
+                {relatedRecords.payments && relatedRecords.payments.length > 0 && (
+                  <li>
+                    • {relatedRecords.payments.length} 筆收款紀錄
+                    {relatedRecords.totalPaymentsAmount !== undefined && (
+                      <span className="ml-1">
+                        （共 NT${relatedRecords.totalPaymentsAmount.toLocaleString()}）
+                      </span>
+                    )}
+                  </li>
+                )}
+                {relatedRecords.schedules && relatedRecords.schedules.length > 0 && (
+                  <li>
+                    • {relatedRecords.schedules.length} 筆付款排程
+                    {relatedRecords.totalSchedulesAmount !== undefined && (
+                      <span className="ml-1">
+                        （共 NT${relatedRecords.totalSchedulesAmount.toLocaleString()}）
+                      </span>
+                    )}
+                  </li>
+                )}
+                {relatedRecords.quotations && relatedRecords.quotations.length > 0 && (
+                  <li>
+                    • {relatedRecords.quotations.length} 筆報價單
+                    {relatedRecords.totalQuotationsAmount !== undefined && (
+                      <span className="ml-1">
+                        （共 NT${relatedRecords.totalQuotationsAmount.toLocaleString()}）
+                      </span>
+                    )}
+                  </li>
+                )}
+              </ul>
+
+              {/* 強制刪除選項 */}
+              <label className="flex items-center gap-2 mt-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={forceDelete}
+                  onChange={(e) => setForceDelete(e.target.checked)}
+                  className="w-4 h-4 text-red-500 border-gray-300 rounded focus:ring-red-500"
+                />
+                <span className="text-sm text-amber-800">{forceDeleteLabel}</span>
+              </label>
+            </div>
+          )}
+
           {/* 按鈕區 - 垂直排列 */}
           <div className="flex flex-col gap-3">
+            {/* 有關聯紀錄但未勾選時顯示提示 */}
+            {relatedRecords?.hasRelatedRecords && !forceDelete && (
+              <p className="text-xs text-center text-red-500 mb-1">
+                請勾選上方選項以刪除關聯紀錄，否則無法刪除
+              </p>
+            )}
             <button
               type="button"
-              disabled={isLoading}
-              onClick={onConfirm}
+              disabled={isLoading || (relatedRecords?.hasRelatedRecords && !forceDelete)}
+              onClick={() => onConfirm(forceDelete)}
               className="w-full px-6 py-3 bg-red-500 text-white rounded-2xl font-medium shadow-lg shadow-red-500/25 hover:bg-red-600 hover:shadow-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? '刪除中...' : confirmText}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
+import DeleteConfirmModal, { type RelatedRecordsInfo } from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
 import {
   useQuotations,
@@ -34,7 +34,12 @@ export default function QuotationList() {
   const batchSend = useBatchSendQuotations()
 
   // 狀態
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; quotation: Quotation | null }>({
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    quotation: Quotation | null
+    relatedRecords?: RelatedRecordsInfo
+    isCheckingRelated?: boolean
+  }>({
     isOpen: false,
     quotation: null,
   })
@@ -108,16 +113,51 @@ export default function QuotationList() {
     }
   }
 
+  // 點擊刪除時，先檢查是否有關聯紀錄
+  const handleDeleteClick = async (quotation: Quotation) => {
+    setDeleteModal({
+      isOpen: true,
+      quotation,
+      isCheckingRelated: true,
+    })
 
-  const handleDelete = async () => {
+    try {
+      const response = await fetch(`/api/quotations/${quotation.id}/related-payments`)
+      if (response.ok) {
+        const data = await response.json()
+        setDeleteModal(prev => ({
+          ...prev,
+          relatedRecords: data,
+          isCheckingRelated: false,
+        }))
+      } else {
+        setDeleteModal(prev => ({
+          ...prev,
+          isCheckingRelated: false,
+        }))
+      }
+    } catch (error) {
+      console.error('Error checking related records:', error)
+      setDeleteModal(prev => ({
+        ...prev,
+        isCheckingRelated: false,
+      }))
+    }
+  }
+
+  const handleDelete = async (forceDelete?: boolean) => {
     if (!deleteModal.quotation) return
 
     try {
-      await deleteQuotation.mutateAsync(deleteModal.quotation.id)
+      await deleteQuotation.mutateAsync({
+        id: deleteModal.quotation.id,
+        forceDelete: forceDelete ?? false,
+      })
       toast.success('報價單已刪除')
       setDeleteModal({ isOpen: false, quotation: null })
-    } catch (error) {
-      toast.error('刪除報價單失敗')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '刪除報價單失敗'
+      toast.error(errorMessage)
       console.error('Error deleting quotation:', error)
     }
   }
@@ -378,7 +418,7 @@ export default function QuotationList() {
                       檢視
                     </button>
                     <button
-                      onClick={() => setDeleteModal({ isOpen: true, quotation })}
+                      onClick={() => handleDeleteClick(quotation)}
                       className="text-red-600 hover:text-red-900 cursor-pointer"
                     >
                       刪除
@@ -487,7 +527,7 @@ export default function QuotationList() {
                   檢視
                 </button>
                 <button
-                  onClick={() => setDeleteModal({ isOpen: true, quotation })}
+                  onClick={() => handleDeleteClick(quotation)}
                   className="text-red-600 hover:text-red-900 text-sm"
                 >
                   刪除
@@ -509,10 +549,16 @@ export default function QuotationList() {
         onClose={() => setDeleteModal({ isOpen: false, quotation: null })}
         onConfirm={handleDelete}
         title="確認刪除"
-        description="確定要刪除這份報價單嗎？此操作無法復原。"
+        description={
+          deleteModal.isCheckingRelated
+            ? '正在檢查關聯紀錄...'
+            : '確定要刪除這份報價單嗎？此操作無法復原。'
+        }
         confirmText="刪除"
         cancelText="取消"
-        isLoading={deleteQuotation.isPending}
+        isLoading={deleteQuotation.isPending || deleteModal.isCheckingRelated}
+        relatedRecords={deleteModal.relatedRecords}
+        forceDeleteLabel="連同刪除所有關聯的付款紀錄"
       />
 
       {/* 批次刪除確認彈窗 */}
