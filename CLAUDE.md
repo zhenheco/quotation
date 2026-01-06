@@ -230,3 +230,20 @@ curl -s "https://quote24.cc/zh/login" | grep -o '[a-z]*\.supabase\.co'
 1. GitHub Secrets: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 2. GitHub Actions workflow: Build step has all `NEXT_PUBLIC_*` env vars
 3. Supabase Dashboard: Site URL = `https://quote24.cc`, Redirect URLs include `https://quote24.cc/**`
+
+---
+
+## 🐛 已知問題與解法
+
+### 擴大書審 - 純益率查詢無結果
+
+**問題**：在營所稅擴大書審頁面搜尋行業別時顯示「查無結果」，即使資料庫有資料
+**原因**：前端傳送西元年（如 2024），但資料庫使用民國年格式（如 113）
+**解法**：在 `app/api/accounting/profit-rates/route.ts` 新增年份轉換邏輯：
+```typescript
+// 如果年份 > 1911，表示是西元年，需要轉換
+const taxYear = rawTaxYear > 1911 ? rawTaxYear - 1911 : rawTaxYear
+```
+**日期**：2026-01-06
+
+---
