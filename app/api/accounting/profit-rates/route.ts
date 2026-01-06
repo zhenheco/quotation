@@ -37,9 +37,14 @@ export const GET = withAuthOnly(async (request, { db }) => {
   const limitStr = searchParams.get('limit')
   const offsetStr = searchParams.get('offset')
 
-  const taxYear = taxYearStr ? parseInt(taxYearStr, 10) : new Date().getFullYear()
+  const rawTaxYear = taxYearStr ? parseInt(taxYearStr, 10) : new Date().getFullYear()
   const limit = limitStr ? parseInt(limitStr, 10) : 100
   const offset = offsetStr ? parseInt(offsetStr, 10) : 0
+
+  // 轉換西元年為民國年（如果需要）
+  // 如果年份 > 1911，表示是西元年，需要轉換
+  // 如果年份 <= 200，表示已經是民國年格式
+  const taxYear = rawTaxYear > 1911 ? rawTaxYear - 1911 : rawTaxYear
 
   // 只取得行業大類列表
   if (categoriesOnly) {
