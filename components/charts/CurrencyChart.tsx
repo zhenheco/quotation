@@ -43,11 +43,11 @@ const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 export default function CurrencyChart({ data }: CurrencyChartProps) {
 
-  // 計算百分比
+  // 計算百分比（防止除以零導致 NaN）
   const total = data.reduce((sum, item) => sum + item.value, 0)
   const dataWithPercentage = data.map(item => ({
     ...item,
-    percentage: ((item.value / total) * 100).toFixed(1)
+    percentage: total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0'
   }))
 
   // 自訂標籤
