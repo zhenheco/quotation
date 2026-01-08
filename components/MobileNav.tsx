@@ -82,24 +82,24 @@ export default function MobileNav() {
         <div className="fixed inset-0 z-50 md:hidden">
           {/* 背景遮罩 */}
           <div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/30"
             onClick={() => setShowMore(false)}
           />
 
-          {/* 選單內容 */}
-          <div className="absolute bottom-24 left-4 right-4 bg-white rounded-3xl shadow-2xl p-4 animate-scale-in">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">
+          {/* 選單內容 - 專業簡潔風格 */}
+          <div className="absolute bottom-20 left-4 right-4 bg-white rounded-xl shadow-xl border border-slate-200 p-4 animate-scale-in">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-slate-700">
                 更多功能
               </h3>
               <button
                 onClick={() => setShowMore(false)}
-                className="p-2 rounded-xl hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-md hover:bg-slate-100 transition-colors"
               >
-                <X className="h-5 w-5 text-slate-500" />
+                <X className="h-4 w-4 text-slate-500" />
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               {moreItems.map((item) => {
                 const isActive = pathname.startsWith(item.href)
                 const Icon = item.icon
@@ -110,13 +110,13 @@ export default function MobileNav() {
                     href={item.href}
                     onClick={() => setShowMore(false)}
                     className={cn(
-                      'flex flex-col items-center gap-2 p-4 rounded-2xl transition-all',
+                      'flex flex-col items-center gap-1.5 p-3 rounded-lg transition-colors',
                       isActive
-                        ? 'bg-emerald-500 text-white'
+                        ? 'bg-teal-700 text-white'
                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                     )}
                   >
-                    <Icon className="h-6 w-6" />
+                    <Icon className="h-5 w-5" />
                     <span className="text-xs font-medium">{item.name}</span>
                   </Link>
                 )
@@ -126,9 +126,9 @@ export default function MobileNav() {
         </div>
       )}
 
-      {/* 浮動底部導航欄 */}
-      <nav className="fixed bottom-4 left-4 right-4 md:hidden z-40">
-        <div className="flex items-center justify-around bg-white/90 backdrop-blur-xl rounded-3xl shadow-lg border border-slate-100 py-2 px-1">
+      {/* 底部導航欄 - 專業簡潔 */}
+      <nav className="fixed bottom-0 left-0 right-0 md:hidden z-40 pb-safe">
+        <div className="flex items-center justify-around bg-white border-t border-slate-200 py-2 px-1">
           {primaryItems.map((item) => {
             const isActive = pathname.startsWith(item.href)
             const Icon = item.icon
@@ -138,16 +138,19 @@ export default function MobileNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all min-w-[60px]',
+                  'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors min-w-[56px]',
                   isActive
-                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                    ? 'text-teal-700'
                     : 'text-slate-400'
                 )}
               >
-                <Icon className={cn('h-5 w-5', isActive && 'h-6 w-6')} />
-                {isActive && (
-                  <span className="text-xs font-medium">{item.name}</span>
-                )}
+                <Icon className="h-5 w-5" />
+                <span className={cn(
+                  'text-[10px] font-medium',
+                  isActive ? 'text-teal-700' : 'text-slate-400'
+                )}>
+                  {item.name}
+                </span>
               </Link>
             )
           })}
@@ -156,16 +159,19 @@ export default function MobileNav() {
           <button
             onClick={() => setShowMore(true)}
             className={cn(
-              'flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all min-w-[60px]',
+              'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors min-w-[56px]',
               isMoreActive || showMore
-                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                ? 'text-teal-700'
                 : 'text-slate-400'
             )}
           >
             <MoreHorizontal className="h-5 w-5" />
-            {(isMoreActive || showMore) && (
-              <span className="text-xs font-medium">更多</span>
-            )}
+            <span className={cn(
+              'text-[10px] font-medium',
+              isMoreActive || showMore ? 'text-teal-700' : 'text-slate-400'
+            )}>
+              更多
+            </span>
           </button>
         </div>
       </nav>

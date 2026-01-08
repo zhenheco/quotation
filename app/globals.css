@@ -1,60 +1,62 @@
 @import "tailwindcss";
 
 :root {
-  /* ===== 親民 UI 設計系統 ===== */
+  /* ===== 專業金融設計系統 ===== */
+  /* 風格：Swiss Minimalism + Financial Trust */
+  /* 配色靈感：傳統金融 Navy + Teal 信任色 */
 
-  /* 暖灰奶油背景 - 柔和不刺眼 */
-  --background: 40 20% 98%;
-  --foreground: 160 10% 15%;
+  /* 背景 - 極淡的冷灰，專業沉穩 */
+  --background: 210 20% 98%;
+  --foreground: 215 25% 15%;
 
-  /* 卡片 - 純白突出 */
+  /* 卡片 - 純白，清晰邊界 */
   --card: 0 0% 100%;
-  --card-foreground: 160 10% 15%;
+  --card-foreground: 215 25% 15%;
   --popover: 0 0% 100%;
-  --popover-foreground: 160 10% 15%;
+  --popover-foreground: 215 25% 15%;
 
-  /* 森林綠主色 - 象徵成長與財富 */
-  --primary: 160 84% 39%;
+  /* 主色 - 深邃 Teal，象徵信任與穩定 */
+  --primary: 174 72% 30%;
   --primary-foreground: 0 0% 100%;
 
-  /* 柔和次要色 */
-  --secondary: 40 15% 95%;
-  --secondary-foreground: 160 10% 25%;
+  /* 次要色 - 淡灰藍背景 */
+  --secondary: 210 15% 96%;
+  --secondary-foreground: 215 20% 30%;
 
-  /* 靜音色 */
-  --muted: 40 10% 94%;
-  --muted-foreground: 160 5% 45%;
+  /* 靜音色 - 專業中性灰 */
+  --muted: 210 12% 94%;
+  --muted-foreground: 215 15% 50%;
 
-  /* 強調色 - 淡綠 */
-  --accent: 160 40% 95%;
-  --accent-foreground: 160 84% 30%;
+  /* 強調色 - 淡 Teal */
+  --accent: 174 40% 95%;
+  --accent-foreground: 174 72% 25%;
 
   /* 狀態色 */
-  --destructive: 0 72% 51%;
+  --destructive: 0 65% 50%;
   --destructive-foreground: 0 0% 100%;
-  --success: 160 84% 39%;
+  --success: 160 60% 40%;
   --success-foreground: 0 0% 100%;
-  --warning: 38 92% 50%;
-  --warning-foreground: 30 80% 15%;
+  --warning: 38 85% 50%;
+  --warning-foreground: 30 70% 15%;
 
-  /* 邊框和輸入框 */
-  --border: 40 15% 90%;
-  --input: 40 15% 90%;
-  --ring: 160 84% 39%;
+  /* 邊框和輸入框 - 清晰但不突兀 */
+  --border: 210 20% 90%;
+  --input: 210 20% 90%;
+  --ring: 174 72% 30%;
 
-  /* 圓角系統 - 現代圓潤 */
-  --radius: 1rem;
-  --radius-sm: 0.625rem;
-  --radius-lg: 1.25rem;
-  --radius-xl: 1.5rem;
-  --radius-2xl: 2rem;
+  /* 圓角系統 - 專業適中（非過度圓潤） */
+  --radius: 0.5rem;
+  --radius-sm: 0.375rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
 
-  /* Bento 卡片漸層背景 */
-  --bento-green: 160 60% 95%;
-  --bento-blue: 200 60% 95%;
-  --bento-yellow: 45 80% 95%;
-  --bento-pink: 350 60% 96%;
-  --bento-purple: 260 60% 96%;
+  /* 功能區塊背景色 */
+  --bento-green: 174 30% 96%;
+  --bento-blue: 210 30% 96%;
+  --bento-yellow: 45 40% 96%;
+  --bento-pink: 0 20% 97%;
+  --bento-purple: 260 25% 97%;
 }
 
 @theme inline {
@@ -81,8 +83,8 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-ibm-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), monospace;
 
   /* Bento 卡片背景色 */
   --color-bento-green: hsl(var(--bento-green));
@@ -99,35 +101,35 @@
 }
 
 .dark {
-  /* 深色模式 - 保持森林綠主題 */
-  --background: 160 15% 8%;
-  --foreground: 40 20% 95%;
-  --card: 160 12% 12%;
-  --card-foreground: 40 20% 95%;
-  --popover: 160 12% 12%;
-  --popover-foreground: 40 20% 95%;
-  --primary: 160 70% 45%;
+  /* 深色模式 - 專業 Navy + Teal */
+  --background: 215 30% 8%;
+  --foreground: 210 20% 95%;
+  --card: 215 25% 12%;
+  --card-foreground: 210 20% 95%;
+  --popover: 215 25% 12%;
+  --popover-foreground: 210 20% 95%;
+  --primary: 174 60% 45%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 160 10% 18%;
-  --secondary-foreground: 40 20% 90%;
-  --muted: 160 10% 18%;
-  --muted-foreground: 40 10% 60%;
-  --accent: 160 20% 20%;
-  --accent-foreground: 160 70% 60%;
-  --destructive: 0 62% 45%;
+  --secondary: 215 20% 18%;
+  --secondary-foreground: 210 15% 85%;
+  --muted: 215 15% 20%;
+  --muted-foreground: 210 10% 55%;
+  --accent: 174 25% 20%;
+  --accent-foreground: 174 60% 65%;
+  --destructive: 0 55% 45%;
   --destructive-foreground: 0 0% 100%;
-  --success: 160 70% 45%;
-  --warning: 38 80% 55%;
-  --border: 160 10% 20%;
-  --input: 160 10% 20%;
-  --ring: 160 70% 45%;
+  --success: 160 55% 45%;
+  --warning: 38 70% 55%;
+  --border: 215 15% 22%;
+  --input: 215 15% 22%;
+  --ring: 174 60% 45%;
 
-  /* Bento 深色背景 */
-  --bento-green: 160 30% 15%;
-  --bento-blue: 200 30% 15%;
-  --bento-yellow: 45 30% 15%;
-  --bento-pink: 350 30% 15%;
-  --bento-purple: 260 30% 15%;
+  /* 深色功能區塊 */
+  --bento-green: 174 20% 15%;
+  --bento-blue: 210 20% 15%;
+  --bento-yellow: 45 20% 13%;
+  --bento-pink: 0 15% 14%;
+  --bento-purple: 260 15% 15%;
 }
 
 html {
