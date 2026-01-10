@@ -130,11 +130,16 @@ export async function POST(request: Request) {
       environment: 'production', // 使用正式環境
     })
 
+    // 建立 callback URL（付款完成後導回）
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://quote24.cc'
+    const callbackUrl = `${baseUrl}/pricing/callback?order_id=${orderId}&tier=${body.tier}&amount=${finalPrice}`
+
     const paymentParams: CreatePaymentParams = {
       orderId,
       amount: finalPrice,
       description: `${planPrices.name} - ${body.billing_cycle === 'YEARLY' ? '年繳' : '月繳'}`,
       email: userEmail,
+      callbackUrl,
       metadata: {
         company_id: body.company_id,
         tier: body.tier,
