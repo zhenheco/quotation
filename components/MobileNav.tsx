@@ -13,6 +13,8 @@ import {
   Package,
   Factory,
   Settings,
+  ShoppingCart,
+  Truck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -58,6 +60,16 @@ const moreItems: MenuItem[] = [
     name: '供應商',
     href: '/suppliers',
     icon: Factory,
+  },
+  {
+    name: '訂單',
+    href: '/orders',
+    icon: ShoppingCart,
+  },
+  {
+    name: '出貨',
+    href: '/shipments',
+    icon: Truck,
   },
   {
     name: '設定',
