@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #350 | 1:15 PM | 🔵 | Header Component Includes Company Selector But No Subscription Link | ~279 |
+| #334 | 1:12 PM | 🔵 | Subscription Upgrade Script Discovered | ~269 |
 </claude-mem-context>

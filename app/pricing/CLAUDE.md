@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #350 | 1:15 PM | 🔵 | Header Component Includes Company Selector But No Subscription Link | ~279 |
+| #351 | 1:15 PM | 🔵 | Complete Pricing Page UI Implementation Found | ~375 |
+| #331 | 1:11 PM | 🔵 | Application Route Structure Mapped | ~285 |
 </claude-mem-context>

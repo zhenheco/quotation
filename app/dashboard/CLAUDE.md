@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #350 | 1:15 PM | 🔵 | Header Component Includes Company Selector But No Subscription Link | ~279 |
+| #352 | 1:15 PM | 🔵 | Dashboard Layout Includes Sidebar Navigation Component | ~256 |
+| #349 | 1:14 PM | 🔵 | Guide System Integrated in Dashboard and Guide Pages | ~261 |
 </claude-mem-context>
