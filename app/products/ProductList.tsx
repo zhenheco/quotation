@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { Upload } from 'lucide-react'
 import DeleteConfirmModal from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
 import ProductCostDisplay from '@/components/products/ProductCostDisplay'
+import BatchImportModal from '@/components/batch-import/BatchImportModal'
 import { safeToLocaleString } from '@/lib/utils/formatters'
 import {
   useFilteredProducts,
@@ -14,16 +16,19 @@ import {
   type Product,
   type ProductFilters,
 } from '@/hooks/useProducts'
+import { useQueryClient } from '@tanstack/react-query'
 
 type ViewMode = 'list' | 'card'
 
 export default function ProductList() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; product: Product | null }>({
     isOpen: false,
     product: null,
   })
   const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [importModalOpen, setImportModalOpen] = useState(false)
   const [filters, setFilters] = useState<ProductFilters>({
     search: '',
     category: '',
@@ -94,13 +99,23 @@ export default function ProductList() {
       <div className="p-4">
         <div className="mb-3 space-y-2">
           {/* 搜尋框 */}
-          <input
-            type="text"
-            placeholder="搜尋..."
-            value={filters.search || ''}
-            onChange={(e) => updateFilters({ search: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="搜尋..."
+              value={filters.search || ''}
+              onChange={(e) => updateFilters({ search: e.target.value })}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              onClick={() => setImportModalOpen(true)}
+              className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2 whitespace-nowrap"
+              title="批量匯入"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">批量匯入</span>
+            </button>
+          </div>
 
           {/* 篩選器與視圖切換 */}
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -353,6 +368,15 @@ export default function ProductList() {
         confirmText="刪除"
         cancelText="取消"
         isLoading={deleteProduct.isPending}
+      />
+
+      <BatchImportModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        resourceType="products"
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['products'] })
+        }}
       />
     </>
   )

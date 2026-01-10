@@ -3,16 +3,21 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { Upload } from 'lucide-react'
 import DeleteConfirmModal, { type RelatedRecordsInfo } from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
+import BatchImportModal from '@/components/batch-import/BatchImportModal'
 import { useSearchCustomers, useDeleteCustomer } from '@/hooks/useCustomers'
+import { useQueryClient } from '@tanstack/react-query'
 
 type ViewMode = 'list' | 'card'
 
 export default function CustomerList() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [importModalOpen, setImportModalOpen] = useState(false)
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean
     customerId: string | null
@@ -115,13 +120,23 @@ export default function CustomerList() {
     <>
       <div className="p-4">
         <div className="mb-3 space-y-2">
-          <input
-            type="text"
-            placeholder="搜尋..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="搜尋..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              onClick={() => setImportModalOpen(true)}
+              className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2 whitespace-nowrap"
+              title="批量匯入"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">批量匯入</span>
+            </button>
+          </div>
 
           {/* View mode toggle buttons - 只在桌面版顯示 */}
           <div className="hidden md:flex gap-2">
@@ -331,6 +346,15 @@ export default function CustomerList() {
         isLoading={deleteCustomer.isPending || deleteModal.isCheckingRelated}
         relatedRecords={deleteModal.relatedRecords}
         forceDeleteLabel="連同刪除所有關聯的報價單和付款紀錄"
+      />
+
+      <BatchImportModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        resourceType="customers"
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['customers'] })
+        }}
       />
     </>
   )
