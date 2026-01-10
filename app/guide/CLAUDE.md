@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #350 | 1:15 PM | 🔵 | Header Component Includes Company Selector But No Subscription Link | ~279 |
+| #349 | 1:14 PM | 🔵 | Guide System Integrated in Dashboard and Guide Pages | ~261 |
+| #331 | 1:11 PM | 🔵 | Application Route Structure Mapped | ~285 |
 </claude-mem-context>

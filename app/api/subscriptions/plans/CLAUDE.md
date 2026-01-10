@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #350 | 1:15 PM | 🔵 | Header Component Includes Company Selector But No Subscription Link | ~279 |
+| #357 | 1:16 PM | 🔵 | Subscription API Endpoints Implemented | ~286 |
 </claude-mem-context>

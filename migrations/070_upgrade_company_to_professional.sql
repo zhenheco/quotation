@@ -5,11 +5,11 @@
 -- 升級公司訂閱到 PROFESSIONAL 方案
 UPDATE company_subscriptions
 SET
-  plan_id = (SELECT id FROM subscription_plans WHERE tier = 'PROFESSIONAL'),
+  plan_id = (SELECT id FROM subscription_plans WHERE tier = 'PROFESSIONAL' LIMIT 1),
   status = 'ACTIVE',
   current_period_end = NOW() + INTERVAL '100 years',
   updated_at = NOW()
-WHERE company_id = (
+WHERE company_id IN (
   SELECT id FROM companies WHERE tax_id = '83446730'
 );
 
@@ -17,7 +17,7 @@ WHERE company_id = (
 INSERT INTO company_subscriptions (company_id, plan_id, status, billing_cycle, current_period_end)
 SELECT
   c.id,
-  (SELECT id FROM subscription_plans WHERE tier = 'PROFESSIONAL'),
+  (SELECT id FROM subscription_plans WHERE tier = 'PROFESSIONAL' LIMIT 1),
   'ACTIVE',
   'YEARLY',
   NOW() + INTERVAL '100 years'

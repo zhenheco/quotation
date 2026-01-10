@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #350 | 1:15 PM | 🔵 | Header Component Includes Company Selector But No Subscription Link | ~279 |
+| #343 | 1:13 PM | 🔵 | Payment Gateway SDK Integration Ready | ~348 |
+| #333 | 1:11 PM | 🔵 | Subscription and Payment System Files Located | ~243 |
 </claude-mem-context>

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { LogOut, Settings, UserCircle } from 'lucide-react'
+import { LogOut, Settings, Sparkles, UserCircle } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -130,6 +130,13 @@ export default function Header() {
             >
               <Settings className="mr-2.5 h-4 w-4 text-slate-400" />
               <span>設定</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer rounded-md px-2.5 py-2 text-[13px]"
+              onClick={() => router.push('/pricing')}
+            >
+              <Sparkles className="mr-2.5 h-4 w-4 text-amber-500" />
+              <span>升級方案</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem

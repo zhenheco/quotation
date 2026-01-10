@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #350 | 1:15 PM | 🔵 | Header Component Includes Company Selector But No Subscription Link | ~279 |
+| #338 | 1:12 PM | 🔵 | Guide Screenshot Directory Exists in Public Folder | ~222 |
 </claude-mem-context>

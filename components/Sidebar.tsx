@@ -22,6 +22,7 @@ import {
   Landmark,
   BookOpen,
   ShoppingCart,
+  Sparkles,
   Truck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -113,6 +114,11 @@ const navigation: NavigationItem[] = [
     name: '教學',
     href: '/guide',
     icon: BookOpen,
+  },
+  {
+    name: '訂閱方案',
+    href: '/pricing',
+    icon: Sparkles,
   },
   {
     name: '系統設定',

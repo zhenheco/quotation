@@ -200,9 +200,9 @@ export const guideCategories: GuideCategoryInfo[] = [
           ],
           screenshot: {
             src: '/guide/vat-step-2.png',
-            alt: '產生營業稅報表',
+            alt: '產生稅務報表按鈕',
             annotations: [
-              { type: 'circle', x: 80, y: 20, text: '點擊「產生報表」' },
+              { type: 'circle', x: 60, y: 35, text: '點擊「產生報表」' },
             ],
           },
         },
@@ -230,10 +230,10 @@ export const guideCategories: GuideCategoryInfo[] = [
           ],
           screenshot: {
             src: '/guide/vat-step-3.png',
-            alt: '銷項進項稅額明細',
+            alt: '銷項與進項稅額明細',
             annotations: [
-              { type: 'text', x: 50, y: 40, text: '銷項稅額' },
-              { type: 'text', x: 50, y: 60, text: '進項稅額' },
+              { type: 'circle', x: 40, y: 60, text: '銷項結構' },
+              { type: 'circle', x: 80, y: 60, text: '進項結構' },
             ],
           },
         },
@@ -334,9 +334,9 @@ export const guideCategories: GuideCategoryInfo[] = [
           ],
           screenshot: {
             src: '/guide/income-tax-step-1.png',
-            alt: '擴大書審資格說明',
+            alt: '營所稅擴大書審資格說明',
             annotations: [
-              { type: 'text', x: 50, y: 30, text: '確認年營收資格' },
+              { type: 'circle', x: 50, y: 20, text: '擴大書審資格說明' },
             ],
           },
         },
@@ -393,9 +393,10 @@ export const guideCategories: GuideCategoryInfo[] = [
           ],
           screenshot: {
             src: '/guide/income-tax-step-3.png',
-            alt: '選擇行業類別',
+            alt: '行業類別選擇器',
             annotations: [
-              { type: 'circle', x: 60, y: 45, text: '選擇行業代碼' },
+              { type: 'circle', x: 50, y: 55, text: '搜尋行業代碼' },
+              { type: 'arrow', x: 70, y: 45, direction: 'left', text: '點擊「純益率查詢」' },
             ],
           },
         },
@@ -425,7 +426,8 @@ export const guideCategories: GuideCategoryInfo[] = [
             src: '/guide/income-tax-step-4.png',
             alt: '稅額計算結果',
             annotations: [
-              { type: 'text', x: 50, y: 50, text: '應納稅額明細' },
+              { type: 'circle', x: 55, y: 35, text: '點擊「預覽計算」' },
+              { type: 'arrow', x: 50, y: 50, direction: 'down', text: '查看計算結果' },
             ],
           },
         },
