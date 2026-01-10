@@ -1,0 +1,4 @@
+﻿SKU,產品名稱(中) *,產品名稱(英),產品描述(中),產品描述(英),售價 *,幣別 *,分類,成本價,成本幣別,單位,啟用
+PROD-001,無線藍牙耳機,Wireless Bluetooth Earbuds,高品質藍牙5.0，續航8小時,"High quality Bluetooth 5.0, 8-hour battery life",1990,TWD,3C周邊,800,TWD,個,是
+PROD-002,筆記型電腦支架,Laptop Stand,鋁合金材質，可調節高度,"Aluminum alloy, adjustable height",890,TWD,辦公用品,350,TWD,個,是
+SVC-001,系統維護服務,System Maintenance Service,每月定期維護，含緊急支援,Monthly maintenance with emergency support,5000,TWD,服務,,,月,是
