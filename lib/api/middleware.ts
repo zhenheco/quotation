@@ -69,6 +69,16 @@ const permissionMapping: Record<string, string[]> = {
   'accounts:read': ['accounts:read'],
   'accounts:write': ['accounts:write'],
   'accounts:delete': ['accounts:delete'],
+
+  // 訂單（API: orders → DB: orders）
+  'orders:read': ['orders:read'],
+  'orders:write': ['orders:write'],
+  'orders:delete': ['orders:delete'],
+
+  // 出貨單（API: shipments → DB: shipments）
+  'shipments:read': ['shipments:read'],
+  'shipments:write': ['shipments:write'],
+  'shipments:delete': ['shipments:delete'],
 }
 
 /**

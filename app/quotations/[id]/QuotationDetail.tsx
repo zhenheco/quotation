@@ -11,7 +11,9 @@ import {
   type PaymentTerm,
 } from '@/hooks/useQuotations'
 import { usePDFGenerator } from '@/hooks/usePDFGenerator'
+import { useCreateOrderFromQuotation } from '@/hooks/useOrders'
 import { toast } from 'sonner'
+import { ShoppingCart } from 'lucide-react'
 import { formatAmount } from '@/lib/utils/formatters'
 import type { PDFLocale } from '@/lib/pdf/pdf-translations'
 
@@ -28,6 +30,7 @@ export default function QuotationDetail({ quotationId }: QuotationDetailProps) {
   const updateQuotation = useUpdateQuotation(quotationId)
   const { data: paymentTerms } = usePaymentTerms(quotationId)
   const { generatePDF, isGenerating, progress } = usePDFGenerator()
+  const createOrder = useCreateOrderFromQuotation()
 
   const getStatusText = (status: string) => {
     const statusMap: Record<string, string> = {
@@ -56,6 +59,18 @@ export default function QuotationDetail({ quotationId }: QuotationDetailProps) {
       toast.success('PDF 下載成功')
     } catch {
       toast.error('PDF 產生失敗')
+    }
+  }
+
+  // 處理轉換為訂單
+  const handleCreateOrder = async () => {
+    if (!quotation) return
+    try {
+      const order = await createOrder.mutateAsync(quotation.id)
+      toast.success('訂單已建立')
+      router.push(`/orders/${order.id}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '建立訂單失敗')
     }
   }
 
@@ -117,6 +132,17 @@ export default function QuotationDetail({ quotationId }: QuotationDetailProps) {
             </div>
           </div>
           <div className="flex items-center gap-3 no-print">
+            {/* 轉訂單按鈕 - 僅在已簽約狀態顯示 */}
+            {quotation.status === 'signed' && (
+              <button
+                onClick={handleCreateOrder}
+                disabled={createOrder.isPending}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                {createOrder.isPending ? '建立中...' : '轉訂單'}
+              </button>
+            )}
             <button
               onClick={() => router.push(`/quotations/${quotation.id}/edit`)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 cursor-pointer"

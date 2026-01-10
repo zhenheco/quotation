@@ -247,3 +247,29 @@ const taxYear = rawTaxYear > 1911 ? rawTaxYear - 1911 : rawTaxYear
 **日期**：2026-01-06
 
 ---
+
+### 新增模組 API 返回 403 Forbidden
+
+**問題**：新增訂單/出貨模組後，API 呼叫返回 403 Forbidden，即使使用者已登入且有正確的角色
+**原因**：Migration 只建立了資料表和 RLS 政策，但 `permissions` 表沒有對應的權限記錄。API middleware (`withAuth`) 會檢查使用者是否有該權限
+**解法**：
+1. 在 `permissions` 表新增對應權限記錄（如 `orders:read`, `orders:write` 等）
+2. 在 `role_permissions` 表將權限分配給相關角色
+
+```sql
+-- 新增權限
+INSERT INTO permissions (name, description, resource, action)
+VALUES
+  ('orders:read', '查看訂單', 'orders', 'read'),
+  ('orders:write', '建立/編輯訂單', 'orders', 'write');
+
+-- 分配給角色
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT role_id, permission_id
+FROM roles, permissions
+WHERE roles.name = 'company_owner'
+  AND permissions.name IN ('orders:read', 'orders:write');
+```
+**日期**：2026-01-09
+
+---

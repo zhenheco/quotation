@@ -21,6 +21,8 @@ import {
   Wallet,
   Landmark,
   BookOpen,
+  ShoppingCart,
+  Truck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -69,6 +71,16 @@ const navigation: NavigationItem[] = [
         icon: Wallet,
       },
     ],
+  },
+  {
+    name: '訂單管理',
+    href: '/orders',
+    icon: ShoppingCart,
+  },
+  {
+    name: '出貨管理',
+    href: '/shipments',
+    icon: Truck,
   },
   {
     name: '會計系統',
