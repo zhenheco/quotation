@@ -102,8 +102,9 @@ export function useSubscriptionPlans() {
         const error = await response.json()
         throw new Error(error.error || 'Failed to fetch subscription plans')
       }
-      const data = await response.json()
-      return data.plans
+      const result = await response.json()
+      // API 返回格式: { data: SubscriptionPlan[], meta: {...} }
+      return result.data || []
     },
     staleTime: 1000 * 60 * 60, // 1 hour - plans don't change often
   })
