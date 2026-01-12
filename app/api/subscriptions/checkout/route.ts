@@ -38,6 +38,21 @@ const PLAN_PRICES: Record<
  */
 export async function POST(request: Request) {
   try {
+    // 檢查付款系統環境變數
+    const apiKey = process.env.AFFILIATE_PAYMENT_API_KEY?.trim()
+    const siteCode = process.env.AFFILIATE_PAYMENT_SITE_CODE?.trim()
+
+    if (!apiKey || !siteCode) {
+      console.error('[Checkout] 付款系統環境變數未設定:', {
+        hasApiKey: !!apiKey,
+        hasSiteCode: !!siteCode,
+      })
+      return NextResponse.json(
+        { success: false, error: '付款系統尚未設定，請聯繫管理員' },
+        { status: 503 }
+      )
+    }
+
     // 驗證用戶
     const supabase = await createClient()
     const {
@@ -122,10 +137,10 @@ export async function POST(request: Request) {
     // 生成訂單 ID
     const orderId = `SUB-${body.company_id.substring(0, 8)}-${Date.now()}`
 
-    // 建立付款請求
+    // 建立付款請求（使用已驗證的環境變數）
     const paymentClient = new PaymentGatewayClient({
-      apiKey: process.env.AFFILIATE_PAYMENT_API_KEY?.trim() || '',
-      siteCode: process.env.AFFILIATE_PAYMENT_SITE_CODE?.trim() || '',
+      apiKey,
+      siteCode,
       webhookSecret: process.env.AFFILIATE_PAYMENT_WEBHOOK_SECRET?.trim(),
       environment: 'production', // 使用正式環境
     })
