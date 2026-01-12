@@ -85,6 +85,7 @@ const CSRF_EXEMPT_PATHS = [
   '/api/auth/callback',  // OAuth 回調
   '/api/webhooks/',      // Webhook 端點
   '/api/ocr/',           // OCR 服務（已有 auth + permission 保護）
+  '/api/subscriptions/', // 訂閱 API（已有 Supabase auth 保護）
 ]
 
 // ========================================
