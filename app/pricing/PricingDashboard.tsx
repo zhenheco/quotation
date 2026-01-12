@@ -18,7 +18,6 @@ import { PricingHero } from './components/PricingHero'
 import { PricingCardsGrid } from './components/PricingCard'
 import { FeatureComparisonTable } from './components/FeatureComparisonTable'
 import { CheckoutModal } from './components/CheckoutModal'
-import { AffiliateSection } from './components/AffiliateSection'
 import { PricingFAQ } from './components/PricingFAQ'
 import { FinalCTA } from './components/FinalCTA'
 
@@ -29,7 +28,6 @@ import { FinalCTA } from './components/FinalCTA'
  * - PricingHero: Hero Section + 計費切換
  * - PricingCardsGrid: 方案卡片網格
  * - FeatureComparisonTable: 功能比較表
- * - AffiliateSection: 推薦計劃
  * - PricingFAQ: 常見問題
  * - FinalCTA: 最終 CTA
  * - CheckoutModal: 付款確認 Modal
@@ -150,9 +148,6 @@ export default function PricingDashboard() {
 
       {/* 功能比較表 */}
       <FeatureComparisonTable currentTier={currentTier} />
-
-      {/* 推薦計劃區塊 */}
-      <AffiliateSection />
 
       {/* FAQ */}
       <PricingFAQ />
