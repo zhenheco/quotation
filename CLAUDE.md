@@ -273,3 +273,19 @@ WHERE roles.name = 'company_owner'
 **日期**：2026-01-09
 
 ---
+
+### 訂閱方案頁面無法顯示方案卡片
+
+**問題**：/pricing 頁面沒有顯示方案卡片和購買按鈕，只有空白區域
+**原因**：`useSubscriptionPlans` hook 讀取 `data.plans`，但 API 實際返回 `{ data: [...], meta: {...} }` 格式
+**解法**：修改 `hooks/use-subscription.ts` 中的 `useSubscriptionPlans` 函數：
+```typescript
+// 修改前
+return data.plans
+
+// 修改後
+return result.data || []
+```
+**日期**：2026-01-12
+
+---
