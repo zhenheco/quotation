@@ -67,7 +67,7 @@ function renderButtonContent(
     return '目前方案'
   }
   if (isFreePlan) {
-    return '免費開始'
+    return '預設方案'
   }
   if (canUpgrade) {
     return (
@@ -219,7 +219,7 @@ export function PricingCard({
           )}
           variant={getButtonVariant(isCurrentPlan, canUpgrade)}
           size="lg"
-          disabled={isCurrentPlan || isLoading}
+          disabled={isCurrentPlan || isLoading || isFreeplan}
           onClick={() => onSelect(plan.tier)}
         >
           {renderButtonContent(isLoading, isCurrentPlan, canUpgrade, canDowngrade, isFreeplan)}
