@@ -99,7 +99,6 @@ export async function POST(request: Request) {
     // 計算價格
     const basePrice =
       body.billing_cycle === 'YEARLY' ? planPrices.yearly : planPrices.monthly
-    let finalPrice = basePrice
     let discount = 0
 
     // 處理推薦碼折扣（首月 50%）
@@ -114,7 +113,6 @@ export async function POST(request: Request) {
 
       if (referrer) {
         discount = Math.floor(basePrice * 0.5) // 50% 折扣
-        finalPrice = basePrice - discount
 
         // 記錄推薦
         await trackRegistration({
@@ -124,6 +122,9 @@ export async function POST(request: Request) {
         }).catch(console.error) // 不阻擋付款流程
       }
     }
+
+    // 計算最終價格
+    const finalPrice = basePrice - discount
 
     // 取得用戶 Email
     const userEmail = user.email
@@ -166,12 +167,8 @@ export async function POST(request: Request) {
       },
     }
 
-    // 年繳方案使用定期定額
-    if (body.billing_cycle === 'YEARLY') {
-      // 年繳一次付清，不使用定期定額
-      // 下次續約時會重新建立付款
-    } else {
-      // 月繳使用定期定額
+    // 月繳使用定期定額（年繳一次付清，下次續約時會重新建立付款）
+    if (body.billing_cycle === 'MONTHLY') {
       const firstPaymentDate = new Date()
       firstPaymentDate.setMonth(firstPaymentDate.getMonth() + 1)
       const firstDateStr = firstPaymentDate.toISOString().split('T')[0]
@@ -188,7 +185,10 @@ export async function POST(request: Request) {
 
     const result = await paymentClient.createPayment(paymentParams)
 
-    if (!result.success || !result.paymentForm) {
+    // 微服務 API 回傳 payuniForm，SDK 同時定義了 paymentForm 和 payuniForm
+    const paymentForm = result.paymentForm || result.payuniForm
+
+    if (!result.success || !paymentForm) {
       return NextResponse.json(
         { success: false, error: result.error || '建立付款失敗' },
         { status: 500 }
@@ -225,7 +225,7 @@ export async function POST(request: Request) {
         amount: finalPrice,
         originalAmount: basePrice,
         discount,
-        paymentForm: result.paymentForm,
+        paymentForm, // 使用映射後的 paymentForm
       },
     })
   } catch (error) {
