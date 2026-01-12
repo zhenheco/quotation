@@ -6,6 +6,20 @@
  * 支援單次付款和定期定額付款。
  * 使用 PAYUNi（統一金流）作為金流服務商。
  *
+ * ## ⚠️ 重要：API 回應欄位名稱
+ *
+ * 微服務 API 回傳的表單欄位名稱是 `payuniForm`，不是 `paymentForm`！
+ * 使用時請注意：
+ *
+ * ```typescript
+ * const result = await client.createPayment({...});
+ * // ❌ 錯誤：paymentForm 會是 undefined
+ * // const form = result.paymentForm;
+ *
+ * // ✅ 正確：使用 payuniForm 或同時檢查兩者
+ * const form = result.payuniForm || result.paymentForm;
+ * ```
+ *
  * ## 安裝
  *
  * ```bash
@@ -37,8 +51,9 @@
  *   email: 'user@example.com',
  * });
  *
- * // 提交表單到 PAYUNi
- * submitPaymentForm(result.paymentForm);
+ * // 提交表單到 PAYUNi（注意使用 payuniForm）
+ * const paymentForm = result.payuniForm || result.paymentForm;
+ * submitPaymentForm(paymentForm);
  * ```
  *
  * ## 定期定額付款
@@ -57,8 +72,9 @@
  *   },
  * });
  *
- * // 提交表單到 PAYUNi
- * submitPaymentForm(result.paymentForm);
+ * // 提交表單到 PAYUNi（注意使用 payuniForm）
+ * const paymentForm = result.payuniForm || result.paymentForm;
+ * submitPaymentForm(paymentForm);
  * ```
  *
  * ## 驗證 Webhook
@@ -169,28 +185,48 @@ export interface CreatePaymentParams {
 }
 
 /**
+ * PAYUNi 表單資料格式
+ */
+interface PayuniFormData {
+  /** 表單提交網址 */
+  action: string;
+  /** HTTP 方法 */
+  method: 'POST';
+  /**
+   * 表單欄位
+   * - MerID: 商店編號
+   * - Version: API 版本（1.0）
+   * - EncryptInfo: 加密資料
+   * - HashInfo: 簽名
+   */
+  fields: Record<string, string>;
+}
+
+/**
  * 付款結果
+ *
+ * ⚠️ 重要：微服務 API 回傳的是 `payuniForm`，不是 `paymentForm`！
+ * 使用時請優先檢查 `payuniForm`，或使用以下方式取得表單資料：
+ *
+ * ```typescript
+ * const paymentForm = result.paymentForm || result.payuniForm;
+ * ```
  */
 export interface PaymentResult {
   /** 是否成功 */
   success: boolean;
   /** 付款 ID */
   paymentId: string;
-  /** PAYUNi 表單資料（用於前端提交） */
-  paymentForm?: {
-    /** 表單提交網址 */
-    action: string;
-    /** HTTP 方法 */
-    method: 'POST';
-    /**
-     * 表單欄位
-     * - MerID: 商店編號
-     * - Version: API 版本（1.0）
-     * - EncryptInfo: 加密資料
-     * - HashInfo: 簽名
-     */
-    fields: Record<string, string>;
-  };
+  /**
+   * PAYUNi 表單資料（SDK 定義的欄位名稱）
+   * @deprecated 微服務實際回傳 payuniForm，請優先使用 payuniForm
+   */
+  paymentForm?: PayuniFormData;
+  /**
+   * PAYUNi 表單資料（微服務實際回傳的欄位名稱）
+   * 這是微服務 API 實際回傳的欄位，請優先使用此欄位
+   */
+  payuniForm?: PayuniFormData;
   /** 是否為定期定額付款 */
   isPeriodPayment?: boolean;
   /** 錯誤訊息 */
