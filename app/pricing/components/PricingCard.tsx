@@ -57,13 +57,17 @@ function renderButtonContent(
   isLoading: boolean,
   isCurrentPlan: boolean,
   canUpgrade: boolean,
-  canDowngrade: boolean
+  canDowngrade: boolean,
+  isFreePlan: boolean
 ): React.ReactNode {
   if (isLoading) {
     return <LoadingSpinner size="sm" />
   }
   if (isCurrentPlan) {
     return '目前方案'
+  }
+  if (isFreePlan) {
+    return '免費開始'
   }
   if (canUpgrade) {
     return (
@@ -95,7 +99,9 @@ export function PricingCard({
   const discount = getYearlyDiscount(plan.monthly_price, plan.yearly_price)
 
   const isCurrentPlan = currentTier === plan.tier
-  const canUpgrade = currentTier ? isUpgrade(currentTier, plan.tier) : true
+  // 免費版不能「升級」到，只能從付費版「降級」到
+  const isFreeplan = plan.tier === 'FREE'
+  const canUpgrade = currentTier ? isUpgrade(currentTier, plan.tier) : !isFreeplan
   const canDowngrade = currentTier ? isDowngrade(currentTier, plan.tier) : false
   const isPopular = plan.is_popular
 
@@ -216,7 +222,7 @@ export function PricingCard({
           disabled={isCurrentPlan || isLoading}
           onClick={() => onSelect(plan.tier)}
         >
-          {renderButtonContent(isLoading, isCurrentPlan, canUpgrade, canDowngrade)}
+          {renderButtonContent(isLoading, isCurrentPlan, canUpgrade, canDowngrade, isFreeplan)}
         </Button>
       </CardFooter>
     </Card>

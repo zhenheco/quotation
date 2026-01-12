@@ -11,6 +11,7 @@ import {
   TIER_ORDER,
 } from '@/hooks/use-subscription'
 import { submitPaymentForm } from '@/lib/sdk/payment-gateway-client'
+import { getCsrfTokenFromCookie, CSRF_HEADER_NAME } from '@/lib/security/csrf'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 // 新元件
@@ -60,6 +61,15 @@ export default function PricingDashboard() {
   // 處理方案選擇
   const handleSelectPlan = useCallback(
     (tier: SubscriptionTier) => {
+      // 免費版：導向登入/註冊頁面
+      if (tier === 'FREE') {
+        if (!company?.id) {
+          window.location.href = '/login?redirect=/zh/dashboard'
+        }
+        // 已登入的用戶不需要做任何事，免費版是預設方案
+        return
+      }
+
       if (!company?.id) {
         // 未登入，導向登入頁面
         window.location.href = '/login?redirect=/pricing'
@@ -68,12 +78,6 @@ export default function PricingDashboard() {
 
       if (tier === currentTier) {
         return // 已是當前方案
-      }
-
-      if (tier === 'FREE') {
-        // 降級到免費版，導向設定頁面
-        window.location.href = '/settings/subscription'
-        return
       }
 
       // 找到選中的方案
@@ -98,10 +102,16 @@ export default function PricingDashboard() {
       throw new Error('缺少必要資訊')
     }
 
+    // 取得 CSRF token
+    const csrfToken = getCsrfTokenFromCookie()
+
     // 呼叫 checkout API
     const response = await fetch('/api/subscriptions/checkout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(csrfToken && { [CSRF_HEADER_NAME]: csrfToken }),
+      },
       body: JSON.stringify({
         tier: selectedPlan.tier,
         billing_cycle: billingCycle,
