@@ -14,6 +14,7 @@ interface UpdateProductRequestBody {
   profit_margin?: number | string | null
   supplier?: string
   supplier_code?: string
+  image_url?: string | null
 }
 
 /**
@@ -52,6 +53,7 @@ export const PUT = withAuth('products:write')<{ id: string }>(
       cost_currency?: string
       profit_margin?: number | null
       supplier?: string
+      image_url?: string | null
     }> = {}
 
     // 驗證和轉換數值欄位
@@ -118,6 +120,9 @@ export const PUT = withAuth('products:write')<{ id: string }>(
     }
     if (body.supplier !== undefined) {
       updateData.supplier = body.supplier
+    }
+    if (body.image_url !== undefined) {
+      updateData.image_url = body.image_url
     }
 
     // 更新產品（DAL 會自動處理 JSON 序列化）

@@ -15,6 +15,7 @@ import { useCreateOrderFromQuotation } from '@/hooks/useOrders'
 import { toast } from 'sonner'
 import { ShoppingCart } from 'lucide-react'
 import { formatAmount } from '@/lib/utils/formatters'
+import { parseNotes } from '@/lib/utils/notes-parser'
 import type { PDFLocale } from '@/lib/pdf/pdf-translations'
 
 interface QuotationDetailProps {
@@ -360,9 +361,7 @@ export default function QuotationDetail({ quotationId }: QuotationDetailProps) {
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-2">備註</h3>
           <p className="text-gray-600 whitespace-pre-wrap">
-            {typeof quotation.notes === 'string'
-              ? quotation.notes
-              : (quotation.notes as Record<string, string>)['zh']}
+            {parseNotes(quotation.notes)}
           </p>
         </div>
       )}

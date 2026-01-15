@@ -46,6 +46,8 @@ const PENDING_MIGRATIONS = [
   '072_create_shipments_system.sql',
   '073_acc_invoices_add_order_shipment.sql',
   '074_add_orders_shipments_permissions.sql',
+  '075_add_gross_margin_to_products.sql',
+  '076_add_image_url_to_products.sql',
 ]
 
 async function checkMigrationStatus(): Promise<string[]> {
