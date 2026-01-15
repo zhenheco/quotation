@@ -34,6 +34,7 @@ export interface CreateProductInput {
   sku?: string
   product_number?: string
   company_id?: string
+  image_url?: string
 }
 
 export interface UpdateProductInput {
@@ -50,6 +51,7 @@ export interface UpdateProductInput {
   sku?: string
   product_number?: string
   company_id?: string
+  image_url?: string
 }
 
 export interface ProductFilters {

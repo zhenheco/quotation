@@ -11,14 +11,13 @@ import {
   type CreateQuotationItemInput,
   type BilingualText,
 } from '@/hooks/useQuotations'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { QuotationVersion, ExchangeRate } from '@/types/models'
 import { useCustomers, type Customer } from '@/hooks/useCustomers'
 import { useProducts } from '@/hooks/useProducts'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { PaymentTermsEditor } from '@/components/payment-terms'
 import { safeToLocaleString } from '@/lib/utils/formatters'
+import { parseNotes } from '@/lib/utils/notes-parser'
 import { apiPost, apiPatch, apiGet } from '@/lib/api-client'
 import { getSelectedCompanyId } from '@/lib/utils/company-context'
 import OwnerSelect from '@/components/team/OwnerSelect'
@@ -102,6 +101,15 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({})
   const [showVersionHistory, setShowVersionHistory] = useState(false)
 
+  // 圖片同步確認對話框狀態 (AC4.2-4.4)
+  const [imageSyncDialog, setImageSyncDialog] = useState<{
+    open: boolean
+    itemIndex: number
+    productId: string
+    imageUrl: string
+    file: File | null
+  } | null>(null)
+
   // 取得匯率資料（僅編輯模式）
   useEffect(() => {
     if (!isEditMode) return
@@ -180,9 +188,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
         showTax: quotationWithNewFields.show_tax !== false,
         discountAmount: quotationWithNewFields.discount_amount?.toString() || '0',
         discountDescription: quotationWithNewFields.discount_description || '',
-        notes: typeof existingQuotation.notes === 'string'
-          ? existingQuotation.notes
-          : (existingQuotation.notes as unknown as BilingualText)?.['zh'] || '',
+        notes: parseNotes(existingQuotation.notes),
         paymentMethod: quotationWithNewFields.payment_method || '',
         paymentNotes: quotationWithNewFields.payment_notes || '',
         status: existingQuotation.status || 'draft',
@@ -335,7 +341,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     setItems(items.filter((_, i) => i !== index))
   }
 
-  // 處理產品選擇（含匯率轉換）
+  // 處理產品選擇（含匯率轉換與圖片帶入）
   const handleProductChange = (index: number, productId: string) => {
     const product = products.find((p) => p.id === productId)
     if (!product) return
@@ -369,6 +375,9 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
     const subtotal = (validPrice * quantity) - discount
 
+    // 帶入產品圖片 (AC4.1: 選擇產品時自動帶入產品現有圖片)
+    const productImageUrl = (product as { image_url?: string | null }).image_url
+
     newItems[index] = {
       ...currentItem,
       product_id: productId,
@@ -376,6 +385,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
       quantity,
       discount,
       subtotal: Math.max(0, subtotal),
+      image_url: productImageUrl || undefined,
     }
 
     setItems(newItems)
@@ -404,9 +414,10 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     setItems(newItems)
   }
 
-  // 處理自訂品項圖片上傳
+  // 處理品項圖片上傳（含雙向同步邏輯）
   const handleItemImageChange = (index: number, file: File | null) => {
     const newItems = [...items]
+    const currentItem = newItems[index]
 
     if (file) {
       // 驗證檔案類型
@@ -422,6 +433,20 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
 
       // 創建預覽 URL
       const previewUrl = URL.createObjectURL(file)
+
+      // AC4.2: 如果是關聯產品（非自訂項目），顯示確認對話框
+      if (!currentItem.is_custom && currentItem.product_id) {
+        setImageSyncDialog({
+          open: true,
+          itemIndex: index,
+          productId: currentItem.product_id,
+          imageUrl: previewUrl,
+          file: file,
+        })
+        return
+      }
+
+      // 自訂項目直接更新
       newItems[index] = {
         ...newItems[index],
         image_file: file,
@@ -440,6 +465,80 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
     }
 
     setItems(newItems)
+  }
+
+  // AC4.3: 確認同步圖片到產品
+  const handleImageSyncConfirm = async () => {
+    if (!imageSyncDialog) return
+
+    const { itemIndex, productId, imageUrl, file } = imageSyncDialog
+
+    // 更新報價單項目圖片
+    const newItems = [...items]
+    newItems[itemIndex] = {
+      ...newItems[itemIndex],
+      image_file: file || undefined,
+      image_url: imageUrl,
+    }
+    setItems(newItems)
+
+    // 同步更新產品圖片（上傳到 Storage 並更新產品）
+    if (file) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('請先登入')
+
+        // 上傳圖片到 Storage
+        const timestamp = Date.now()
+        const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const fileName = `${timestamp}_${safeFileName}`
+        const filePath = `products/${productId}/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, file, {
+            contentType: file.type,
+          })
+
+        if (uploadError) throw uploadError
+
+        // 取得公開 URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath)
+
+        // 更新產品圖片 URL
+        await apiPatch(`/api/products/${productId}`, {
+          image_url: publicUrl,
+        })
+
+        toast.success('圖片已同步更新到產品')
+      } catch (error) {
+        console.error('Failed to sync image to product:', error)
+        toast.error('同步圖片到產品失敗')
+      }
+    }
+
+    setImageSyncDialog(null)
+  }
+
+  // AC4.4: 取消同步，僅更新報價單項目
+  const handleImageSyncCancel = () => {
+    if (!imageSyncDialog) return
+
+    const { itemIndex, imageUrl, file } = imageSyncDialog
+
+    // 僅更新報價單項目圖片，不同步到產品
+    const newItems = [...items]
+    newItems[itemIndex] = {
+      ...newItems[itemIndex],
+      image_file: file || undefined,
+      image_url: imageUrl,
+    }
+    setItems(newItems)
+
+    setImageSyncDialog(null)
+    toast.info('圖片已更新，未同步到產品')
   }
 
   // 計算總計（含整體折扣）
@@ -907,12 +1006,12 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                   )}
                 </div>
 
-                {/* 產品圖片欄位 */}
+                {/* 產品圖片欄位 - 支援所有項目上傳 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     產品圖片
                   </label>
-                  <div className="relative w-20 h-20 border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                  <div className="relative w-20 h-20 border border-gray-300 rounded-lg overflow-hidden bg-gray-50 group">
                     {item.image_url ? (
                       <>
                         {/* eslint-disable-next-line @next/next/no-img-element -- blob URLs not supported by next/image */}
@@ -921,20 +1020,37 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                           alt="產品圖片"
                           className="w-full h-full object-cover"
                         />
-                        {item.is_custom && (
+                        {/* 有圖片時的操作按鈕 */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                          {/* 更換圖片 */}
+                          <label className="w-6 h-6 bg-white rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-100">
+                            <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) handleItemImageChange(index, file)
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                          {/* 清除圖片 */}
                           <button
                             type="button"
                             onClick={() => handleItemImageChange(index, null)}
-                            className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                            className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
                           >
                             ×
                           </button>
-                        )}
+                        </div>
                       </>
-                    ) : item.is_custom ? (
+                    ) : (
                       <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-gray-100">
                         <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <span className="text-xs text-gray-400 mt-1">上傳圖片</span>
                         <input
@@ -947,13 +1063,6 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                           className="hidden"
                         />
                       </label>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center w-full h-full text-gray-400">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-xs mt-1">無圖片</span>
-                      </div>
                     )}
                   </div>
                 </div>
@@ -1207,20 +1316,15 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
               rows={3}
               maxLength={500}
               className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder={(() => {
-                const placeholders: Record<string, string> = {
-                  cash: '請於約定時間以現金支付',
-                  bank_transfer: '請填寫銀行帳號資訊',
-                  ach_transfer: '請填寫 ACH 路由號碼',
-                  credit_card: '可接受的信用卡類型',
-                  check: '支票抬頭及寄送地址',
-                  cryptocurrency: '錢包地址及接受的幣種',
-                  other: '其他付款方式說明',
-                }
-                return formData.paymentMethod
-                  ? placeholders[formData.paymentMethod] || '請輸入付款備註'
-                  : '請輸入付款備註'
-              })()}
+              placeholder={{
+                cash: '請於約定時間以現金支付',
+                bank_transfer: '請填寫銀行帳號資訊',
+                ach_transfer: '請填寫 ACH 路由號碼',
+                credit_card: '可接受的信用卡類型',
+                check: '支票抬頭及寄送地址',
+                cryptocurrency: '錢包地址及接受的幣種',
+                other: '其他付款方式說明',
+              }[formData.paymentMethod] || '請輸入付款備註'}
             />
             <p className="mt-1 text-sm text-gray-500">
               {formData.paymentNotes.length} / 500
@@ -1377,6 +1481,53 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
           {isSubmitting ? '儲存中...' : quotationId ? '更新' : '建立'}
         </button>
       </div>
+
+      {/* 圖片同步確認對話框 (AC4.2) */}
+      {imageSyncDialog?.open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              同步圖片到產品？
+            </h3>
+            <div className="mb-4">
+              {/* 預覽上傳的圖片 */}
+              {imageSyncDialog.imageUrl && (
+                <div className="w-32 h-32 mx-auto mb-4 border border-gray-200 rounded-lg overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- blob URLs not supported by next/image */}
+                  <img
+                    src={imageSyncDialog.imageUrl}
+                    alt="預覽圖片"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <p className="text-gray-600 text-sm text-center">
+                是否要將此圖片同步更新到產品資料中？
+                <br />
+                <span className="text-gray-500">
+                  選擇「同步」將會更新產品的圖片；選擇「僅此報價單」則只更新此報價單的項目圖片。
+                </span>
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleImageSyncCancel}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                僅此報價單
+              </button>
+              <button
+                type="button"
+                onClick={handleImageSyncConfirm}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                同步到產品
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   )
 }

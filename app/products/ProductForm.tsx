@@ -17,6 +17,7 @@ import {
 } from '@/hooks/useProducts'
 import { usePermission } from '@/hooks/usePermission'
 import { safeToLocaleString } from '@/lib/utils/formatters'
+import { calculateGrossMargin } from '@/lib/utils/profit-calculator'
 import { SupplierCostEditor } from '@/components/products/SupplierCostEditor'
 import { getSelectedCompanyId } from '@/lib/utils/company-context'
 
@@ -417,22 +418,40 @@ export default function ProductForm({ product: initialProduct }: ProductFormProp
 
               {/* 利潤率計算（僅在相同幣別時） */}
               {formData.costCurrency === formData.baseCurrency && formData.costPrice && (
-                <div className="bg-indigo-50 p-4 rounded-lg">
-                  <FormInput
-                    label="利潤率"
-                    name="profitMargin"
-                    type="number"
-                    step="1"
-                    value={formData.profitMargin}
-                    onChange={(value) => {
-                      setFormData({ ...formData, profitMargin: value })
-                      setAutoCalculateMode('sellingPrice')
-                    }}
-                    placeholder="0"
-                    suffix="%"
-                  />
-                  <p className="text-xs text-gray-600 mt-2">
-                    輸入利潤率自動計算售價，或輸入售價自動計算利潤率
+                <div className="bg-indigo-50 p-4 rounded-lg space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormInput
+                      label="成本加成率 (Markup)"
+                      name="profitMargin"
+                      type="number"
+                      step="1"
+                      value={formData.profitMargin}
+                      onChange={(value) => {
+                        setFormData({ ...formData, profitMargin: value })
+                        setAutoCalculateMode('sellingPrice')
+                      }}
+                      placeholder="0"
+                      suffix="%"
+                    />
+                    {/* 毛利率（唯讀，自動計算） */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        毛利率 (Gross Margin)
+                      </label>
+                      <div className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-700">
+                        {(() => {
+                          const cost = parseFloat(formData.costPrice)
+                          const price = parseFloat(formData.basePrice)
+                          if (cost > 0 && price > 0) {
+                            return `${calculateGrossMargin(cost, price).toFixed(2)}%`
+                          }
+                          return '-'
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    成本加成率 = (售價-成本)/成本 | 毛利率 = (售價-成本)/售價
                   </p>
                 </div>
               )}
@@ -483,12 +502,22 @@ export default function ProductForm({ product: initialProduct }: ProductFormProp
                   </span>
                 </div>
                 {product.profit_margin !== null && product.profit_margin !== undefined && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">利潤率</span>
-                    <span className="font-medium text-green-600">
-                      {product.profit_margin.toFixed(0)}%
-                    </span>
-                  </div>
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">成本加成率</span>
+                      <span className="font-medium text-green-600">
+                        {product.profit_margin.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">毛利率</span>
+                      <span className="font-medium text-blue-600">
+                        {product.base_price && product.cost_price
+                          ? `${calculateGrossMargin(product.cost_price, product.base_price).toFixed(2)}%`
+                          : '-'}
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
             )
