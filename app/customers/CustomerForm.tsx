@@ -27,8 +27,16 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
   const name = customer?.name as { zh: string; en: string } | undefined
   const address = customer?.address as { zh: string; en: string } | null | undefined
 
+  // 擴展 Customer 型別以包含新欄位
+  const extendedCustomer = customer as Customer & {
+    customer_number?: string
+    owner_id?: string
+    secondary_contact?: { name?: string; phone?: string; email?: string; title?: string; notes?: string } | null
+    referrer?: { name?: string; phone?: string; email?: string; title?: string; notes?: string } | null
+  } | undefined
+
   const [formData, setFormData] = useState({
-    customerNumber: (customer as { customer_number?: string } | undefined)?.customer_number || '',
+    customerNumber: extendedCustomer?.customer_number || '',
     nameZh: name?.zh || '',
     nameEn: name?.en || '',
     email: customer?.email || '',
@@ -37,7 +45,19 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
     tax_id: customer?.tax_id || '',
     addressZh: address?.zh || '',
     addressEn: address?.en || '',
-    ownerId: (customer as { owner_id?: string } | undefined)?.owner_id || '',
+    ownerId: extendedCustomer?.owner_id || '',
+    // 次要聯絡人
+    secondaryContactName: extendedCustomer?.secondary_contact?.name || '',
+    secondaryContactPhone: extendedCustomer?.secondary_contact?.phone || '',
+    secondaryContactEmail: extendedCustomer?.secondary_contact?.email || '',
+    secondaryContactTitle: extendedCustomer?.secondary_contact?.title || '',
+    secondaryContactNotes: extendedCustomer?.secondary_contact?.notes || '',
+    // 引薦人
+    referrerName: extendedCustomer?.referrer?.name || '',
+    referrerPhone: extendedCustomer?.referrer?.phone || '',
+    referrerEmail: extendedCustomer?.referrer?.email || '',
+    referrerTitle: extendedCustomer?.referrer?.title || '',
+    referrerNotes: extendedCustomer?.referrer?.notes || '',
   })
 
   // 名片掃描相關狀態
@@ -107,6 +127,25 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
 
     try {
       const companyId = getSelectedCompanyId()
+
+      // 組裝次要聯絡人資料（只有在有填寫名字時才儲存）
+      const secondaryContact = formData.secondaryContactName.trim() ? {
+        name: formData.secondaryContactName.trim(),
+        phone: formData.secondaryContactPhone.trim() || '',
+        email: formData.secondaryContactEmail.trim() || '',
+        title: formData.secondaryContactTitle.trim() || '',
+        notes: formData.secondaryContactNotes.trim() || '',
+      } : null
+
+      // 組裝引薦人資料（只有在有填寫名字時才儲存）
+      const referrer = formData.referrerName.trim() ? {
+        name: formData.referrerName.trim(),
+        phone: formData.referrerPhone.trim() || '',
+        email: formData.referrerEmail.trim() || '',
+        title: formData.referrerTitle.trim() || '',
+        notes: formData.referrerNotes.trim() || '',
+      } : null
+
       const customerData = {
         name: {
           zh: formData.nameZh.trim(),
@@ -123,6 +162,8 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
         owner_id: formData.ownerId || undefined,
         customer_number: formData.customerNumber.trim() || undefined,
         company_id: companyId || undefined,
+        secondary_contact: secondaryContact,
+        referrer: referrer,
       }
 
       if (customer) {
@@ -237,6 +278,110 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
         placeholderEn="Please enter English address"
         rows={3}
       />
+
+      {/* 次要聯絡人（可折疊） */}
+      <details className="border border-gray-200 rounded-lg">
+        <summary className="px-4 py-3 cursor-pointer text-sm font-semibold text-gray-900 hover:bg-gray-50">
+          次要聯絡人（選填）
+        </summary>
+        <div className="px-4 pb-4 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormInput
+              label="姓名"
+              name="secondaryContactName"
+              value={formData.secondaryContactName}
+              onChange={(value) => setFormData({ ...formData, secondaryContactName: value })}
+              placeholder="聯絡人姓名"
+            />
+            <FormInput
+              label="職稱"
+              name="secondaryContactTitle"
+              value={formData.secondaryContactTitle}
+              onChange={(value) => setFormData({ ...formData, secondaryContactTitle: value })}
+              placeholder="職稱"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormInput
+              label="電話"
+              name="secondaryContactPhone"
+              type="tel"
+              value={formData.secondaryContactPhone}
+              onChange={(value) => setFormData({ ...formData, secondaryContactPhone: value })}
+              placeholder="02-1234-5678"
+            />
+            <FormInput
+              label="Email"
+              name="secondaryContactEmail"
+              type="email"
+              value={formData.secondaryContactEmail}
+              onChange={(value) => setFormData({ ...formData, secondaryContactEmail: value })}
+              placeholder="contact@example.com"
+            />
+          </div>
+          <FormInput
+            label="備註"
+            name="secondaryContactNotes"
+            type="textarea"
+            value={formData.secondaryContactNotes}
+            onChange={(value) => setFormData({ ...formData, secondaryContactNotes: value })}
+            placeholder="其他備註資訊"
+            rows={2}
+          />
+        </div>
+      </details>
+
+      {/* 引薦人（可折疊） */}
+      <details className="border border-gray-200 rounded-lg">
+        <summary className="px-4 py-3 cursor-pointer text-sm font-semibold text-gray-900 hover:bg-gray-50">
+          引薦人（選填）
+        </summary>
+        <div className="px-4 pb-4 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormInput
+              label="姓名"
+              name="referrerName"
+              value={formData.referrerName}
+              onChange={(value) => setFormData({ ...formData, referrerName: value })}
+              placeholder="引薦人姓名"
+            />
+            <FormInput
+              label="職稱"
+              name="referrerTitle"
+              value={formData.referrerTitle}
+              onChange={(value) => setFormData({ ...formData, referrerTitle: value })}
+              placeholder="職稱"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormInput
+              label="電話"
+              name="referrerPhone"
+              type="tel"
+              value={formData.referrerPhone}
+              onChange={(value) => setFormData({ ...formData, referrerPhone: value })}
+              placeholder="02-1234-5678"
+            />
+            <FormInput
+              label="Email"
+              name="referrerEmail"
+              type="email"
+              value={formData.referrerEmail}
+              onChange={(value) => setFormData({ ...formData, referrerEmail: value })}
+              placeholder="referrer@example.com"
+            />
+          </div>
+          <FormInput
+            label="備註"
+            name="referrerNotes"
+            type="textarea"
+            value={formData.referrerNotes}
+            onChange={(value) => setFormData({ ...formData, referrerNotes: value })}
+            placeholder="引薦說明或其他備註"
+            rows={2}
+          />
+        </div>
+      </details>
 
       {/* 負責人選擇 */}
       <div>

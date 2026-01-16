@@ -15,6 +15,8 @@ interface FormInputProps {
   disabled?: boolean
   rows?: number
   step?: string
+  min?: string | number
+  max?: string | number
   suffix?: string
 }
 
@@ -30,6 +32,8 @@ export default function FormInput({
   disabled = false,
   rows,
   step,
+  min,
+  max,
   suffix,
 }: FormInputProps) {
   const isTextarea = type === 'textarea'
@@ -50,44 +54,51 @@ export default function FormInput({
     error ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' : 'border-slate-200'
   )
 
-  const inputElement = isTextarea ? (
-    <textarea
-      id={name}
-      name={name}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      required={required}
-      disabled={disabled}
-      rows={rows || 3}
-      className={baseClasses}
-    />
-  ) : isDateInput ? (
-    <input
-      type={type}
-      id={name}
-      name={name}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      required={required}
-      disabled={disabled}
-      className={cn(baseClasses, 'cursor-pointer')}
-    />
-  ) : (
-    <input
-      type={type}
-      id={name}
-      name={name}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      required={required}
-      disabled={disabled}
-      step={step}
-      className={baseClasses}
-    />
-  )
+  // 根據類型渲染對應的輸入元素
+  function renderInputElement(): React.ReactNode {
+    const commonProps = {
+      id: name,
+      name,
+      value,
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value),
+      placeholder,
+      required,
+      disabled,
+    }
+
+    if (isTextarea) {
+      return (
+        <textarea
+          {...commonProps}
+          rows={rows || 3}
+          className={baseClasses}
+        />
+      )
+    }
+
+    if (isDateInput) {
+      return (
+        <input
+          type={type}
+          {...commonProps}
+          className={cn(baseClasses, 'cursor-pointer')}
+        />
+      )
+    }
+
+    return (
+      <input
+        type={type}
+        {...commonProps}
+        step={step}
+        min={min}
+        max={max}
+        className={baseClasses}
+      />
+    )
+  }
+
+  const inputElement = renderInputElement()
 
   return (
     <div className="space-y-2">
