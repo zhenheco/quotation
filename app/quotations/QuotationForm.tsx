@@ -1091,6 +1091,7 @@ export default function QuotationForm({ quotationId }: QuotationFormProps) {
                     onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     min="0"
+                    max="999999999"
                     step="1"
                   />
                 </div>

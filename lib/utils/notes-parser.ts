@@ -15,6 +15,7 @@ type BilingualNotes = {
  *   - null/undefined
  *   - 純字串
  *   - JSON 字串 (例如 '{"zh":"內容","en":"content"}')
+ *   - 雙重 JSON 字串 (例如 '"{\"zh\":\"內容\"}"')
  *   - 物件 (例如 { zh: "內容", en: "content" })
  * @returns 解析後的中文備註字串，換行符已正確處理
  *
@@ -35,22 +36,47 @@ export function parseNotes(notes: unknown): string {
   if (typeof notes === 'string') {
     if (!notes) return ''
 
-    // 嘗試解析 JSON
-    if (notes.startsWith('{') && notes.endsWith('}')) {
-      try {
-        const parsed = JSON.parse(notes) as BilingualNotes
-        if (typeof parsed === 'object' && parsed !== null && 'zh' in parsed && parsed.zh) {
-          return normalizeNewlines(parsed.zh)
+    // 嘗試解析 JSON（可能需要多次解析處理雙重序列化）
+    let current: unknown = notes
+    let maxAttempts = 3 // 防止無限迴圈
+
+    while (typeof current === 'string' && maxAttempts > 0) {
+      // 檢查是否是 JSON 物件格式
+      if (current.startsWith('{') && current.endsWith('}')) {
+        try {
+          current = JSON.parse(current)
+        } catch {
+          break // JSON 解析失敗，停止嘗試
         }
-        // 解析成功但沒有 zh 欄位，返回原始字串
-        return notes
-      } catch {
-        // JSON 解析失敗，當作普通字串處理
-        return normalizeNewlines(notes)
+      } else if (current.startsWith('"') && current.endsWith('"')) {
+        // 處理被額外引號包裹的字串
+        try {
+          current = JSON.parse(current)
+        } catch {
+          break
+        }
+      } else {
+        break // 不是 JSON 格式，停止嘗試
+      }
+      maxAttempts--
+    }
+
+    // 如果解析結果是物件，提取 zh 欄位
+    if (typeof current === 'object' && current !== null && !Array.isArray(current)) {
+      const obj = current as BilingualNotes
+      if ('zh' in obj && typeof obj.zh === 'string') {
+        return normalizeNewlines(obj.zh)
+      }
+      if ('en' in obj && typeof obj.en === 'string') {
+        return normalizeNewlines(obj.en)
       }
     }
 
-    // 普通字串，處理換行符
+    // 如果還是字串，處理換行符
+    if (typeof current === 'string') {
+      return normalizeNewlines(current)
+    }
+
     return normalizeNewlines(notes)
   }
 
@@ -64,6 +90,9 @@ export function parseNotes(notes: unknown): string {
     const notesObj = notes as BilingualNotes
     if ('zh' in notesObj && typeof notesObj.zh === 'string') {
       return normalizeNewlines(notesObj.zh)
+    }
+    if ('en' in notesObj && typeof notesObj.en === 'string') {
+      return normalizeNewlines(notesObj.en)
     }
 
     return ''

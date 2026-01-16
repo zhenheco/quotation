@@ -19,6 +19,23 @@ interface CreateProductRequestBody {
 }
 
 /**
+ * 安全解析數值，返回解析後的值或 undefined
+ */
+function parsePrice(value: number | string | undefined): number | undefined {
+  if (value === undefined) return undefined
+  const parsed = typeof value === 'number' ? value : parseFloat(value)
+  return isNaN(parsed) || parsed < 0 ? undefined : parsed
+}
+
+/**
+ * 轉換雙語欄位
+ */
+function toBilingual(value: string | undefined): { zh: string; en: string } | undefined {
+  if (!value) return undefined
+  return { zh: value, en: value }
+}
+
+/**
  * GET /api/products - 取得所有產品
  */
 export const GET = withAuth('products:read')(async (_request, { user, db }) => {
@@ -38,55 +55,34 @@ export const POST = withAuth('products:write')(async (request, { user, db }) => 
   // 取得請求資料
   const body = (await request.json()) as CreateProductRequestBody
 
-  // 解析價格（預設為 0）
-  const price =
-    body.base_price !== undefined
-      ? typeof body.base_price === 'number'
-        ? body.base_price
-        : parseFloat(body.base_price) || 0
-      : 0
+  // 解析數值欄位
+  const price = parsePrice(body.base_price) ?? 0
+  const costPrice = parsePrice(body.cost_price)
+  const profitMargin = parsePrice(body.profit_margin)
 
-  // 驗證成本價格（如有提供）
-  let costPrice: number | undefined = undefined
-  if (body.cost_price !== undefined) {
-    const parsedCost =
-      typeof body.cost_price === 'number' ? body.cost_price : parseFloat(body.cost_price)
-    if (isNaN(parsedCost) || parsedCost < 0) {
-      return NextResponse.json({ error: 'Invalid cost price' }, { status: 400 })
-    }
-    costPrice = parsedCost
+  // 驗證成本價格（如有提供但解析失敗）
+  if (body.cost_price !== undefined && costPrice === undefined) {
+    return NextResponse.json({ error: 'Invalid cost price' }, { status: 400 })
   }
 
-  // 驗證利潤率（如有提供）
-  let profitMargin: number | undefined = undefined
-  if (body.profit_margin !== undefined) {
-    const parsedMargin =
-      typeof body.profit_margin === 'number' ? body.profit_margin : parseFloat(body.profit_margin)
-    if (isNaN(parsedMargin)) {
-      return NextResponse.json({ error: 'Invalid profit margin' }, { status: 400 })
-    }
-    profitMargin = parsedMargin
+  // 驗證利潤率（如有提供但解析失敗）
+  if (body.profit_margin !== undefined && profitMargin === undefined) {
+    return NextResponse.json({ error: 'Invalid profit margin' }, { status: 400 })
   }
 
   // 準備產品資料
   const productData = {
-    name: body.name
-      ? typeof body.name === 'string'
-        ? { zh: body.name, en: body.name }
-        : body.name
-      : { zh: '', en: '' },
-    description: body.description
-      ? typeof body.description === 'string'
-        ? { zh: body.description, en: body.description }
-        : body.description
-      : undefined,
-    base_price: price,
+    name: toBilingual(body.name) ?? { zh: '', en: '' },
+    description: toBilingual(body.description),
+    base_price: Math.round(price),
     base_currency: body.base_currency || 'TWD',
+    category: body.category,
     sku: body.sku,
-    cost_price: costPrice,
+    cost_price: costPrice !== undefined ? Math.round(costPrice) : undefined,
     cost_currency: body.cost_currency,
     profit_margin: profitMargin,
     supplier: body.supplier,
+    supplier_code: body.supplier_code,
   }
 
   // 建立產品

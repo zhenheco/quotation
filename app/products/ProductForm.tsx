@@ -194,15 +194,15 @@ export default function ProductForm({ product: initialProduct }: ProductFormProp
           zh: formData.nameZh,
           en: formData.nameEn,
         },
-        description: formData.descriptionZh || formData.descriptionEn
-          ? {
-              zh: formData.descriptionZh,
-              en: formData.descriptionEn,
-            }
-          : undefined,
-        base_price: basePrice,
+        // 始終傳送 description 物件，即使是空字串（允許清空描述）
+        description: {
+          zh: formData.descriptionZh,
+          en: formData.descriptionEn,
+        },
+        base_price: Math.round(basePrice),
         base_currency: formData.baseCurrency,
-        category: formData.category || undefined,
+        // 傳送空字串或實際值（允許清空分類）
+        category: formData.category || null,
         sku: formData.sku || undefined,
         product_number: formData.productNumber || undefined,
         company_id: companyId || undefined,
@@ -289,6 +289,8 @@ export default function ProductForm({ product: initialProduct }: ProductFormProp
             name="basePrice"
             type="number"
             step="1"
+            min="0"
+            max="999999999"
             value={formData.basePrice}
             onChange={(value) => {
               setFormData({ ...formData, basePrice: value })
@@ -385,6 +387,8 @@ export default function ProductForm({ product: initialProduct }: ProductFormProp
                   name="costPrice"
                   type="number"
                   step="1"
+                  min="0"
+                  max="999999999"
                   value={formData.costPrice}
                   onChange={(value) => {
                     setFormData({ ...formData, costPrice: value })

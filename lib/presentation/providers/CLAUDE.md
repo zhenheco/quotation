@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #1488 | 4:09 PM | 🔴 | Added complete navigation layout to orders module | ~314 |
+| #1805 | 10:32 PM | 🔵 | AI Provider with Streaming Support and Quota Management | ~578 |
+| #1803 | " | 🔵 | Subscription Provider with Multi-Platform Purchase Support | ~553 |
 </claude-mem-context>

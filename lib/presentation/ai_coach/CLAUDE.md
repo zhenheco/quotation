@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #1488 | 4:09 PM | 🔴 | Added complete navigation layout to orders module | ~314 |
+| #1810 | 10:33 PM | 🔄 | Fixed Unused Parameter Warning in AI Coach Error Handler | ~299 |
+| #1802 | 10:31 PM | 🔵 | AI Coach Page with Quota Management and Chat Interface | ~545 |
 </claude-mem-context>

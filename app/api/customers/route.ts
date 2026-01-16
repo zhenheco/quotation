@@ -20,8 +20,19 @@ export const GET = withAuth('customers:read')(async (_request, { user, db }) => 
  */
 export const POST = withAuth('customers:write')(async (request, { user, db }) => {
   // 取得請求資料
-  const body = (await request.json()) as CreateCustomerRequest & { customer_number?: string }
-  const { name, email, phone, fax, address, tax_id, contact_person, company_id, customer_number } =
+  interface ContactInfo {
+    name?: string
+    phone?: string
+    email?: string
+    title?: string
+    notes?: string
+  }
+  const body = (await request.json()) as CreateCustomerRequest & {
+    customer_number?: string
+    secondary_contact?: ContactInfo | null
+    referrer?: ContactInfo | null
+  }
+  const { name, email, phone, fax, address, tax_id, contact_person, company_id, customer_number, secondary_contact, referrer } =
     body
 
   // 準備客戶資料
@@ -45,6 +56,8 @@ export const POST = withAuth('customers:write')(async (request, { user, db }) =>
         ? { name: contact_person, phone: '', email: '' }
         : { name: (contact_person as { zh?: string; en?: string }).zh || '', phone: '', email: '' }
       : undefined,
+    secondary_contact: secondary_contact || undefined,
+    referrer: referrer || undefined,
   }
 
   // 建立客戶

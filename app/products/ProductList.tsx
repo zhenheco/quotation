@@ -9,6 +9,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import ProductCostDisplay from '@/components/products/ProductCostDisplay'
 import BatchImportModal from '@/components/batch-import/BatchImportModal'
 import { safeToLocaleString } from '@/lib/utils/formatters'
+import { getCategoryLabel } from '@/lib/utils/category-labels'
 import {
   useFilteredProducts,
   useDeleteProduct,
@@ -211,7 +212,7 @@ export default function ProductList() {
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{product.category || '-'}</div>
+                        <div className="text-sm text-gray-900">{getCategoryLabel(product.category) || '-'}</div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
@@ -302,7 +303,7 @@ export default function ProductList() {
                             d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
                           />
                         </svg>
-                        <span className="text-xs">{product.category || '-'}</span>
+                        <span className="text-xs">{getCategoryLabel(product.category) || '-'}</span>
                       </div>
                       <div className="flex items-center gap-2 pt-2">
                         <svg

@@ -25,7 +25,17 @@ export const GET = withAuth('customers:read')<{ id: string }>(
 export const PUT = withAuth('customers:write')<{ id: string }>(
   async (request, { user, db }, { id }) => {
     // 取得請求資料
-    const body = (await request.json()) as UpdateCustomerRequest
+    interface ContactInfo {
+      name?: string
+      phone?: string
+      email?: string
+      title?: string
+      notes?: string
+    }
+    const body = (await request.json()) as UpdateCustomerRequest & {
+      secondary_contact?: ContactInfo | null
+      referrer?: ContactInfo | null
+    }
 
     // 轉換為 DAL 期望的格式
     const updateData: Partial<{
@@ -38,6 +48,8 @@ export const PUT = withAuth('customers:write')<{ id: string }>(
       contact_person: { name: string; phone: string; email: string }
       notes: string
       company_id: string
+      secondary_contact: ContactInfo | null
+      referrer: ContactInfo | null
     }> = {}
 
     if (body.name !== undefined) {
@@ -84,6 +96,12 @@ export const PUT = withAuth('customers:write')<{ id: string }>(
     }
     if (body.company_id !== undefined && body.company_id !== null) {
       updateData.company_id = body.company_id
+    }
+    if (body.secondary_contact !== undefined) {
+      updateData.secondary_contact = body.secondary_contact
+    }
+    if (body.referrer !== undefined) {
+      updateData.referrer = body.referrer
     }
 
     // 更新客戶（DAL 會自動處理 JSON 序列化）
