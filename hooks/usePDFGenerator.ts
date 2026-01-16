@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { QuotationWithCustomer, PaymentTerm } from '@/hooks/useQuotations'
+import { parseNotes } from '@/lib/utils/notes-parser'
 import type { QuotationPDFData } from '@/lib/pdf/quotation-pdf-generator'
 import type { PDFLocale } from '@/lib/pdf/pdf-translations'
 
@@ -90,6 +91,35 @@ export function usePDFGenerator() {
   return { generatePDF, isGenerating, progress, error }
 }
 
+/**
+ * 解析 notes 為雙語格式
+ * 處理 JSON 字串、雙語物件、純字串等各種格式
+ */
+function parseNotesToBilingual(
+  notes: unknown
+): { zh: string; en: string } | null {
+  if (!notes) return null
+
+  // 如果已經是正確的雙語格式
+  if (
+    typeof notes === 'object' &&
+    notes !== null &&
+    'zh' in notes &&
+    typeof (notes as { zh: unknown }).zh === 'string'
+  ) {
+    const obj = notes as { zh: string; en?: string }
+    return { zh: obj.zh, en: obj.en || obj.zh }
+  }
+
+  // 使用 parseNotes 解析（處理 JSON 字串等情況）
+  const parsed = parseNotes(notes)
+  if (parsed) {
+    return { zh: parsed, en: parsed }
+  }
+
+  return null
+}
+
 function mapQuotationToPDFData(
   quotation: QuotationWithCustomer,
   paymentTerms: PaymentTerm[] | undefined
@@ -126,11 +156,7 @@ function mapQuotationToPDFData(
     taxAmount: quotation.tax_amount,
     totalAmount: quotation.total_amount,
     currency: quotation.currency,
-    notes: quotation.notes
-      ? typeof quotation.notes === 'string'
-        ? { zh: quotation.notes, en: quotation.notes }
-        : quotation.notes
-      : null,
+    notes: parseNotesToBilingual(quotation.notes),
     paymentTerms: paymentTerms?.map((term) => ({
       termNumber: term.term_number,
       termName: term.term_name,
