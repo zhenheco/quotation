@@ -94,27 +94,46 @@ export function usePDFGenerator() {
 /**
  * 解析 notes 為雙語格式
  * 處理 JSON 字串、雙語物件、純字串等各種格式
+ * 包含處理雙層巢狀的情況（物件內的值可能也是 JSON 字串）
  */
 function parseNotesToBilingual(
   notes: unknown
 ): { zh: string; en: string } | null {
   if (!notes) return null
 
-  // 如果已經是正確的雙語格式
+  // 如果是字串，先嘗試用 parseNotes 解析
+  if (typeof notes === 'string') {
+    const parsed = parseNotes(notes)
+    if (parsed) {
+      return { zh: parsed, en: parsed }
+    }
+    return null
+  }
+
+  // 如果是物件格式
   if (
     typeof notes === 'object' &&
     notes !== null &&
-    'zh' in notes &&
-    typeof (notes as { zh: unknown }).zh === 'string'
+    'zh' in notes
   ) {
-    const obj = notes as { zh: string; en?: string }
-    return { zh: obj.zh, en: obj.en || obj.zh }
-  }
+    const obj = notes as { zh: unknown; en?: unknown }
 
-  // 使用 parseNotes 解析（處理 JSON 字串等情況）
-  const parsed = parseNotes(notes)
-  if (parsed) {
-    return { zh: parsed, en: parsed }
+    // 處理 zh 值（可能是字串或 JSON 字串）
+    let zhValue = ''
+    if (typeof obj.zh === 'string') {
+      // 使用 parseNotes 處理可能的 JSON 字串和換行符
+      zhValue = parseNotes(obj.zh) || obj.zh
+    }
+
+    // 處理 en 值
+    let enValue = zhValue
+    if (obj.en && typeof obj.en === 'string') {
+      enValue = parseNotes(obj.en) || obj.en
+    }
+
+    if (zhValue) {
+      return { zh: zhValue, en: enValue }
+    }
   }
 
   return null
