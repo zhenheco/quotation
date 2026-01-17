@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import type { QuotationWithCustomer } from '@/hooks/useQuotations'
 
 interface SendQuotationModalProps {
@@ -22,6 +22,10 @@ export default function SendQuotationModal({
   isBatch = false,
   selectedCount = 0,
 }: SendQuotationModalProps) {
+  const uniqueId = useId()
+  const titleId = `${uniqueId}-title`
+  const descriptionId = `${uniqueId}-description`
+
   const defaultSubject = quotation
     ? `報價單 ${quotation.quotation_number}`
     : '批次報價單'
@@ -45,16 +49,22 @@ export default function SendQuotationModal({
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white"
+      >
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 id={titleId} className="text-lg font-semibold text-gray-900">
             {isBatch ? '批次發送確認' : '發送報價單確認'}
           </h3>
-          {isBatch && (
-            <p className="text-sm text-gray-600 mt-2">
-              即將發送 {selectedCount} 份報價單
-            </p>
-          )}
+          <p id={descriptionId} className="text-sm text-gray-600 mt-2">
+            {isBatch
+              ? `即將發送 ${selectedCount} 份報價單`
+              : quotation ? `確認發送報價單 ${quotation.quotation_number} 給 ${quotation.customer_email}` : '確認發送報價單'}
+          </p>
         </div>
 
         {!isBatch && quotation && (

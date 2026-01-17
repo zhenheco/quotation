@@ -4,6 +4,13 @@
  * 定義所有 API 請求和回應的通用型別
  */
 
+// 重新導出 ApiError 以確保單一來源
+// 必須在檔案開頭 import，因為後面的介面會使用它
+import { ApiError as ApiErrorClass } from '@/lib/api/errors'
+export { ApiErrorClass as ApiError }
+// 建立 local type alias 供檔案內部使用
+type ApiError = ApiErrorClass
+
 // ============================================================================
 // HTTP 方法
 // ============================================================================
@@ -169,28 +176,7 @@ export type ApiErrorType =
   | 'SERVER_ERROR'       // 伺服器錯誤
   | 'UNKNOWN_ERROR'      // 未知錯誤
 
-/**
- * API 錯誤
- */
-export class ApiError extends Error {
-  type: ApiErrorType
-  status?: number
-  code?: string
-  details?: Record<string, unknown>
-
-  constructor(
-    message: string,
-    type: ApiErrorType = 'UNKNOWN_ERROR',
-    status?: number,
-    details?: Record<string, unknown>
-  ) {
-    super(message)
-    this.name = 'ApiError'
-    this.type = type
-    this.status = status
-    this.details = details
-  }
-}
+// ApiError 已在檔案開頭重新導出（確保單一來源）
 
 // ============================================================================
 // 快取型別

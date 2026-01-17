@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import { getProductById, updateProduct, deleteProduct } from '@/lib/dal/products'
+import { validateFields, PRODUCT_ALLOWED_FIELDS } from '@/lib/security/field-validator'
 
 interface UpdateProductRequestBody {
   name?: string | { zh: string; en: string }
@@ -76,7 +77,10 @@ export const GET = withAuth('products:read')<{ id: string }>(
 export const PUT = withAuth('products:write')<{ id: string }>(
   async (request, { user, db }, { id }) => {
     // 取得請求資料
-    const body = (await request.json()) as UpdateProductRequestBody
+    const rawBody = (await request.json()) as UpdateProductRequestBody
+
+    // 安全：過濾非白名單欄位（防止 Mass Assignment 攻擊）
+    const body = validateFields(rawBody, PRODUCT_ALLOWED_FIELDS) as UpdateProductRequestBody
 
     // 驗證數值欄位
     const basePrice = parseNumericField(body.base_price, 'price')

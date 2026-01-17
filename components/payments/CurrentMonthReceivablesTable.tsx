@@ -19,6 +19,20 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
   overdue: '已逾期',
 }
 
+// 狀態對應的樣式
+const PAYMENT_STATUS_STYLES: Record<string, string> = {
+  paid: 'bg-green-100 text-green-800',
+  overdue: 'bg-red-100 text-red-800',
+  pending: 'bg-yellow-100 text-yellow-800',
+}
+
+/**
+ * 取得狀態 badge 的樣式類別
+ */
+function getStatusBadgeClass(status: string): string {
+  return PAYMENT_STATUS_STYLES[status] ?? PAYMENT_STATUS_STYLES.pending
+}
+
 interface CurrentMonthReceivablesTableProps {
   searchQuery?: string
 }
@@ -26,7 +40,7 @@ interface CurrentMonthReceivablesTableProps {
 export function CurrentMonthReceivablesTable({ searchQuery = '' }: CurrentMonthReceivablesTableProps) {
   // 固定使用繁體中文
   const locale = 'zh'
-  const { data, isLoading, error } = useCurrentMonthReceivables()
+  const { data, isLoading, error, refetch } = useCurrentMonthReceivables()
   const markAsCollected = useMarkScheduleAsCollected()
   const updateSchedule = useUpdatePaymentSchedule()
   const deleteSchedule = useDeletePaymentSchedule()
@@ -136,15 +150,7 @@ export function CurrentMonthReceivablesTable({ searchQuery = '' }: CurrentMonthR
         {new Date(item.due_date).toLocaleDateString(locale)}
       </td>
       <td className="px-4 py-4">
-        <span
-          className={`px-2 py-1 text-xs font-medium rounded ${
-            item.status === 'paid'
-              ? 'bg-green-100 text-green-800'
-              : item.status === 'overdue'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-yellow-100 text-yellow-800'
-          }`}
-        >
+        <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadgeClass(item.status)}`}>
           {PAYMENT_STATUS_LABELS[item.status] || item.status}
         </span>
       </td>
@@ -193,15 +199,7 @@ export function CurrentMonthReceivablesTable({ searchQuery = '' }: CurrentMonthR
             )}
           </div>
         </div>
-        <span
-          className={`px-2 py-1 text-xs font-medium rounded ${
-            item.status === 'paid'
-              ? 'bg-green-100 text-green-800'
-              : item.status === 'overdue'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-yellow-100 text-yellow-800'
-          }`}
-        >
+        <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadgeClass(item.status)}`}>
           {PAYMENT_STATUS_LABELS[item.status] || item.status}
         </span>
       </div>
@@ -296,7 +294,7 @@ export function CurrentMonthReceivablesTable({ searchQuery = '' }: CurrentMonthR
         <div className="text-center py-8">
           <p className="text-red-600 mb-4">載入資料時發生錯誤</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => refetch()}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             重試

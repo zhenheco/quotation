@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import { getCustomerById, updateCustomer, deleteCustomer } from '@/lib/dal/customers'
 import { UpdateCustomerRequest } from '@/app/api/types'
+import { validateFields, CUSTOMER_ALLOWED_FIELDS } from '@/lib/security/field-validator'
 
 /**
  * GET /api/customers/[id] - 取得單一客戶
@@ -32,10 +33,13 @@ export const PUT = withAuth('customers:write')<{ id: string }>(
       title?: string
       notes?: string
     }
-    const body = (await request.json()) as UpdateCustomerRequest & {
+    const rawBody = (await request.json()) as UpdateCustomerRequest & {
       secondary_contact?: ContactInfo | null
       referrer?: ContactInfo | null
     }
+
+    // 安全：過濾非白名單欄位（防止 Mass Assignment 攻擊）
+    const body = validateFields(rawBody, CUSTOMER_ALLOWED_FIELDS) as typeof rawBody
 
     // 轉換為 DAL 期望的格式
     const updateData: Partial<{

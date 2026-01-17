@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #432 | 2:24 AM | 🔵 | Quotations DAL has comprehensive unit test coverage with mocked Supabase client | ~640 |
+| #629 | 1:41 PM | 🔵 | lib/api/errors.ts defines complete ApiError class hierarchy with 8 error subtypes | ~629 |
 </claude-mem-context>

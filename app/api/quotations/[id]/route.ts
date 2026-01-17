@@ -16,6 +16,7 @@ import { syncQuotationToPaymentSchedules } from '@/lib/dal/payments'
 import { getCustomerByIdOnly } from '@/lib/dal/customers'
 import { checkPermission } from '@/lib/cache/services'
 import { isValidUUID } from '@/lib/security'
+import { validateFields, QUOTATION_ALLOWED_FIELDS } from '@/lib/security/field-validator'
 
 
 /**
@@ -133,7 +134,16 @@ export async function PUT(
       items?: QuotationItemInput[];
     }
 
-    const body = await request.json() as UpdateQuotationBody
+    const rawBody = await request.json() as UpdateQuotationBody
+
+    // 安全：過濾非白名單欄位（防止 Mass Assignment 攻擊）
+    // 注意：items 陣列需要單獨處理，不在此過濾範圍內
+    const body = validateFields(rawBody, QUOTATION_ALLOWED_FIELDS) as UpdateQuotationBody
+    // 保留 items（它需要單獨驗證）
+    if (rawBody.items) {
+      body.items = rawBody.items
+    }
+
     const {
       customer_id,
       status,
@@ -247,7 +257,10 @@ export async function PATCH(
     interface PatchQuotationBody {
       status: 'draft' | 'sent' | 'accepted' | 'expired';
     }
-    const body = await request.json() as PatchQuotationBody
+    const rawBody = await request.json() as PatchQuotationBody
+
+    // 安全：過濾非白名單欄位（防止 Mass Assignment 攻擊）
+    const body = validateFields(rawBody, QUOTATION_ALLOWED_FIELDS) as PatchQuotationBody
     const { status } = body
 
     if (!status) {

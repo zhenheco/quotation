@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import DeleteConfirmModal, { type RelatedRecordsInfo } from '@/components/ui/DeleteConfirmModal'
 import EmptyState from '@/components/ui/EmptyState'
 import {
@@ -19,8 +20,16 @@ import SendQuotationModal from '@/components/quotations/SendQuotationModal'
 import { toast } from 'sonner'
 import { apiPatch } from '@/lib/api-client'
 
+/**
+ * 從 Error 物件提取使用者友善的錯誤訊息
+ */
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
+}
+
 export default function QuotationList() {
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   // Hooks
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -81,7 +90,7 @@ export default function QuotationList() {
       setSelectedIds(new Set())
       setIsBatchOperation(false)
     } catch (error) {
-      toast.error('批次刪除失敗')
+      toast.error(getErrorMessage(error, `批次刪除失敗，共 ${selectedIds.size} 筆操作未完成`))
       console.error('Batch delete error:', error)
     }
   }
@@ -97,7 +106,7 @@ export default function QuotationList() {
       setSelectedIds(new Set())
       setIsBatchOperation(false)
     } catch (error) {
-      toast.error('批次更新狀態失敗')
+      toast.error(getErrorMessage(error, `批次更新狀態失敗，共 ${selectedIds.size} 筆操作未完成`))
       console.error('Batch status update error:', error)
     }
   }
@@ -106,9 +115,9 @@ export default function QuotationList() {
     try {
       await apiPatch(`/api/quotations/${quotationId}`, { status: newStatus })
       toast.success('狀態已更新')
-      window.location.reload()
+      queryClient.invalidateQueries({ queryKey: ['quotations'] })
     } catch (error) {
-      toast.error('更新狀態失敗')
+      toast.error(getErrorMessage(error, '更新狀態失敗，請稍後再試'))
       console.error('Error updating status:', error)
     }
   }
@@ -155,9 +164,8 @@ export default function QuotationList() {
       })
       toast.success('報價單已刪除')
       setDeleteModal({ isOpen: false, quotation: null })
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '刪除報價單失敗'
-      toast.error(errorMessage)
+    } catch (error) {
+      toast.error(getErrorMessage(error, '刪除報價單失敗'))
       console.error('Error deleting quotation:', error)
     }
   }
@@ -188,9 +196,8 @@ export default function QuotationList() {
         toast.success(`報價單已發送至 ${sendModal.quotation.customer_email}`)
       }
       setSendModal({ isOpen: false, quotation: null, isBatch: false })
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '發送報價單失敗'
-      toast.error(errorMessage)
+    } catch (error) {
+      toast.error(getErrorMessage(error, '發送報價單失敗'))
       console.error('Error sending quotation:', error)
     }
   }
