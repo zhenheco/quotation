@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle } from 'lucide-react'
 
@@ -42,6 +42,9 @@ export default function DeleteConfirmModal({
 }: DeleteConfirmModalProps) {
   const [mounted, setMounted] = useState(false)
   const [forceDelete, setForceDelete] = useState(false)
+  const uniqueId = useId()
+  const titleId = `${uniqueId}-title`
+  const descriptionId = `${uniqueId}-description`
 
   // 重置 forceDelete 狀態當 modal 關閉時
   useEffect(() => {
@@ -77,40 +80,20 @@ export default function DeleteConfirmModal({
   if (!mounted || !isOpen) return null
 
   const modalContent = (
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 9999
-      }}
-    >
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* 背景遮罩 - 毛玻璃效果 */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0
-        }}
       />
 
-      {/* 對話框內容 - 現代圓潤設計 */}
+      {/* 對話框內容 - 現代圓潤設計，加入 ARIA 屬性以提升無障礙支援 */}
       <div
-        className="relative bg-white rounded-3xl shadow-2xl animate-scale-in"
-        style={{
-          position: 'relative',
-          zIndex: 10000,
-          backgroundColor: 'white',
-          width: '360px',
-          maxWidth: '90vw'
-        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        className="relative z-[10000] bg-white rounded-3xl shadow-2xl animate-scale-in w-[360px] max-w-[90vw]"
       >
         <div className="p-6">
           {/* 圖標區 - 漸層背景 */}
@@ -122,10 +105,10 @@ export default function DeleteConfirmModal({
 
           {/* 文字區 */}
           <div className="text-center mb-6">
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+            <h3 id={titleId} className="text-xl font-semibold text-slate-800 mb-2">
               {title}
             </h3>
-            <p className="text-sm text-slate-500">{description}</p>
+            <p id={descriptionId} className="text-sm text-slate-500">{description}</p>
           </div>
 
           {/* 關聯紀錄資訊 */}

@@ -19,14 +19,21 @@
 
 /**
  * Customer 表允許更新的欄位
+ *
+ * 注意：company_id 不在此列表中，因為它是系統欄位，
+ * 不應該允許從 API 直接更新（防止跨公司資料竄改）
  */
 export const CUSTOMER_ALLOWED_FIELDS = [
   'name',
   'email',
   'phone',
+  'fax',
   'address',
   'tax_id',
-  'contact_person'
+  'contact_person',
+  'secondary_contact',
+  'referrer',
+  'notes',
 ] as const
 
 /**
@@ -37,17 +44,22 @@ export const PRODUCT_ALLOWED_FIELDS = [
   'name',
   'description',
   'unit_price',
+  'base_price',
   'currency',
+  'base_currency',
   'category',
   'cost_price',
   'cost_currency',
   'profit_margin',
   'supplier',
-  'supplier_code'
+  'supplier_code',
+  'image_url',
 ] as const
 
 /**
  * Quotation 表允許更新的欄位
+ *
+ * 注意：items 需要單獨驗證（使用 QUOTATION_ITEM_ALLOWED_FIELDS）
  */
 export const QUOTATION_ALLOWED_FIELDS = [
   'customer_id',
@@ -61,9 +73,15 @@ export const QUOTATION_ALLOWED_FIELDS = [
   'tax_rate',
   'tax_amount',
   'total',
+  'total_amount',
+  'show_tax',
+  'discount_amount',
+  'discount_description',
   'notes',
   'payment_status',
   'payment_due_date',
+  'payment_method',
+  'payment_notes',
   'total_paid',
   'deposit_amount',
   'deposit_paid_date',
@@ -74,7 +92,7 @@ export const QUOTATION_ALLOWED_FIELDS = [
   'contract_file_url',
   'payment_frequency',
   'next_collection_date',
-  'next_collection_amount'
+  'next_collection_amount',
 ] as const
 
 /**
@@ -82,10 +100,11 @@ export const QUOTATION_ALLOWED_FIELDS = [
  */
 export const QUOTATION_ITEM_ALLOWED_FIELDS = [
   'product_id',
+  'description',
   'quantity',
   'unit_price',
   'discount',
-  'subtotal'
+  'subtotal',
 ] as const
 
 /**
@@ -149,10 +168,10 @@ export function isFieldAllowed(
  * // malicious 欄位被自動過濾掉
  * ```
  */
-export function validateFields<T extends Record<string, unknown>>(
+export function validateFields<T extends object>(
   data: T,
   allowedFields: readonly string[],
-  options: { strict?: boolean; throwOnInvalid?: boolean } = {}
+  options: { throwOnInvalid?: boolean } = {}
 ): Partial<T> {
   const { throwOnInvalid = false } = options
 
@@ -161,8 +180,7 @@ export function validateFields<T extends Record<string, unknown>>(
 
   for (const [key, value] of Object.entries(data)) {
     if (isFieldAllowed(key, allowedFields)) {
-      // @ts-expect-error - Generic type index compatibility
-      validatedData[key as keyof T] = value
+      (validatedData as Record<string, unknown>)[key] = value
     } else {
       invalidFields.push(key)
 
