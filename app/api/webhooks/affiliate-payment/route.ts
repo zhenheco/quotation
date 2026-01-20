@@ -23,11 +23,9 @@ import type { SubscriptionTier, BillingCycle } from '@/lib/dal/subscriptions'
  */
 export async function POST(request: NextRequest) {
   try {
-    // 取得原始請求 body
     const rawBody = await request.text()
     const signature = request.headers.get('X-Webhook-Signature')
 
-    // 驗證並解析 Webhook 事件
     let event
     try {
       event = await parsePaymentWebhook(rawBody, signature)
@@ -49,7 +47,6 @@ export async function POST(request: NextRequest) {
       amount: event.amount,
     })
 
-    // 根據付款狀態處理
     switch (event.status) {
       case 'SUCCESS':
         return await handleSuccessEvent(event)
@@ -64,7 +61,7 @@ export async function POST(request: NextRequest) {
 
       case 'REFUNDED':
         console.log('[Webhook] Payment refunded:', event.orderId)
-        // TODO: 處理退款邏輯（降級訂閱等）
+        // TODO: 處理退款邏輯
         return NextResponse.json({ success: true, message: 'Refund noted' })
 
       default:
@@ -93,7 +90,6 @@ async function handleSuccessEvent(event: {
 }) {
   const { orderId, paymentId, metadata, amount, paidAt } = event
 
-  // 驗證 metadata
   if (!metadata?.company_id || !metadata?.tier) {
     console.error('[Webhook] Missing required metadata:', metadata)
     return NextResponse.json(
@@ -110,14 +106,7 @@ async function handleSuccessEvent(event: {
   } = metadata
 
   console.log('[Webhook] Processing successful payment:', {
-    orderId,
-    paymentId,
-    companyId,
-    tier,
-    billingCycle,
-    type,
-    amount,
-    paidAt,
+    orderId, paymentId, companyId, tier, billingCycle, type, amount, paidAt,
   })
 
   const db = getSupabaseClient()
@@ -137,8 +126,6 @@ async function handleSuccessEvent(event: {
 
     if (!upgradeResult.success) {
       console.error('[Webhook] Subscription upgrade failed:', upgradeResult.error)
-      // 即使升級失敗，也返回 200 避免重複 webhook
-      // 但記錄錯誤以便人工處理
       await logPaymentError(db, {
         paymentId,
         orderId,
@@ -147,7 +134,7 @@ async function handleSuccessEvent(event: {
         error: upgradeResult.error || 'Unknown upgrade error',
       })
     } else {
-      console.log('[Webhook] Subscription upgraded successfully:', {
+      console.log('[Webhook] Subscription upgraded:', {
         companyId,
         tier,
         subscriptionId: upgradeResult.subscription?.id,
@@ -156,7 +143,6 @@ async function handleSuccessEvent(event: {
 
     // 2. 如果有推薦關係，建立佣金
     if (amount && amount > 0) {
-      // 查詢公司擁有者的 user_id
       const { data: company } = await db
         .from('companies')
         .select('owner_user_id')
@@ -167,18 +153,17 @@ async function handleSuccessEvent(event: {
         const commissionResult = await createCommission({
           externalOrderId: orderId,
           orderAmount: amount,
-          orderType: type || 'subscription',
+          orderType: (type || 'subscription') as 'subscription' | 'addon' | 'renewal' | 'upgrade' | 'one_time',
           referredUserId: company.owner_user_id,
         })
 
-        if (commissionResult.success && commissionResult.commissionId) {
+        if (commissionResult?.success && commissionResult.commissionId) {
           console.log('[Webhook] Commission created:', {
             commissionId: commissionResult.commissionId,
             amount: commissionResult.commissionAmount,
           })
-        } else if (commissionResult.error !== 'Duplicate order (already processed)') {
-          // 非重複訂單的錯誤才記錄
-          console.warn('[Webhook] Commission creation skipped:', commissionResult.error)
+        } else if (!commissionResult) {
+          console.warn('[Webhook] Commission creation skipped: No referral relationship or API error')
         }
       }
     }
@@ -221,8 +206,6 @@ async function logPaymentSuccess(
   }
 ) {
   try {
-    // 可以寫入到自定義的付款記錄表
-    // 目前先用 console.log 記錄
     console.log('[Webhook] Payment success logged:', data)
   } catch (error) {
     console.error('[Webhook] Failed to log payment success:', error)
@@ -243,7 +226,6 @@ async function logPaymentError(
   }
 ) {
   try {
-    // 可以寫入到錯誤記錄表
     console.error('[Webhook] Payment error logged:', data)
   } catch (error) {
     console.error('[Webhook] Failed to log payment error:', error)

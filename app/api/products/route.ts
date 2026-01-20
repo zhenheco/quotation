@@ -3,8 +3,8 @@ import { withAuth } from '@/lib/api/middleware'
 import { getProducts, createProduct, createProductWithRetry } from '@/lib/dal/products'
 
 interface CreateProductRequestBody {
-  name: string
-  description?: string
+  name: string | { zh: string; en: string }
+  description?: string | { zh: string; en: string }
   base_price: number | string
   base_currency: string
   category?: string
@@ -28,11 +28,21 @@ function parsePrice(value: number | string | undefined): number | undefined {
 }
 
 /**
- * 轉換雙語欄位
+ * 轉換雙語欄位（支援字串或物件格式）
  */
-function toBilingual(value: string | undefined): { zh: string; en: string } | undefined {
-  if (!value) return undefined
-  return { zh: value, en: value }
+function toBilingual(
+  value: string | { zh: string; en: string } | undefined
+): { zh: string; en: string } | undefined {
+  if (value === undefined || value === null) return undefined
+  // 如果已經是物件格式，直接返回
+  if (typeof value === 'object' && 'zh' in value && 'en' in value) {
+    return value
+  }
+  // 如果是字串，轉換成雙語格式
+  if (typeof value === 'string' && value.trim()) {
+    return { zh: value, en: value }
+  }
+  return undefined
 }
 
 /**
