@@ -55,10 +55,7 @@ export async function POST(request: Request) {
 
     // 驗證用戶
     const supabase = await createClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json({ success: false, error: '未登入' }, { status: 401 })
@@ -96,14 +93,12 @@ export async function POST(request: Request) {
       )
     }
 
-    // 計算價格
-    const basePrice =
-      body.billing_cycle === 'YEARLY' ? planPrices.yearly : planPrices.monthly
+    // 計算價格和折扣
+    const basePrice = body.billing_cycle === 'YEARLY' ? planPrices.yearly : planPrices.monthly
     let discount = 0
 
     // 處理推薦碼折扣（首月 50%）
     if (body.referral_code && body.billing_cycle === 'MONTHLY') {
-      // 查詢推薦碼是否有效
       const db = getSupabaseClient()
       const { data: referrer } = await db
         .from('user_profiles')
@@ -112,22 +107,19 @@ export async function POST(request: Request) {
         .single()
 
       if (referrer) {
-        discount = Math.floor(basePrice * 0.5) // 50% 折扣
+        discount = Math.floor(basePrice * 0.5)
 
-        // 記錄推薦
         await trackRegistration({
           referralCode: body.referral_code.toUpperCase(),
           referredUserId: user.id,
           referredUserEmail: user.email || undefined,
-        }).catch(console.error) // 不阻擋付款流程
+        }).catch(console.error)
       }
     }
 
-    // 計算最終價格
     const finalPrice = basePrice - discount
-
-    // 取得用戶 Email
     const userEmail = user.email
+
     if (!userEmail) {
       return NextResponse.json(
         { success: false, error: '無法取得用戶 Email' },
@@ -138,17 +130,15 @@ export async function POST(request: Request) {
     // 生成訂單 ID
     const orderId = `SUB-${body.company_id.substring(0, 8)}-${Date.now()}`
 
-    // 建立付款請求（使用已驗證的環境變數）
+    // 建立付款請求
     const paymentClient = new PaymentGatewayClient({
       apiKey,
       siteCode,
       webhookSecret: process.env.AFFILIATE_PAYMENT_WEBHOOK_SECRET?.trim(),
-      environment: 'production', // 使用正式環境
+      environment: 'production',
     })
 
-    // 建立 callback URL（付款完成後導回）
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://quote24.cc'
-    const callbackUrl = `${baseUrl}/pricing/callback?order_id=${orderId}&tier=${body.tier}&amount=${finalPrice}`
+    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://quote24.cc'}/pricing/callback?order_id=${orderId}&tier=${body.tier}&amount=${finalPrice}`
 
     const paymentParams: CreatePaymentParams = {
       orderId,
@@ -167,7 +157,7 @@ export async function POST(request: Request) {
       },
     }
 
-    // 月繳使用定期定額（年繳一次付清，下次續約時會重新建立付款）
+    // 月繳使用定期定額
     if (body.billing_cycle === 'MONTHLY') {
       const firstPaymentDate = new Date()
       firstPaymentDate.setMonth(firstPaymentDate.getMonth() + 1)
@@ -175,17 +165,15 @@ export async function POST(request: Request) {
 
       paymentParams.periodParams = {
         periodType: 'M',
-        periodAmt: basePrice, // 首次折扣後，後續恢復原價
-        periodTimes: 12, // 最多 12 期，之後可續約
+        periodAmt: basePrice,
+        periodTimes: 12,
         periodFirstdate: firstDateStr,
-        periodPoint: String(new Date().getDate()).padStart(2, '0'), // 每月同一天
-        periodStartType: 2, // 首期日開始
+        periodPoint: String(new Date().getDate()).padStart(2, '0'),
+        periodStartType: 2,
       }
     }
 
     const result = await paymentClient.createPayment(paymentParams)
-
-    // 微服務 API 回傳 payuniForm，SDK 同時定義了 paymentForm 和 payuniForm
     const paymentForm = result.paymentForm || result.payuniForm
 
     if (!result.success || !paymentForm) {
@@ -195,7 +183,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 記錄待付款訂單（用於 Webhook 回調時更新訂閱）
+    // 記錄待付款訂單
     const db = getSupabaseClient()
     const { error: insertError } = await db.from('subscription_orders').insert({
       id: result.paymentId,
@@ -213,7 +201,6 @@ export async function POST(request: Request) {
     })
 
     if (insertError) {
-      // 表可能不存在，記錄到 log 但不阻擋付款
       console.error('Failed to record subscription order:', insertError)
     }
 
@@ -225,7 +212,7 @@ export async function POST(request: Request) {
         amount: finalPrice,
         originalAmount: basePrice,
         discount,
-        paymentForm, // 使用映射後的 paymentForm
+        paymentForm,
       },
     })
   } catch (error) {
