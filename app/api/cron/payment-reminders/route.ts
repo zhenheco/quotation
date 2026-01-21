@@ -181,7 +181,7 @@ export async function GET() {
               daysUntilDue: reminder.days_until_collection,
               status: reminder.collection_status,
               companyName,
-              viewUrl: appUrl ? `${appUrl}/zh/contracts/${reminder.contract_id}` : undefined
+              viewUrl: appUrl ? `${appUrl}/contracts/${reminder.contract_id}` : undefined
             }
 
             const emailHTML = generatePaymentReminderEmailHTML(emailData)
@@ -348,7 +348,7 @@ export async function POST(request: Request) {
           daysUntilDue: reminder.days_until_collection,
           status: reminder.collection_status,
           companyName,
-          viewUrl: appUrl ? `${appUrl}/zh/contracts/${reminder.contract_id}` : undefined
+          viewUrl: appUrl ? `${appUrl}/contracts/${reminder.contract_id}` : undefined
         }
 
         const emailHTML = generatePaymentReminderEmailHTML(emailData)

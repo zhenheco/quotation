@@ -64,7 +64,7 @@ export default function PricingDashboard() {
       // 免費版：導向登入/註冊頁面
       if (tier === 'FREE') {
         if (!company?.id) {
-          window.location.href = '/login?redirect=/zh/dashboard'
+          window.location.href = '/login?redirect=/dashboard'
         }
         // 已登入的用戶不需要做任何事，免費版是預設方案
         return

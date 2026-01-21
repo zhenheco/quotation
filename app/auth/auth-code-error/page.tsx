@@ -44,7 +44,7 @@ export default function AuthCodeErrorPage() {
         {/* 操作按鈕 */}
         <div className="space-y-3">
           <Link
-            href="/zh/login"
+            href="/login"
             className="block w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
             返回登入頁面

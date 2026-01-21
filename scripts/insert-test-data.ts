@@ -360,9 +360,9 @@ async function insertTestData() {
     console.log(`  • ${quotations.reduce((sum, q) => sum + q.items.length, 0)} 個報價單項目`)
     console.log('')
     console.log('現在可以測試系統：')
-    console.log('  http://localhost:3000/zh/customers')
-    console.log('  http://localhost:3000/zh/products')
-    console.log('  http://localhost:3000/zh/quotations')
+    console.log('  http://localhost:3000/customers')
+    console.log('  http://localhost:3000/products')
+    console.log('  http://localhost:3000/quotations')
     console.log('')
 
   } catch (error) {
