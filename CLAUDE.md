@@ -289,3 +289,75 @@ return result.data || []
 **日期**：2026-01-12
 
 ---
+
+### Webhook 測試 Mock 模組路徑錯誤
+
+**問題**：`tests/integration/api/webhooks/affiliate-payment.test.ts` 測試全部被 skip，原因是 mock 了錯誤的模組路徑
+**原因**：測試 mock `@/lib/sdk/payment-gateway-client`，但實際 API 使用 `@/lib/services/affiliate-payment`（它是 SDK 的包裝層）
+**解法**：修正測試中的 mock 路徑和 import：
+```typescript
+// ❌ 錯誤：直接 mock SDK 層
+vi.mock('@/lib/sdk/payment-gateway-client', () => ({
+  parsePaymentWebhook: vi.fn(),
+  PaymentGatewayError: class MockError extends Error { ... },
+}))
+
+// ✅ 正確：mock 服務層（API 實際使用的）
+vi.mock('@/lib/services/affiliate-payment', () => ({
+  parsePaymentWebhook: vi.fn(),
+  handlePaymentFailed: vi.fn(),
+  PaymentGatewayError: class MockError extends Error { ... },
+}))
+```
+**日期**：2026-01-20
+
+---
+
+### Checkout API - 訂單 ID 包含底線（已修正）
+
+**問題**：當 `company_id` 包含底線（如 `test_company_123`）時，生成的訂單 ID 也包含底線，不符合 PAYUNi 規範
+**原因**：`app/api/subscriptions/checkout/route.ts` Line 131 直接使用 `company_id.substring(0, 8)`，未移除底線
+**影響**：PAYUNi 可能拒絕包含底線的訂單 ID，導致付款失敗
+**解法**：
+```typescript
+// 修改前
+const orderId = `SUB-${body.company_id.substring(0, 8)}-${Date.now()}`
+
+// 修改後
+const sanitizedCompanyId = body.company_id.replace(/_/g, '-')
+const orderId = `SUB-${sanitizedCompanyId.substring(0, 8)}-${Date.now()}`
+```
+**測試**：`tests/integration/api/subscriptions/checkout.test.ts` Line 213-240（✅ 已通過）
+**日期**：2026-01-20
+
+---
+
+### Checkout API - 金流錯誤訊息未包裝（已修正）
+
+**問題**：金流 SDK 返回錯誤時，API 直接透傳錯誤訊息（如 'Insufficient funds'），而非統一的 '建立付款失敗'
+**原因**：`app/api/subscriptions/checkout/route.ts` Line 180-182 直接使用 `result.error`
+**影響**：前端無法統一處理錯誤，可能暴露內部實現細節
+**解法**：
+```typescript
+// 修改前
+if (!result.success || !paymentForm) {
+  return NextResponse.json(
+    { success: false, error: result.error || '建立付款失敗' },
+    { status: 500 }
+  )
+}
+
+// 修改後
+if (!result.success || !paymentForm) {
+  // 包裝錯誤訊息，不暴露內部實現細節
+  const errorMessage = result.error ? '建立付款失敗' : '建立付款失敗'
+  return NextResponse.json(
+    { success: false, error: errorMessage },
+    { status: 500 }
+  )
+}
+```
+**測試**：`tests/integration/api/subscriptions/checkout.test.ts` Line 457-485（✅ 已通過）
+**日期**：2026-01-20
+
+---

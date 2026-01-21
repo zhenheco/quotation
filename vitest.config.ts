@@ -8,6 +8,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
+    env: {
+      // 確保測試環境使用測試資料庫
+      NODE_ENV: 'test',
+    },
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
