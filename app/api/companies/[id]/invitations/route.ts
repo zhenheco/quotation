@@ -146,7 +146,7 @@ export async function POST(
     })
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://quote24.cc'
-    const inviteUrl = `${appUrl}/zh/invite/${invitation.invite_code}`
+    const inviteUrl = `${appUrl}/invite/${invitation.invite_code}`
 
     return NextResponse.json({
       invitation,

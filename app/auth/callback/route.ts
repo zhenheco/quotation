@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const redirectParam = searchParams.get('redirect')
   // 驗證 next 參數防止開放重定向攻擊
-  const next = validateUrlSafety(searchParams.get('next'), '/zh/dashboard')
+  const next = validateUrlSafety(searchParams.get('next'), '/dashboard')
 
   // Supabase Email 認證類型（signup, recovery, invite, magiclink）
   const type = searchParams.get('type')
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     }
 
     console.log('🔐 Password recovery flow detected')
-    return NextResponse.redirect(`${getBaseUrl()}/zh/reset-password`)
+    return NextResponse.redirect(`${getBaseUrl()}/reset-password`)
   }
 
   if (code) {
@@ -123,7 +123,7 @@ export async function GET(request: Request) {
       // 1. 優先處理邀請連結重導向
       if (redirectParam?.startsWith('/invite/')) {
         console.log(`🔗 Redirecting to invite page: ${redirectParam}`)
-        return NextResponse.redirect(`${baseUrl}/zh${redirectParam}`)
+        return NextResponse.redirect(`${baseUrl}${redirectParam}`)
       }
 
       // 2. 檢查用戶是否有公司
@@ -139,12 +139,12 @@ export async function GET(request: Request) {
         if (!membership) {
           // 無公司，導向 onboarding
           console.log(`🆕 New user without company, redirecting to onboarding: ${user.email}`)
-          return NextResponse.redirect(`${baseUrl}/zh/onboarding`)
+          return NextResponse.redirect(`${baseUrl}/onboarding`)
         }
       } catch {
         // 查詢失敗（可能是無記錄），導向 onboarding
         console.log(`🆕 User has no company membership, redirecting to onboarding: ${user.email}`)
-        return NextResponse.redirect(`${baseUrl}/zh/onboarding`)
+        return NextResponse.redirect(`${baseUrl}/onboarding`)
       }
 
       // 3. 有公司，正常導向 dashboard
