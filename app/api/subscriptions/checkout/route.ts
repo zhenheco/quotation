@@ -127,8 +127,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // 生成訂單 ID
-    const orderId = `SUB-${body.company_id.substring(0, 8)}-${Date.now()}`
+    // 生成訂單 ID（移除底線以符合 PAYUNi 規範）
+    const sanitizedCompanyId = body.company_id.replace(/_/g, '-')
+    const orderId = `SUB-${sanitizedCompanyId.substring(0, 8)}-${Date.now()}`
 
     // 建立付款請求
     const paymentClient = new PaymentGatewayClient({
@@ -177,8 +178,9 @@ export async function POST(request: Request) {
     const paymentForm = result.paymentForm || result.payuniForm
 
     if (!result.success || !paymentForm) {
+      // 包裝錯誤訊息，不暴露內部實現細節
       return NextResponse.json(
-        { success: false, error: result.error || '建立付款失敗' },
+        { success: false, error: '建立付款失敗' },
         { status: 500 }
       )
     }
