@@ -353,7 +353,7 @@ export default function OrderDetailClient({ orderId }: OrderDetailClientProps) {
                         <p className="text-sm text-slate-500">SKU: {item.sku}</p>
                       )}
                       {item.description && item.product_name && (
-                        <p className="text-sm text-slate-500">{item.description}</p>
+                        <p className="text-sm text-slate-500">{parseNotes(item.description)}</p>
                       )}
                     </div>
                   </td>
