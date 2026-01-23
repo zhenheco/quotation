@@ -3,80 +3,65 @@ import { withAuth } from '@/lib/api/middleware'
 import { createOrderFromQuotation, getOrderById } from '@/lib/dal/orders'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 
-/** 建立訂單請求類型 */
-interface CreateFromQuotationBody {
-  quotation_id: string
-}
-
 /**
  * POST /api/orders/from-quotation - 從報價單建立訂單
  *
- * 將已接受的報價單轉換為訂單
- * 會複製報價單的所有項目到訂單
+ * 將已接受的報價單轉換為訂單，會複製報價單的所有項目到訂單
  */
 export const POST = withAuth('orders:write')(async (request, { user, db }) => {
-  try {
-    const body = await request.json() as CreateFromQuotationBody
-    const { quotation_id } = body
+  const body = await request.json() as { quotation_id?: string }
+  const { quotation_id } = body
 
-    // 驗證必填欄位
-    if (!quotation_id) {
-      return NextResponse.json({ error: 'quotation_id is required' }, { status: 400 })
-    }
+  if (!quotation_id) {
+    return NextResponse.json({ error: 'quotation_id is required' }, { status: 400 })
+  }
 
-    // 查詢報價單狀態
-    const adminDb = getSupabaseClient()
-    const { data: quotationCheck } = await adminDb
+  const adminDb = getSupabaseClient()
+
+  // 同時查詢報價單和使用者資料（減少資料庫往返）
+  const [quotationResult, userProfileResult] = await Promise.all([
+    adminDb
       .from('quotations')
       .select('id, status, company_id')
       .eq('id', quotation_id)
-      .single()
-
-    // 檢查報價單是否存在
-    if (!quotationCheck) {
-      return NextResponse.json({ error: '找不到報價單' }, { status: 404 })
-    }
-
-    // 檢查報價單狀態
-    if (quotationCheck.status !== 'accepted') {
-      return NextResponse.json({
-        error: `報價單狀態必須為「已接受」才能建立訂單。目前狀態：${quotationCheck.status}`
-      }, { status: 400 })
-    }
-
-    // 檢查 company_id
-    if (!quotationCheck.company_id) {
-      return NextResponse.json({
-        error: '報價單缺少公司資訊，無法建立訂單。請聯繫系統管理員。'
-      }, { status: 400 })
-    }
-
-    // 查詢 user_profiles.id（orders.created_by 外鍵參考 user_profiles.id，而非 auth.users.id）
-    const { data: userProfile } = await adminDb
+      .single(),
+    adminDb
       .from('user_profiles')
       .select('id')
       .eq('user_id', user.id)
       .single()
+  ])
 
-    // 如果找不到 user_profile，使用 null（created_by 允許 NULL）
-    const userProfileId = userProfile?.id || null
+  const quotation = quotationResult.data
 
-    // 使用資料庫函數建立訂單
+  if (!quotation) {
+    return NextResponse.json({ error: '找不到報價單' }, { status: 404 })
+  }
+
+  if (quotation.status !== 'accepted') {
+    return NextResponse.json({
+      error: `報價單狀態必須為「已接受」才能建立訂單。目前狀態：${quotation.status}`
+    }, { status: 400 })
+  }
+
+  if (!quotation.company_id) {
+    return NextResponse.json({
+      error: '報價單缺少公司資訊，無法建立訂單。請聯繫系統管理員。'
+    }, { status: 400 })
+  }
+
+  // created_by 允許 NULL，找不到 user_profile 時使用 null
+  const userProfileId = userProfileResult.data?.id ?? null
+
+  try {
     const orderId = await createOrderFromQuotation(db, quotation_id, userProfileId)
 
-    // 取得建立的訂單詳情
-    // 先從訂單取得 company_id
-    const { data: orderData } = await adminDb
-      .from('orders')
-      .select('company_id')
-      .eq('id', orderId)
-      .single()
+    // 使用報價單的 company_id 查詢訂單（已驗證存在）
+    const order = await getOrderById(db, quotation.company_id, orderId)
 
-    if (!orderData) {
-      return NextResponse.json({ error: 'Order created but could not retrieve details' }, { status: 500 })
+    if (!order) {
+      return NextResponse.json({ error: '訂單建立成功但無法取得詳情' }, { status: 500 })
     }
-
-    const order = await getOrderById(db, orderData.company_id, orderId)
 
     return NextResponse.json(order, { status: 201 })
   } catch (error) {
