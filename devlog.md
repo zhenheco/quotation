@@ -1,5 +1,32 @@
 # Development Log
 
+## 2026-01-23: 修復報價單轉訂單功能
+
+### 問題描述
+用戶報告：報價單建立好選擇「已接受」後，沒辦法下一步建立訂單
+
+### 根本原因
+`scripts/update-db-constraint.sql` 腳本將資料庫 CHECK 約束改為使用 `signed` 狀態，但：
+- 前端 UI (`QuotationDetail.tsx`) 使用 `accepted` 狀態
+- 後端函數 `create_order_from_quotation` 檢查 `status = 'accepted'`
+- 資料庫約束不允許 `accepted`，導致狀態無法正確設定
+
+### 解決方案
+
+1. **建立 migration 修正資料庫約束**
+   - 檔案：`supabase/migrations/20260123103300_fix_quotation_status_accepted.sql`
+   - 將 `signed` 狀態轉回 `accepted`
+   - 重建 CHECK 約束允許正確的狀態值
+
+2. **棄用錯誤的腳本**
+   - 更新 `scripts/update-db-constraint.sql` 標記為已棄用
+
+### 影響範圍
+- 資料庫 `quotations` 表的 CHECK 約束
+- 任何之前錯誤設定為 `signed` 的報價單狀態
+
+---
+
 ## 2026-01-02: 會計模組功能完善（第二階段）
 
 ### 問題描述
