@@ -378,24 +378,17 @@ if (!result.success || !paymentForm) {
 
 **問題**：報價單轉訂單出現錯誤：`insert or update on table "orders" violates foreign key constraint "orders_created_by_fkey"`
 **原因**：
-- `orders.created_by` 欄位有外鍵約束：`REFERENCES user_profiles(id)`
-- API route 傳入 `user.id`（來自 `auth.users.id`）
-- 但 `user_profiles.id` 與 `auth.users.id` 是不同的值
-- `user_profiles` 表結構：`id`（自動生成 UUID）+ `user_id`（參考 auth.users.id）
-**解法**：在 `app/api/orders/from-quotation/route.ts` 中，先查詢 `user_profiles` 取得正確的 `id`：
-```typescript
-// 查詢 user_profiles.id（orders.created_by 外鍵參考 user_profiles.id，而非 auth.users.id）
-const { data: userProfile } = await adminDb
-  .from('user_profiles')
-  .select('id')
-  .eq('user_id', user.id)
-  .single()
-
-// 如果找不到 user_profile，使用 null（created_by 允許 NULL）
-const userProfileId = userProfile?.id || null
-
-// 使用資料庫函數建立訂單
-const orderId = await createOrderFromQuotation(db, quotation_id, userProfileId)
+1. `orders.created_by` 欄位有外鍵約束：`REFERENCES user_profiles(id)`
+2. API route 傳入 `user.id`（來自 `auth.users.id`）
+3. `user_profiles.id` 與 `auth.users.id` 是不同的值
+4. 資料庫函數在 RLS 啟用時無法查詢 `user_profiles` 表
+**解法**：
+1. **API 層**：先查詢 `user_profiles.id` 再傳給資料庫函數
+2. **資料庫函數**：支援 `auth.users.id` 或 `user_profiles.id`，自動轉換
+3. **關鍵修復**：將函數設為 `SECURITY DEFINER` 以繞過 RLS
+```sql
+ALTER FUNCTION create_order_from_quotation(uuid, uuid) SECURITY DEFINER;
+ALTER FUNCTION create_order_from_quotation(uuid, uuid) SET search_path = public;
 ```
 **日期**：2026-01-23
 
