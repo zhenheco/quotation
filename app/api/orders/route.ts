@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import { getCompanyIdFromRequest } from '@/lib/utils/company-context'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import {
   getOrders,
   createOrder,
@@ -125,12 +126,20 @@ export const POST = withAuth('orders:write')(async (request, { user, db }) => {
     return NextResponse.json({ error: 'Missing required fields: company_id and customer_id' }, { status: 400 })
   }
 
+  // 查詢 user_profiles.id（orders.created_by 外鍵參考 user_profiles.id）
+  const adminDb = getSupabaseClient()
+  const { data: userProfile } = await adminDb
+    .from('user_profiles')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+
   // 準備訂單資料
   const orderData: CreateOrderData = {
     company_id,
     customer_id,
     quotation_id: quotation_id || undefined,
-    created_by: user.id,
+    created_by: userProfile?.id ?? undefined,
     order_date: order_date || new Date().toISOString().split('T')[0],
     expected_delivery_date: expected_delivery_date || undefined,
     currency: currency || 'TWD',
