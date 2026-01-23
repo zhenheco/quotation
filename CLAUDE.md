@@ -370,3 +370,33 @@ ALTER FUNCTION create_order_from_quotation(uuid, uuid) SET search_path = public;
 **日期**：2026-01-23
 
 ---
+
+### ⚠️ 系統性問題：created_by 外鍵約束
+
+**問題**：多個 API 端點的 `created_by` 欄位直接使用 `user.id`（`auth.users.id`），但資料表的 `created_by` 外鍵參考 `user_profiles(id)`
+
+**受影響的表格**（有 FK 約束到 `user_profiles.id`）：
+- `orders.created_by`
+- `shipments.created_by`
+- `expanded_audit_income_tax.created_by`
+
+**正確做法**：在 API 中先查詢 `user_profiles.id`，再傳給建立函數
+```typescript
+// ✅ 正確
+const adminDb = getSupabaseClient()
+const { data: userProfile } = await adminDb
+  .from('user_profiles')
+  .select('id')
+  .eq('user_id', user.id)
+  .single()
+
+const data = { created_by: userProfile?.id ?? undefined }
+
+// ❌ 錯誤
+const data = { created_by: user.id }  // user.id 是 auth.users.id！
+```
+
+**新增 API 時注意**：如果表格有 `created_by REFERENCES user_profiles(id)`，必須先查詢 `user_profiles.id`
+**日期**：2026-01-23
+
+---
