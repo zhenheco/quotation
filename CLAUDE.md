@@ -361,3 +361,15 @@ if (!result.success || !paymentForm) {
 **日期**：2026-01-20
 
 ---
+
+### 報價單轉訂單失敗 - 狀態約束不一致（已修正）
+
+**問題**：報價單選擇「已接受」後，無法建立訂單
+**原因**：`scripts/update-db-constraint.sql` 將 CHECK 約束改為 `signed`，但 UI 和後端都使用 `accepted`
+**解法**：
+1. 建立 migration `supabase/migrations/20260123103300_fix_quotation_status_accepted.sql`
+2. 將 `signed` 狀態轉回 `accepted`
+3. 重建 CHECK 約束允許：`draft`, `sent`, `accepted`, `rejected`, `expired`
+**日期**：2026-01-23
+
+---

@@ -1,21 +1,10 @@
--- 移除舊的 CHECK 約束
-ALTER TABLE quotations DROP CONSTRAINT IF EXISTS quotations_status_check;
+-- ⚠️ 已棄用：此腳本已被 migrations/081_fix_quotation_status_accepted.sql 取代
+-- 請勿執行此腳本，它會造成狀態不一致問題
+--
+-- 正確的狀態值應該是：draft, sent, accepted, rejected, expired
+-- 不要使用 'signed'，系統統一使用 'accepted'
 
--- 新增新的 CHECK 約束
-ALTER TABLE quotations ADD CONSTRAINT quotations_status_check
-  CHECK (status IN ('draft', 'sent', 'signed', 'expired'));
+-- 如果需要更新約束，請執行：
+-- psql -f migrations/081_fix_quotation_status_accepted.sql
 
--- 更新現有的 accepted 狀態為 signed
-UPDATE quotations SET status = 'signed' WHERE status = 'accepted';
-
--- 更新現有的 rejected 狀態為 expired
-UPDATE quotations SET status = 'rejected' WHERE status = 'rejected';
-
--- 更新現有的 pending 狀態為 sent
-UPDATE quotations SET status = 'sent' WHERE status = 'pending';
-
--- 檢查結果
-SELECT status, COUNT(*) as count
-FROM quotations
-GROUP BY status
-ORDER BY status;
+RAISE EXCEPTION '此腳本已棄用，請使用 migrations/081_fix_quotation_status_accepted.sql';

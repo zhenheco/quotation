@@ -22,12 +22,23 @@ interface QuotationDetailProps {
   quotationId: string
 }
 
+/** 付款方式對應表 */
+const PAYMENT_METHOD_MAP: Record<string, string> = {
+  cash: '現金',
+  bank_transfer: '銀行轉帳',
+  ach_transfer: 'ACH 轉帳',
+  credit_card: '信用卡',
+  check: '支票',
+  cryptocurrency: '加密貨幣',
+  other: '其他',
+}
+
 export default function QuotationDetail({ quotationId }: QuotationDetailProps) {
   const router = useRouter()
   const [pdfLocale, setPdfLocale] = useState<PDFLocale>('zh')
 
   // Hooks
-  const { data: quotation, isLoading, error } = useQuotation(quotationId)
+  const { data: quotation, isLoading, error, refetch } = useQuotation(quotationId)
   const updateQuotation = useUpdateQuotation(quotationId)
   const { data: paymentTerms } = usePaymentTerms(quotationId)
   const { generatePDF, isGenerating, progress } = usePDFGenerator()
@@ -37,7 +48,8 @@ export default function QuotationDetail({ quotationId }: QuotationDetailProps) {
     const statusMap: Record<string, string> = {
       draft: '草稿',
       sent: '已發送',
-      signed: '已簽約',
+      accepted: '已接受',
+      rejected: '已拒絕',
       expired: '已過期',
     }
     return statusMap[status] || status
@@ -46,6 +58,8 @@ export default function QuotationDetail({ quotationId }: QuotationDetailProps) {
   const handleStatusChange = async (newStatus: QuotationStatus) => {
     try {
       await updateQuotation.mutateAsync({ status: newStatus })
+      // 強制重新取得最新資料，確保 UI 正確顯示
+      await refetch()
       toast.success(`狀態已更新為${getStatusText(newStatus)}`)
     } catch (error) {
       toast.error('更新狀態失敗')
@@ -66,12 +80,19 @@ export default function QuotationDetail({ quotationId }: QuotationDetailProps) {
   // 處理轉換為訂單
   const handleCreateOrder = async () => {
     if (!quotation) return
+
+    if (quotation.status !== 'accepted') {
+      toast.error('請先將報價單狀態改為「已接受」')
+      return
+    }
+
     try {
       const order = await createOrder.mutateAsync(quotation.id)
-      toast.success('訂單已建立')
+      toast.success('訂單已建立成功！')
       router.push(`/orders/${order.id}`)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '建立訂單失敗')
+      const errorMessage = error instanceof Error ? error.message : '建立訂單失敗'
+      toast.error(`建立訂單失敗: ${errorMessage}`, { duration: 10000 })
     }
   }
 
@@ -126,24 +147,28 @@ export default function QuotationDetail({ quotationId }: QuotationDetailProps) {
                 >
                   <option value="draft">草稿</option>
                   <option value="sent">已發送</option>
-                  <option value="signed">已簽約</option>
+                  <option value="accepted">已接受</option>
+                  <option value="rejected">已拒絕</option>
                   <option value="expired">已過期</option>
                 </select>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3 no-print">
-            {/* 轉訂單按鈕 - 僅在已簽約狀態顯示 */}
-            {quotation.status === 'signed' && (
-              <button
-                onClick={handleCreateOrder}
-                disabled={createOrder.isPending}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                {createOrder.isPending ? '建立中...' : '轉訂單'}
-              </button>
-            )}
+            {/* 轉訂單按鈕 */}
+            <button
+              onClick={handleCreateOrder}
+              disabled={createOrder.isPending || quotation.status !== 'accepted'}
+              className={`px-4 py-2 text-white rounded-lg transition-colors inline-flex items-center gap-2 ${
+                quotation.status === 'accepted'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'
+                  : 'bg-gray-400 cursor-not-allowed opacity-60'
+              }`}
+              title={quotation.status !== 'accepted' ? `目前狀態: ${quotation.status}，請先改為「已接受」` : '點擊將報價單轉為訂單'}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {createOrder.isPending ? '建立中...' : quotation.status === 'accepted' ? '轉訂單' : '轉訂單（需已接受）'}
+            </button>
             <button
               onClick={() => router.push(`/quotations/${quotation.id}/edit`)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 cursor-pointer"
@@ -367,40 +392,34 @@ export default function QuotationDetail({ quotationId }: QuotationDetailProps) {
       )}
 
       {/* Payment Information */}
-      {((quotation as { payment_method?: string }).payment_method || (quotation as { payment_notes?: string }).payment_notes) && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">付款資訊</h3>
-          <div className="space-y-3">
-            {(quotation as { payment_method?: string }).payment_method && (
-              <div>
-                <span className="text-sm text-gray-600">付款方式:</span>{' '}
-                <span className="text-sm text-gray-900 font-medium">
-                  {(() => {
-                    const methodMap: Record<string, string> = {
-                      cash: '現金',
-                      bank_transfer: '銀行轉帳',
-                      ach_transfer: 'ACH 轉帳',
-                      credit_card: '信用卡',
-                      check: '支票',
-                      cryptocurrency: '加密貨幣',
-                      other: '其他',
-                    }
-                    return methodMap[(quotation as { payment_method?: string }).payment_method || ''] || (quotation as { payment_method?: string }).payment_method
-                  })()}
-                </span>
-              </div>
-            )}
-            {(quotation as { payment_notes?: string }).payment_notes && (
-              <div>
-                <span className="text-sm text-gray-600">付款備註:</span>
-                <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
-                  {(quotation as { payment_notes?: string }).payment_notes}
-                </p>
-              </div>
-            )}
+      {(() => {
+        const paymentMethod = (quotation as { payment_method?: string }).payment_method
+        const paymentNotes = (quotation as { payment_notes?: string }).payment_notes
+        if (!paymentMethod && !paymentNotes) return null
+        return (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">付款資訊</h3>
+            <div className="space-y-3">
+              {paymentMethod && (
+                <div>
+                  <span className="text-sm text-gray-600">付款方式:</span>{' '}
+                  <span className="text-sm text-gray-900 font-medium">
+                    {PAYMENT_METHOD_MAP[paymentMethod] || paymentMethod}
+                  </span>
+                </div>
+              )}
+              {paymentNotes && (
+                <div>
+                  <span className="text-sm text-gray-600">付款備註:</span>
+                  <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
+                    {paymentNotes}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Contract Upload */}
       <div className="bg-white rounded-lg shadow p-6">
