@@ -15,6 +15,7 @@ import {
   type OrderStatus,
   type OrderWithCustomer,
 } from '@/hooks/useOrders'
+import { useCreateShipmentFromOrder } from '@/hooks/useShipments'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils/format'
 import type { Currency } from '@/lib/services/exchange-rate'
@@ -39,6 +40,7 @@ function OrderCard({
   isConfirming,
   isCancelling,
   isDeleting,
+  isCreatingShipment,
 }: {
   order: OrderWithCustomer
   onViewDetails: () => void
@@ -49,6 +51,7 @@ function OrderCard({
   isConfirming: boolean
   isCancelling: boolean
   isDeleting: boolean
+  isCreatingShipment: boolean
 }) {
   const status = statusStyles[order.status]
   const customerName = order.customer?.name?.zh || order.customer?.name?.en || '未知客戶'
@@ -129,9 +132,10 @@ function OrderCard({
             <>
               <button
                 onClick={onCreateShipment}
-                className="px-3 py-1.5 text-sm font-medium text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                disabled={isCreatingShipment}
+                className="px-3 py-1.5 text-sm font-medium text-amber-600 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50"
               >
-                建立出貨單
+                {isCreatingShipment ? '建立中...' : '建立出貨單'}
               </button>
               <button
                 onClick={onCancel}
@@ -175,6 +179,7 @@ export default function OrdersClient() {
   const deleteOrder = useDeleteOrder(companyId)
   const confirmOrder = useConfirmOrder(companyId)
   const cancelOrder = useCancelOrder(companyId)
+  const createShipmentFromOrder = useCreateShipmentFromOrder()
 
   // 搜尋過濾
   const filteredOrders = orders.filter((order) => {
@@ -222,8 +227,14 @@ export default function OrdersClient() {
   }
 
   // 處理建立出貨單
-  const handleCreateShipment = (orderId: string) => {
-    router.push(`/shipments/new?order_id=${orderId}`)
+  const handleCreateShipment = async (orderId: string) => {
+    try {
+      const shipment = await createShipmentFromOrder.mutateAsync({ orderId, shipAll: true })
+      toast.success('出貨單已建立')
+      router.push(`/shipments/${shipment.id}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '建立出貨單失敗')
+    }
   }
 
   if (!companyId) {
@@ -345,6 +356,7 @@ export default function OrdersClient() {
               isConfirming={confirmOrder.isPending}
               isCancelling={cancelOrder.isPending}
               isDeleting={deleteOrder.isPending}
+              isCreatingShipment={createShipmentFromOrder.isPending}
             />
           ))}
         </div>
