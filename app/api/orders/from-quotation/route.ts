@@ -51,8 +51,18 @@ export const POST = withAuth('orders:write')(async (request, { user, db }) => {
       }, { status: 400 })
     }
 
+    // 查詢 user_profiles.id（orders.created_by 外鍵參考 user_profiles.id，而非 auth.users.id）
+    const { data: userProfile } = await adminDb
+      .from('user_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    // 如果找不到 user_profile，使用 null（created_by 允許 NULL）
+    const userProfileId = userProfile?.id || null
+
     // 使用資料庫函數建立訂單
-    const orderId = await createOrderFromQuotation(db, quotation_id, user.id)
+    const orderId = await createOrderFromQuotation(db, quotation_id, userProfileId)
 
     // 取得建立的訂單詳情
     // 先從訂單取得 company_id

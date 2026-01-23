@@ -373,3 +373,30 @@ if (!result.success || !paymentForm) {
 **日期**：2026-01-23
 
 ---
+
+### 報價單轉訂單失敗 - created_by 外鍵約束錯誤（已修正）
+
+**問題**：報價單轉訂單出現錯誤：`insert or update on table "orders" violates foreign key constraint "orders_created_by_fkey"`
+**原因**：
+- `orders.created_by` 欄位有外鍵約束：`REFERENCES user_profiles(id)`
+- API route 傳入 `user.id`（來自 `auth.users.id`）
+- 但 `user_profiles.id` 與 `auth.users.id` 是不同的值
+- `user_profiles` 表結構：`id`（自動生成 UUID）+ `user_id`（參考 auth.users.id）
+**解法**：在 `app/api/orders/from-quotation/route.ts` 中，先查詢 `user_profiles` 取得正確的 `id`：
+```typescript
+// 查詢 user_profiles.id（orders.created_by 外鍵參考 user_profiles.id，而非 auth.users.id）
+const { data: userProfile } = await adminDb
+  .from('user_profiles')
+  .select('id')
+  .eq('user_id', user.id)
+  .single()
+
+// 如果找不到 user_profile，使用 null（created_by 允許 NULL）
+const userProfileId = userProfile?.id || null
+
+// 使用資料庫函數建立訂單
+const orderId = await createOrderFromQuotation(db, quotation_id, userProfileId)
+```
+**日期**：2026-01-23
+
+---
