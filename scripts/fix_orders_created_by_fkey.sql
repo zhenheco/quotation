@@ -130,5 +130,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 將函數改為 SECURITY DEFINER 以繞過 RLS
+-- 這是必要的，因為函數內部需要查詢 user_profiles 表
+ALTER FUNCTION create_order_from_quotation(uuid, uuid) SECURITY DEFINER;
+ALTER FUNCTION create_order_from_quotation(uuid, uuid) SET search_path = public;
+
 -- 驗證函數已更新
 SELECT 'create_order_from_quotation 函數已更新，現在支援 auth.users.id 和 user_profiles.id' AS status;
