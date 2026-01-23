@@ -26,11 +26,11 @@ export const POST = withAuth('shipments:write')(async (request, { user, db }) =>
     return NextResponse.json({ error: 'order_id is required' }, { status: 400 })
   }
 
-  // 使用資料庫函數建立出貨單
-  const shipmentId = await createShipmentFromOrder(db, order_id, user.id, ship_all)
+  // 使用 admin client 呼叫 RPC 函數（因為函數內部需要查詢 user_profiles）
+  const adminDb = getSupabaseClient()
+  const shipmentId = await createShipmentFromOrder(adminDb, order_id, user.id, ship_all)
 
   // 取得建立的出貨單詳情
-  const adminDb = getSupabaseClient()
   const { data: shipmentData } = await adminDb
     .from('shipments')
     .select('company_id')

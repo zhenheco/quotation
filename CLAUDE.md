@@ -400,3 +400,20 @@ const data = { created_by: user.id }  // user.id 是 auth.users.id！
 **日期**：2026-01-23
 
 ---
+
+### 訂單轉出貨單失敗 - created_by 外鍵約束錯誤（已修正）
+
+**問題**：從訂單建立出貨單時出現錯誤：`insert or update on table "shipments" violates foreign key constraint "shipments_created_by_fkey"`
+**原因**：與上述「系統性問題」相同，`shipments.created_by` 外鍵參考 `user_profiles(id)`，但 API 傳入 `auth.users.id`
+**解法**：
+1. 建立 migration `supabase/migrations/20260123150000_fix_create_shipment_from_order_created_by.sql`
+2. 修改 `create_shipment_from_order` 函數，在內部查詢 `user_profiles.id`
+3. 設定 `SECURITY DEFINER` 以繞過 RLS
+```sql
+ALTER FUNCTION create_shipment_from_order(uuid, uuid, boolean) SECURITY DEFINER;
+ALTER FUNCTION create_shipment_from_order(uuid, uuid, boolean) SET search_path = public;
+```
+**緊急修復腳本**：`scripts/URGENT_FIX_SHIPMENT_FUNCTION.sql`
+**日期**：2026-01-23
+
+---
