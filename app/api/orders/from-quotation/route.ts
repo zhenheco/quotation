@@ -76,19 +76,24 @@ export const POST = withAuth('orders:write')(async (request, { user }) => {
     return NextResponse.json(order, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : '建立訂單失敗'
-    console.error('[from-quotation] API v2026-01-23-v3 Error:', {
+    const timestamp = new Date().toISOString()
+    console.error('[from-quotation] API v4 Error:', {
+      timestamp,
       error: message,
       quotation_id,
       userProfileId,
       user_id: user.id
     })
-    // 在錯誤訊息中加入診斷資訊，幫助確認部署版本
+    // 強制在錯誤訊息前加入版本號，確認部署
+    const errorWithVersion = `[v4-${timestamp}] ${message}`
     return NextResponse.json({
-      error: message,
+      error: errorWithVersion,
       _debug: {
-        apiVersion: '2026-01-23-v3',
+        apiVersion: 'v4',
+        timestamp,
         userProfileId,
-        userProfileFound: !!userProfileId
+        userProfileFound: !!userProfileId,
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30)
       }
     }, { status: 500 })
   }
