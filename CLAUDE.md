@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Development
 pnpm dev                      # Start dev server (DO NOT auto-start - user manages this)
-pnpm run build                # Build for production (Next.js + OpenNext.js)
+pnpm run build                # Build for production
 pnpm run lint                 # Run ESLint
 pnpm run lint:fix             # Auto-fix ESLint issues
 pnpm run typecheck            # TypeScript type checking
@@ -26,10 +26,6 @@ pnpm run test:e2e:playwright  # Playwright E2E tests
 pnpm db:verify                # Verify schema sync
 pnpm migrate                  # Run migrations
 pnpm seed                     # Seed test data
-
-# Cloudflare
-pnpm run preview:cf           # Preview on Cloudflare
-pnpm run deploy:cf            # Deploy to Cloudflare
 ```
 
 ---
@@ -38,7 +34,7 @@ pnpm run deploy:cf            # Deploy to Cloudflare
 
 ### Tech Stack
 - **Framework**: Next.js 15 (App Router) + TypeScript
-- **Deployment**: Cloudflare Workers (via OpenNext.js)
+- **Deployment**: Vercel (自動部署，推送到 main 即觸發)
 - **Database**: Supabase (PostgreSQL)
 - **Auth**: Supabase Auth (Google OAuth, Email/Password)
 - **Styling**: Tailwind CSS 4
@@ -111,33 +107,19 @@ pnpm install         # Sync lockfile
 
 ---
 
-## Cloudflare Workers Deployment Checklist
+## Vercel 部署
 
-**90% of deployment failures are lockfile sync issues!**
+**部署方式**：推送到 `main` 分支會自動觸發 Vercel 部署
 
-### Before Every Push to main:
+### 部署前確認：
 ```bash
-# 1. If any packages were installed/updated:
-pnpm install
-git add pnpm-lock.yaml
-
-# 2. Verify build passes:
-pnpm run build
-
-# 3. Commit with lockfile:
-git status  # Ensure pnpm-lock.yaml is staged
+pnpm run build      # 確保 build 通過
+pnpm run typecheck  # 確保無型別錯誤
 ```
 
-### Never:
-- Use `npm install` (breaks lockfile sync)
-- Modify `package.json` without running `pnpm install`
-- Push without committing `pnpm-lock.yaml`
-
-### On Deployment Failure:
-```bash
-gh run view <run-id> --log
-# If ERR_PNPM_OUTDATED_LOCKFILE: run pnpm install and commit lockfile
-```
+### 環境變數：
+- 在 Vercel Dashboard 設定 `NEXT_PUBLIC_*` 和其他環境變數
+- `NEXT_PUBLIC_*` 變數會在 build 時嵌入前端程式碼
 
 ---
 
@@ -159,18 +141,13 @@ try {
 } catch (error) {
   console.error((error as Error).message);
 }
-
-// Cloudflare Workers compatibility
-interface FetchOptions extends Omit<RequestInit, 'body'> {
-  body?: unknown
-}
 ```
 
 ### When @ts-expect-error is Allowed:
 ```typescript
-// ✅ With explanation for infrastructure incompatibility
-// @ts-expect-error - Cloudflare Workers RequestInit type compatibility
-const config: RequestInit = { ... };
+// ✅ With explanation for library type incompatibility
+// @ts-expect-error - Library type definition mismatch
+const config: SomeType = { ... };
 ```
 
 ---
