@@ -1,5 +1,32 @@
 # Development Log
 
+## 2026-01-23: 修復訂單頁面顯示 JSON 格式問題
+
+### 問題描述
+從報價單建立訂單後，商品明細和報價單備註以 JSON 格式顯示（如 `{"zh":"備註內容","en":""}`），應該顯示純文字。
+
+### 根本原因
+1. 報價單的 `notes` 和 `terms` 欄位是 TEXT 類型，但前端傳送 JSONB 物件
+2. Supabase 將物件序列化為 JSON 字串儲存
+3. 訂單建立函數直接複製這些 JSON 字串
+4. 訂單詳情頁面直接顯示字串，未解析 JSON
+
+### 解決方案
+修改 `app/orders/[id]/OrderDetailClient.tsx`，使用 `parseNotes` 函數解析：
+- `order.notes` → `parseNotes(order.notes)`
+- `order.terms` → `parseNotes(order.terms)`
+- `item.product_name` → `parseNotes(item.product_name)`
+
+`parseNotes` 函數會自動：
+- 解析 JSON 字串（支援雙重序列化）
+- 提取 `zh` 欄位的值
+- 正確處理換行符
+
+### 影響範圍
+- 訂單詳情頁面（`/orders/[id]`）
+
+---
+
 ## 2026-01-23: 修復報價單轉訂單功能
 
 ### 問題描述
