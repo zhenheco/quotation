@@ -8,7 +8,7 @@ import { getSupabaseClient } from '@/lib/db/supabase-client'
  *
  * 將已接受的報價單轉換為訂單，會複製報價單的所有項目到訂單
  */
-export const POST = withAuth('orders:write')(async (request, { user, db }) => {
+export const POST = withAuth('orders:write')(async (request, { user }) => {
   const body = await request.json() as { quotation_id?: string }
   const { quotation_id } = body
 
@@ -62,10 +62,11 @@ export const POST = withAuth('orders:write')(async (request, { user, db }) => {
   })
 
   try {
-    const orderId = await createOrderFromQuotation(db, quotation_id, userProfileId)
+    // 使用 adminDb 呼叫 RPC，確保繞過任何 RLS 限制
+    const orderId = await createOrderFromQuotation(adminDb, quotation_id, userProfileId)
 
     // 使用報價單的 company_id 查詢訂單（已驗證存在）
-    const order = await getOrderById(db, quotation.company_id, orderId)
+    const order = await getOrderById(adminDb, quotation.company_id, orderId)
 
     if (!order) {
       return NextResponse.json({ error: '訂單建立成功但無法取得詳情' }, { status: 500 })
