@@ -6,6 +6,7 @@ import { ArrowLeft, Package, Truck, CheckCircle, XCircle, Edit } from 'lucide-re
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { getSelectedCompanyId } from '@/lib/utils/company-context'
+import { parseNotes } from '@/lib/utils/notes-parser'
 import {
   useOrder,
   useConfirmOrder,
@@ -268,13 +269,13 @@ export default function OrderDetailClient({ orderId }: OrderDetailClientProps) {
               {order.notes && (
                 <div>
                   <p className="text-sm text-slate-500 mb-1">備註</p>
-                  <p className="text-slate-800 whitespace-pre-line">{order.notes}</p>
+                  <p className="text-slate-800 whitespace-pre-line">{parseNotes(order.notes)}</p>
                 </div>
               )}
               {order.terms && (
                 <div>
                   <p className="text-sm text-slate-500 mb-1">條款</p>
-                  <p className="text-slate-800 whitespace-pre-line">{order.terms}</p>
+                  <p className="text-slate-800 whitespace-pre-line">{parseNotes(order.terms)}</p>
                 </div>
               )}
             </div>
@@ -346,7 +347,7 @@ export default function OrderDetailClient({ orderId }: OrderDetailClientProps) {
                   <td className="px-6 py-4">
                     <div>
                       <p className="font-medium text-slate-800">
-                        {item.product_name?.zh || item.product_name?.en || item.description || '-'}
+                        {parseNotes(item.product_name) || item.description || '-'}
                       </p>
                       {item.sku && (
                         <p className="text-sm text-slate-500">SKU: {item.sku}</p>
