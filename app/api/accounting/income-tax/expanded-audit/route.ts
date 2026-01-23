@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuthAndSubscription } from '@/lib/api/middleware'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
 import {
   runExpandedAuditCalculation,
   checkExpandedAuditEligibility,
@@ -171,6 +172,18 @@ export const POST = withAuthAndSubscription('reports:read', {
     return NextResponse.json({ error: 'industry_code is required' }, { status: 400 })
   }
 
+  // 查詢 user_profiles.id（income_tax_filings.created_by 外鍵參考 user_profiles.id）
+  const adminDb = getSupabaseClient()
+  const { data: userProfile } = await adminDb
+    .from('user_profiles')
+    .select('id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!userProfile) {
+    return NextResponse.json({ error: '找不到使用者資料' }, { status: 400 })
+  }
+
   // 執行計算
   const result = await runExpandedAuditCalculation(
     db,
@@ -193,12 +206,12 @@ export const POST = withAuthAndSubscription('reports:read', {
   let filing
   if (existingFiling) {
     // 更新現有記錄
-    filing = await saveCalculationResult(db, existingFiling.id, result, user.id)
+    filing = await saveCalculationResult(db, existingFiling.id, result, userProfile.id)
   } else {
     // 建立新記錄
     filing = await createFilingFromResult(db, {
       result,
-      created_by: user.id,
+      created_by: userProfile.id,
     })
   }
 
