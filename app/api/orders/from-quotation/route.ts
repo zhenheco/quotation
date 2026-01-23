@@ -54,7 +54,8 @@ export const POST = withAuth('orders:write')(async (request, { user }) => {
   const userProfileId = userProfileResult.data?.id ?? null
 
   // Debug: 記錄傳入的值（可在錯誤時幫助診斷）
-  console.log('[from-quotation] Creating order:', {
+  // API Version: 2026-01-23-v3 (用於確認部署)
+  console.log('[from-quotation] API v2026-01-23-v3 Creating order:', {
     quotation_id,
     user_id: user.id,
     userProfileId,
@@ -75,12 +76,20 @@ export const POST = withAuth('orders:write')(async (request, { user }) => {
     return NextResponse.json(order, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : '建立訂單失敗'
-    console.error('[from-quotation] Error:', {
+    console.error('[from-quotation] API v2026-01-23-v3 Error:', {
       error: message,
       quotation_id,
       userProfileId,
       user_id: user.id
     })
-    return NextResponse.json({ error: message }, { status: 500 })
+    // 在錯誤訊息中加入診斷資訊，幫助確認部署版本
+    return NextResponse.json({
+      error: message,
+      _debug: {
+        apiVersion: '2026-01-23-v3',
+        userProfileId,
+        userProfileFound: !!userProfileId
+      }
+    }, { status: 500 })
   }
 })
