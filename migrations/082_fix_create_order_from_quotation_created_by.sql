@@ -125,8 +125,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 將函數改為 SECURITY DEFINER 以繞過 RLS
+-- 這是必要的，因為函數內部需要查詢 user_profiles 表
+ALTER FUNCTION create_order_from_quotation(uuid, uuid) SECURITY DEFINER;
+ALTER FUNCTION create_order_from_quotation(uuid, uuid) SET search_path = public;
+
 -- 新增註解說明
-COMMENT ON FUNCTION create_order_from_quotation IS '從報價單建立訂單。p_created_by 可傳入 auth.users.id 或 user_profiles.id，函數會自動轉換為正確的 user_profiles.id';
+COMMENT ON FUNCTION create_order_from_quotation IS '從報價單建立訂單。p_created_by 可傳入 auth.users.id 或 user_profiles.id，函數會自動轉換為正確的 user_profiles.id。使用 SECURITY DEFINER 以繞過 RLS';
 
 -- 記錄 migration
 INSERT INTO schema_migrations (filename)
