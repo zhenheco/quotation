@@ -53,6 +53,14 @@ export const POST = withAuth('orders:write')(async (request, { user, db }) => {
   // created_by 允許 NULL，找不到 user_profile 時使用 null
   const userProfileId = userProfileResult.data?.id ?? null
 
+  // Debug: 記錄傳入的值（可在錯誤時幫助診斷）
+  console.log('[from-quotation] Creating order:', {
+    quotation_id,
+    user_id: user.id,
+    userProfileId,
+    userProfileFound: !!userProfileResult.data
+  })
+
   try {
     const orderId = await createOrderFromQuotation(db, quotation_id, userProfileId)
 
@@ -66,6 +74,12 @@ export const POST = withAuth('orders:write')(async (request, { user, db }) => {
     return NextResponse.json(order, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : '建立訂單失敗'
+    console.error('[from-quotation] Error:', {
+      error: message,
+      quotation_id,
+      userProfileId,
+      user_id: user.id
+    })
     return NextResponse.json({ error: message }, { status: 500 })
   }
 })
