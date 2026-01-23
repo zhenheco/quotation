@@ -417,3 +417,24 @@ ALTER FUNCTION create_shipment_from_order(uuid, uuid, boolean) SET search_path =
 **日期**：2026-01-23
 
 ---
+
+### 訂單轉出貨單後資料為空白（已修正）
+
+**問題**：訂單轉出貨單後，出貨資訊、收件資訊（recipient_name、recipient_phone）、出貨明細都是空白
+**原因**：
+1. `create_shipment_from_order` 函數只複製 `shipping_address`，沒有從 `customers` 表取得收件人姓名和電話
+2. 訂單表 (`orders`) 本身沒有 `recipient_name` 和 `recipient_phone` 欄位
+3. 如果訂單項目的 `quantity_remaining = 0`，則不會建立出貨明細
+**解法**：
+1. 建立 migration `supabase/migrations/20260123160000_fix_create_shipment_recipient_info.sql`
+2. 修改 `create_shipment_from_order` 函數：
+   - 從 `customers` 表取得 `contact_person` 和 `phone` 填入收件人資訊
+   - 如果沒有可出貨項目（`quantity_remaining = 0`），則複製全部訂單項目
+3. 收件人資訊來源優先順序：
+   - `recipient_name`：客戶的 `contact_person.name` → 客戶名稱
+   - `recipient_phone`：客戶的 `contact_person.phone` → 客戶主要電話
+   - `shipping_address`：訂單的 `shipping_address` → `billing_address` → 客戶地址
+**緊急修復腳本**：`scripts/URGENT_FIX_SHIPMENT_RECIPIENT_INFO.sql`
+**日期**：2026-01-23
+
+---
