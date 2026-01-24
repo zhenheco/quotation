@@ -224,14 +224,10 @@ export function getDeductionCode(
   isDeductible: boolean,
   isFixedAsset: boolean
 ): string {
-  if (isDeductible) {
-    return isFixedAsset
-      ? DEDUCTION_CODES.DEDUCTIBLE_ASSET
-      : DEDUCTION_CODES.DEDUCTIBLE
-  }
-  return isFixedAsset
-    ? DEDUCTION_CODES.NON_DEDUCTIBLE_ASSET
-    : DEDUCTION_CODES.NON_DEDUCTIBLE
+  if (isDeductible && isFixedAsset) return DEDUCTION_CODES.DEDUCTIBLE_ASSET
+  if (isDeductible) return DEDUCTION_CODES.DEDUCTIBLE
+  if (isFixedAsset) return DEDUCTION_CODES.NON_DEDUCTIBLE_ASSET
+  return DEDUCTION_CODES.NON_DEDUCTIBLE
 }
 
 // ============================================

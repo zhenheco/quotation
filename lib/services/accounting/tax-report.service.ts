@@ -5,6 +5,7 @@
 
 import { SupabaseClient } from '@/lib/db/supabase-client'
 import { AccInvoice, getInvoices } from '@/lib/dal/accounting'
+import type { TaxCode } from '@/lib/dal/accounting/tax-codes.dal'
 import {
   generateMediaFile,
   invoiceDetailToMediaData,
@@ -35,6 +36,22 @@ export interface InvoiceDetail {
   taxAmount: number
   totalAmount: number
   taxCategory: TaxCategory
+  /** 是否可扣抵（僅進項使用） */
+  isDeductible?: boolean
+}
+
+/**
+ * 稅額計算結果
+ */
+export interface TaxCalculationResult {
+  /** 銷項稅額 */
+  outputTax: number
+  /** 進項稅額（僅可扣抵部分） */
+  inputTax: number
+  /** 應納（退）稅額 = 銷項 - 進項 */
+  netTax: number
+  /** 是否為退稅 */
+  isRefund: boolean
 }
 
 /**
@@ -194,7 +211,91 @@ export function calculateTaxPeriod(year: number, biMonth: number): TaxPeriod {
 }
 
 /**
- * 根據發票判斷稅類別
+ * 根據稅碼判斷稅類別
+ *
+ * @param taxCode - 稅碼物件，可為 null 或 undefined
+ * @returns 稅類別
+ */
+export function determineTaxCategoryFromTaxCode(
+  taxCode: TaxCode | null | undefined
+): TaxCategory {
+  if (!taxCode) {
+    return 'NON_TAXABLE'
+  }
+
+  // 根據稅碼的 tax_type 欄位判斷
+  switch (taxCode.tax_type) {
+    case 'TAXABLE':
+      return 'TAXABLE_5'
+    case 'ZERO_RATED':
+      return 'ZERO_RATED'
+    case 'EXEMPT':
+      return 'EXEMPT'
+    case 'NON_TAXABLE':
+    default:
+      return 'NON_TAXABLE'
+  }
+}
+
+/**
+ * 判斷進項發票是否可扣抵
+ *
+ * 根據台灣稅法，以下進項不可扣抵：
+ * - 交際費（招待費）
+ * - 自用乘人小汽車費用
+ * - 非供本業及附屬業務使用之費用
+ *
+ * @param taxCode - 稅碼物件，可為 null 或 undefined
+ * @returns 是否可扣抵
+ */
+export function isInputInvoiceDeductible(
+  taxCode: TaxCode | null | undefined
+): boolean {
+  // 沒有稅碼時，預設為可扣抵（保守處理，避免遺漏）
+  if (!taxCode) {
+    return true
+  }
+
+  // 直接使用稅碼的 is_deductible 欄位判斷
+  return taxCode.is_deductible
+}
+
+/**
+ * 計算稅額
+ *
+ * @param salesInvoices - 銷項發票明細列表
+ * @param purchaseInvoices - 進項發票明細列表
+ * @returns 稅額計算結果
+ */
+export function calculateTaxAmounts(
+  salesInvoices: InvoiceDetail[],
+  purchaseInvoices: InvoiceDetail[]
+): TaxCalculationResult {
+  // 計算銷項稅額：只計算應稅銷項的稅額
+  const outputTax = salesInvoices
+    .filter((inv) => inv.taxCategory === 'TAXABLE_5')
+    .reduce((sum, inv) => sum + inv.taxAmount, 0)
+
+  // 計算進項稅額：只計算可扣抵進項的稅額
+  const inputTax = purchaseInvoices
+    .filter((inv) => inv.isDeductible !== false) // 預設為可扣抵
+    .reduce((sum, inv) => sum + inv.taxAmount, 0)
+
+  // 計算淨稅額
+  const netTax = outputTax - inputTax
+
+  return {
+    outputTax,
+    inputTax,
+    netTax,
+    isRefund: netTax < 0,
+  }
+}
+
+/**
+ * 根據發票判斷稅類別（舊版本，保留向後相容）
+ *
+ * @deprecated 建議使用 determineTaxCategoryFromTaxCode 搭配稅碼物件
  */
 function determineTaxCategory(invoice: AccInvoice): TaxCategory {
   const taxAmount = parseFloat(String(invoice.tax_amount)) || 0
