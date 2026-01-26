@@ -1,29 +1,49 @@
+'use client'
+
 import Link from 'next/link'
 import { Check } from 'lucide-react'
+import { useSubscriptionPlans, TIER_ORDER, type SubscriptionPlan } from '@/hooks/use-subscription'
 
-const previewPlans = [
-  {
-    name: '入門版',
-    description: '適合剛起步的小型團隊',
-    price: { monthly: 299, yearly: 2990 },
-    features: ['10 份報價單/月', '基本財務報表', 'Email 支援'],
-  },
-  {
-    name: '標準版',
-    description: '適合成長中的企業',
-    price: { monthly: 599, yearly: 5990 },
-    features: ['無限報價單', '進階分析', '優先支援', '自定義範本'],
-    popular: true,
-  },
-  {
-    name: '專業版',
-    description: '適合大型團隊',
-    price: { monthly: 1299, yearly: 12990 },
-    features: ['所有功能', 'API 存取', '專屬客服', 'SLA 保證'],
-  },
-]
+// 方案功能描述（從資料庫讀取價格，但功能描述保留在前端）
+const PLAN_FEATURES: Record<string, string[]> = {
+  STARTER: ['200 份報價單/月', '基本財務報表', 'Email 支援'],
+  STANDARD: ['無限報價單', '進階分析', '優先支援', '自定義範本'],
+  PROFESSIONAL: ['所有功能', 'API 存取', '專屬客服', 'SLA 保證'],
+}
+
+// 方案描述
+const PLAN_DESCRIPTIONS: Record<string, string> = {
+  STARTER: '適合剛起步的小型團隊',
+  STANDARD: '適合成長中的企業',
+  PROFESSIONAL: '適合大型團隊',
+}
+
+function PricingCardSkeleton() {
+  return (
+    <div className="p-8 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 animate-pulse">
+      <div className="text-center mb-6">
+        <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded mx-auto mb-2" />
+        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded mx-auto mb-4" />
+        <div className="h-12 w-28 bg-gray-200 dark:bg-gray-700 rounded mx-auto" />
+      </div>
+      <div className="space-y-3 mb-8">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded" />
+        ))}
+      </div>
+      <div className="h-12 w-full bg-gray-200 dark:bg-gray-700 rounded-lg" />
+    </div>
+  )
+}
 
 export function PricingPreview() {
+  const { data: plans, isLoading } = useSubscriptionPlans()
+
+  // 過濾掉免費方案，只顯示付費方案
+  const paidPlans = plans
+    ?.filter((p) => p.tier !== 'FREE')
+    .sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier]) || []
+
   return (
     <section className="py-20 px-4 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto">
@@ -37,64 +57,25 @@ export function PricingPreview() {
           </p>
         </div>
 
-        {/* 簡化版方案卡片 */}
+        {/* 方案卡片 */}
         <div className="grid md:grid-cols-3 gap-8 mb-8">
-          {previewPlans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative p-8 rounded-2xl border-2 bg-white dark:bg-gray-800 transition-all hover:shadow-lg ${
-                plan.popular
-                  ? 'border-primary shadow-md scale-105'
-                  : 'border-gray-200 dark:border-gray-700'
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="px-4 py-1 rounded-full bg-primary text-white text-sm font-medium">
-                    最受歡迎
-                  </span>
-                </div>
-              )}
-
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  {plan.name}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                  {plan.description}
-                </p>
-                <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                    NT$ {plan.price.monthly.toLocaleString()}
-                  </span>
-                  <span className="text-gray-500">/月</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  年繳 NT$ {plan.price.yearly.toLocaleString()}（省 17%）
-                </p>
-              </div>
-
-              <ul className="space-y-3 mb-8">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700 dark:text-gray-300">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href="/pricing"
-                className={`block w-full py-3 rounded-lg text-center font-medium transition-colors ${
-                  plan.popular
-                    ? 'bg-primary text-white hover:bg-primary/90'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                選擇方案
-              </Link>
-            </div>
-          ))}
+          {isLoading ? (
+            <>
+              <PricingCardSkeleton />
+              <PricingCardSkeleton />
+              <PricingCardSkeleton />
+            </>
+          ) : (
+            paidPlans.map((plan) => (
+              <PricingCard
+                key={plan.id}
+                plan={plan}
+                features={PLAN_FEATURES[plan.tier] || []}
+                description={PLAN_DESCRIPTIONS[plan.tier] || plan.description || ''}
+                isPopular={plan.tier === 'STANDARD'}
+              />
+            ))
+          )}
         </div>
 
         {/* 底部連結 */}
@@ -109,5 +90,74 @@ export function PricingPreview() {
         </div>
       </div>
     </section>
+  )
+}
+
+interface PricingCardProps {
+  plan: SubscriptionPlan
+  features: string[]
+  description: string
+  isPopular: boolean
+}
+
+function PricingCard({ plan, features, description, isPopular }: PricingCardProps) {
+  const yearlyDiscount = Math.round((1 - plan.yearly_price / (plan.monthly_price * 12)) * 100)
+
+  return (
+    <div
+      className={`relative p-8 rounded-2xl border-2 bg-white dark:bg-gray-800 transition-all hover:shadow-lg ${
+        isPopular
+          ? 'border-primary shadow-md scale-105'
+          : 'border-gray-200 dark:border-gray-700'
+      }`}
+    >
+      {isPopular && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+          <span className="px-4 py-1 rounded-full bg-primary text-white text-sm font-medium">
+            最受歡迎
+          </span>
+        </div>
+      )}
+
+      <div className="text-center mb-6">
+        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          {plan.name}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+          {description}
+        </p>
+        <div className="flex items-baseline justify-center gap-2">
+          <span className="text-4xl font-bold text-gray-900 dark:text-white">
+            NT$ {plan.monthly_price.toLocaleString()}
+          </span>
+          <span className="text-gray-500">/月</span>
+        </div>
+        {yearlyDiscount > 0 && (
+          <p className="text-sm text-gray-500 mt-2">
+            年繳 NT$ {plan.yearly_price.toLocaleString()}（省 {yearlyDiscount}%）
+          </p>
+        )}
+      </div>
+
+      <ul className="space-y-3 mb-8">
+        {features.map((feature) => (
+          <li key={feature} className="flex items-start gap-3">
+            <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+          </li>
+        ))}
+      </ul>
+
+      <Link
+        href="/pricing"
+        className={`block w-full py-3 rounded-lg text-center font-medium transition-colors ${
+          isPopular
+            ? 'bg-primary text-white hover:bg-primary/90'
+            : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
+        }`}
+      >
+        選擇方案
+      </Link>
+    </div>
   )
 }
