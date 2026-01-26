@@ -8,8 +8,8 @@ import {
   updateQuotation,
   deleteQuotation,
   getQuotationItems,
-  createQuotationItem,
-  deleteQuotationItem,
+  createQuotationItemsBatch,
+  deleteQuotationItemsByQuotationId,
   validateCustomerOwnership
 } from '@/lib/dal/quotations'
 import { syncQuotationToPaymentSchedules } from '@/lib/dal/payments'
@@ -197,25 +197,23 @@ export async function PUT(
     // 更新報價單
     const quotation = await updateQuotation(db, user.id, id, updateData)
 
-    // 如果提供了項目，則刪除舊的並重新插入
+    // 如果提供了項目，則刪除舊的並批次重新插入（效能優化）
     if (items && Array.isArray(items)) {
-      // 刪除舊項目
-      const oldItems = await getQuotationItems(db, id)
-      for (const oldItem of oldItems) {
-        await deleteQuotationItem(db, oldItem.id)
-      }
+      // 批次刪除舊項目
+      await deleteQuotationItemsByQuotationId(db, id)
 
-      // 插入新項目
-      for (const item of items) {
-        await createQuotationItem(db, {
-          quotation_id: id,
+      // 批次插入新項目
+      if (items.length > 0) {
+        const parsedItems = items.map((item, index) => ({
           product_id: item.product_id || null,
           description: item.description,
           quantity: parseFloat(String(item.quantity)),
           unit_price: parseFloat(String(item.unit_price)),
           discount: parseFloat(String(item.discount || 0)),
-          subtotal: parseFloat(String(item.subtotal))
-        })
+          subtotal: parseFloat(String(item.subtotal)),
+          sort_order: index
+        }))
+        await createQuotationItemsBatch(db, id, parsedItems)
       }
     }
 
@@ -366,11 +364,8 @@ export async function DELETE(
       }
     }
 
-    // 刪除報價單項目
-    const items = await getQuotationItems(db, id)
-    for (const item of items) {
-      await deleteQuotationItem(db, item.id)
-    }
+    // 批次刪除報價單項目（效能優化）
+    await deleteQuotationItemsByQuotationId(db, id)
 
     // 刪除報價單
     try {

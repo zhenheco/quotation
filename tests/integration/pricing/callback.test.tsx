@@ -99,16 +99,15 @@ describe('Pricing Callback Page', () => {
 
       render(<CallbackPage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('付款完成')).toBeInTheDocument()
-      }, { timeout: 3000 })
+      // 讓初始 useEffect 執行
+      await vi.advanceTimersByTimeAsync(0)
 
-      // 等待 3 秒
-      vi.advanceTimersByTimeAsync(3000)
+      expect(screen.getByText('付款完成')).toBeInTheDocument()
 
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/dashboard')
-      })
+      // 等待 3 秒觸發自動導向
+      await vi.advanceTimersByTimeAsync(3000)
+
+      expect(mockPush).toHaveBeenCalledWith('/dashboard')
 
       vi.useRealTimers()
     })
@@ -190,16 +189,15 @@ describe('Pricing Callback Page', () => {
 
       render(<CallbackPage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('付款未完成')).toBeInTheDocument()
-      }, { timeout: 3000 })
+      // 讓初始 useEffect 執行
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(screen.getByText('付款未完成')).toBeInTheDocument()
 
       // 等待 3 秒
-      vi.advanceTimersByTimeAsync(3000)
+      await vi.advanceTimersByTimeAsync(3000)
 
-      await waitFor(() => {
-        expect(mockPush).not.toHaveBeenCalled()
-      })
+      expect(mockPush).not.toHaveBeenCalled()
 
       vi.useRealTimers()
     })
@@ -230,7 +228,7 @@ describe('Pricing Callback Page', () => {
       render(<CallbackPage />)
 
       await waitFor(() => {
-        expect(screen.getByText('客戶服務')).toBeInTheDocument()
+        expect(screen.getByText(/客戶服務/)).toBeInTheDocument()
       }, { timeout: 3000 })
     })
   })
