@@ -1,26 +1,17 @@
 /* 防止頁面滑動超出邊界的樣式 */
 
-/* 防止整個文檔的 overscroll */
+/* 明確允許垂直滾動，只禁止水平滾動 */
 html {
-  overscroll-behavior: none !important;
-  overscroll-behavior-y: none !important;
-  overflow-x: hidden !important;
+  overflow-x: hidden;
+  overflow-y: scroll !important;
 }
 
 body {
-  overscroll-behavior: none !important;
-  overscroll-behavior-y: none !important;
-  overflow-x: hidden !important;
-  min-height: 100vh !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* 防止 iOS Safari 的橡皮筋效果 */
-@supports (-webkit-touch-callout: none) {
-  html, body {
-    -webkit-overflow-scrolling: touch;
-  }
+  overflow-x: hidden;
+  overflow-y: visible !important;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 /* 防止特定元素造成水平滾動 */

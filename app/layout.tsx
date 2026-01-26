@@ -47,21 +47,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="zh-TW"
-      style={{
-        overscrollBehavior: 'none',
-        overflowX: 'hidden',
-      }}
-    >
+    <html lang="zh-TW">
       <body
         className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} font-sans antialiased`}
-        style={{
-          overscrollBehavior: 'none',
-          overflowX: 'hidden',
-          minHeight: '100vh',
-          position: 'relative'
-        }}
       >
         <Providers>{children}</Providers>
       </body>
