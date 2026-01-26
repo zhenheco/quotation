@@ -36,7 +36,10 @@ export const metadata: Metadata = {
     title: "報價單",
   },
   icons: {
-    icon: "/icons/icon-192x192.png",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192x192.png", type: "image/png", sizes: "192x192" },
+    ],
     apple: "/icons/apple-touch-icon-180x180.png",
   },
 };
