@@ -76,8 +76,8 @@ export default function CallbackPage() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <Button onClick={() => router.push('/dashboard')} className="w-full" asChild>
-                <a>
+              <Button className="w-full" asChild>
+                <a href="/dashboard">
                   <Home className="mr-2 h-4 w-4" />
                   前往儀表板
                 </a>
@@ -108,15 +108,15 @@ export default function CallbackPage() {
           <p className="text-muted-foreground">{displayMessage}</p>
 
           <div className="flex flex-col gap-3">
-            <Button onClick={() => router.push('/dashboard')} variant="default" className="w-full" asChild>
-              <a>
+            <Button variant="default" className="w-full" asChild>
+              <a href="/dashboard">
                 <Home className="mr-2 h-4 w-4" />
                 前往儀表板
               </a>
             </Button>
 
-            <Button onClick={() => router.push('/pricing')} variant="outline" className="w-full" asChild>
-              <a>
+            <Button variant="outline" className="w-full" asChild>
+              <a href="/pricing">
                 <Settings className="mr-2 h-4 w-4" />
                 重新選擇方案
               </a>

@@ -51,10 +51,10 @@ describe('parseNotes - 備註解析工具函數', () => {
       expect(parseNotes(jsonString)).toBe('只有中文')
     })
 
-    it('應該在缺少 zh 欄位時返回原始字串', () => {
+    it('應該在缺少 zh 欄位時 fallback 到 en 欄位', () => {
       const jsonString = '{"en":"Only English"}'
-      // 解析後沒有 zh，應該返回原始字串（去除 JSON 格式）
-      expect(parseNotes(jsonString)).toBe('{"en":"Only English"}')
+      // 解析後沒有 zh，應該 fallback 到 en 欄位
+      expect(parseNotes(jsonString)).toBe('Only English')
     })
   })
 
@@ -69,9 +69,9 @@ describe('parseNotes - 備註解析工具函數', () => {
       expect(parseNotes(obj)).toBe('第一行\n第二行')
     })
 
-    it('應該在物件缺少 zh 欄位時返回空字串', () => {
+    it('應該在物件缺少 zh 欄位時 fallback 到 en 欄位', () => {
       const obj = { en: 'Only English' }
-      expect(parseNotes(obj)).toBe('')
+      expect(parseNotes(obj)).toBe('Only English')
     })
   })
 

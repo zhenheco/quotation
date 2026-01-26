@@ -2,18 +2,69 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import {
   getQuotations,
-  createQuotationItem,
+  getQuotationsPaginated,
+  createQuotationItemsBatch,
   createQuotationWithRetry,
   validateCustomerOwnership
 } from '@/lib/dal/quotations'
 import { getCustomersByIds } from '@/lib/dal/customers'
 
 /**
- * GET /api/quotations - 取得所有報價單
+ * GET /api/quotations - 取得報價單列表
+ *
+ * 查詢參數：
+ * - page: 頁碼（預設 1）
+ * - limit: 每頁筆數（預設 20，最大 100）
+ * - status: 篩選狀態
+ * - paginated: 是否使用分頁（預設 false，向後相容）
  */
 export const GET = withAuth('quotations:read')(async (request, { user, db }) => {
-  // 取得報價單資料
-  const quotations = await getQuotations(db, user.id)
+  const { searchParams } = new URL(request.url)
+
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
+  const status = searchParams.get('status') as 'draft' | 'sent' | 'accepted' | 'expired' | null
+  const usePagination = searchParams.get('paginated') === 'true'
+
+  // 根據是否啟用分頁選擇不同的查詢方式
+  if (usePagination) {
+    // 分頁模式
+    const result = await getQuotationsPaginated(db, user.id, {
+      page,
+      limit,
+      status: status || undefined
+    })
+
+    // 批量載入客戶資料
+    const customerIds = result.data.map(q => q.customer_id).filter(Boolean)
+    const customersMap = await getCustomersByIds(db, user.id, customerIds)
+
+    const formattedData = result.data.map(q => {
+      const customer = customersMap.get(q.customer_id)
+      return {
+        ...q,
+        customer_name: customer?.name || null,
+        customer_email: customer?.email || null
+      }
+    })
+
+    const response = NextResponse.json({
+      data: formattedData,
+      meta: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages
+      }
+    })
+    response.headers.set('Cache-Control', 'private, s-maxage=30, stale-while-revalidate=60')
+    return response
+  }
+
+  // 非分頁模式（向後相容）
+  const quotations = await getQuotations(db, user.id, {
+    status: status || undefined
+  })
 
   // 批量載入客戶名稱和 Email（解決 N+1 查詢問題）
   const customerIds = quotations.map(q => q.customer_id).filter(Boolean)
@@ -118,19 +169,18 @@ export const POST = withAuth('quotations:write')(async (request, { user, db }) =
     terms
   })
 
-  // 建立報價單項目
+  // 批次建立報價單項目（效能優化：單次 INSERT）
   if (items && items.length > 0) {
-    for (const item of items) {
-      await createQuotationItem(db, {
-        quotation_id: quotation.id,
-        product_id: item.product_id || null,
-        description: item.description,
-        quantity: parseFloat(String(item.quantity)),
-        unit_price: parseFloat(String(item.unit_price)),
-        discount: parseFloat(String(item.discount || 0)),
-        subtotal: parseFloat(String(item.subtotal))
-      })
-    }
+    const parsedItems = items.map((item, index) => ({
+      product_id: item.product_id || null,
+      description: item.description,
+      quantity: parseFloat(String(item.quantity)),
+      unit_price: parseFloat(String(item.unit_price)),
+      discount: parseFloat(String(item.discount || 0)),
+      subtotal: parseFloat(String(item.subtotal)),
+      sort_order: index
+    }))
+    await createQuotationItemsBatch(db, quotation.id, parsedItems)
   }
 
   return NextResponse.json(quotation, { status: 201 })

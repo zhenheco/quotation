@@ -79,6 +79,14 @@ export interface ShipmentQueryOptions {
   offset?: number
 }
 
+export interface PaginatedResult<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
 export interface CreateShipmentData {
   company_id: string
   order_id: string
@@ -175,6 +183,74 @@ export async function getShipments(
   }
 
   return (data || []) as ShipmentWithRelations[]
+}
+
+/**
+ * 取得出貨單列表（含分頁資訊）
+ */
+export async function getShipmentsPaginated(
+  db: SupabaseClient,
+  options: ShipmentQueryOptions & { page?: number }
+): Promise<PaginatedResult<ShipmentWithRelations>> {
+  const { companyId, status, orderId, customerId, dateFrom, dateTo, limit = 20, page = 1 } = options
+  const offset = (page - 1) * limit
+
+  // 建構計數查詢
+  let countQuery = db.from('shipments').select('id', { count: 'exact', head: true }).eq('company_id', companyId)
+  if (status) countQuery = countQuery.eq('status', status)
+  if (orderId) countQuery = countQuery.eq('order_id', orderId)
+  if (customerId) countQuery = countQuery.eq('customer_id', customerId)
+  if (dateFrom) countQuery = countQuery.gte('shipped_date', dateFrom)
+  if (dateTo) countQuery = countQuery.lte('shipped_date', dateTo)
+
+  // 建構資料查詢
+  let dataQuery = db
+    .from('shipments')
+    .select(`
+      *,
+      order:orders (
+        id,
+        order_number,
+        status
+      ),
+      customer:customers (
+        id,
+        name,
+        email,
+        phone
+      )
+    `)
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (status) dataQuery = dataQuery.eq('status', status)
+  if (orderId) dataQuery = dataQuery.eq('order_id', orderId)
+  if (customerId) dataQuery = dataQuery.eq('customer_id', customerId)
+  if (dateFrom) dataQuery = dataQuery.gte('shipped_date', dateFrom)
+  if (dateTo) dataQuery = dataQuery.lte('shipped_date', dateTo)
+
+  // 同時執行查詢
+  const [countResult, dataResult] = await Promise.all([countQuery, dataQuery])
+
+  if (countResult.error) {
+    throw new Error(`Failed to count shipments: ${countResult.error.message}`)
+  }
+
+  if (dataResult.error) {
+    throw new Error(`Failed to get shipments: ${dataResult.error.message}`)
+  }
+
+  const total = countResult.count || 0
+  const data = (dataResult.data || []) as ShipmentWithRelations[]
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
+  }
 }
 
 /**

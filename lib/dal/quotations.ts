@@ -78,6 +78,16 @@ export interface QuotationQueryOptions {
   status?: Quotation['status']
   ownerId?: string
   filterByOwner?: boolean
+  page?: number
+  limit?: number
+}
+
+export interface PaginatedResult<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }
 
 export async function getQuotations(
@@ -113,6 +123,81 @@ export async function getQuotations(
   }
 
   return data || []
+}
+
+/**
+ * 取得分頁報價單列表（效能優化）
+ * 支援分頁、篩選、排序
+ */
+export async function getQuotationsPaginated(
+  db: SupabaseClient,
+  userId: string,
+  options: QuotationQueryOptions = {}
+): Promise<PaginatedResult<Quotation>> {
+  const {
+    companyId,
+    status,
+    ownerId,
+    filterByOwner,
+    page = 1,
+    limit = 20
+  } = options
+
+  const offset = (page - 1) * limit
+
+  // 建立基礎查詢條件
+  let countQuery = db
+    .from('quotations')
+    .select('*', { count: 'exact', head: true })
+
+  let dataQuery = db
+    .from('quotations')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  // 套用篩選條件
+  if (companyId) {
+    countQuery = countQuery.eq('company_id', companyId)
+    dataQuery = dataQuery.eq('company_id', companyId)
+  }
+
+  if (filterByOwner && ownerId) {
+    countQuery = countQuery.eq('owner_id', ownerId)
+    dataQuery = dataQuery.eq('owner_id', ownerId)
+  } else {
+    countQuery = countQuery.eq('user_id', userId)
+    dataQuery = dataQuery.eq('user_id', userId)
+  }
+
+  if (status) {
+    countQuery = countQuery.eq('status', status)
+    dataQuery = dataQuery.eq('status', status)
+  }
+
+  // 並行執行計數和資料查詢
+  const [countResult, dataResult] = await Promise.all([
+    countQuery,
+    dataQuery
+  ])
+
+  if (countResult.error) {
+    throw new Error(`Failed to count quotations: ${countResult.error.message}`)
+  }
+
+  if (dataResult.error) {
+    throw new Error(`Failed to get quotations: ${dataResult.error.message}`)
+  }
+
+  const total = countResult.count || 0
+
+  return {
+    data: dataResult.data || [],
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
+  }
 }
 
 export async function getQuotationById(
@@ -352,6 +437,24 @@ export async function deleteQuotationItem(
   }
 }
 
+/**
+ * 批次刪除報價單項目（效能優化）
+ * 根據 quotation_id 刪除所有項目
+ */
+export async function deleteQuotationItemsByQuotationId(
+  db: SupabaseClient,
+  quotationId: string
+): Promise<void> {
+  const { error } = await db
+    .from('quotation_items')
+    .delete()
+    .eq('quotation_id', quotationId)
+
+  if (error) {
+    throw new Error(`Failed to delete quotation items: ${error.message}`)
+  }
+}
+
 export async function generateQuotationNumber(
   db: SupabaseClient,
   companyId: string
@@ -407,4 +510,52 @@ export async function validateCustomerOwnership(
     .single()
 
   return data !== null
+}
+
+/**
+ * 批次建立報價單項目（效能優化）
+ * 一次 INSERT 多筆資料，取代逐筆插入
+ */
+export async function createQuotationItemsBatch(
+  db: SupabaseClient,
+  quotationId: string,
+  items: Array<{
+    product_id?: string | null
+    description: { zh: string; en: string }
+    quantity: number
+    unit?: string
+    unit_price: number
+    discount?: number
+    subtotal: number
+    sort_order?: number
+  }>
+): Promise<QuotationItem[]> {
+  if (items.length === 0) return []
+
+  const now = new Date().toISOString()
+
+  const insertData = items.map((item, index) => ({
+    id: crypto.randomUUID(),
+    quotation_id: quotationId,
+    product_id: item.product_id || null,
+    description: item.description,
+    quantity: item.quantity,
+    unit: item.unit || 'piece',
+    unit_price: item.unit_price,
+    discount: item.discount || 0,
+    subtotal: item.subtotal,
+    sort_order: item.sort_order ?? index,
+    created_at: now
+  }))
+
+  const { data, error } = await db
+    .from('quotation_items')
+    .insert(insertData)
+    .select()
+
+  if (error) {
+    throw new Error(`Failed to create quotation items batch: ${error.message}`)
+  }
+
+  return data || []
 }

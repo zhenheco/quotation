@@ -83,6 +83,14 @@ export interface OrderQueryOptions {
   offset?: number
 }
 
+export interface PaginatedResult<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
 export interface CreateOrderData {
   company_id: string
   quotation_id?: string
@@ -181,6 +189,74 @@ export async function getOrders(
   }
 
   return (data || []) as OrderWithCustomer[]
+}
+
+/**
+ * 取得訂單列表（含分頁資訊）
+ */
+export async function getOrdersPaginated(
+  db: SupabaseClient,
+  options: OrderQueryOptions & { page?: number }
+): Promise<PaginatedResult<OrderWithCustomer>> {
+  const { companyId, status, customerId, quotationId, dateFrom, dateTo, limit = 20, page = 1 } = options
+  const offset = (page - 1) * limit
+
+  // 建構計數查詢
+  let countQuery = db.from('orders').select('id', { count: 'exact', head: true }).eq('company_id', companyId)
+  if (status) countQuery = countQuery.eq('status', status)
+  if (customerId) countQuery = countQuery.eq('customer_id', customerId)
+  if (quotationId) countQuery = countQuery.eq('quotation_id', quotationId)
+  if (dateFrom) countQuery = countQuery.gte('order_date', dateFrom)
+  if (dateTo) countQuery = countQuery.lte('order_date', dateTo)
+
+  // 建構資料查詢
+  let dataQuery = db
+    .from('orders')
+    .select(`
+      *,
+      customer:customers (
+        id,
+        name,
+        email,
+        phone,
+        tax_id
+      ),
+      quotation:quotations (
+        id,
+        quotation_number
+      )
+    `)
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (status) dataQuery = dataQuery.eq('status', status)
+  if (customerId) dataQuery = dataQuery.eq('customer_id', customerId)
+  if (quotationId) dataQuery = dataQuery.eq('quotation_id', quotationId)
+  if (dateFrom) dataQuery = dataQuery.gte('order_date', dateFrom)
+  if (dateTo) dataQuery = dataQuery.lte('order_date', dateTo)
+
+  // 同時執行查詢
+  const [countResult, dataResult] = await Promise.all([countQuery, dataQuery])
+
+  if (countResult.error) {
+    throw new Error(`Failed to count orders: ${countResult.error.message}`)
+  }
+
+  if (dataResult.error) {
+    throw new Error(`Failed to get orders: ${dataResult.error.message}`)
+  }
+
+  const total = countResult.count || 0
+  const data = (dataResult.data || []) as OrderWithCustomer[]
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
+  }
 }
 
 /**

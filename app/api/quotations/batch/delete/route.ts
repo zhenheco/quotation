@@ -4,7 +4,6 @@ import { batchRateLimiter } from '@/lib/middleware/rate-limiter'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
 import { getKVCache } from '@/lib/cache/kv-cache'
 import { checkPermission } from '@/lib/cache/services'
-import { getErrorMessage } from '@/app/api/utils/error-handler'
 
 interface BatchDeleteBody {
   ids: string[];
@@ -42,50 +41,52 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      let deletedCount = 0
-      const errors: string[] = []
+      // 批次查詢存在且有權限的報價單
+      const { data: existingQuotations, error: fetchError } = await db
+        .from('quotations')
+        .select('id')
+        .in('id', ids)
+        .eq('user_id', user.id)
 
-      for (const id of ids) {
-        try {
-          const { data: existingQuotation, error: fetchError } = await db
-            .from('quotations')
-            .select('id')
-            .eq('id', id)
-            .eq('user_id', user.id)
-            .single()
-
-          if (fetchError || !existingQuotation) {
-            errors.push(`Quotation ${id} not found or unauthorized`)
-            continue
-          }
-
-          const { error: deleteError } = await db
-            .from('quotations')
-            .delete()
-            .eq('id', id)
-            .eq('user_id', user.id)
-
-          if (deleteError) {
-            throw deleteError
-          }
-
-          deletedCount++
-        } catch (error: unknown) {
-          console.error(`Error deleting quotation ${id}:`, error)
-          errors.push(`Failed to delete quotation ${id}: ${getErrorMessage(error)}`)
-        }
+      if (fetchError) {
+        console.error('Error fetching quotations:', fetchError)
+        return NextResponse.json(
+          { error: 'Failed to verify quotations' },
+          { status: 500 }
+        )
       }
 
-      if (deletedCount === 0) {
+      const existingIds = new Set(existingQuotations?.map(q => q.id) || [])
+      const notFoundIds = ids.filter(id => !existingIds.has(id))
+      const validIds = ids.filter(id => existingIds.has(id))
+
+      if (validIds.length === 0) {
         return NextResponse.json(
-          { error: 'No quotations were deleted', details: errors },
+          { error: 'No quotations were deleted', details: notFoundIds.map(id => `Quotation ${id} not found or unauthorized`) },
           { status: 400 }
         )
       }
 
+      // 批次刪除有效的報價單
+      const { error: deleteError, count: deletedCount } = await db
+        .from('quotations')
+        .delete()
+        .in('id', validIds)
+        .eq('user_id', user.id)
+
+      if (deleteError) {
+        console.error('Batch delete error:', deleteError)
+        return NextResponse.json(
+          { error: 'Failed to delete quotations' },
+          { status: 500 }
+        )
+      }
+
+      const errors = notFoundIds.map(id => `Quotation ${id} not found or unauthorized`)
+
       return NextResponse.json({
-        message: `Successfully deleted ${deletedCount} out of ${ids.length} quotations`,
-        deletedCount,
+        message: `Successfully deleted ${deletedCount || validIds.length} out of ${ids.length} quotations`,
+        deletedCount: deletedCount || validIds.length,
         total: ids.length,
         errors: errors.length > 0 ? errors : undefined,
       })
