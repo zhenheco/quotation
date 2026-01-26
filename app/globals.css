@@ -133,21 +133,14 @@
 }
 
 html {
-  /* 防止滑動時出現橡皮筋效果和白色空白區域 */
-  overscroll-behavior: none;
-  /* 防止水平滾動 */
-  overflow-x: hidden;
+  /* 明確允許垂直滾動 */
+  overflow-y: scroll;
 }
 
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   font-family: Arial, Helvetica, sans-serif;
-  /* 防止滑動時出現橡皮筋效果和白色空白區域 */
-  overscroll-behavior: none;
-  /* 防止水平滾動 */
-  overflow-x: hidden;
-  /* 確保最小高度 */
   min-height: 100vh;
 }
 
