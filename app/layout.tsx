@@ -52,7 +52,6 @@ export default function RootLayout({
       style={{
         overscrollBehavior: 'none',
         overflowX: 'hidden',
-        height: '100%'
       }}
     >
       <body

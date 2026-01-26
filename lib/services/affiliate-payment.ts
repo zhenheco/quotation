@@ -13,6 +13,8 @@ import {
   PaymentGatewayError,
   type Environment,
 } from '@/lib/sdk/payment-gateway-client'
+import { getSupabaseClient } from '@/lib/db/supabase-client'
+import { getSubscriptionPlanByTier, type SubscriptionTier } from '@/lib/dal/subscriptions'
 
 // ============================================================================
 // 配置
@@ -61,30 +63,19 @@ export interface SubscriptionPaymentParams {
 }
 
 /**
- * 方案價格表（新台幣）
+ * 從資料庫取得方案價格
  */
-const PLAN_PRICES: Record<string, Record<string, number>> = {
-  STARTER: {
-    MONTHLY: 299,
-    YEARLY: 2990,
-  },
-  STANDARD: {
-    MONTHLY: 599,
-    YEARLY: 5990,
-  },
-  PROFESSIONAL: {
-    MONTHLY: 1299,
-    YEARLY: 12990,
-  },
-}
+async function getPlanPriceFromDB(
+  tier: SubscriptionTier,
+  billingCycle: 'MONTHLY' | 'YEARLY'
+): Promise<{ price: number; name: string } | null> {
+  const db = getSupabaseClient()
+  const plan = await getSubscriptionPlanByTier(db, tier)
 
-/**
- * 方案名稱
- */
-const PLAN_NAMES: Record<string, string> = {
-  STARTER: '入門版',
-  STANDARD: '標準版',
-  PROFESSIONAL: '專業版',
+  if (!plan) return null
+
+  const price = billingCycle === 'MONTHLY' ? plan.monthly_price : plan.yearly_price
+  return { price, name: plan.name }
 }
 
 // ============================================================================
@@ -99,15 +90,18 @@ export async function createSubscriptionPayment(
 ): Promise<PaymentResult> {
   const { companyId, tier, billingCycle, email, payerName, payerPhone, callbackUrl } = params
 
-  const price = PLAN_PRICES[tier]?.[billingCycle]
-  if (!price) {
-    throw new PaymentGatewayError(`無效的方案組合: ${tier} / ${billingCycle}`, 'VALIDATION_ERROR')
+  // 從資料庫取得價格
+  const planData = await getPlanPriceFromDB(tier, billingCycle)
+  if (!planData) {
+    throw new PaymentGatewayError(`無效的方案: ${tier}`, 'VALIDATION_ERROR')
   }
 
-  const planName = PLAN_NAMES[tier] || tier
+  const { price, name: planName } = planData
   const cycleLabel = billingCycle === 'MONTHLY' ? '月繳' : '年繳'
   const timestamp = Date.now()
-  const orderId = `SUB-${companyId.substring(0, 8)}-${timestamp}`
+  // 移除底線，確保符合 PAYUNi 規範
+  const sanitizedCompanyId = companyId.replace(/_/g, '-')
+  const orderId = `SUB-${sanitizedCompanyId.substring(0, 8)}-${timestamp}`
 
   return getPaymentClient().createPayment({
     orderId,
@@ -138,12 +132,17 @@ export async function createRecurringSubscriptionPayment(
     throw new PaymentGatewayError('定期定額目前只支援月繳方案', 'VALIDATION_ERROR')
   }
 
-  const price = PLAN_PRICES[tier]?.MONTHLY
-  if (!price) throw new PaymentGatewayError(`無效的方案: ${tier}`, 'VALIDATION_ERROR')
+  // 從資料庫取得價格
+  const planData = await getPlanPriceFromDB(tier, 'MONTHLY')
+  if (!planData) {
+    throw new PaymentGatewayError(`無效的方案: ${tier}`, 'VALIDATION_ERROR')
+  }
 
-  const planName = PLAN_NAMES[tier] || tier
+  const { price, name: planName } = planData
   const timestamp = Date.now()
-  const orderId = `RSUB-${companyId.substring(0, 8)}-${timestamp}`
+  // 移除底線，確保符合 PAYUNi 規範
+  const sanitizedCompanyId = companyId.replace(/_/g, '-')
+  const orderId = `RSUB-${sanitizedCompanyId.substring(0, 8)}-${timestamp}`
 
   // 計算首次扣款日（下個月 1 號）
   const now = new Date()
@@ -250,24 +249,34 @@ export async function handlePaymentFailed(event: WebhookEvent): Promise<{
 // ============================================================================
 
 /**
- * 取得方案價格
+ * 取得方案價格（從資料庫）
  */
-export function getPlanPrice(tier: string, billingCycle: string): number | null {
-  return PLAN_PRICES[tier]?.[billingCycle] ?? null
+export async function getPlanPrice(
+  tier: string,
+  billingCycle: string
+): Promise<number | null> {
+  const planData = await getPlanPriceFromDB(
+    tier as SubscriptionTier,
+    billingCycle as 'MONTHLY' | 'YEARLY'
+  )
+  return planData?.price ?? null
 }
 
 /**
- * 取得方案名稱
+ * 取得方案名稱（從資料庫）
  */
-export function getPlanName(tier: string): string {
-  return PLAN_NAMES[tier] || tier
+export async function getPlanName(tier: string): Promise<string> {
+  const planData = await getPlanPriceFromDB(tier as SubscriptionTier, 'MONTHLY')
+  return planData?.name ?? tier
 }
 
 /**
  * 檢查付款配置是否已設定
  */
 export function isPaymentConfigured(): boolean {
-  return !!(process.env.AFFILIATE_PAYMENT_API_KEY?.trim() && process.env.AFFILIATE_PAYMENT_SITE_CODE?.trim())
+  const apiKey = process.env.AFFILIATE_PAYMENT_API_KEY?.trim()
+  const siteCode = process.env.AFFILIATE_PAYMENT_SITE_CODE?.trim()
+  return Boolean(apiKey && siteCode)
 }
 
 // Re-export
