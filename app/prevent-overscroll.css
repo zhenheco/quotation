@@ -16,21 +16,10 @@ body {
   padding: 0 !important;
 }
 
-/* 防止 iOS Safari 的橡皮筋效果 - 改進版本 */
+/* 防止 iOS Safari 的橡皮筋效果 */
 @supports (-webkit-touch-callout: none) {
-  /* 使用更靈活的方式防止滾動，不影響對話框 */
   html, body {
-    position: relative !important;
-    touch-action: pan-y !important;
-  }
-
-  /* 主滾動容器 */
-  #__next, body > div:first-child {
-    min-height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: none;
   }
 }
 
