@@ -34,7 +34,7 @@
   /* 狀態色 */
   --destructive: 0 65% 50%;
   --destructive-foreground: 0 0% 100%;
-  --success: 160 60% 40%;
+  --success: 142 76% 36%;
   --success-foreground: 0 0% 100%;
   --warning: 38 85% 50%;
   --warning-foreground: 30 70% 15%;
@@ -118,7 +118,7 @@
   --accent-foreground: 174 60% 65%;
   --destructive: 0 55% 45%;
   --destructive-foreground: 0 0% 100%;
-  --success: 160 55% 45%;
+  --success: 142 71% 45%;
   --warning: 38 70% 55%;
   --border: 215 15% 22%;
   --input: 215 15% 22%;
