@@ -18,50 +18,82 @@ export interface FeatureDefinition {
   availability: Record<SubscriptionTier, string | boolean>
 }
 
-// 功能列表（按方案顯示）
+// 功能列表（按方案顯示）- 強調報價系統與報稅系統差異
 export const PLAN_FEATURES: Record<SubscriptionTier, string[]> = {
   FREE: [
-    '產品上限 50 個',
-    '客戶上限 20 個',
-    '每月報價單 10 份',
-    '基本報表功能',
+    // 報價系統
+    '📄 報價單 10 份/月',
+    '📦 產品上限 50 個',
+    '👥 客戶上限 20 個',
+    // 報稅系統
+    '⛔ 不含報稅功能',
+    // 其他
     'Email 通知',
   ],
   STARTER: [
-    '產品上限 200 個',
-    '客戶上限 100 個',
-    '每月報價單 50 份',
-    '營業稅計算',
-    '進階報表功能',
+    // 報價系統
+    '📄 報價單 50 份/月',
+    '📦 產品上限 200 個',
+    '👥 客戶上限 100 個',
+    // 報稅系統
+    '🧾 營業稅計算',
+    '⛔ 不含 401 媒體檔',
+    '⛔ 不含營所稅申報',
+    // 其他
     'Email 優先支援',
   ],
   STANDARD: [
-    '產品數量無限制',
-    '客戶數量無限制',
-    '報價單無限制',
-    '401 媒體檔匯出',
-    '營所稅申報功能',
+    // 報價系統
+    '📄 報價單無限制',
+    '📦 產品數量無限制',
+    '👥 客戶數量無限制',
+    '📋 訂單管理系統',
+    '🚚 出貨管理系統',
+    // 報稅系統
+    '🧾 營業稅計算',
+    '📁 401 媒體檔匯出',
+    '📊 營所稅申報（擴大書審）',
+    // 其他
     '最多 3 間公司',
     '優先客服支援',
   ],
   PROFESSIONAL: [
-    '包含所有標準版功能',
-    'AI 現金流分析',
-    'AI 應收風險分析',
-    'AI 稅務優化建議',
+    // 報價系統
+    '📄 報價單無限制',
+    '📋 訂單管理系統',
+    '🚚 出貨管理系統',
+    // 報稅系統（完整）
+    '🧾 營業稅計算',
+    '📁 401 媒體檔匯出',
+    '📊 營所稅申報（擴大書審）',
+    '🤖 AI 稅務優化建議',
+    // AI 分析
+    '🤖 AI 現金流分析',
+    '🤖 AI 應收風險分析',
+    // 其他
     'API 完整存取',
     '最多 10 間公司',
     '專屬客服經理',
-    '客製化報表',
   ],
 }
 
 // 功能比較表分組
 export const FEATURE_GROUPS: FeatureGroup[] = [
   {
-    id: 'basic',
-    name: '基本功能',
+    id: 'quotation',
+    name: '📄 報價系統',
     features: [
+      {
+        key: 'max_quotations',
+        label: '每月報價單上限',
+        description: '每月可建立的報價單數量',
+        availability: {
+          FREE: '10 份',
+          STARTER: '50 份',
+          STANDARD: '無限制',
+          PROFESSIONAL: '無限制',
+        },
+      },
       {
         key: 'max_products',
         label: '產品數量上限',
@@ -83,30 +115,43 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         },
       },
       {
-        key: 'max_quotations',
-        label: '每月報價單上限',
+        key: 'order_management',
+        label: '訂單管理系統',
+        description: '報價單轉訂單、訂單追蹤',
         availability: {
-          FREE: '10',
-          STARTER: '50',
-          STANDARD: '無限制',
-          PROFESSIONAL: '無限制',
+          FREE: false,
+          STARTER: false,
+          STANDARD: true,
+          PROFESSIONAL: true,
         },
       },
       {
-        key: 'max_companies',
-        label: '公司數量上限',
+        key: 'shipment_management',
+        label: '出貨管理系統',
+        description: '訂單轉出貨、出貨追蹤',
         availability: {
-          FREE: '1',
-          STARTER: '1',
-          STANDARD: '3',
-          PROFESSIONAL: '10',
+          FREE: false,
+          STARTER: false,
+          STANDARD: true,
+          PROFESSIONAL: true,
+        },
+      },
+      {
+        key: 'pdf_export',
+        label: 'PDF 匯出',
+        description: '報價單、訂單、出貨單 PDF 下載',
+        availability: {
+          FREE: true,
+          STARTER: true,
+          STANDARD: true,
+          PROFESSIONAL: true,
         },
       },
     ],
   },
   {
     id: 'tax',
-    name: '稅務功能',
+    name: '🧾 報稅系統',
     features: [
       {
         key: 'vat_filing',
@@ -122,7 +167,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       {
         key: 'media_401',
         label: '401 媒體檔匯出',
-        description: '產生營業稅申報媒體檔',
+        description: '產生營業稅申報媒體檔（國稅局格式）',
         availability: {
           FREE: false,
           STARTER: false,
@@ -132,8 +177,8 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       },
       {
         key: 'income_tax',
-        label: '營所稅申報',
-        description: '擴大書審稅額計算',
+        label: '營所稅申報（擴大書審）',
+        description: '依財政部純益率計算應納稅額',
         availability: {
           FREE: false,
           STARTER: false,
@@ -141,11 +186,38 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
           PROFESSIONAL: true,
         },
       },
+      {
+        key: 'ai_tax_optimization',
+        label: 'AI 稅務優化建議',
+        description: '智慧稅務規劃與節稅建議',
+        availability: {
+          FREE: false,
+          STARTER: false,
+          STANDARD: false,
+          PROFESSIONAL: true,
+        },
+      },
+    ],
+  },
+  {
+    id: 'basic',
+    name: '📊 基本功能',
+    features: [
+      {
+        key: 'max_companies',
+        label: '公司數量上限',
+        availability: {
+          FREE: '1',
+          STARTER: '1',
+          STANDARD: '3',
+          PROFESSIONAL: '10',
+        },
+      },
     ],
   },
   {
     id: 'ai',
-    name: 'AI 智慧分析',
+    name: '🤖 AI 智慧分析',
     features: [
       {
         key: 'ai_cash_flow',
@@ -169,22 +241,11 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
           PROFESSIONAL: true,
         },
       },
-      {
-        key: 'ai_tax_optimization',
-        label: 'AI 稅務優化建議',
-        description: '智慧稅務規劃建議',
-        availability: {
-          FREE: false,
-          STARTER: false,
-          STANDARD: false,
-          PROFESSIONAL: true,
-        },
-      },
     ],
   },
   {
     id: 'integration',
-    name: '整合功能',
+    name: '🔗 整合功能',
     features: [
       {
         key: 'api_access',
@@ -212,7 +273,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
   },
   {
     id: 'support',
-    name: '客戶支援',
+    name: '💬 客戶支援',
     features: [
       {
         key: 'email_support',
