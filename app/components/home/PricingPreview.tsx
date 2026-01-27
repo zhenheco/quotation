@@ -5,17 +5,30 @@ import { Check } from 'lucide-react'
 import { useSubscriptionPlans, TIER_ORDER, type SubscriptionPlan } from '@/hooks/use-subscription'
 
 // 方案功能描述（從資料庫讀取價格，但功能描述保留在前端）
+// 強調報價系統與報稅系統的差異
 const PLAN_FEATURES: Record<string, string[]> = {
-  STARTER: ['200 份報價單/月', '基本財務報表', 'Email 支援'],
-  STANDARD: ['無限報價單', '進階分析', '優先支援', '自定義範本'],
-  PROFESSIONAL: ['所有功能', 'API 存取', '專屬客服', 'SLA 保證'],
+  STARTER: [
+    '📄 報價單 50 份/月',
+    '🧾 營業稅計算',
+    '⛔ 不含 401 媒體檔、營所稅',
+  ],
+  STANDARD: [
+    '📄 報價單無限制',
+    '📋 訂單 + 出貨管理',
+    '🧾 完整報稅系統（401 + 營所稅）',
+  ],
+  PROFESSIONAL: [
+    '📄 完整報價系統',
+    '🧾 完整報稅系統',
+    '🤖 AI 分析 + 稅務優化',
+  ],
 }
 
 // 方案描述
 const PLAN_DESCRIPTIONS: Record<string, string> = {
-  STARTER: '適合剛起步的小型團隊',
-  STANDARD: '適合成長中的企業',
-  PROFESSIONAL: '適合大型團隊',
+  STARTER: '基本報價 + 營業稅計算',
+  STANDARD: '完整報價報稅系統',
+  PROFESSIONAL: '企業級 + AI 智慧分析',
 }
 
 function PricingCardSkeleton() {
