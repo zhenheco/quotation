@@ -54,7 +54,6 @@ export const PLAN_FEATURES: Record<SubscriptionTier, string[]> = {
     '📁 401 媒體檔匯出',
     '📊 營所稅申報（擴大書審）',
     // 其他
-    '最多 3 間公司',
     '優先客服支援',
   ],
   PROFESSIONAL: [
@@ -72,7 +71,6 @@ export const PLAN_FEATURES: Record<SubscriptionTier, string[]> = {
     '🤖 AI 應收風險分析',
     // 其他
     'API 完整存取',
-    '最多 10 間公司',
     '專屬客服經理',
   ],
 }
@@ -195,22 +193,6 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
           STARTER: false,
           STANDARD: false,
           PROFESSIONAL: true,
-        },
-      },
-    ],
-  },
-  {
-    id: 'basic',
-    name: '📊 基本功能',
-    features: [
-      {
-        key: 'max_companies',
-        label: '公司數量上限',
-        availability: {
-          FREE: '1',
-          STARTER: '1',
-          STANDARD: '3',
-          PROFESSIONAL: '10',
         },
       },
     ],
