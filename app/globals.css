@@ -224,3 +224,9 @@ body {
 .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
 .stagger-children > *:nth-child(5) { animation-delay: 200ms; }
 .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+
+/* ===== Safe Area 工具類 ===== */
+/* 用於 iPhone 等有底部安全區域的裝置 */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
