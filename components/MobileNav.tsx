@@ -15,9 +15,9 @@ import {
   Settings,
   ShoppingCart,
   Truck,
+  type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { LucideIcon } from 'lucide-react'
 
 interface MenuItem {
   name: string
@@ -139,7 +139,7 @@ export default function MobileNav() {
       )}
 
       {/* 底部導航欄 - 專業簡潔 */}
-      <nav className="fixed bottom-0 left-0 right-0 md:hidden z-40 pb-safe">
+      <nav className="fixed bottom-0 left-0 right-0 md:hidden z-40 bg-white pb-safe touch-manipulation">
         <div className="flex items-center justify-around bg-white border-t border-slate-200 py-2 px-1">
           {primaryItems.map((item) => {
             const isActive = pathname.startsWith(item.href)
@@ -157,10 +157,7 @@ export default function MobileNav() {
                 )}
               >
                 <Icon className="h-5 w-5" />
-                <span className={cn(
-                  'text-[10px] font-medium',
-                  isActive ? 'text-teal-700' : 'text-slate-400'
-                )}>
+                <span className="text-[10px] font-medium">
                   {item.name}
                 </span>
               </Link>
@@ -178,10 +175,7 @@ export default function MobileNav() {
             )}
           >
             <MoreHorizontal className="h-5 w-5" />
-            <span className={cn(
-              'text-[10px] font-medium',
-              isMoreActive || showMore ? 'text-teal-700' : 'text-slate-400'
-            )}>
+            <span className="text-[10px] font-medium">
               更多
             </span>
           </button>
