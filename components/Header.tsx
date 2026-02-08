@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { LogOut, Settings, Sparkles, UserCircle } from 'lucide-react'
@@ -40,28 +40,29 @@ export default function Header() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
 
-  const loadUserProfile = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (user) {
-        setUserEmail(user.email || '')
-
-        try {
-          const profile = await apiGet<UserProfile>('/api/rbac/user-profile')
-          setUserProfile(profile)
-        } catch {
-          // Profile fetch failed
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load user profile:', error)
-    }
-  }, [supabase])
-
   useEffect(() => {
+    let cancelled = false
+    async function loadUserProfile() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (user && !cancelled) {
+          setUserEmail(user.email || '')
+
+          try {
+            const profile = await apiGet<UserProfile>('/api/rbac/user-profile')
+            if (!cancelled) setUserProfile(profile)
+          } catch {
+            // Profile fetch failed
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load user profile:', error)
+      }
+    }
     loadUserProfile()
-  }, [loadUserProfile])
+    return () => { cancelled = true }
+  }, [supabase])
 
   const handleSignOut = async () => {
     try {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import {
   useCurrentMonthReceivables,
   useMarkScheduleAsCollected,
@@ -48,9 +48,9 @@ export function CurrentMonthReceivablesTable({ searchQuery = '' }: CurrentMonthR
   const [editingSchedule, setEditingSchedule] = useState<CurrentMonthReceivable | null>(null)
   const [deletingScheduleId, setDeletingScheduleId] = useState<string | null>(null)
 
-  const { unpaidItems, paidItems } = useMemo(() => {
+  const { unpaidItems, paidItems } = (() => {
     if (!data?.receivables) {
-      return { unpaidItems: [], paidItems: [] }
+      return { unpaidItems: [] as CurrentMonthReceivable[], paidItems: [] as CurrentMonthReceivable[] }
     }
 
     const filteredReceivables = data.receivables.filter((item) => {
@@ -73,7 +73,7 @@ export function CurrentMonthReceivablesTable({ searchQuery = '' }: CurrentMonthR
       }
     })
     return { unpaidItems: unpaid, paidItems: paid }
-  }, [data?.receivables, searchQuery, locale])
+  })()
 
   const handleCheckboxChange = async (item: CurrentMonthReceivable) => {
     if (item.status === 'paid') {

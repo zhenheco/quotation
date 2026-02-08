@@ -16,12 +16,7 @@ interface GuideModalProps {
  * 桌面版保持側欄可見（Modal 從左側 72/288px 開始）
  */
 export default function GuideModal({ isOpen, onClose }: GuideModalProps) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
-  }, [])
+  const [mounted] = useState(() => typeof window !== 'undefined')
 
   // ESC 鍵關閉
   useEffect(() => {

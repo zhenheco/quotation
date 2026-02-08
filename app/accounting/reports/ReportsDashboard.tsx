@@ -591,20 +591,20 @@ function IncomeStatementAnalysis({ data }: { data: IncomeStatementData }) {
 // 資產負債表
 // ============================================
 
-function BalanceSheetTable({ data }: { data: BalanceSheetData }) {
-  const SectionTable = ({
-    title,
-    items,
-    total,
-    colorClass,
-    bgClass
-  }: {
-    title: string
-    items: Array<{ accountCode: string; accountName: string; balance: number }>
-    total: number
-    colorClass: string
-    bgClass: string
-  }) => (
+function BalanceSheetSectionTable({
+  title,
+  items,
+  total,
+  colorClass,
+  bgClass
+}: {
+  title: string
+  items: Array<{ accountCode: string; accountName: string; balance: number }>
+  total: number
+  colorClass: string
+  bgClass: string
+}) {
+  return (
     <div className="mb-6">
       <h3 className={`text-lg font-semibold mb-4 ${colorClass}`}>{title}</h3>
       <Table>
@@ -628,12 +628,14 @@ function BalanceSheetTable({ data }: { data: BalanceSheetData }) {
       </Table>
     </div>
   )
+}
 
+function BalanceSheetTable({ data }: { data: BalanceSheetData }) {
   return (
     <div className="grid md:grid-cols-2 gap-8">
       {/* 左側：資產 */}
       <div className="space-y-4">
-        <SectionTable
+        <BalanceSheetSectionTable
           title="資產"
           items={data.assets.items}
           total={data.assets.total}
@@ -652,14 +654,14 @@ function BalanceSheetTable({ data }: { data: BalanceSheetData }) {
 
       {/* 右側：負債 + 權益 */}
       <div className="space-y-4">
-        <SectionTable
+        <BalanceSheetSectionTable
           title="負債"
           items={data.liabilities.items}
           total={data.liabilities.total}
           colorClass="text-orange-800"
           bgClass="bg-orange-100"
         />
-        <SectionTable
+        <BalanceSheetSectionTable
           title="權益"
           items={data.equity.items}
           total={data.equity.total}

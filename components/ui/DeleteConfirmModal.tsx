@@ -40,23 +40,19 @@ export default function DeleteConfirmModal({
   relatedRecords,
   forceDeleteLabel = '連同刪除所有關聯的付款紀錄',
 }: DeleteConfirmModalProps) {
-  const [mounted, setMounted] = useState(false)
   const [forceDelete, setForceDelete] = useState(false)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
   const uniqueId = useId()
   const titleId = `${uniqueId}-title`
   const descriptionId = `${uniqueId}-description`
 
-  // 重置 forceDelete 狀態當 modal 關閉時
-  useEffect(() => {
-    if (!isOpen) {
+  // 當 modal 重新開啟時重置 forceDelete（React 推薦的 render 階段 state 同步模式）
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
+    if (isOpen && forceDelete) {
       setForceDelete(false)
     }
-  }, [isOpen])
-
-  useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
-  }, [])
+  }
 
   // 按 ESC 鍵關閉對話框
   useEffect(() => {
@@ -77,7 +73,7 @@ export default function DeleteConfirmModal({
   }, [isOpen, onClose])
 
   // 確保在客戶端渲染
-  if (!mounted || !isOpen) return null
+  if (typeof window === 'undefined' || !isOpen) return null
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -197,7 +193,5 @@ export default function DeleteConfirmModal({
   )
 
   // 使用 Portal 渲染到 body，確保對話框顯示在最上層
-  return typeof window !== 'undefined' && mounted
-    ? createPortal(modalContent, document.body)
-    : null
+  return createPortal(modalContent, document.body)
 }

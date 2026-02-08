@@ -1,22 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { isWebView } from '@/lib/utils/detect-webview'
 import Link from 'next/link'
 
 export default function LoginForm() {
   const supabase = createClient()
-  const [inWebView, setInWebView] = useState(false)
+  const [inWebView] = useState(() => typeof window !== 'undefined' ? isWebView() : false)
   const [copied, setCopied] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    setInWebView(isWebView())
-  }, [])
 
   const handleGoogleLogin = async () => {
     const redirectBase = 'https://quote24.cc'

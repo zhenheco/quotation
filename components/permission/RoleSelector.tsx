@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback } from 'react';
 import type { RoleName } from '@/types/extended.types';
 
 // 定義可選的角色
@@ -70,20 +70,12 @@ export function RoleSelector({
   excludeOwner = false,
   showDescription = true
 }: RoleSelectorProps) {
-  const [selectedRole, setSelectedRole] = useState<RoleName | ''>(value || '');
+  // 直接用 prop value 作為受控值，不需要中間 state
+  const selectedRole = value || '';
 
-  // 當 value prop 改變時更新內部狀態
-  useEffect(() => {
-    if (value !== undefined) {
-      setSelectedRole(value);
-    }
-  }, [value]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRole = e.target.value as RoleName;
-    setSelectedRole(newRole);
-    onChange(newRole);
-  };
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    onChange(e.target.value as RoleName);
+  }, [onChange]);
 
   // 過濾可用角色
   const availableRoles = AVAILABLE_ROLES.filter(role => {

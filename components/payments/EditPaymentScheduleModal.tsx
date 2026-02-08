@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useCustomers } from '@/hooks/useCustomers'
 import { useUpdatePaymentSchedule, type CurrentMonthReceivable } from '@/hooks/usePayments'
 import { toast } from 'sonner'
@@ -35,7 +35,10 @@ export default function EditPaymentScheduleModal({
     notes: '',
   })
 
-  useEffect(() => {
+  // 用 render 階段同步模式，同步 schedule prop 到 formData state
+  const [prevSchedule, setPrevSchedule] = useState(schedule)
+  if (schedule !== prevSchedule) {
+    setPrevSchedule(schedule)
     setFormData({
       customer_id: schedule.customer_id,
       due_date: schedule.due_date.split('T')[0],
@@ -44,7 +47,7 @@ export default function EditPaymentScheduleModal({
       description: schedule.description || '',
       notes: '',
     })
-  }, [schedule])
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

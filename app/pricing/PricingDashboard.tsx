@@ -97,7 +97,7 @@ export default function PricingDashboard() {
   }, [])
 
   // 確認付款
-  const handleConfirmCheckout = useCallback(async () => {
+  const handleConfirmCheckout = async () => {
     if (!selectedPlan || !company?.id) {
       throw new Error('缺少必要資訊')
     }
@@ -131,7 +131,7 @@ export default function PricingDashboard() {
     } else {
       throw new Error('無法取得付款表單')
     }
-  }, [selectedPlan, company?.id, billingCycle])
+  }
 
   // 載入中狀態
   if (plansLoading) {

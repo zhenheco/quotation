@@ -41,6 +41,58 @@ interface LegendProps {
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
+// 自訂標籤
+function renderCustomizedLabel({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  percent,
+}: PieLabelProps) {
+  const RADIAN = Math.PI / 180
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5
+  const x = cx + radius * Math.cos(-midAngle * RADIAN)
+  const y = cy + radius * Math.sin(-midAngle * RADIAN)
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="white"
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+      className="text-xs font-medium"
+    >
+      {`${(percent * 100).toFixed(1)}%`}
+    </text>
+  )
+}
+
+// 自訂 Tooltip
+function CurrencyChartTooltip({ active, payload }: TooltipProps) {
+  if (active && payload && payload[0]) {
+    const data = payload[0].payload
+    return (
+      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+        <p className="text-sm font-medium text-gray-900">
+          {data.currency}
+        </p>
+        <p className="text-sm text-gray-600">
+          金額: {data.currency} {safeToLocaleString(data.value)}
+        </p>
+        <p className="text-sm text-gray-600">
+          佔比: {data.percentage}%
+        </p>
+        <p className="text-sm text-gray-600">
+          報價單數: {data.count}
+        </p>
+      </div>
+    )
+  }
+  return null
+}
+
 export default function CurrencyChart({ data }: CurrencyChartProps) {
 
   // 計算百分比（防止除以零導致 NaN）
@@ -49,58 +101,6 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
     ...item,
     percentage: total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0'
   }))
-
-  // 自訂標籤
-  const renderCustomizedLabel = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    percent,
-  }: PieLabelProps) => {
-    const RADIAN = Math.PI / 180
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-    const x = cx + radius * Math.cos(-midAngle * RADIAN)
-    const y = cy + radius * Math.sin(-midAngle * RADIAN)
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor={x > cx ? 'start' : 'end'}
-        dominantBaseline="central"
-        className="text-xs font-medium"
-      >
-        {`${(percent * 100).toFixed(1)}%`}
-      </text>
-    )
-  }
-
-  // 自訂 Tooltip
-  const CustomTooltip = ({ active, payload }: TooltipProps) => {
-    if (active && payload && payload[0]) {
-      const data = payload[0].payload
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="text-sm font-medium text-gray-900">
-            {data.currency}
-          </p>
-          <p className="text-sm text-gray-600">
-            金額: {data.currency} {safeToLocaleString(data.value)}
-          </p>
-          <p className="text-sm text-gray-600">
-            佔比: {data.percentage}%
-          </p>
-          <p className="text-sm text-gray-600">
-            報價單數: {data.count}
-          </p>
-        </div>
-      )
-    }
-    return null
-  }
 
   // 自訂圖例
   const renderLegend = (props: LegendProps) => {
@@ -146,7 +146,7 @@ export default function CurrencyChart({ data }: CurrencyChartProps) {
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CurrencyChartTooltip />} />
           <Legend
             verticalAlign="bottom"
             height={36}

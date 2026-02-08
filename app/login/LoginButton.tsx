@@ -1,17 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { isWebView } from '@/lib/utils/detect-webview'
 
 export default function LoginButton() {
   const supabase = createClient()
-  const [inWebView, setInWebView] = useState(false)
+  const [inWebView] = useState(() => typeof window !== 'undefined' ? isWebView() : false)
   const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    setInWebView(isWebView())
-  }, [])
 
   const handleGoogleLogin = async () => {
     // 強制使用 quote24.cc，避免 build time 環境變數問題
