@@ -28,7 +28,7 @@ export const INVOICE_TEMPLATE_COLUMNS: InvoiceTemplateColumn[] = [
     header: '發票號碼',
     width: 15,
     required: true,
-    description: '發票號碼（格式：XX-00000000）',
+    description: '發票號碼（最大 15 字元，台灣格式：XX-00000000）',
     example: 'AB-12345678',
     validation: { type: 'text' },
   },
@@ -147,6 +147,8 @@ export function validateInvoiceRow(
   const number = String(row.number || row['發票號碼'] || row['發票號碼 *'] || '').trim()
   if (!number) {
     errors.push({ row: rowNumber, column: '發票號碼', message: '發票號碼為必填欄位' })
+  } else if (number.length > 15) {
+    errors.push({ row: rowNumber, column: '發票號碼', message: `發票號碼「${number}」超過 15 字元上限` })
   }
 
   // 驗證類型

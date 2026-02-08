@@ -56,6 +56,8 @@ function validateInvoiceRow(
   const number = String(row['發票號碼'] || row['發票號碼 *'] || row.number || '').trim()
   if (!number) {
     errors.push({ row: rowNumber, column: '發票號碼', message: '發票號碼為必填欄位' })
+  } else if (number.length > 15) {
+    errors.push({ row: rowNumber, column: '發票號碼', message: `發票號碼「${number}」超過 15 字元上限` })
   }
 
   // 驗證類型
