@@ -107,6 +107,17 @@ async function batchImportInvoices(
     const rowNumber = i + 2 // Excel 從第 2 行開始是資料
 
     try {
+      // 驗證發票號碼長度
+      if (row.number.length > 15) {
+        skippedCount++
+        errors.push({
+          row: rowNumber,
+          column: '發票號碼',
+          message: `發票號碼「${row.number}」超過 15 字元上限`,
+        })
+        continue
+      }
+
       // 檢查發票號碼是否已存在
       const existing = await getInvoiceByNumber(db, companyId, row.number)
       if (existing) {

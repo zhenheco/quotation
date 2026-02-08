@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { X, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react'
@@ -9,18 +9,20 @@ import { parseExcelFile } from '@/lib/utils/excel-parser'
 import { parseCsvFile } from '@/lib/utils/csv-parser'
 import type {
   ImportResourceType,
+  ImportStep,
   DuplicateHandling,
   ImportResult,
   ValidationError,
   ParsedRow,
+  ColumnMapping,
 } from '@/lib/services/batch-import/types'
 import { getColumnsForResource } from '@/lib/services/batch-import/template-columns'
 import { validateCustomerRows } from '@/lib/services/batch-import/validators/customer-validator'
 import { validateProductRows } from '@/lib/services/batch-import/validators/product-validator'
 import { validateSupplierRows } from '@/lib/services/batch-import/validators/supplier-validator'
 import { downloadTemplate } from '@/hooks/useBatchImport'
-
-type ImportStep = 'upload' | 'preview' | 'importing' | 'complete'
+import { autoMatchColumns, applyColumnMapping } from '@/lib/services/batch-import/column-matcher'
+import ColumnMappingStep from './ColumnMappingStep'
 
 interface BatchImportModalProps {
   isOpen: boolean
@@ -66,6 +68,8 @@ export default function BatchImportModal({
 
   const [step, setStep] = useState<ImportStep>('upload')
   const [isDragging, setIsDragging] = useState(false)
+  const [rawData, setRawData] = useState<Record<string, unknown>[]>([])
+  const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([])
   const [parsedData, setParsedData] = useState<ParsedRow[]>([])
   const [validRows, setValidRows] = useState<ParsedRow[]>([])
   const [invalidRows, setInvalidRows] = useState<ParsedRow[]>([])
@@ -79,6 +83,8 @@ export default function BatchImportModal({
   /** 重置狀態 */
   const resetState = useCallback(() => {
     setStep('upload')
+    setRawData([])
+    setColumnMappings([])
     setParsedData([])
     setValidRows([])
     setInvalidRows([])
@@ -140,26 +146,21 @@ export default function BatchImportModal({
           return
         }
 
-        // 驗證資料
-        const { validRows, invalidRows, errors } = validateData(data)
+        // 取得原始欄位名稱，進入 mapping 步驟
+        const headers = Object.keys(data[0])
+        const mappings = autoMatchColumns(headers, resourceType)
 
-        setParsedData(data.map((row, index) => ({ _rowNumber: index + 1, ...row })))
-        setValidRows(validRows)
-        setInvalidRows(invalidRows)
-        setErrors(errors)
-        setStep('preview')
+        setRawData(data)
+        setColumnMappings(mappings)
+        setStep('mapping')
 
-        if (errors.length > 0) {
-          toast.warning(`發現 ${errors.length} 個驗證錯誤，請檢查預覽`)
-        } else {
-          toast.success(`成功解析 ${data.length} 筆資料`)
-        }
+        toast.success(`成功解析 ${data.length} 筆資料，請確認欄位對應`)
       } catch (error) {
         console.error('Parse error:', error)
         toast.error(`解析檔案失敗：${error instanceof Error ? error.message : '未知錯誤'}`)
       }
     },
-    [validateData]
+    [resourceType]
   )
 
   /** 拖曳事件處理 */
@@ -202,6 +203,27 @@ export default function BatchImportModal({
     (format: 'xlsx' | 'csv') => downloadTemplate(resourceType, format),
     [resourceType]
   )
+
+  /** Mapping 確認後，轉換資料並進入預覽 */
+  const handleMappingConfirm = useCallback(() => {
+    // 用 mapping 將原始資料轉成系統格式
+    const mappedData = applyColumnMapping(rawData, columnMappings)
+
+    // 驗證轉換後的資料
+    const { validRows, invalidRows, errors } = validateData(mappedData)
+
+    setParsedData(mappedData.map((row, index) => ({ _rowNumber: index + 1, ...row })))
+    setValidRows(validRows)
+    setInvalidRows(invalidRows)
+    setErrors(errors)
+    setStep('preview')
+
+    if (errors.length > 0) {
+      toast.warning(`發現 ${errors.length} 個驗證錯誤，請檢查預覽`)
+    } else {
+      toast.success(`欄位對應完成，共 ${mappedData.length} 筆資料`)
+    }
+  }, [rawData, columnMappings, validateData])
 
   /** 執行匯入 */
   const handleImport = useCallback(async () => {
@@ -252,6 +274,15 @@ export default function BatchImportModal({
       setIsImporting(false)
     }
   }, [company?.id, resourceType, parsedData, duplicateHandling, onSuccess])
+
+  /** 檢查 mapping 步驟是否可以進入下一步 */
+  const canProceedMapping = useMemo(() => {
+    if (step !== 'mapping') return false
+    const columns = getColumnsForResource(resourceType)
+    const requiredKeys = columns.filter((c) => c.required).map((c) => c.key)
+    const mappedKeys = new Set(columnMappings.filter((m) => m.targetKey).map((m) => m.targetKey))
+    return requiredKeys.every((key) => mappedKeys.has(key))
+  }, [step, resourceType, columnMappings])
 
   if (!isOpen) return null
 
@@ -383,7 +414,17 @@ export default function BatchImportModal({
             </div>
           )}
 
-          {/* Step 2: 預覽 */}
+          {/* Step 2: 欄位對應 */}
+          {step === 'mapping' && (
+            <ColumnMappingStep
+              rawData={rawData}
+              mappings={columnMappings}
+              resourceType={resourceType}
+              onMappingsChange={setColumnMappings}
+            />
+          )}
+
+          {/* Step 3: 預覽 */}
           {step === 'preview' && (
             <div className="space-y-6">
               {/* 統計摘要 */}
@@ -591,11 +632,18 @@ export default function BatchImportModal({
             onClick={step === 'complete' ? handleClose : resetState}
             className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            {step === 'complete' && '關閉'}
-            {step === 'upload' && '取消'}
-            {step === 'preview' && '重新上傳'}
-            {step === 'importing' && '重新上傳'}
+            {step === 'complete' ? '關閉' : step === 'upload' ? '取消' : '重新上傳'}
           </button>
+
+          {step === 'mapping' && (
+            <button
+              onClick={handleMappingConfirm}
+              disabled={!canProceedMapping}
+              className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
+              下一步 →
+            </button>
+          )}
 
           {step === 'preview' && (
             <button

@@ -9,7 +9,19 @@ export type ImportResourceType = 'customers' | 'products' | 'suppliers'
 export type DuplicateHandling = 'skip' | 'update' | 'error'
 
 /** 匯入步驟 */
-export type ImportStep = 'upload' | 'preview' | 'importing' | 'complete'
+export type ImportStep = 'upload' | 'mapping' | 'preview' | 'importing' | 'complete'
+
+/** 欄位對應定義 */
+export interface ColumnMapping {
+  /** 用戶 Excel 的欄位名稱 */
+  sourceColumn: string
+  /** 系統欄位 key，null 表示「不匯入」 */
+  targetKey: string | null
+  /** 匹配信心度 0-1 */
+  confidence: number
+  /** 是否為自動匹配 */
+  autoMatched: boolean
+}
 
 /** 範本欄位定義 */
 export interface ImportTemplateColumn {

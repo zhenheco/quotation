@@ -61,6 +61,11 @@ export default function InvoiceForm() {
       return
     }
 
+    if (formData.number.trim().length > 15) {
+      toast.error('發票號碼不可超過 15 字元')
+      return
+    }
+
     try {
       const input: CreateInvoiceInput = {
         company_id: company.id,
@@ -119,9 +124,11 @@ export default function InvoiceForm() {
                 value={formData.number}
                 onChange={(e) => setFormData({ ...formData, number: e.target.value })}
                 placeholder="AA-12345678"
+                maxLength={15}
                 required
                 className={inputClassName}
               />
+              <p className="mt-1 text-xs text-slate-500">最大 15 字元，台灣格式：XX-00000000</p>
             </div>
           </div>
 

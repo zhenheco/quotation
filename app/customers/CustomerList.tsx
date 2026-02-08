@@ -134,7 +134,7 @@ export default function CustomerList() {
               title="批量匯入"
             >
               <Upload className="w-4 h-4" />
-              <span className="hidden sm:inline">批量匯入</span>
+              <span>匯入</span>
             </button>
           </div>
 
