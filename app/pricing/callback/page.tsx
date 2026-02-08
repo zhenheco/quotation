@@ -7,7 +7,7 @@
  * 成功時 3 秒後自動導向到 dashboard
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,42 +16,23 @@ import { CheckCircle2, XCircle, Home, Settings } from 'lucide-react'
 export default function CallbackPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading')
 
   const statusParam = searchParams.get('status') || ''
   const message = searchParams.get('message') || ''
 
+  // 直接從 statusParam 計算狀態，無需 useEffect + setState
+  const isSuccess = statusParam === 'success' || statusParam === 'SUCCESS'
+  const status: 'success' | 'failed' = isSuccess ? 'success' : 'failed'
+
+  // 成功時 3 秒後自動導向到 dashboard
   useEffect(() => {
-    // 判斷付款狀態
-    const isSuccess = statusParam === 'success' || statusParam === 'SUCCESS'
-
     if (isSuccess) {
-      setStatus('success')
-
-      // 3 秒後自動導向到 dashboard
       const timer = setTimeout(() => {
         router.push('/dashboard')
       }, 3000)
-
       return () => clearTimeout(timer)
-    } else {
-      setStatus('failed')
     }
-  }, [statusParam, router])
-
-  // Loading 狀態
-  if (status === 'loading') {
-    return (
-      <div className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            <p className="mt-4 text-muted-foreground">處理中...</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  }, [isSuccess, router])
 
   // 成功狀態
   if (status === 'success') {

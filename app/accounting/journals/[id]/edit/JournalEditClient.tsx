@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useJournal, useUpdateJournal } from '@/hooks/accounting'
@@ -36,37 +36,37 @@ export default function JournalEditClient({ journalId }: JournalEditClientProps)
   const { data: journal, isLoading, error } = useJournal(journalId)
   const updateJournal = useUpdateJournal()
 
-  // 表單狀態
+  // 表單狀態 - 使用 render 階段同步 prop → state
+  const [prevJournal, setPrevJournal] = useState(journal)
   const [date, setDate] = useState('')
   const [description, setDescription] = useState('')
   const [transactions, setTransactions] = useState<TransactionLine[]>([])
 
-  // 當傳票資料載入後，填充表單
-  useEffect(() => {
-    if (journal) {
-      setDate(journal.date || '')
-      setDescription(journal.description || '')
+  // 當傳票資料變化時，在 render 階段同步表單（React 推薦模式）
+  if (journal && journal !== prevJournal) {
+    setPrevJournal(journal)
+    setDate(journal.date || '')
+    setDescription(journal.description || '')
 
-      // 轉換現有分錄
-      if (journal.transactions && journal.transactions.length > 0) {
-        setTransactions(
-          journal.transactions.map((tx) => ({
-            id: tx.id,
-            accountId: tx.account?.code || tx.account_id,
-            description: tx.description || '',
-            debit: tx.debit > 0 ? tx.debit.toString() : '',
-            credit: tx.credit > 0 ? tx.credit.toString() : '',
-          }))
-        )
-      } else {
-        // 至少兩筆分錄
-        setTransactions([
-          { id: crypto.randomUUID(), accountId: '', description: '', debit: '', credit: '' },
-          { id: crypto.randomUUID(), accountId: '', description: '', debit: '', credit: '' },
-        ])
-      }
+    // 轉換現有分錄
+    if (journal.transactions && journal.transactions.length > 0) {
+      setTransactions(
+        journal.transactions.map((tx) => ({
+          id: tx.id,
+          accountId: tx.account?.code || tx.account_id,
+          description: tx.description || '',
+          debit: tx.debit > 0 ? tx.debit.toString() : '',
+          credit: tx.credit > 0 ? tx.credit.toString() : '',
+        }))
+      )
+    } else {
+      // 至少兩筆分錄
+      setTransactions([
+        { id: crypto.randomUUID(), accountId: '', description: '', debit: '', credit: '' },
+        { id: crypto.randomUUID(), accountId: '', description: '', debit: '', credit: '' },
+      ])
     }
-  }, [journal])
+  }
 
   // 新增分錄行
   const addLine = useCallback(() => {

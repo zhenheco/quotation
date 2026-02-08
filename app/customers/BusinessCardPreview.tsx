@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import type { BusinessCardData } from '@/lib/services/business-card-ocr'
 
 /**
@@ -36,7 +36,9 @@ export default function BusinessCardPreview({
   onCancel,
 }: BusinessCardPreviewProps) {
 
-  // 可編輯的預覽資料
+  // 可編輯的預覽資料 - 使用 render 階段同步 props → state
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  const [prevData, setPrevData] = useState(data)
   const [previewData, setPreviewData] = useState<BusinessCardFormData>({
     nameZh: '',
     nameEn: '',
@@ -49,22 +51,28 @@ export default function BusinessCardPreview({
     title: '',
   })
 
-  // 當對話框開啟或資料變化時，初始化預覽資料
-  useEffect(() => {
-    if (isOpen && data) {
-      setPreviewData({
-        nameZh: data.name?.zh || '',
-        nameEn: data.name?.en || '',
-        email: data.email || '',
-        phone: data.phone || '',
-        fax: data.fax || '',
-        addressZh: data.address?.zh || '',
-        addressEn: data.address?.en || '',
-        company: data.company || '',
-        title: data.title || '',
-      })
-    }
-  }, [isOpen, data])
+  // 當對話框開啟或資料變化時，在 render 階段同步預覽資料（React 推薦模式）
+  if ((isOpen !== prevIsOpen || data !== prevData) && isOpen && data) {
+    setPrevIsOpen(isOpen)
+    setPrevData(data)
+    setPreviewData({
+      nameZh: data.name?.zh || '',
+      nameEn: data.name?.en || '',
+      email: data.email || '',
+      phone: data.phone || '',
+      fax: data.fax || '',
+      addressZh: data.address?.zh || '',
+      addressEn: data.address?.en || '',
+      company: data.company || '',
+      title: data.title || '',
+    })
+  }
+  if (isOpen !== prevIsOpen && !isOpen) {
+    setPrevIsOpen(isOpen)
+  }
+  if (data !== prevData && !isOpen) {
+    setPrevData(data)
+  }
 
   /**
    * 更新單一欄位

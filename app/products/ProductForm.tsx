@@ -106,8 +106,10 @@ export default function ProductForm({ product: initialProduct }: ProductFormProp
   // 類別選擇狀態（用於判斷是否選擇「其他」）
   const [isOtherCategory, setIsOtherCategory] = useState(false)
 
-  // 從 product 初始化表單
-  useEffect(() => {
+  // 用 render 階段同步模式，從 product 同步表單資料
+  const [prevProduct, setPrevProduct] = useState(product)
+  if (product !== prevProduct) {
+    setPrevProduct(product)
     if (product) {
       const name = product.name as { zh: string; en: string }
       const description = product.description as { zh: string; en: string } | null
@@ -135,50 +137,41 @@ export default function ProductForm({ product: initialProduct }: ProductFormProp
         setIsOtherCategory(true)
       }
     }
-  }, [product])
+  }
 
-  // 自動計算利潤率或售價
-  useEffect(() => {
+  // 自動計算利潤率或售價（render 階段同步計算）
+  {
     const cost = parseFloat(formData.costPrice)
     const price = parseFloat(formData.basePrice)
     const margin = parseFloat(formData.profitMargin)
 
     // 只在相同幣別時計算
-    if (formData.costCurrency !== formData.baseCurrency) {
-      return
-    }
-
-    if (autoCalculateMode === 'profitMargin') {
-      // 自動計算利潤率
-      if (cost > 0 && price > 0) {
-        const calculatedMargin = calculateProfitMargin(cost, price)
-        if (Math.abs(calculatedMargin - margin) > 0.01) {
-          setFormData((prev) => ({
-            ...prev,
-            profitMargin: calculatedMargin.toFixed(0),
-          }))
+    if (formData.costCurrency === formData.baseCurrency) {
+      if (autoCalculateMode === 'profitMargin') {
+        // 自動計算利潤率
+        if (cost > 0 && price > 0) {
+          const calculatedMargin = calculateProfitMargin(cost, price)
+          if (Math.abs(calculatedMargin - margin) > 0.01) {
+            setFormData((prev) => ({
+              ...prev,
+              profitMargin: calculatedMargin.toFixed(0),
+            }))
+          }
         }
-      }
-    } else if (autoCalculateMode === 'sellingPrice') {
-      // 自動計算售價
-      if (cost > 0 && margin >= 0) {
-        const calculatedPrice = calculateSellingPrice(cost, margin)
-        if (Math.abs(calculatedPrice - price) > 0.01) {
-          setFormData((prev) => ({
-            ...prev,
-            basePrice: calculatedPrice.toFixed(0),
-          }))
+      } else if (autoCalculateMode === 'sellingPrice') {
+        // 自動計算售價
+        if (cost > 0 && margin >= 0) {
+          const calculatedPrice = calculateSellingPrice(cost, margin)
+          if (Math.abs(calculatedPrice - price) > 0.01) {
+            setFormData((prev) => ({
+              ...prev,
+              basePrice: calculatedPrice.toFixed(0),
+            }))
+          }
         }
       }
     }
-  }, [
-    formData.costPrice,
-    formData.basePrice,
-    formData.profitMargin,
-    formData.costCurrency,
-    formData.baseCurrency,
-    autoCalculateMode,
-  ])
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

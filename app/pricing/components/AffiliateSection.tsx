@@ -24,13 +24,21 @@ export function AffiliateSection() {
   const isLoggedIn = !!company
 
   const [stats, setStats] = useState<AffiliateStats | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(isLoggedIn)
   const [copied, setCopied] = useState<'code' | 'link' | null>(null)
+
+  // 追蹤 isLoggedIn 變化，用 render 階段同步模式
+  const [prevIsLoggedIn, setPrevIsLoggedIn] = useState(isLoggedIn)
+  if (isLoggedIn !== prevIsLoggedIn) {
+    setPrevIsLoggedIn(isLoggedIn)
+    if (isLoggedIn) {
+      setIsLoading(true)
+    }
+  }
 
   // 取得推薦碼資訊
   useEffect(() => {
     if (isLoggedIn) {
-      setIsLoading(true)
       fetch('/api/user/referral-code')
         .then((res) => res.json())
         .then((data) => {

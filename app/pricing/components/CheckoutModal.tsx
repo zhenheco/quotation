@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { CreditCard, Shield, X, Zap, Calendar, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -30,22 +30,24 @@ export function CheckoutModal({
   billingCycle,
   currentTier,
 }: CheckoutModalProps) {
-  const [mounted, setMounted] = useState(false)
+  // 偵測客戶端掛載，避免在 useEffect 中 setState
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
-  }, [])
-
-  // 重置狀態當 modal 開啟時
-  useEffect(() => {
+  // 用 render 階段同步模式重置狀態
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
     if (isOpen) {
       setError(null)
       setIsProcessing(false)
     }
-  }, [isOpen])
+  }
 
   // ESC 關閉
   useEffect(() => {

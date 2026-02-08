@@ -29,6 +29,24 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: '已拒絕',
 }
 
+// 自訂 Tooltip
+function StatusChartTooltip({ active, payload, label, currency }: TooltipProps & { currency: string }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+        <p className="text-sm font-medium text-gray-900">{label}</p>
+        <p className="text-sm text-gray-600">
+          報價單數: {payload[0].value}
+        </p>
+        <p className="text-sm text-gray-600">
+          總金額: {currency} {safeToLocaleString(payload[1].value)}
+        </p>
+      </div>
+    )
+  }
+  return null
+}
+
 export default function StatusChart({ data, currency }: StatusChartProps) {
   // 格式化貨幣
   const formatCurrency = (value: number | undefined | null) => {
@@ -45,24 +63,6 @@ export default function StatusChart({ data, currency }: StatusChartProps) {
     ...item,
     displayStatus: translateStatus(item.status)
   }))
-
-  // 自訂 Tooltip
-  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="text-sm font-medium text-gray-900">{label}</p>
-          <p className="text-sm text-gray-600">
-            報價單數: {payload[0].value}
-          </p>
-          <p className="text-sm text-gray-600">
-            總金額: {formatCurrency(payload[1].value)}
-          </p>
-        </div>
-      )
-    }
-    return null
-  }
 
   // 狀態顏色映射
   const getStatusColor = (status: string) => {
@@ -114,7 +114,7 @@ export default function StatusChart({ data, currency }: StatusChartProps) {
             fontSize={12}
             tickFormatter={formatCurrency}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<StatusChartTooltip currency={currency} />} />
           <Legend
             wrapperStyle={{ fontSize: '12px' }}
             verticalAlign="top"

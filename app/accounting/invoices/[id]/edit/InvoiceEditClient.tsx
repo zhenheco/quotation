@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useInvoice, useUpdateInvoice } from '@/hooks/accounting'
@@ -29,7 +29,8 @@ export default function InvoiceEditClient({ invoiceId }: InvoiceEditClientProps)
   const { data: invoice, isLoading, error } = useInvoice(invoiceId)
   const updateInvoice = useUpdateInvoice()
 
-  // 表單狀態
+  // 表單狀態 - 使用 render 階段同步 prop → state
+  const [prevInvoice, setPrevInvoice] = useState(invoice)
   const [formData, setFormData] = useState({
     number: '',
     type: 'OUTPUT' as InvoiceType,
@@ -43,23 +44,22 @@ export default function InvoiceEditClient({ invoiceId }: InvoiceEditClientProps)
     dueDate: '',
   })
 
-  // 當發票資料載入後，填充表單
-  useEffect(() => {
-    if (invoice) {
-      setFormData({
-        number: invoice.number || '',
-        type: invoice.type as InvoiceType,
-        date: invoice.date || '',
-        untaxedAmount: invoice.untaxed_amount?.toString() || '',
-        taxAmount: invoice.tax_amount?.toString() || '',
-        totalAmount: invoice.total_amount?.toString() || '',
-        counterpartyName: invoice.counterparty_name || '',
-        counterpartyTaxId: invoice.counterparty_tax_id || '',
-        description: invoice.description || '',
-        dueDate: invoice.due_date || '',
-      })
-    }
-  }, [invoice])
+  // 當發票資料變化時，在 render 階段同步表單（React 推薦模式）
+  if (invoice && invoice !== prevInvoice) {
+    setPrevInvoice(invoice)
+    setFormData({
+      number: invoice.number || '',
+      type: invoice.type as InvoiceType,
+      date: invoice.date || '',
+      untaxedAmount: invoice.untaxed_amount?.toString() || '',
+      taxAmount: invoice.tax_amount?.toString() || '',
+      totalAmount: invoice.total_amount?.toString() || '',
+      counterpartyName: invoice.counterparty_name || '',
+      counterpartyTaxId: invoice.counterparty_tax_id || '',
+      description: invoice.description || '',
+      dueDate: invoice.due_date || '',
+    })
+  }
 
   if (isLoading) {
     return (

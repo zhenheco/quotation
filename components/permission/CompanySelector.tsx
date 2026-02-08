@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useCompanies } from '@/hooks/permission';
 
 interface CompanySelectorProps {
@@ -33,29 +33,23 @@ export function CompanySelector({
   placeholder = '選擇公司...'
 }: CompanySelectorProps) {
   const { companies, loading, error } = useCompanies();
-  const [selectedCompanyId, setSelectedCompanyId] = useState(value || '');
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
-  // 當 value prop 改變時更新內部狀態
-  useEffect(() => {
-    if (value !== undefined) {
-      setSelectedCompanyId(value);
+  // 計算選中的公司 ID：優先使用 prop，否則自動選第一個
+  let selectedCompanyId = value ?? '';
+  if (!selectedCompanyId && !loading && companies.length > 0) {
+    selectedCompanyId = companies[0].company_id;
+    // 自動選擇第一個公司（僅觸發一次）
+    if (!hasAutoSelected) {
+      setHasAutoSelected(true);
+      // 在下一個 microtask 觸發 onChange，避免 render 中呼叫父元件的 setState
+      Promise.resolve().then(() => onChange(selectedCompanyId));
     }
-  }, [value]);
+  }
 
-  // 當公司列表載入完成且沒有選中公司時，自動選擇第一個公司
-  useEffect(() => {
-    if (!loading && companies.length > 0 && !selectedCompanyId) {
-      const firstCompanyId = companies[0].company_id;
-      setSelectedCompanyId(firstCompanyId);
-      onChange(firstCompanyId);
-    }
-  }, [loading, companies, selectedCompanyId, onChange]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newCompanyId = e.target.value;
-    setSelectedCompanyId(newCompanyId);
-    onChange(newCompanyId);
-  };
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    onChange(e.target.value);
+  }, [onChange]);
 
   if (loading && showLoading) {
     return (

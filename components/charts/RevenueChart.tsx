@@ -20,29 +20,29 @@ interface TooltipProps {
   label?: string;
 }
 
+// 自訂 Tooltip
+function RevenueChartTooltip({ active, payload, label, currency }: TooltipProps & { currency: string }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+        <p className="text-sm font-medium text-gray-900">{label}</p>
+        <p className="text-sm text-gray-600">
+          營收: {currency} {safeToLocaleString(payload[0].value)}
+        </p>
+        <p className="text-sm text-gray-600">
+          報價單數: {payload[1].value}
+        </p>
+      </div>
+    )
+  }
+  return null
+}
+
 export default function RevenueChart({ data, currency }: RevenueChartProps) {
 
   // 格式化貨幣
   const formatCurrency = (value: number | undefined | null) => {
     return `${currency} ${safeToLocaleString(value)}`
-  }
-
-  // 自訂 Tooltip
-  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="text-sm font-medium text-gray-900">{label}</p>
-          <p className="text-sm text-gray-600">
-            營收: {formatCurrency(payload[0].value)}
-          </p>
-          <p className="text-sm text-gray-600">
-            報價單數: {payload[1].value}
-          </p>
-        </div>
-      )
-    }
-    return null
   }
 
   return (
@@ -79,7 +79,7 @@ export default function RevenueChart({ data, currency }: RevenueChartProps) {
             stroke="#6b7280"
             fontSize={12}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<RevenueChartTooltip currency={currency} />} />
           <Legend
             wrapperStyle={{ fontSize: '12px' }}
             verticalAlign="top"
