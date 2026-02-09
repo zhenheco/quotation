@@ -13,7 +13,7 @@ export interface Customer {
   owner_id: string | null
   customer_number: string | null
   name: { zh: string; en: string }
-  email: string
+  email: string | null
   phone: string | null
   fax: string | null
   address: { zh: string; en: string } | null
@@ -129,7 +129,7 @@ export async function createCustomer(
     owner_id?: string
     customer_number?: string
     name: { zh: string; en: string }
-    email: string
+    email?: string | null
     phone?: string
     fax?: string
     address?: { zh: string; en: string }
@@ -149,7 +149,7 @@ export async function createCustomer(
       owner_id: data.owner_id || userId,
       customer_number: data.customer_number || null,
       name: data.name,
-      email: data.email,
+      email: data.email || null,
       phone: data.phone || null,
       fax: data.fax || null,
       address: data.address || null,
@@ -175,7 +175,7 @@ export async function updateCustomer(
   customerId: string,
   data: Partial<{
     name: { zh: string; en: string }
-    email: string
+    email: string | null
     phone: string
     fax: string
     address: { zh: string; en: string }
