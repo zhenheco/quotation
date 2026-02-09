@@ -130,8 +130,8 @@ export interface CustomerImportRow {
   name_zh: string
   /** 客戶名稱（英文） */
   name_en?: string
-  /** 電子郵件 - 必填，重複檢測主鍵 */
-  email: string
+  /** 電子郵件 */
+  email?: string
   /** 電話 */
   phone?: string
   /** 傳真 */

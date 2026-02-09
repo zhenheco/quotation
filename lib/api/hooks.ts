@@ -10,6 +10,7 @@
 
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions, type UseMutationOptions } from '@tanstack/react-query'
 import { apiClient } from './client'
+import { buildCsrfHeaders } from '@/lib/security/csrf'
 import { queryKeys, invalidateResource, invalidateResourceList, invalidateResourceDetail, type OptimisticUpdateContext, optimisticUpdate, rollbackOptimisticUpdate } from './queryClient'
 import type { ApiError } from './errors'
 
@@ -359,6 +360,7 @@ export function useFileUpload(
 
       const response = await fetch(endpoint, {
         method: 'POST',
+        headers: buildCsrfHeaders({ includeContentType: false }),
         body: formData,
         credentials: 'include',
       })

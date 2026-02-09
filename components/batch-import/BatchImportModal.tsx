@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { X, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { useCompany } from '@/hooks/useCompany'
+import { buildCsrfHeaders } from '@/lib/security/csrf'
 import { parseExcelFile } from '@/lib/utils/excel-parser'
 import { parseCsvFile } from '@/lib/utils/csv-parser'
 import type {
@@ -238,7 +239,7 @@ export default function BatchImportModal({
     try {
       const response = await fetch(`/api/batch-import/${resourceType}/import`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildCsrfHeaders(),
         body: JSON.stringify({
           data: parsedData,
           company_id: company.id,

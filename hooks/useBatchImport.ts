@@ -3,6 +3,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { buildCsrfHeaders } from '@/lib/security/csrf'
 import type {
   ImportResourceType,
   DuplicateHandling,
@@ -28,7 +29,7 @@ async function batchImport({
 }: BatchImportParams): Promise<ImportResult> {
   const response = await fetch(`/api/batch-import/${resourceType}/import`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildCsrfHeaders(),
     body: JSON.stringify({
       data,
       company_id: companyId,

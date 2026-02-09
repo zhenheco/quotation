@@ -3,6 +3,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { buildCsrfHeaders } from '@/lib/security/csrf'
 import type { Form401Data, Form403Data, InvoiceDetail } from '@/lib/services/accounting/tax-report.service'
 
 // ============================================
@@ -129,7 +130,7 @@ async function fetchInvoiceDetails(
 ): Promise<InvoiceDetailListResult> {
   const response = await fetch('/api/accounting/reports/tax', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildCsrfHeaders(),
     body: JSON.stringify({
       company_id: companyId,
       type,
