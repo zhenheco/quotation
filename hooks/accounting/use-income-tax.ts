@@ -4,6 +4,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { buildCsrfHeaders } from '@/lib/security/csrf'
 
 // ============================================================================
 // 類型定義
@@ -275,7 +276,7 @@ async function calculateAndSave(params: CalculateAndSaveParams): Promise<{
 }> {
   const response = await fetch('/api/accounting/income-tax/expanded-audit', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildCsrfHeaders(),
     body: JSON.stringify(params),
   })
 
@@ -294,7 +295,7 @@ async function calculateAndSave(params: CalculateAndSaveParams): Promise<{
 async function searchProfitRates(params: SearchProfitRatesParams): Promise<IndustryProfitRate[]> {
   const response = await fetch('/api/accounting/income-tax/expanded-audit', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildCsrfHeaders(),
     body: JSON.stringify({
       company_id: params.companyId,
       query: params.query,

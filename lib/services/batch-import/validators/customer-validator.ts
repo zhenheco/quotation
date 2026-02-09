@@ -39,16 +39,9 @@ export function validateCustomerRow(
     })
   }
 
-  // 必填：電子郵件
+  // 選填：電子郵件（如有填寫則驗證格式）
   const email = String(normalizedRow['email'] || '').trim()
-  if (!email) {
-    errors.push({
-      row: rowNumber,
-      column: 'email',
-      message: '電子郵件為必填欄位',
-      messageEn: 'Email is required',
-    })
-  } else if (!EMAIL_REGEX.test(email)) {
+  if (email && !EMAIL_REGEX.test(email)) {
     errors.push({
       row: rowNumber,
       column: 'email',
@@ -77,7 +70,7 @@ export function validateCustomerRow(
   const data: CustomerImportRow = {
     name_zh: nameZh,
     name_en: String(normalizedRow['name_en'] || '').trim() || undefined,
-    email,
+    email: email || undefined,
     phone: String(normalizedRow['phone'] || '').trim() || undefined,
     fax: String(normalizedRow['fax'] || '').trim() || undefined,
     address_zh: String(normalizedRow['address_zh'] || '').trim() || undefined,
@@ -139,7 +132,7 @@ export function toCustomerCreateInput(row: CustomerImportRow) {
       zh: row.name_zh,
       en: row.name_en || row.name_zh, // 英文名稱預設使用中文
     },
-    email: row.email,
+    email: row.email || null,
     phone: row.phone || null,
     fax: row.fax || null,
     address: row.address_zh || row.address_en

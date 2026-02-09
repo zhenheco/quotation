@@ -301,6 +301,42 @@ export function getCsrfTokenFromCookie(): string | null {
 }
 
 /**
+ * 建立包含 CSRF Token 的 headers 物件
+ *
+ * 自動從 Cookie 讀取 CSRF Token 並加入 headers。
+ * 預設包含 Content-Type: application/json，可透過 includeContentType 參數關閉
+ * （例如上傳 FormData 時不需要 Content-Type）。
+ *
+ * @param options - 設定選項
+ * @param options.includeContentType - 是否包含 Content-Type: application/json（預設 true）
+ * @returns 包含 CSRF Token 的 headers 物件
+ *
+ * @example
+ * // JSON 請求
+ * fetch('/api/data', { method: 'POST', headers: buildCsrfHeaders(), body: JSON.stringify(data) })
+ *
+ * // FormData 請求（不需要 Content-Type）
+ * fetch('/api/upload', { method: 'POST', headers: buildCsrfHeaders({ includeContentType: false }), body: formData })
+ */
+export function buildCsrfHeaders(
+  options: { includeContentType?: boolean } = {}
+): Record<string, string> {
+  const { includeContentType = true } = options
+  const headers: Record<string, string> = {}
+
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json'
+  }
+
+  const csrfToken = getCsrfTokenFromCookie()
+  if (csrfToken) {
+    headers[CSRF_HEADER_NAME] = csrfToken
+  }
+
+  return headers
+}
+
+/**
  * 創建帶有 CSRF Token 的 fetch 函式
  *
  * 使用方式：

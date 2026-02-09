@@ -75,26 +75,43 @@ async function importCustomers(
   for (const row of validRows) {
     const customerData = row as unknown as CustomerImportRow
     const email = customerData.email
+    const nameZh = customerData.name_zh
 
-    // 檢查重複（以 email 為主鍵）
-    const { data: existing } = await db
-      .from('customers')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('company_id', companyId)
-      .eq('email', email)
-      .single()
+    // 檢查重複：優先用 email，若無 email 則用客戶名稱
+    let existing: { id: string } | null = null
+    if (email) {
+      const { data: existingByEmail } = await db
+        .from('customers')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('company_id', companyId)
+        .eq('email', email)
+        .single()
+      existing = existingByEmail
+    }
+    if (!existing && nameZh) {
+      const { data: existingByName } = await db
+        .from('customers')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('company_id', companyId)
+        .eq('name->>zh', nameZh)
+        .single()
+      existing = existingByName
+    }
 
     if (existing) {
       if (duplicateHandling === 'skip') {
         skippedCount++
         continue
       } else if (duplicateHandling === 'error') {
+        const dupField = email ? 'email' : 'name_zh'
+        const dupValue = email || nameZh
         importErrors.push({
           row: row._rowNumber,
-          column: 'email',
-          message: `重複的電子郵件: ${email}`,
-          messageEn: `Duplicate email: ${email}`,
+          column: dupField,
+          message: `重複的${email ? '電子郵件' : '客戶名稱'}: ${dupValue}`,
+          messageEn: `Duplicate ${email ? 'email' : 'customer name'}: ${dupValue}`,
         })
         continue
       } else if (duplicateHandling === 'update') {

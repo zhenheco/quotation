@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { useCompany } from '@/hooks/useCompany'
+import { buildCsrfHeaders } from '@/lib/security/csrf'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -394,9 +395,7 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
 
       const response = await fetch('/api/accounting/invoices/import', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: buildCsrfHeaders(),
         body: JSON.stringify({
           company_id: company.id,
           data: dataToImport,

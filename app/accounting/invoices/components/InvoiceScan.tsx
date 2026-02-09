@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useCompany } from '@/hooks/useCompany'
+import { buildCsrfHeaders } from '@/lib/security/csrf'
 import { useCreateInvoice } from '@/hooks/accounting'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -93,6 +94,7 @@ export default function InvoiceScan({ onSuccess }: InvoiceScanProps) {
 
         const response = await fetch('/api/accounting/invoices/scan', {
           method: 'POST',
+          headers: buildCsrfHeaders({ includeContentType: false }),
           body: formData,
         })
 

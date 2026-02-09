@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { buildCsrfHeaders } from '@/lib/security/csrf';
 import type { RoleName } from '@/types/extended.types';
 
 export interface CompanyMember {
@@ -97,10 +98,8 @@ export function useCompanyMembers(companyId: string | null): UseCompanyMembersRe
 
       const response = await fetch(`/api/company/${companyId}/members`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
+        headers: buildCsrfHeaders(),
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
@@ -133,10 +132,8 @@ export function useCompanyMembers(companyId: string | null): UseCompanyMembersRe
 
       const response = await fetch(`/api/company/${companyId}/members/${userId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ role_name: roleName })
+        headers: buildCsrfHeaders(),
+        body: JSON.stringify({ role_name: roleName }),
       });
 
       if (!response.ok) {
@@ -168,7 +165,8 @@ export function useCompanyMembers(companyId: string | null): UseCompanyMembersRe
       setError(null);
 
       const response = await fetch(`/api/company/${companyId}/members/${userId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildCsrfHeaders({ includeContentType: false }),
       });
 
       if (!response.ok) {
