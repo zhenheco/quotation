@@ -2,129 +2,164 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, CheckCircle2, Calculator, FileText, TrendingUp } from 'lucide-react'
+import { ArrowRight, CheckCircle2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-export function HeroSection() {
+const TRUST_BADGES = ['14 天免費試用', '無需信用卡', '5 分鐘上手'] as const
+
+const TYPING_DELAYS = [0, 150, 300]
+
+function TypingDots() {
   return (
-    <section className="relative bg-gradient-to-br from-teal-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 py-20 px-4 overflow-hidden">
-      {/* 背景裝飾 */}
-      <div className="absolute inset-0 opacity-5 dark:opacity-10" style={{
-        backgroundImage: `linear-gradient(to right, #0d9488 1px, transparent 1px),
-                          linear-gradient(to bottom, #0d9488 1px, transparent 1px)`,
-        backgroundSize: '40px 40px',
-      }} />
+    <span className="inline-flex items-center gap-0.5 ml-1">
+      {TYPING_DELAYS.map((delay) => (
+        <span
+          key={delay}
+          className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"
+          style={{ animationDelay: `${delay}ms` }}
+        />
+      ))}
+    </span>
+  )
+}
 
-      {/* 光暈效果 */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-teal-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl" />
+function LineMessageBubble() {
+  const [step, setStep] = useState(0)
 
-      <div className="relative max-w-6xl mx-auto">
-        <div className="text-center">
-          {/* 社會認證徽章 */}
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 mb-8">
-            <div className="flex -space-x-2">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 ring-2 ring-white dark:ring-slate-800 flex items-center justify-center text-white text-xs font-bold">
-                A
-              </div>
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 ring-2 ring-white dark:ring-slate-800 flex items-center justify-center text-white text-xs font-bold">
-                B
-              </div>
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 ring-2 ring-white dark:ring-slate-800 flex items-center justify-center text-white text-xs font-bold">
-                C
-              </div>
-            </div>
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              500+ 企業信賴使用
-            </span>
-            <div className="flex items-center gap-0.5 text-amber-500">
-              {[...Array(5)].map((_, i) => (
-                <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                  <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                </svg>
-              ))}
-            </div>
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setStep(1), 800),   // 顯示「對方正在輸入」
+      setTimeout(() => setStep(2), 2000),  // 顯示客戶訊息
+      setTimeout(() => setStep(3), 3500),  // 顯示嘆氣反應
+    ]
+    return () => timers.forEach(clearTimeout)
+  }, [])
+
+  return (
+    <div className="w-full max-w-sm mx-auto">
+      {/* 模擬聊天視窗 */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        {/* 聊天 header */}
+        <div className="bg-teal-600 px-4 py-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-sm font-bold">
+            王
           </div>
-
-          {/* 痛點引導 */}
-          <p className="text-slate-600 dark:text-slate-400 text-lg mb-4">
-            還在用 Excel 做報價單？還在手動計算稅額？
-          </p>
-
-          {/* 主標題 */}
-          <h1 className="text-4xl md:text-6xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
-            專業報價、訂單、財務
-            <span className="block mt-2 bg-gradient-to-r from-teal-600 to-blue-600 dark:from-teal-400 dark:to-blue-400 bg-clip-text text-transparent">
-              一站式管理系統
-            </span>
-          </h1>
-
-          {/* 價值主張 */}
-          <p className="text-xl text-slate-600 dark:text-slate-300 mb-4 max-w-2xl mx-auto leading-relaxed">
-            <span className="text-slate-900 dark:text-white font-semibold">5 分鐘建立專業報價單</span>，
-            自動計算稅額、轉換訂單、產生出貨單
-          </p>
-
-          {/* 價格錨點 */}
-          <p className="text-lg text-slate-500 dark:text-slate-400 mb-8">
-            請會計師處理一家公司 <span className="line-through">NT$3,000/月</span>
-            <span className="text-teal-600 dark:text-teal-400 font-bold ml-2">→ 自己搞定只要 NT$249/月</span>
-          </p>
-
-          {/* CTA 按鈕組 */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10">
-            <Button size="lg" className="group text-lg px-10 py-7 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-lg shadow-teal-600/30" asChild>
-              <Link href="/login">
-                免費試用 — 立即開始
-                <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Button>
-
-            <Button size="lg" variant="outline" className="text-lg px-8 py-7 border-slate-300 dark:border-slate-600" asChild>
-              <Link href="/pricing">查看方案與價格</Link>
-            </Button>
-          </div>
-
-          {/* 信任指標 */}
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm">
-            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-              <CheckCircle2 className="h-5 w-5 text-teal-500" />
-              <span><strong className="text-slate-900 dark:text-white">14 天</strong> 免費試用</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-              <CheckCircle2 className="h-5 w-5 text-teal-500" />
-              <span>無需信用卡</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-              <CheckCircle2 className="h-5 w-5 text-teal-500" />
-              <span>隨時取消</span>
+          <div>
+            <div className="text-white text-sm font-medium">王經理 — 大成貿易</div>
+            <div className="text-teal-100 text-xs">
+              {step >= 1 && step < 2 ? '對方正在輸入...' : '上午 9:03'}
             </div>
           </div>
         </div>
 
-        {/* 產品截圖/數據展示 */}
-        <div className="mt-16 grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 border border-slate-200 dark:border-slate-700 text-center hover:shadow-xl transition-shadow cursor-pointer">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-teal-100 dark:bg-teal-900/50 mb-4">
-              <Calculator className="w-7 h-7 text-teal-600 dark:text-teal-400" />
+        {/* 聊天內容 */}
+        <div className="p-4 min-h-[140px] flex flex-col justify-end gap-3">
+          {step >= 1 && step < 2 && (
+            <div className="flex items-end gap-2">
+              <div className="bg-slate-100 dark:bg-slate-700 rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[80%]">
+                <TypingDots />
+              </div>
             </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white mb-1">95%</div>
-            <div className="text-sm text-slate-600 dark:text-slate-400">報價製作時間節省</div>
+          )}
+
+          {step >= 2 && (
+            <div className="flex items-end gap-2 animate-fade-in-up">
+              <div className="bg-slate-100 dark:bg-slate-700 rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[80%]">
+                <p className="text-slate-900 dark:text-white text-sm leading-relaxed">
+                  陳老闆，上次談的那批貨，報價單今天能出嗎？客戶在催了 🙏
+                </p>
+              </div>
+            </div>
+          )}
+
+          {step >= 3 && (
+            <div className="flex items-end justify-end gap-2 animate-fade-in-up">
+              <div className="bg-teal-500 rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[80%]">
+                <p className="text-white text-sm">好，我開 Excel 算一下...</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function HeroSection() {
+  const [showTransition, setShowTransition] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowTransition(true), 5000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  return (
+    <section className="relative bg-gradient-to-br from-slate-50 via-white to-teal-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 py-20 px-4 overflow-hidden">
+      {/* 背景裝飾 */}
+      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06]" style={{
+        backgroundImage: `radial-gradient(circle at 1px 1px, #0d9488 1px, transparent 0)`,
+        backgroundSize: '32px 32px',
+      }} />
+
+      <div className="relative max-w-5xl mx-auto">
+        {/* 時間標籤 */}
+        <div className="text-center mb-6">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-sm font-mono">
+            星期一 ── 早上 9:03
+          </span>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          {/* 左側：故事文案 */}
+          <div className="text-center md:text-left">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
+              又收到客戶催報價的訊息，
+              <span className="block mt-2 text-slate-400 dark:text-slate-500">
+                又要打開那個 Excel...
+              </span>
+            </h1>
+
+            <p className="text-lg text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+              找範本、算稅額、調格式、轉 PDF、寄出去。<br />
+              一份報價單，花掉你整個早上。
+            </p>
+
+            <p className="text-lg text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+              這一幕，<span className="text-slate-900 dark:text-white font-semibold">每個禮拜都在重播。</span>
+            </p>
+
+            {/* 轉折 */}
+            <div className={`transition-all duration-700 ${showTransition ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              <p className="text-xl font-semibold text-teal-600 dark:text-teal-400 mb-6">
+                如果下次收到催報價的訊息——<br />
+                你只需要 3 次點擊，報價單就自動寄出了呢？
+              </p>
+
+              {/* CTA */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start items-center mb-6">
+                <Button size="lg" className="group text-lg px-8 py-7 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-lg shadow-teal-600/30" asChild>
+                  <Link href="/login">
+                    免費試用 — 讓星期一不再可怕
+                    <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </Button>
+              </div>
+
+              {/* 信任指標 */}
+              <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 text-sm">
+                {TRUST_BADGES.map((badge) => (
+                  <span key={badge} className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                    <CheckCircle2 className="h-4 w-4 text-teal-500" />
+                    {badge}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 border border-slate-200 dark:border-slate-700 text-center hover:shadow-xl transition-shadow cursor-pointer">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-blue-100 dark:bg-blue-900/50 mb-4">
-              <FileText className="w-7 h-7 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white mb-1">50,000+</div>
-            <div className="text-sm text-slate-600 dark:text-slate-400">報價單已產生</div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 border border-slate-200 dark:border-slate-700 text-center hover:shadow-xl transition-shadow cursor-pointer">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 mb-4">
-              <TrendingUp className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white mb-1">4.9/5</div>
-            <div className="text-sm text-slate-600 dark:text-slate-400">用戶滿意度評分</div>
+          {/* 右側：LINE 對話動畫 */}
+          <div className="order-first md:order-last">
+            <LineMessageBubble />
           </div>
         </div>
       </div>

@@ -1,44 +1,41 @@
-'use client'
-
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Rocket, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, CheckCircle2 } from 'lucide-react'
+
+const TRUST_BADGES = ['14 天免費試用', '無需信用卡', '5 分鐘上手'] as const
 
 export function FinalCTA() {
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-teal-600 via-teal-700 to-blue-700 dark:from-teal-700 dark:via-teal-800 dark:to-blue-800 text-white relative overflow-hidden">
       {/* 背景裝飾 */}
       <div className="absolute inset-0 opacity-10" style={{
-        backgroundImage: `linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-                          linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px)`,
-        backgroundSize: '40px 40px',
+        backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
+        backgroundSize: '32px 32px',
       }} />
       <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl" />
 
-      <div className="relative max-w-4xl mx-auto text-center">
-        {/* Icon */}
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm mb-8">
-          <Rocket className="w-8 h-8" />
-        </div>
-
-        {/* 標題 */}
-        <h2 className="text-3xl md:text-5xl font-bold mb-6 leading-tight">
-          立即開始，省下 90% 的時間
-        </h2>
-
-        {/* 價值強調 */}
-        <p className="text-xl text-white/90 mb-4 max-w-2xl mx-auto leading-relaxed">
-          加入 <span className="font-bold text-teal-200">500+ 企業</span>，使用專業報價與財務管理系統
+      <div className="relative max-w-3xl mx-auto text-center">
+        {/* 故事回扣 */}
+        <p className="text-teal-200/80 text-sm font-mono mb-6">
+          星期一，早上 9:03
         </p>
 
-        {/* 痛點對比 */}
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/80 mb-10">
-          <span className="line-through text-white/50">手動 30 分鐘做報價單</span>
-          <span className="text-teal-200 font-medium">→ 系統自動 5 分鐘完成</span>
-        </div>
+        <h2 className="text-3xl md:text-5xl font-bold mb-6 leading-tight">
+          你的下一個星期一，<br />
+          可以不一樣。
+        </h2>
 
-        {/* CTA 按鈕組 */}
+        <p className="text-xl text-white/80 mb-4 max-w-xl mx-auto leading-relaxed">
+          不用再嘆氣打開 Excel，不用再手動複製貼上，<br className="hidden md:block" />
+          不用再加班對帳到深夜。
+        </p>
+
+        <p className="text-teal-200 font-medium mb-10">
+          下個月的你，會感謝今天的決定。
+        </p>
+
+        {/* CTA */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
           <Button
             size="lg"
@@ -62,19 +59,13 @@ export function FinalCTA() {
         </div>
 
         {/* 信任標語 */}
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/80">
-          <span className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-teal-300" />
-            免費試用
-          </span>
-          <span className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-teal-300" />
-            無需信用卡
-          </span>
-          <span className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-teal-300" />
-            隨時取消
-          </span>
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/70">
+          {TRUST_BADGES.map((badge) => (
+            <span key={badge} className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-teal-300" />
+              {badge}
+            </span>
+          ))}
         </div>
       </div>
     </section>
