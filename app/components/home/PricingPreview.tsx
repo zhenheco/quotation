@@ -57,6 +57,11 @@ export function PricingPreview() {
     ?.filter((p) => p.tier !== 'FREE')
     .sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier]) || []
 
+  // 動態取得最低月費
+  const lowestPrice = paidPlans.length > 0
+    ? Math.min(...paidPlans.map((p) => p.monthly_price))
+    : null
+
   return (
     <section className="py-20 px-4 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto">
@@ -66,7 +71,12 @@ export function PricingPreview() {
             一杯咖啡的錢，換回你每天 2 小時
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            NT$249/月起，比請工讀生便宜，比 Excel 可靠。
+            {lowestPrice !== null
+              ? `NT$${lowestPrice.toLocaleString()}/月起，比請工讀生便宜，比 Excel 可靠。`
+              : '比請工讀生便宜，比 Excel 可靠。'}
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+            也有永久免費方案，0 元即可開始使用
           </p>
         </div>
 
