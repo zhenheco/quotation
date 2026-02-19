@@ -12,19 +12,8 @@ import {
   PaymentGatewayClient,
   type CreatePaymentParams,
 } from '@/lib/sdk/payment-gateway-client'
-import { SubscriptionTier, BillingCycle } from '@/lib/dal/subscriptions'
+import { SubscriptionTier, BillingCycle, getSubscriptionPlanByTier } from '@/lib/dal/subscriptions'
 import { trackRegistration } from '@/lib/services/affiliate-tracking'
-
-// 方案價格定義（與前端 constants 同步）
-const PLAN_PRICES: Record<
-  SubscriptionTier,
-  { monthly: number; yearly: number; name: string }
-> = {
-  FREE: { monthly: 0, yearly: 0, name: '免費版' },
-  STARTER: { monthly: 299, yearly: 2990, name: '入門版' },
-  STANDARD: { monthly: 599, yearly: 5990, name: '標準版' },
-  PROFESSIONAL: { monthly: 1299, yearly: 12990, name: '專業版' },
-}
 
 /**
  * POST /api/subscriptions/checkout
@@ -32,7 +21,7 @@ const PLAN_PRICES: Record<
  *
  * Body:
  * - tier: 方案層級 (STARTER | STANDARD | PROFESSIONAL)
- * - billing_cycle: 計費週期 (monthly | yearly)
+ * - billing_cycle: 計費週期 (MONTHLY | YEARLY)
  * - company_id: 公司 ID
  * - referral_code?: 推薦碼（可選）
  */
@@ -61,6 +50,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: '未登入' }, { status: 401 })
     }
 
+    if (!user.email) {
+      return NextResponse.json(
+        { success: false, error: '無法取得用戶 Email' },
+        { status: 400 }
+      )
+    }
+
     // 解析請求
     const body = (await request.json()) as {
       tier: SubscriptionTier
@@ -85,8 +81,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const planPrices = PLAN_PRICES[body.tier]
-    if (!planPrices) {
+    // 從資料庫讀取方案價格
+    const db = getSupabaseClient()
+    const plan = await getSubscriptionPlanByTier(db, body.tier)
+    if (!plan) {
       return NextResponse.json(
         { success: false, error: '無效的方案' },
         { status: 400 }
@@ -94,12 +92,11 @@ export async function POST(request: Request) {
     }
 
     // 計算價格和折扣
-    const basePrice = body.billing_cycle === 'YEARLY' ? planPrices.yearly : planPrices.monthly
+    const basePrice = body.billing_cycle === 'YEARLY' ? plan.yearly_price : plan.monthly_price
     let discount = 0
 
     // 處理推薦碼折扣（首月 50%）
     if (body.referral_code && body.billing_cycle === 'MONTHLY') {
-      const db = getSupabaseClient()
       const { data: referrer } = await db
         .from('user_profiles')
         .select('user_id')
@@ -112,20 +109,12 @@ export async function POST(request: Request) {
         await trackRegistration({
           referralCode: body.referral_code.toUpperCase(),
           referredUserId: user.id,
-          referredUserEmail: user.email || undefined,
+          referredUserEmail: user.email,
         }).catch(console.error)
       }
     }
 
     const finalPrice = basePrice - discount
-    const userEmail = user.email
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { success: false, error: '無法取得用戶 Email' },
-        { status: 400 }
-      )
-    }
 
     // 生成訂單 ID（移除底線以符合 PAYUNi 規範）
     const sanitizedCompanyId = body.company_id.replace(/_/g, '-')
@@ -139,13 +128,14 @@ export async function POST(request: Request) {
       environment: 'production',
     })
 
-    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://quote24.cc'}/pricing/callback?order_id=${orderId}&tier=${body.tier}&amount=${finalPrice}`
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://quote24.cc'
+    const callbackUrl = `${appUrl}/pricing/callback?order_id=${orderId}&tier=${body.tier}&amount=${finalPrice}`
 
     const paymentParams: CreatePaymentParams = {
       orderId,
       amount: finalPrice,
-      description: `${planPrices.name} - ${body.billing_cycle === 'YEARLY' ? '年繳' : '月繳'}`,
-      email: userEmail,
+      description: `${plan.name} - ${body.billing_cycle === 'YEARLY' ? '年繳' : '月繳'}`,
+      email: user.email,
       callbackUrl,
       metadata: {
         company_id: body.company_id,
@@ -178,7 +168,6 @@ export async function POST(request: Request) {
     const paymentForm = result.paymentForm || result.payuniForm
 
     if (!result.success || !paymentForm) {
-      // 包裝錯誤訊息，不暴露內部實現細節
       return NextResponse.json(
         { success: false, error: '建立付款失敗' },
         { status: 500 }
@@ -186,7 +175,6 @@ export async function POST(request: Request) {
     }
 
     // 記錄待付款訂單
-    const db = getSupabaseClient()
     const { error: insertError } = await db.from('subscription_orders').insert({
       id: result.paymentId,
       order_id: orderId,
