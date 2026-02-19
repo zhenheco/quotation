@@ -63,21 +63,19 @@ export function PricingPreview() {
         {/* 標題 */}
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            選擇適合您的方案
+            一杯咖啡的錢，換回你每天 2 小時
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            從免費開始，隨時升級
+            NT$249/月起，比請工讀生便宜，比 Excel 可靠。
           </p>
         </div>
 
         {/* 方案卡片 */}
         <div className="grid md:grid-cols-3 gap-8 mb-8">
           {isLoading ? (
-            <>
-              <PricingCardSkeleton />
-              <PricingCardSkeleton />
-              <PricingCardSkeleton />
-            </>
+            Array.from({ length: 3 }, (_, i) => (
+              <PricingCardSkeleton key={i} />
+            ))
           ) : (
             paidPlans.map((plan) => (
               <PricingCard
