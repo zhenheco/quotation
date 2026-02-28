@@ -116,6 +116,22 @@ export async function middleware(request: NextRequest) {
   // Step 6: Add security headers
   const secureResponse = addSecurityHeaders(response)
 
+  // Step 6.1: 特別針對 API 路由添加額外的安全標頭
+  if (pathname.startsWith('/api/')) {
+    // 確保 API 回應有正確的安全標頭
+    secureResponse.headers.set('X-Content-Type-Options', 'nosniff')
+    secureResponse.headers.set('X-Frame-Options', 'DENY')
+    secureResponse.headers.set('X-XSS-Protection', '1; mode=block')
+    secureResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    
+    // 禁用快取敏感 API 回應
+    if (pathname.includes('/auth/') || pathname.includes('/user/') || pathname.includes('/admin/')) {
+      secureResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+      secureResponse.headers.set('Pragma', 'no-cache')
+      secureResponse.headers.set('Expires', '0')
+    }
+  }
+
   // Step 7: CSRF Protection
   // 對於 API 路由的 POST/PUT/DELETE/PATCH 請求，驗證 CSRF token
   if (pathname.startsWith('/api/')) {

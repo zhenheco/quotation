@@ -1,0 +1,187 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e5]:
+      - generic [ref=e7]: 星期一 ── 早上 9:03
+      - generic [ref=e8]:
+        - generic [ref=e9]:
+          - heading "又收到客戶催報價的訊息， 又要打開那個 Excel..." [level=1] [ref=e10]:
+            - text: 又收到客戶催報價的訊息，
+            - generic [ref=e11]: 又要打開那個 Excel...
+          - paragraph [ref=e12]:
+            - text: 找範本、算稅額、調格式、轉 PDF、寄出去。
+            - text: 一份報價單，花掉你整個早上。
+          - paragraph [ref=e13]: 這一幕，每個禮拜都在重播。
+          - generic [ref=e14]:
+            - paragraph [ref=e15]:
+              - text: 如果下次收到催報價的訊息——
+              - text: 你只需要 3 次點擊，報價單就自動寄出了呢？
+            - link "免費試用 — 讓星期一不再可怕" [ref=e17] [cursor=pointer]:
+              - /url: /login
+              - text: 免費試用 — 讓星期一不再可怕
+              - img
+            - generic [ref=e18]:
+              - generic [ref=e19]:
+                - img [ref=e20]
+                - text: 14 天免費試用
+              - generic [ref=e23]:
+                - img [ref=e24]
+                - text: 無需信用卡
+              - generic [ref=e27]:
+                - img [ref=e28]
+                - text: 5 分鐘上手
+        - generic [ref=e34]:
+          - generic [ref=e35]: 王
+          - generic [ref=e36]:
+            - generic [ref=e37]: 王經理 — 大成貿易
+            - generic [ref=e38]: 上午 9:03
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - heading "一個老闆的星期一" [level=2] [ref=e43]
+        - paragraph [ref=e44]: 看起來很熟悉嗎？往下滾。
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - generic [ref=e50]:
+            - img [ref=e52]
+            - generic [ref=e55]: 9:30 AM
+          - generic [ref=e56]:
+            - generic [ref=e58]:
+              - generic [ref=e59]:
+                - generic [ref=e60]: 😩
+                - generic [ref=e61]: 沒有系統的時候
+              - paragraph [ref=e62]: 「Excel 範本格式又跑掉了，稅額公式被誰改過了？花了 30 分鐘，才做好一份報價單。」
+            - generic [ref=e64]:
+              - generic [ref=e65]:
+                - generic [ref=e66]: ✨
+                - generic [ref=e67]: 用 Quote24 之後
+              - paragraph [ref=e68]: 選好品項、填入數量，系統自動計算稅額，一鍵產生 PDF 寄給客戶。5 分鐘搞定。
+        - generic [ref=e69]:
+          - generic [ref=e71]:
+            - img [ref=e73]
+            - generic [ref=e76]: 11:00 AM
+          - generic [ref=e77]:
+            - generic [ref=e79]:
+              - generic [ref=e80]:
+                - generic [ref=e81]: 😩
+                - generic [ref=e82]: 沒有系統的時候
+              - paragraph [ref=e83]: 「客戶回覆 OK 了！但我得把報價單的資料，一行一行複製到另一張訂單表格裡...」
+            - generic [ref=e85]:
+              - generic [ref=e86]:
+                - generic [ref=e87]: ✨
+                - generic [ref=e88]: 用 Quote24 之後
+              - paragraph [ref=e89]: 報價單一鍵轉訂單，品項、數量、價格、客戶資料全部自動帶入，零手動輸入。
+        - generic [ref=e90]:
+          - generic [ref=e92]:
+            - img [ref=e94]
+            - generic [ref=e99]: 2:00 PM
+          - generic [ref=e100]:
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - generic [ref=e104]: 😩
+                - generic [ref=e105]: 沒有系統的時候
+              - paragraph [ref=e106]: 「出貨地址到底是哪個版本的？收件人電話上次就抄錯了一碼，包裹退回來...」
+            - generic [ref=e108]:
+              - generic [ref=e109]:
+                - generic [ref=e110]: ✨
+                - generic [ref=e111]: 用 Quote24 之後
+              - paragraph [ref=e112]: 訂單直接轉出貨單，收件人姓名、電話、地址從客戶資料自動帶入，不再手抄出錯。
+        - generic [ref=e113]:
+          - generic [ref=e115]:
+            - img [ref=e117]
+            - generic [ref=e119]: 5:00 PM
+          - generic [ref=e120]:
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - generic [ref=e124]: 😩
+                - generic [ref=e125]: 沒有系統的時候
+              - paragraph [ref=e126]: 「報稅截止剩 3 天，桌上一疊發票還沒 key 進去，今晚又要加班了...」
+            - generic [ref=e128]:
+              - generic [ref=e129]:
+                - generic [ref=e130]: ✨
+                - generic [ref=e131]: 用 Quote24 之後
+              - paragraph [ref=e132]: 所有交易數據即時彙整，營業稅、營所稅自動計算，報稅季不再手忙腳亂。
+    - generic [ref=e133]:
+      - generic [ref=e134]:
+        - generic [ref=e136]:
+          - generic [ref=e137]: 晚上 8:00
+          - heading "你還在公司， 對著螢幕上的 Excel 嘆第 17 口氣。" [level=2] [ref=e138]:
+            - text: 你還在公司，
+            - text: 對著螢幕上的 Excel 嘆第 17 口氣。
+          - paragraph [ref=e139]: 報價單改了三版、訂單資料手動複製到一半、出貨單地址還沒確認...
+        - generic [ref=e144]: 但如果——
+        - generic [ref=e147]:
+          - generic [ref=e148]: 晚上 6:00
+          - heading "你已經在家吃飯了。" [level=2] [ref=e149]
+          - paragraph [ref=e150]:
+            - text: 報價單早上就寄出了，客戶回覆 OK 後訂單自動建好了，
+            - text: 出貨單明天上班按一個鍵就搞定。
+          - generic [ref=e151]:
+            - generic [ref=e152]:
+              - img [ref=e154]
+              - generic [ref=e157]: 50,000+
+              - generic [ref=e158]: 份報價單已產生
+            - generic [ref=e159]:
+              - img [ref=e161]
+              - generic [ref=e164]: 500+
+              - generic [ref=e165]: 企業正在使用
+      - generic [ref=e167]:
+        - heading "他們的星期一，已經不一樣了" [level=3] [ref=e169]
+        - generic [ref=e170]:
+          - generic [ref=e171]:
+            - img [ref=e172]
+            - paragraph [ref=e175]: 「以前報稅季我都加班到凌晨整理發票，現在系統幫我把數據整理好，五點準時下班。」
+            - generic [ref=e176]:
+              - generic [ref=e177]: 華
+              - generic [ref=e178]:
+                - generic [ref=e179]: 小華
+                - generic [ref=e180]: 新創公司財務
+          - generic [ref=e181]:
+            - img [ref=e182]
+            - paragraph [ref=e185]: 「我們三個人的公司，不可能請一個專職會計。這個系統等於請了半個會計，一個月才幾百塊。」
+            - generic [ref=e186]:
+              - generic [ref=e187]: 凱
+              - generic [ref=e188]:
+                - generic [ref=e189]: 阿凱
+                - generic [ref=e190]: 電商創業者
+    - generic [ref=e192]:
+      - generic [ref=e193]:
+        - heading "一杯咖啡的錢，換回你每天 2 小時" [level=2] [ref=e194]
+        - paragraph [ref=e195]: 比請工讀生便宜，比 Excel 可靠。
+        - paragraph [ref=e196]: 也有永久免費方案，0 元即可開始使用
+      - link "查看完整功能比較 →" [ref=e229] [cursor=pointer]:
+        - /url: /pricing
+        - text: 查看完整功能比較
+        - generic [ref=e230]: →
+    - generic [ref=e235]:
+      - paragraph [ref=e236]: 星期一，早上 9:03
+      - heading "你的下一個星期一， 可以不一樣。" [level=2] [ref=e237]:
+        - text: 你的下一個星期一，
+        - text: 可以不一樣。
+      - paragraph [ref=e238]:
+        - text: 不用再嘆氣打開 Excel，不用再手動複製貼上，
+        - text: 不用再加班對帳到深夜。
+      - paragraph [ref=e239]: 下個月的你，會感謝今天的決定。
+      - generic [ref=e240]:
+        - link "免費試用 14 天" [ref=e241] [cursor=pointer]:
+          - /url: /login
+          - text: 免費試用 14 天
+          - img
+        - link "查看方案與價格" [ref=e242] [cursor=pointer]:
+          - /url: /pricing
+      - generic [ref=e243]:
+        - generic [ref=e244]:
+          - img [ref=e245]
+          - text: 14 天免費試用
+        - generic [ref=e248]:
+          - img [ref=e249]
+          - text: 無需信用卡
+        - generic [ref=e252]:
+          - img [ref=e253]
+          - text: 5 分鐘上手
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e261] [cursor=pointer]:
+    - img [ref=e262]
+  - alert [ref=e265]
+```
