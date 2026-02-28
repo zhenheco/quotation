@@ -17,6 +17,7 @@ import {
   FeatureNotAvailableError,
   UsageLimitExceededError,
 } from '@/lib/services/subscription'
+import { createErrorResponse, ErrorResponses } from '@/lib/api/response-utils'
 
 /**
  * API 請求上下文
@@ -176,13 +177,13 @@ export function withAuth(permission: string) {
         const user = await getAuthenticatedUser(request)
 
         if (!user) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+          return ErrorResponses.unauthorized()
         }
 
         // 檢查權限
         const hasPermission = await checkPermission(db, user.id, permission)
         if (!hasPermission) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          return ErrorResponses.insufficientPermissions(permission)
         }
 
         // 建立上下文並呼叫實際的 handler
@@ -200,7 +201,7 @@ export function withAuth(permission: string) {
         return await handler(request, context, params)
       } catch (error: unknown) {
         console.error(`API Error [${permission}]:`, error)
-        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+        return createErrorResponse(getErrorMessage(error), 500)
       }
     }
   }
@@ -372,13 +373,13 @@ export function withAuthAndSubscription(
         const user = await getAuthenticatedUser(request)
 
         if (!user) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+          return ErrorResponses.unauthorized()
         }
 
         // 檢查權限
         const hasPermission = await checkPermission(db, user.id, permission)
         if (!hasPermission) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          return ErrorResponses.insufficientPermissions(permission)
         }
 
         // 解析動態路由參數
@@ -434,7 +435,7 @@ export function withAuthAndSubscription(
         }
 
         console.error(`API Error [${permission}]:`, error)
-        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+        return createErrorResponse(getErrorMessage(error), 500)
       }
     }
   }
@@ -471,7 +472,7 @@ export function withAuthOnlyAndSubscription(options?: SubscriptionOptions) {
         const user = await getAuthenticatedUser(request)
 
         if (!user) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+          return ErrorResponses.unauthorized()
         }
 
         // 解析動態路由參數
@@ -527,7 +528,7 @@ export function withAuthOnlyAndSubscription(options?: SubscriptionOptions) {
         }
 
         console.error('API Error [auth-only-subscription]:', error)
-        return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+        return createErrorResponse(getErrorMessage(error), 500)
       }
     }
   }

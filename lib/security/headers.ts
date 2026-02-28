@@ -150,6 +150,11 @@ export function addSecurityHeaders(
     response.headers.set('Permissions-Policy', getPermissionsPolicyHeader())
   }
 
+  // 確保 API 回應有正確的 Content-Type
+  if (!response.headers.get('Content-Type')) {
+    response.headers.set('Content-Type', 'application/json; charset=utf-8')
+  }
+
   return response
 }
 
