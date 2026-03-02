@@ -12,8 +12,9 @@ import {
   PaymentGatewayError,
 } from '@/lib/services/affiliate-payment'
 import { createCommission } from '@/lib/services/affiliate-tracking'
-import { upgradePlan } from '@/lib/services/subscription'
+import { upgradePlan, downgradePlan } from '@/lib/services/subscription'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
+import { handleApiError } from '@/lib/errors/api-error'
 import type { SubscriptionTier, BillingCycle } from '@/lib/dal/subscriptions'
 
 /**
@@ -60,20 +61,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, message: 'Cancellation noted' })
 
       case 'REFUNDED':
-        console.log('[Webhook] Payment refunded:', event.orderId)
-        // TODO: 處理退款邏輯
-        return NextResponse.json({ success: true, message: 'Refund noted' })
+        return await handleRefundEvent(event)
 
       default:
         console.warn('[Webhook] Unknown payment status:', event.status)
         return NextResponse.json({ success: true, message: 'Status noted' })
     }
   } catch (error) {
-    console.error('[Webhook] Error processing webhook:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, request.url)
   }
 }
 
@@ -189,6 +184,70 @@ async function handleSuccessEvent(event: {
       { status: 500 }
     )
   }
+}
+
+/**
+ * 處理退款事件
+ *
+ * 退款時立即將訂閱降級為免費方案
+ */
+async function handleRefundEvent(event: {
+  paymentId: string
+  orderId: string
+  status: string
+  amount?: number
+  metadata?: Record<string, string>
+}) {
+  const { orderId, paymentId, metadata, amount } = event
+  const companyId = metadata?.company_id
+
+  if (!companyId) {
+    console.warn('[Webhook] Refund event missing company_id in metadata:', metadata)
+    return NextResponse.json({
+      success: true,
+      warning: 'Refund received but no company_id in metadata, skipping downgrade',
+    })
+  }
+
+  console.log('[Webhook] Processing refund:', {
+    orderId,
+    paymentId,
+    companyId,
+    amount,
+  })
+
+  const downgradeResult = await downgradePlan(
+    companyId,
+    'FREE',
+    {
+      effectiveAt: 'immediately',
+      changedBy: 'system:refund',
+      reason: 'Payment refunded',
+    }
+  )
+
+  if (!downgradeResult.success) {
+    console.error('[Webhook] Refund downgrade failed:', {
+      companyId,
+      error: downgradeResult.error,
+    })
+    return NextResponse.json(
+      { success: false, error: 'Failed to process refund downgrade' },
+      { status: 500 }
+    )
+  }
+
+  console.log('[Webhook] Refund processed - subscription downgraded to FREE:', {
+    companyId,
+    orderId,
+    paymentId,
+    subscriptionId: downgradeResult.subscription?.id,
+  })
+
+  return NextResponse.json({
+    success: true,
+    message: 'Refund processed, subscription downgraded to FREE',
+  })
 }
 
 /**
