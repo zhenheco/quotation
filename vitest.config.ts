@@ -37,7 +37,8 @@ export default defineConfig({
         'lib/security/pii-redactor.ts',
         'lib/middleware/rate-limiter.ts',
         'lib/services/analytics.ts',
-        // 注意：payments.ts 有多數進階函數尚未測試，暫時排除
+        'lib/dal/payments.ts',
+        'lib/services/payments.ts',
       ],
       exclude: [
         'node_modules/**',
