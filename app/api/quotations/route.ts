@@ -8,7 +8,7 @@ import {
   validateCustomerOwnership,
 } from "@/lib/dal/quotations";
 import { getCustomersByIds } from "@/lib/dal/customers";
-import { BadRequestError } from "@/lib/errors/api-error";
+import { handleApiError, BadRequestError } from "@/lib/errors/api-error";
 
 /**
  * GET /api/quotations - 取得報價單列表
@@ -168,7 +168,7 @@ export const POST = withAuth("quotations:write")(async (
     !items ||
     items.length === 0
   ) {
-    throw new BadRequestError("Missing required fields");
+    return handleApiError(new BadRequestError("Missing required fields"));
   }
 
   // 驗證客戶所有權
@@ -178,7 +178,7 @@ export const POST = withAuth("quotations:write")(async (
     user.id,
   );
   if (!isValidCustomer) {
-    throw new BadRequestError("Invalid customer");
+    return handleApiError(new BadRequestError("Invalid customer"));
   }
 
   // 建立報價單（使用帶重試機制的函數防止編號重複）
