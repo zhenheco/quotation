@@ -239,11 +239,17 @@ async function handleRefundEvent(event: {
     amount,
   });
 
-  const downgradeResult = await downgradePlan(companyId, "FREE", {
-    effectiveAt: "immediately",
-    changedBy: "system:refund",
-    reason: "Payment refunded",
-  });
+  const db = getSupabaseClient();
+  const downgradeResult = await downgradePlan(
+    companyId,
+    "FREE",
+    {
+      effectiveAt: "immediately",
+      changedBy: "system:refund",
+      reason: "Payment refunded",
+    },
+    db,
+  );
 
   if (!downgradeResult.success) {
     console.error("[Webhook] Refund downgrade failed:", {
