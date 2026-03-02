@@ -89,26 +89,23 @@ export default function MobileNav() {
 
   return (
     <>
-      {/* 更多選單面板 */}
       {showMore && (
         <div className="fixed inset-0 z-50 md:hidden">
-          {/* 背景遮罩 */}
           <div
             className="absolute inset-0 bg-black/30"
             onClick={() => setShowMore(false)}
           />
 
-          {/* 選單內容 - 專業簡潔風格 */}
-          <div className="absolute bottom-20 left-4 right-4 bg-white rounded-xl shadow-xl border border-slate-200 p-4 animate-scale-in">
+          <div className="absolute bottom-20 left-4 right-4 bg-card rounded-xl shadow-xl border border-border p-4 animate-scale-in">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-slate-700">
+              <h3 className="text-sm font-semibold text-foreground">
                 更多功能
               </h3>
               <button
                 onClick={() => setShowMore(false)}
-                className="p-1.5 rounded-md hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-md hover:bg-accent transition-colors"
               >
-                <X className="h-4 w-4 text-slate-500" />
+                <X className="h-4 w-4 text-muted-foreground" />
               </button>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -124,8 +121,8 @@ export default function MobileNav() {
                     className={cn(
                       'flex flex-col items-center gap-1.5 p-3 rounded-lg transition-colors',
                       isActive
-                        ? 'bg-teal-700 text-white'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-accent/50 text-muted-foreground hover:bg-accent'
                     )}
                   >
                     <Icon className="h-5 w-5" />
@@ -138,9 +135,8 @@ export default function MobileNav() {
         </div>
       )}
 
-      {/* 底部導航欄 - 專業簡潔 */}
-      <nav className="fixed bottom-0 left-0 right-0 md:hidden z-40 bg-white pb-safe touch-manipulation">
-        <div className="flex items-center justify-around bg-white border-t border-slate-200 py-2 px-1">
+      <nav className="fixed bottom-0 left-0 right-0 md:hidden z-40 bg-card pb-safe touch-manipulation">
+        <div className="flex items-center justify-around bg-card border-t border-border py-2 px-1">
           {primaryItems.map((item) => {
             const isActive = pathname.startsWith(item.href)
             const Icon = item.icon
@@ -152,8 +148,8 @@ export default function MobileNav() {
                 className={cn(
                   'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors min-w-[56px]',
                   isActive
-                    ? 'text-teal-700'
-                    : 'text-slate-400'
+                    ? 'text-primary'
+                    : 'text-muted-foreground'
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -164,14 +160,13 @@ export default function MobileNav() {
             )
           })}
 
-          {/* 更多按鈕 */}
           <button
             onClick={() => setShowMore(true)}
             className={cn(
               'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors min-w-[56px]',
               isMoreActive || showMore
-                ? 'text-teal-700'
-                : 'text-slate-400'
+                ? 'text-primary'
+                : 'text-muted-foreground'
             )}
           >
             <MoreHorizontal className="h-5 w-5" />

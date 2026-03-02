@@ -144,11 +144,11 @@ body {
   min-height: 100vh;
 }
 
-.text-gray-500 {
+:root:not(.dark) .text-gray-500 {
   color: #374151 !important;
 }
 
-.text-gray-600 {
+:root:not(.dark) .text-gray-600 {
   color: #1f2937 !important;
 }
 
