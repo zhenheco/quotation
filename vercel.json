@@ -3,10 +3,17 @@
     {
       "path": "/api/cron/exchange-rates",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/subscription-downgrade",
+      "schedule": "0 1 * * *"
     }
   ],
   "functions": {
     "app/api/cron/exchange-rates/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/cron/subscription-downgrade/route.ts": {
       "maxDuration": 60
     }
   }

@@ -5,16 +5,21 @@
  * POST /api/subscriptions - 建立/更新訂閱
  */
 
-import { NextResponse } from 'next/server'
-import { withAuthOnly } from '@/lib/api/middleware'
+import { NextResponse } from "next/server";
+import { withAuthOnly } from "@/lib/api/middleware";
 import {
   getSubscription,
   getSubscriptionSummary,
   createFreeSubscription,
   upgradePlan,
   cancelSubscription,
-} from '@/lib/services/subscription'
-import { SubscriptionTier, BillingCycle } from '@/lib/dal/subscriptions'
+} from "@/lib/services/subscription";
+import {
+  handleApiError,
+  BadRequestError,
+  NotFoundError,
+} from "@/lib/errors/api-error";
+import { SubscriptionTier, BillingCycle } from "@/lib/dal/subscriptions";
 
 /**
  * GET /api/subscriptions
@@ -25,34 +30,34 @@ import { SubscriptionTier, BillingCycle } from '@/lib/dal/subscriptions'
  * - summary: 是否返回摘要格式 (可選, default: false)
  */
 export const GET = withAuthOnly(async (request, { db }) => {
-  const companyId = request.nextUrl.searchParams.get('company_id')
-  const summary = request.nextUrl.searchParams.get('summary') === 'true'
+  const companyId = request.nextUrl.searchParams.get("company_id");
+  const summary = request.nextUrl.searchParams.get("summary") === "true";
 
   if (!companyId) {
-    return NextResponse.json({ error: 'company_id is required' }, { status: 400 })
+    return handleApiError(new BadRequestError("company_id is required"));
   }
 
   if (summary) {
-    const subscriptionSummary = await getSubscriptionSummary(companyId, db)
-    return NextResponse.json({ data: subscriptionSummary })
+    const subscriptionSummary = await getSubscriptionSummary(companyId, db);
+    return NextResponse.json({ data: subscriptionSummary });
   }
 
-  const subscription = await getSubscription(companyId, db)
+  const subscription = await getSubscription(companyId, db);
 
   if (!subscription) {
     // 如果沒有訂閱，嘗試建立免費訂閱
-    const freeSubscription = await createFreeSubscription(companyId, db)
+    const freeSubscription = await createFreeSubscription(companyId, db);
 
     if (!freeSubscription) {
-      return NextResponse.json({ error: 'No subscription found' }, { status: 404 })
+      return handleApiError(new NotFoundError("Subscription"));
     }
 
-    const newSubscription = await getSubscription(companyId, db)
-    return NextResponse.json({ data: newSubscription })
+    const newSubscription = await getSubscription(companyId, db);
+    return NextResponse.json({ data: newSubscription });
   }
 
-  return NextResponse.json({ data: subscription })
-})
+  return NextResponse.json({ data: subscription });
+});
 
 /**
  * POST /api/subscriptions
@@ -68,31 +73,32 @@ export const GET = withAuthOnly(async (request, { db }) => {
  */
 export const POST = withAuthOnly(async (request, { user, db }) => {
   const body = (await request.json()) as {
-    company_id: string
-    action: 'upgrade' | 'cancel'
-    tier?: SubscriptionTier
-    billing_cycle?: BillingCycle
-    reason?: string
-    effective_at?: 'immediately' | 'end_of_period'
-    external_subscription_id?: string
-    external_customer_id?: string
-  }
+    company_id: string;
+    action: "upgrade" | "cancel";
+    tier?: SubscriptionTier;
+    billing_cycle?: BillingCycle;
+    reason?: string;
+    effective_at?: "immediately" | "end_of_period";
+    external_subscription_id?: string;
+    external_customer_id?: string;
+  };
 
   if (!body.company_id) {
-    return NextResponse.json({ error: 'company_id is required' }, { status: 400 })
+    return handleApiError(new BadRequestError("company_id is required"));
   }
 
   if (!body.action) {
-    return NextResponse.json(
-      { error: "action is required ('upgrade' or 'cancel')" },
-      { status: 400 }
-    )
+    return handleApiError(
+      new BadRequestError("action is required ('upgrade' or 'cancel')"),
+    );
   }
 
   switch (body.action) {
-    case 'upgrade': {
+    case "upgrade": {
       if (!body.tier) {
-        return NextResponse.json({ error: 'tier is required for upgrade' }, { status: 400 })
+        return handleApiError(
+          new BadRequestError("tier is required for upgrade"),
+        );
       }
 
       const result = await upgradePlan(
@@ -104,20 +110,22 @@ export const POST = withAuthOnly(async (request, { user, db }) => {
           externalSubscriptionId: body.external_subscription_id,
           externalCustomerId: body.external_customer_id,
         },
-        db
-      )
+        db,
+      );
 
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: 400 })
+        return handleApiError(
+          new BadRequestError(result.error || "Upgrade failed"),
+        );
       }
 
       return NextResponse.json({
         message: `Successfully upgraded to ${body.tier}`,
         data: result.subscription,
-      })
+      });
     }
 
-    case 'cancel': {
+    case "cancel": {
       const result = await cancelSubscription(
         body.company_id,
         {
@@ -125,20 +133,22 @@ export const POST = withAuthOnly(async (request, { user, db }) => {
           reason: body.reason,
           changedBy: user.id,
         },
-        db
-      )
+        db,
+      );
 
       if (!result.success) {
-        return NextResponse.json({ error: result.error }, { status: 400 })
+        return handleApiError(
+          new BadRequestError(result.error || "Cancel failed"),
+        );
       }
 
       return NextResponse.json({
-        message: 'Subscription cancelled',
+        message: "Subscription cancelled",
         data: result.subscription,
-      })
+      });
     }
 
     default:
-      return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+      return handleApiError(new BadRequestError("Invalid action"));
   }
-})
+});
