@@ -16,7 +16,7 @@ export {
   usePostInvoice,
   useVoidInvoice,
   useRecordPayment,
-} from './use-invoices'
+} from "./use-invoices";
 
 // 傳票
 export {
@@ -28,7 +28,7 @@ export {
   useDeleteJournal,
   usePostJournal,
   useVoidJournal,
-} from './use-journals'
+} from "./use-journals";
 
 // 報表
 export {
@@ -36,7 +36,7 @@ export {
   useTrialBalance,
   useIncomeStatement,
   useBalanceSheet,
-} from './use-reports'
+} from "./use-reports";
 
 // 營業稅申報
 export {
@@ -47,8 +47,22 @@ export {
   useDownloadMediaFile,
   useInvoiceDetails,
   useInvalidateTaxReports,
-} from './use-tax-reports'
-export type { TaxReportParams, InvoiceDetailListResult } from './use-tax-reports'
+} from "./use-tax-reports";
+export type {
+  TaxReportParams,
+  InvoiceDetailListResult,
+} from "./use-tax-reports";
+
+// 營業稅申報期別
+export {
+  taxDeclarationKeys,
+  useTaxDeclarations,
+  useTaxDeclaration,
+  useCreateOrGetDeclaration,
+  useUpdateDeclaration,
+  useSubmitDeclaration,
+  useReopenDeclaration,
+} from "./use-tax-declarations";
 
 // 營所稅申報（擴大書審）
 export {
@@ -60,7 +74,7 @@ export {
   useCalculateAndSave,
   useSearchProfitRates,
   useInvalidateIncomeTax,
-} from './use-income-tax'
+} from "./use-income-tax";
 export type {
   AnnualRevenueSummary,
   EligibilityCheckResult,
@@ -72,4 +86,4 @@ export type {
   PreviewParams,
   CalculateAndSaveParams,
   SearchProfitRatesParams,
-} from './use-income-tax'
+} from "./use-income-tax";
