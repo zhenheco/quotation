@@ -11,8 +11,8 @@
  * }
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { withAuth, type ApiContext } from '@/lib/api/middleware'
+import { NextRequest, NextResponse } from "next/server";
+import { withAuth, type ApiContext } from "@/lib/api/middleware";
 import type {
   ImportResourceType,
   DuplicateHandling,
@@ -21,38 +21,52 @@ import type {
   CustomerImportRow,
   ProductImportRow,
   SupplierImportRow,
-} from '@/lib/services/batch-import/types'
+} from "@/lib/services/batch-import/types";
 import {
   validateCustomerRows,
   toCustomerCreateInput,
-} from '@/lib/services/batch-import/validators/customer-validator'
+} from "@/lib/services/batch-import/validators/customer-validator";
 import {
   validateProductRows,
   toProductCreateInput,
-} from '@/lib/services/batch-import/validators/product-validator'
+} from "@/lib/services/batch-import/validators/product-validator";
 import {
   validateSupplierRows,
   toSupplierCreateInput,
-} from '@/lib/services/batch-import/validators/supplier-validator'
-import { createCustomerWithRetry } from '@/lib/dal/customers'
-import { createProduct, updateProduct } from '@/lib/dal/products'
-import { createSupplier, updateSupplier } from '@/lib/dal/suppliers'
-import type { SupabaseClient } from '@/lib/db/supabase-client'
+} from "@/lib/services/batch-import/validators/supplier-validator";
+import { validateInvoiceRows } from "@/lib/services/batch-import/validators/invoice-validator";
+import { createCustomerWithRetry } from "@/lib/dal/customers";
+import { createProduct, updateProduct } from "@/lib/dal/products";
+import { createSupplier, updateSupplier } from "@/lib/dal/suppliers";
+import { bulkCreateInvoices } from "@/lib/dal/accounting/invoices.dal";
+import { getTaxDeclaration } from "@/lib/dal/accounting/tax-declarations.dal";
+import { createOrGetCounterpartyFromInvoice } from "@/lib/dal/accounting/counterparties.dal";
+import type { SupabaseClient } from "@/lib/db/supabase-client";
 
-const VALID_RESOURCES: ImportResourceType[] = ['customers', 'products', 'suppliers']
-const MAX_ROWS = 500
+const VALID_RESOURCES: ImportResourceType[] = [
+  "customers",
+  "products",
+  "suppliers",
+  "invoices",
+];
+const MAX_ROWS = 500;
 
 /** 權限映射 */
 const PERMISSION_MAP: Record<ImportResourceType, string> = {
-  customers: 'customers:write',
-  products: 'products:write',
-  suppliers: 'suppliers:write',
-}
+  customers: "customers:write",
+  products: "products:write",
+  suppliers: "suppliers:write",
+  invoices: "acc_invoices:write",
+};
 
 interface ImportRequest {
-  data: Record<string, unknown>[]
-  company_id: string
-  duplicateHandling: DuplicateHandling
+  data: Record<string, unknown>[];
+  company_id: string;
+  duplicateHandling: DuplicateHandling;
+  // 發票匯入專用
+  declared_period_id?: string;
+  is_historical_import?: boolean;
+  invoice_type?: "INPUT" | "OUTPUT";
 }
 
 /**
@@ -63,62 +77,62 @@ async function importCustomers(
   userId: string,
   companyId: string,
   data: Record<string, unknown>[],
-  duplicateHandling: DuplicateHandling
+  duplicateHandling: DuplicateHandling,
 ): Promise<ImportResult> {
-  const { validRows, invalidRows, errors } = validateCustomerRows(data)
+  const { validRows, invalidRows, errors } = validateCustomerRows(data);
 
-  let importedCount = 0
-  let updatedCount = 0
-  let skippedCount = 0
-  const importErrors: ValidationError[] = [...errors]
+  let importedCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+  const importErrors: ValidationError[] = [...errors];
 
   for (const row of validRows) {
-    const customerData = row as unknown as CustomerImportRow
-    const email = customerData.email
-    const nameZh = customerData.name_zh
+    const customerData = row as unknown as CustomerImportRow;
+    const email = customerData.email;
+    const nameZh = customerData.name_zh;
 
     // 檢查重複：優先用 email，若無 email 則用客戶名稱
-    let existing: { id: string } | null = null
+    let existing: { id: string } | null = null;
     if (email) {
       const { data: existingByEmail } = await db
-        .from('customers')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('company_id', companyId)
-        .eq('email', email)
-        .single()
-      existing = existingByEmail
+        .from("customers")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("company_id", companyId)
+        .eq("email", email)
+        .single();
+      existing = existingByEmail;
     }
     if (!existing && nameZh) {
       const { data: existingByName } = await db
-        .from('customers')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('company_id', companyId)
-        .eq('name->>zh', nameZh)
-        .single()
-      existing = existingByName
+        .from("customers")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("company_id", companyId)
+        .eq("name->>zh", nameZh)
+        .single();
+      existing = existingByName;
     }
 
     if (existing) {
-      if (duplicateHandling === 'skip') {
-        skippedCount++
-        continue
-      } else if (duplicateHandling === 'error') {
-        const dupField = email ? 'email' : 'name_zh'
-        const dupValue = email || nameZh
+      if (duplicateHandling === "skip") {
+        skippedCount++;
+        continue;
+      } else if (duplicateHandling === "error") {
+        const dupField = email ? "email" : "name_zh";
+        const dupValue = email || nameZh;
         importErrors.push({
           row: row._rowNumber,
           column: dupField,
-          message: `重複的${email ? '電子郵件' : '客戶名稱'}: ${dupValue}`,
-          messageEn: `Duplicate ${email ? 'email' : 'customer name'}: ${dupValue}`,
-        })
-        continue
-      } else if (duplicateHandling === 'update') {
+          message: `重複的${email ? "電子郵件" : "客戶名稱"}: ${dupValue}`,
+          messageEn: `Duplicate ${email ? "email" : "customer name"}: ${dupValue}`,
+        });
+        continue;
+      } else if (duplicateHandling === "update") {
         // 更新現有記錄
-        const updateData = toCustomerCreateInput(customerData)
+        const updateData = toCustomerCreateInput(customerData);
         const { error } = await db
-          .from('customers')
+          .from("customers")
           .update({
             name: updateData.name,
             phone: updateData.phone,
@@ -129,34 +143,34 @@ async function importCustomers(
             notes: updateData.notes,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', existing.id)
+          .eq("id", existing.id);
 
         if (error) {
           importErrors.push({
             row: row._rowNumber,
-            column: '',
+            column: "",
             message: `更新失敗: ${error.message}`,
             messageEn: `Update failed: ${error.message}`,
-          })
+          });
         } else {
-          updatedCount++
+          updatedCount++;
         }
-        continue
+        continue;
       }
     }
 
     // 建立新記錄
     try {
-      const createData = toCustomerCreateInput(customerData)
-      await createCustomerWithRetry(db, userId, companyId, createData)
-      importedCount++
+      const createData = toCustomerCreateInput(customerData);
+      await createCustomerWithRetry(db, userId, companyId, createData);
+      importedCount++;
     } catch (error) {
       importErrors.push({
         row: row._rowNumber,
-        column: '',
-        message: `建立失敗: ${error instanceof Error ? error.message : '未知錯誤'}`,
-        messageEn: `Create failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      })
+        column: "",
+        message: `建立失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
+        messageEn: `Create failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
     }
   }
 
@@ -167,7 +181,7 @@ async function importCustomers(
     skippedCount,
     errorCount: invalidRows.length + importErrors.length - errors.length,
     errors: importErrors,
-  }
+  };
 }
 
 /**
@@ -178,76 +192,76 @@ async function importProducts(
   userId: string,
   companyId: string,
   data: Record<string, unknown>[],
-  duplicateHandling: DuplicateHandling
+  duplicateHandling: DuplicateHandling,
 ): Promise<ImportResult> {
-  const { validRows, invalidRows, errors } = validateProductRows(data)
+  const { validRows, invalidRows, errors } = validateProductRows(data);
 
-  let importedCount = 0
-  let updatedCount = 0
-  let skippedCount = 0
-  const importErrors: ValidationError[] = [...errors]
+  let importedCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+  const importErrors: ValidationError[] = [...errors];
 
   for (const row of validRows) {
-    const productData = row as unknown as ProductImportRow
-    const sku = productData.sku
+    const productData = row as unknown as ProductImportRow;
+    const sku = productData.sku;
 
     // 檢查重複（以 SKU 為主鍵，如果 SKU 為空則不檢查）
-    let existing: { id: string } | null = null
+    let existing: { id: string } | null = null;
     if (sku) {
       const { data: existingProduct } = await db
-        .from('products')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('company_id', companyId)
-        .eq('sku', sku)
-        .single()
-      existing = existingProduct
+        .from("products")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("company_id", companyId)
+        .eq("sku", sku)
+        .single();
+      existing = existingProduct;
     }
 
     if (existing) {
-      if (duplicateHandling === 'skip') {
-        skippedCount++
-        continue
-      } else if (duplicateHandling === 'error') {
+      if (duplicateHandling === "skip") {
+        skippedCount++;
+        continue;
+      } else if (duplicateHandling === "error") {
         importErrors.push({
           row: row._rowNumber,
-          column: 'sku',
+          column: "sku",
           message: `重複的 SKU: ${sku}`,
           messageEn: `Duplicate SKU: ${sku}`,
-        })
-        continue
-      } else if (duplicateHandling === 'update') {
-        const updateData = toProductCreateInput(productData)
+        });
+        continue;
+      } else if (duplicateHandling === "update") {
+        const updateData = toProductCreateInput(productData);
         try {
-          await updateProduct(db, userId, existing.id, updateData)
-          updatedCount++
+          await updateProduct(db, userId, existing.id, updateData);
+          updatedCount++;
         } catch (error) {
           importErrors.push({
             row: row._rowNumber,
-            column: '',
-            message: `更新失敗: ${error instanceof Error ? error.message : '未知錯誤'}`,
-            messageEn: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          })
+            column: "",
+            message: `更新失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
+            messageEn: `Update failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+          });
         }
-        continue
+        continue;
       }
     }
 
     // 建立新記錄
     try {
-      const createData = toProductCreateInput(productData)
+      const createData = toProductCreateInput(productData);
       await createProduct(db, userId, {
         ...createData,
         company_id: companyId,
-      })
-      importedCount++
+      });
+      importedCount++;
     } catch (error) {
       importErrors.push({
         row: row._rowNumber,
-        column: '',
-        message: `建立失敗: ${error instanceof Error ? error.message : '未知錯誤'}`,
-        messageEn: `Create failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      })
+        column: "",
+        message: `建立失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
+        messageEn: `Create failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
     }
   }
 
@@ -258,7 +272,7 @@ async function importProducts(
     skippedCount,
     errorCount: invalidRows.length + importErrors.length - errors.length,
     errors: importErrors,
-  }
+  };
 }
 
 /**
@@ -269,87 +283,87 @@ async function importSuppliers(
   userId: string,
   companyId: string,
   data: Record<string, unknown>[],
-  duplicateHandling: DuplicateHandling
+  duplicateHandling: DuplicateHandling,
 ): Promise<ImportResult> {
-  const { validRows, invalidRows, errors } = validateSupplierRows(data)
+  const { validRows, invalidRows, errors } = validateSupplierRows(data);
 
-  let importedCount = 0
-  let updatedCount = 0
-  let skippedCount = 0
-  const importErrors: ValidationError[] = [...errors]
+  let importedCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+  const importErrors: ValidationError[] = [...errors];
 
   for (const row of validRows) {
-    const supplierData = row as unknown as SupplierImportRow
-    const code = supplierData.code
-    const taxId = supplierData.tax_id
+    const supplierData = row as unknown as SupplierImportRow;
+    const code = supplierData.code;
+    const taxId = supplierData.tax_id;
 
     // 檢查重複（以 code 或 tax_id 為主鍵）
-    let existing: { id: string } | null = null
+    let existing: { id: string } | null = null;
     if (code) {
       const { data: existingByCode } = await db
-        .from('suppliers')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('company_id', companyId)
-        .eq('code', code)
-        .single()
-      existing = existingByCode
+        .from("suppliers")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("company_id", companyId)
+        .eq("code", code)
+        .single();
+      existing = existingByCode;
     }
     if (!existing && taxId) {
       const { data: existingByTaxId } = await db
-        .from('suppliers')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('company_id', companyId)
-        .eq('tax_id', taxId)
-        .single()
-      existing = existingByTaxId
+        .from("suppliers")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("company_id", companyId)
+        .eq("tax_id", taxId)
+        .single();
+      existing = existingByTaxId;
     }
 
     if (existing) {
-      if (duplicateHandling === 'skip') {
-        skippedCount++
-        continue
-      } else if (duplicateHandling === 'error') {
+      if (duplicateHandling === "skip") {
+        skippedCount++;
+        continue;
+      } else if (duplicateHandling === "error") {
         importErrors.push({
           row: row._rowNumber,
-          column: code ? 'code' : 'tax_id',
-          message: `重複的${code ? '供應商代碼' : '統一編號'}: ${code || taxId}`,
-          messageEn: `Duplicate ${code ? 'supplier code' : 'tax ID'}: ${code || taxId}`,
-        })
-        continue
-      } else if (duplicateHandling === 'update') {
-        const updateData = toSupplierCreateInput(supplierData)
+          column: code ? "code" : "tax_id",
+          message: `重複的${code ? "供應商代碼" : "統一編號"}: ${code || taxId}`,
+          messageEn: `Duplicate ${code ? "supplier code" : "tax ID"}: ${code || taxId}`,
+        });
+        continue;
+      } else if (duplicateHandling === "update") {
+        const updateData = toSupplierCreateInput(supplierData);
         try {
-          await updateSupplier(db, existing.id, updateData)
-          updatedCount++
+          await updateSupplier(db, existing.id, updateData);
+          updatedCount++;
         } catch (error) {
           importErrors.push({
             row: row._rowNumber,
-            column: '',
-            message: `更新失敗: ${error instanceof Error ? error.message : '未知錯誤'}`,
-            messageEn: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          })
+            column: "",
+            message: `更新失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
+            messageEn: `Update failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+          });
         }
-        continue
+        continue;
       }
     }
 
     // 建立新記錄
     try {
-      const createData = toSupplierCreateInput(supplierData)
+      const createData = toSupplierCreateInput(supplierData);
       await createSupplier(db, userId, {
         ...createData,
         company_id: companyId,
-      })
-      importedCount++
+      });
+      importedCount++;
     } catch (error) {
       importErrors.push({
         row: row._rowNumber,
-        column: '',
-        message: `建立失敗: ${error instanceof Error ? error.message : '未知錯誤'}`,
-        messageEn: `Create failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      })
+        column: "",
+        message: `建立失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
+        messageEn: `Create failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
     }
   }
 
@@ -360,7 +374,147 @@ async function importSuppliers(
     skippedCount,
     errorCount: invalidRows.length + importErrors.length - errors.length,
     errors: importErrors,
+  };
+}
+
+/**
+ * 匯入發票
+ */
+async function importInvoices(
+  db: SupabaseClient,
+  _userId: string,
+  companyId: string,
+  data: Record<string, unknown>[],
+  duplicateHandling: DuplicateHandling,
+  options?: {
+    declared_period_id?: string;
+    is_historical_import?: boolean;
+    invoice_type?: "INPUT" | "OUTPUT";
+  },
+): Promise<ImportResult> {
+  const { validRows, invalidRows, errors } = validateInvoiceRows(data);
+
+  const importErrors: ValidationError[] = [...errors];
+
+  // 檢查申報期別是否已鎖定
+  if (options?.declared_period_id) {
+    const declaration = await getTaxDeclaration(db, options.declared_period_id);
+    if (
+      declaration &&
+      (declaration.status === "submitted" || declaration.status === "closed")
+    ) {
+      return {
+        success: false,
+        importedCount: 0,
+        updatedCount: 0,
+        skippedCount: 0,
+        errorCount: 1,
+        errors: [
+          {
+            row: 0,
+            column: "",
+            message: `申報期別已${declaration.status === "submitted" ? "送出" : "結案"}，無法匯入`,
+            messageEn: `Declaration is ${declaration.status}, cannot import`,
+          },
+        ],
+      };
+    }
   }
+
+  // 處理重複檢查
+  let skippedCount = 0;
+  const toInsert = [];
+
+  for (const row of validRows) {
+    const number = row.number as string;
+
+    // 檢查重複
+    const { data: existing } = await db
+      .from("acc_invoices")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("number", number)
+      .single();
+
+    if (existing) {
+      if (duplicateHandling === "skip") {
+        skippedCount++;
+        continue;
+      } else if (duplicateHandling === "error") {
+        importErrors.push({
+          row: row._rowNumber,
+          column: "number",
+          message: `重複的發票號碼: ${number}`,
+          messageEn: `Duplicate invoice number: ${number}`,
+        });
+        continue;
+      }
+      // update 暫不支援（發票不適合批量覆蓋）
+    }
+
+    // 往來對象自動建立
+    let counterpartyId: string | null = null;
+    const counterpartyTaxId = row.counterparty_tax_id as string | null;
+    const counterpartyName = row.counterparty_name as string | null;
+    const invoiceType = options?.invoice_type || "INPUT";
+
+    if (counterpartyTaxId) {
+      try {
+        const counterparty = await createOrGetCounterpartyFromInvoice(
+          db,
+          companyId,
+          counterpartyTaxId,
+          counterpartyName || counterpartyTaxId,
+          invoiceType,
+        );
+        counterpartyId = counterparty.id;
+      } catch {
+        // 往來對象建立失敗不阻止匯入
+      }
+    }
+
+    toInsert.push({
+      company_id: companyId,
+      number,
+      type: invoiceType,
+      date: row.date as string,
+      untaxed_amount: row.untaxed_amount as number,
+      tax_amount: row.tax_amount as number,
+      total_amount: row.total_amount as number,
+      counterparty_id: counterpartyId || undefined,
+      counterparty_tax_id: counterpartyTaxId || undefined,
+      counterparty_name: counterpartyName || undefined,
+      description: (row.description as string) || undefined,
+      declared_period_id: options?.declared_period_id,
+      is_historical_import: options?.is_historical_import || false,
+      is_fixed_asset: (row.is_fixed_asset as boolean) || false,
+    });
+  }
+
+  // 批量插入
+  let importedCount = 0;
+  if (toInsert.length > 0) {
+    try {
+      const inserted = await bulkCreateInvoices(db, toInsert);
+      importedCount = inserted.length;
+    } catch (error) {
+      importErrors.push({
+        row: 0,
+        column: "",
+        message: `批量匯入失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
+        messageEn: `Bulk import failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
+    }
+  }
+
+  return {
+    success: importErrors.length === 0 || importedCount > 0,
+    importedCount,
+    updatedCount: 0,
+    skippedCount,
+    errorCount: invalidRows.length + importErrors.length - errors.length,
+    errors: importErrors,
+  };
 }
 
 /**
@@ -369,98 +523,116 @@ async function importSuppliers(
 async function handleImport(
   request: NextRequest,
   context: ApiContext,
-  resource: ImportResourceType
+  resource: ImportResourceType,
 ): Promise<NextResponse> {
-  const body = (await request.json()) as ImportRequest
-  const { data, company_id, duplicateHandling } = body
+  const body = (await request.json()) as ImportRequest;
+  const { data, company_id, duplicateHandling } = body;
 
   // 驗證請求
   if (!data || !Array.isArray(data)) {
     return NextResponse.json(
-      { success: false, error: '缺少資料' },
-      { status: 400 }
-    )
+      { success: false, error: "缺少資料" },
+      { status: 400 },
+    );
   }
 
   if (!company_id) {
     return NextResponse.json(
-      { success: false, error: '缺少公司 ID' },
-      { status: 400 }
-    )
+      { success: false, error: "缺少公司 ID" },
+      { status: 400 },
+    );
   }
 
   if (data.length === 0) {
     return NextResponse.json(
-      { success: false, error: '資料為空' },
-      { status: 400 }
-    )
+      { success: false, error: "資料為空" },
+      { status: 400 },
+    );
   }
 
   if (data.length > MAX_ROWS) {
     return NextResponse.json(
       { success: false, error: `資料超過上限 ${MAX_ROWS} 筆` },
-      { status: 400 }
-    )
+      { status: 400 },
+    );
   }
 
-  const validHandling: DuplicateHandling[] = ['skip', 'update', 'error']
+  const validHandling: DuplicateHandling[] = ["skip", "update", "error"];
   if (!validHandling.includes(duplicateHandling)) {
     return NextResponse.json(
-      { success: false, error: '無效的重複處理方式' },
-      { status: 400 }
-    )
+      { success: false, error: "無效的重複處理方式" },
+      { status: 400 },
+    );
+  }
+
+  // 發票匯入走特殊路徑（需要額外參數）
+  if (resource === "invoices") {
+    const result = await importInvoices(
+      context.db,
+      context.user.id,
+      company_id,
+      data,
+      duplicateHandling,
+      {
+        declared_period_id: body.declared_period_id,
+        is_historical_import: body.is_historical_import,
+        invoice_type: body.invoice_type,
+      },
+    );
+    return NextResponse.json({ success: result.success, result });
   }
 
   /** 資源匯入函數映射 */
   const IMPORT_HANDLERS: Record<
-    ImportResourceType,
+    Exclude<ImportResourceType, "invoices">,
     typeof importCustomers
   > = {
     customers: importCustomers,
     products: importProducts,
     suppliers: importSuppliers,
-  }
+  };
 
-  const importHandler = IMPORT_HANDLERS[resource]
+  const importHandler =
+    IMPORT_HANDLERS[resource as Exclude<ImportResourceType, "invoices">];
   const result = await importHandler(
     context.db,
     context.user.id,
     company_id,
     data,
-    duplicateHandling
-  )
+    duplicateHandling,
+  );
 
   return NextResponse.json({
     success: result.success,
     result,
-  })
+  });
 }
 
 // 動態路由處理
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ resource: string }> }
+  { params }: { params: Promise<{ resource: string }> },
 ) {
-  const { resource } = await params
+  const { resource } = await params;
 
   // 驗證資源類型
   if (!VALID_RESOURCES.includes(resource as ImportResourceType)) {
     return NextResponse.json(
       {
         success: false,
-        error: `無效的資源類型: ${resource}，支援: ${VALID_RESOURCES.join(', ')}`,
+        error: `無效的資源類型: ${resource}，支援: ${VALID_RESOURCES.join(", ")}`,
       },
-      { status: 400 }
-    )
+      { status: 400 },
+    );
   }
 
-  const resourceType = resource as ImportResourceType
-  const permission = PERMISSION_MAP[resourceType]
+  const resourceType = resource as ImportResourceType;
+  const permission = PERMISSION_MAP[resourceType];
 
   // 使用 withAuth 中間件
-  const handler = withAuth(permission)(
-    async (req, ctx) => handleImport(req, ctx, resourceType)
-  )
+  const handler = withAuth(permission)(async (req, ctx) =>
+    handleImport(req, ctx, resourceType),
+  );
 
-  return handler(request)
+  return handler(request);
 }

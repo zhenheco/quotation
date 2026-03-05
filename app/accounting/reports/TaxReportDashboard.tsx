@@ -36,6 +36,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Upload } from "lucide-react";
+import BatchImportModal from "@/components/batch-import/BatchImportModal";
 import {
   PieChart,
   Pie,
@@ -170,6 +172,9 @@ export default function TaxReportDashboard() {
     fetchDeclaration();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id, year, biMonth]);
+
+  // 發票匯入
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // 留抵稅額更新（onBlur 觸發，避免每次 keystroke 都打 API）
   const [openingOffsetInput, setOpeningOffsetInput] = useState("");
@@ -353,6 +358,18 @@ export default function TaxReportDashboard() {
             >
               {downloadMedia.isPending ? "下載中..." : "下載媒體檔"}
             </Button>
+            <Button
+              onClick={() => setImportModalOpen(true)}
+              variant="outline"
+              size="sm"
+              disabled={
+                currentDeclaration?.status === "submitted" ||
+                currentDeclaration?.status === "closed"
+              }
+            >
+              <Upload className="mr-1 h-4 w-4" />
+              匯入發票
+            </Button>
           </div>
 
           {/* 申報期別狀態 */}
@@ -459,6 +476,14 @@ export default function TaxReportDashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* 發票匯入 Modal */}
+      <BatchImportModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        resourceType="invoices"
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }
