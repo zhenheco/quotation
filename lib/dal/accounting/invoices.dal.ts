@@ -86,6 +86,13 @@ export interface CreateInvoiceInput {
   account_code?: string;
   due_date?: string;
   attachment_url?: string;
+  // Phase 1 新增欄位
+  declared_period_id?: string;
+  is_historical_import?: boolean;
+  is_fixed_asset?: boolean;
+  return_type?: "NONE" | "RETURN" | "ALLOWANCE";
+  original_invoice_date?: string;
+  original_invoice_number?: string;
 }
 
 export interface UpdateInvoiceInput {
@@ -379,6 +386,12 @@ export async function createInvoice(
       account_code: input.account_code || null,
       due_date: input.due_date || null,
       attachment_url: input.attachment_url || null,
+      declared_period_id: input.declared_period_id || null,
+      is_historical_import: input.is_historical_import || false,
+      is_fixed_asset: input.is_fixed_asset || false,
+      return_type: input.return_type || "NONE",
+      original_invoice_date: input.original_invoice_date || null,
+      original_invoice_number: input.original_invoice_number || null,
       status: "DRAFT",
       payment_status: "UNPAID",
       payment_method: "UNCLASSIFIED",
@@ -395,6 +408,55 @@ export async function createInvoice(
   }
 
   return data;
+}
+
+/**
+ * 批量新增發票
+ */
+export async function bulkCreateInvoices(
+  db: SupabaseClient,
+  invoices: CreateInvoiceInput[],
+): Promise<AccInvoice[]> {
+  const rows = invoices.map((input) => ({
+    id: crypto.randomUUID(),
+    company_id: input.company_id,
+    number: input.number,
+    type: input.type,
+    date: input.date,
+    untaxed_amount: input.untaxed_amount,
+    tax_amount: input.tax_amount,
+    total_amount: input.total_amount,
+    counterparty_id: input.counterparty_id || null,
+    counterparty_tax_id: input.counterparty_tax_id || null,
+    counterparty_name: input.counterparty_name || null,
+    tax_code_id: input.tax_code_id || null,
+    description: input.description || null,
+    account_id: input.account_id || null,
+    account_code: input.account_code || null,
+    due_date: input.due_date || null,
+    attachment_url: input.attachment_url || null,
+    declared_period_id: input.declared_period_id || null,
+    is_historical_import: input.is_historical_import || false,
+    is_fixed_asset: input.is_fixed_asset || false,
+    return_type: input.return_type || "NONE",
+    original_invoice_date: input.original_invoice_date || null,
+    original_invoice_number: input.original_invoice_number || null,
+    status: "DRAFT",
+    payment_status: "UNPAID",
+    payment_method: "UNCLASSIFIED",
+    paid_amount: 0,
+  }));
+
+  const { data, error } = await db.from("acc_invoices").insert(rows).select();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("批量匯入失敗：有重複的發票號碼");
+    }
+    throw new Error(`批量新增發票失敗: ${error.message}`);
+  }
+
+  return data || [];
 }
 
 /**
