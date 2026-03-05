@@ -180,7 +180,9 @@ export default function TaxReportDashboard() {
   const [ratioInput, setRatioInput] = useState("");
   useEffect(() => {
     if (company?.mixed_deduction_ratio !== undefined) {
-      setRatioInput(String(Math.round(company.mixed_deduction_ratio * 100)));
+      setRatioInput(
+        String(parseFloat((company.mixed_deduction_ratio * 100).toFixed(4))),
+      );
     }
   }, [company?.mixed_deduction_ratio]);
 
