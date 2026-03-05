@@ -12,6 +12,7 @@ import {
   classifyPurchaseInvoices,
 } from "@/lib/services/accounting/tax-report.service";
 import type { AccInvoice } from "@/lib/dal/accounting/invoices.dal";
+import type { TaxCode } from "@/lib/dal/accounting/tax-codes.dal";
 
 function createMockInputInvoice(
   overrides: Partial<AccInvoice> = {},
@@ -262,6 +263,140 @@ describe("tax-report.service V2 - 營業稅計算 V2", () => {
         result.fixedAssets.nonDeductible.taxAmount;
 
       expect(totalTax).toBe(0);
+    });
+  });
+
+  // ============================================
+  // classifyPurchaseInvoices — taxCodeMap 扣抵性
+  // ============================================
+  describe("classifyPurchaseInvoices — taxCodeMap", () => {
+    function createTaxCode(overrides: Partial<TaxCode> = {}): TaxCode {
+      return {
+        id: `tc-${Math.random().toString(36).substring(7)}`,
+        code: "TX5",
+        name: "營業稅 5%",
+        description: null,
+        tax_rate: 5,
+        tax_type: "INPUT",
+        is_deductible: true,
+        is_common: true,
+        is_system: true,
+        is_active: true,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+        ...overrides,
+      };
+    }
+
+    it("不可扣抵稅碼 → nonDeductible 分組", () => {
+      const nonDeductibleTc = createTaxCode({
+        id: "tc-entertainment",
+        code: "ENTERTAIN",
+        name: "交際費（不可扣抵）",
+        is_deductible: false,
+      });
+      const taxCodeMap = new Map([[nonDeductibleTc.id, nonDeductibleTc]]);
+
+      const invoices = [
+        createMockInputInvoice({
+          tax_code_id: nonDeductibleTc.id,
+          tax_amount: 500,
+          untaxed_amount: 10000,
+        }),
+      ];
+
+      const result = classifyPurchaseInvoices(invoices, taxCodeMap);
+
+      expect(result.goodsAndExpenses.nonDeductible.taxAmount).toBe(500);
+      expect(result.goodsAndExpenses.nonDeductible.count).toBe(1);
+      expect(result.goodsAndExpenses.deductible.taxAmount).toBe(0);
+    });
+
+    it("可扣抵稅碼 → deductible 分組", () => {
+      const deductibleTc = createTaxCode({
+        id: "tc-input5",
+        code: "TX5",
+        is_deductible: true,
+      });
+      const taxCodeMap = new Map([[deductibleTc.id, deductibleTc]]);
+
+      const invoices = [
+        createMockInputInvoice({
+          tax_code_id: deductibleTc.id,
+          tax_amount: 1000,
+          untaxed_amount: 20000,
+        }),
+      ];
+
+      const result = classifyPurchaseInvoices(invoices, taxCodeMap);
+
+      expect(result.goodsAndExpenses.deductible.taxAmount).toBe(1000);
+      expect(result.goodsAndExpenses.deductible.count).toBe(1);
+      expect(result.goodsAndExpenses.nonDeductible.taxAmount).toBe(0);
+    });
+
+    it("混合稅碼 → 正確分流（含固資）", () => {
+      const deductibleTc = createTaxCode({
+        id: "tc-deductible",
+        is_deductible: true,
+      });
+      const nonDeductibleTc = createTaxCode({
+        id: "tc-non-deductible",
+        is_deductible: false,
+      });
+      const taxCodeMap = new Map([
+        [deductibleTc.id, deductibleTc],
+        [nonDeductibleTc.id, nonDeductibleTc],
+      ]);
+
+      const invoices = [
+        // 進貨費用 - 可扣抵
+        createMockInputInvoice({
+          tax_code_id: deductibleTc.id,
+          tax_amount: 500,
+          is_fixed_asset: false,
+        }),
+        // 進貨費用 - 不可扣抵（交際費）
+        createMockInputInvoice({
+          tax_code_id: nonDeductibleTc.id,
+          tax_amount: 300,
+          is_fixed_asset: false,
+        }),
+        // 固定資產 - 可扣抵
+        createMockInputInvoice({
+          tax_code_id: deductibleTc.id,
+          tax_amount: 2000,
+          is_fixed_asset: true,
+        }),
+        // 固定資產 - 不可扣抵
+        createMockInputInvoice({
+          tax_code_id: nonDeductibleTc.id,
+          tax_amount: 800,
+          is_fixed_asset: true,
+        }),
+      ];
+
+      const result = classifyPurchaseInvoices(invoices, taxCodeMap);
+
+      expect(result.goodsAndExpenses.deductible.taxAmount).toBe(500);
+      expect(result.goodsAndExpenses.nonDeductible.taxAmount).toBe(300);
+      expect(result.fixedAssets.deductible.taxAmount).toBe(2000);
+      expect(result.fixedAssets.nonDeductible.taxAmount).toBe(800);
+    });
+
+    it("無稅碼 null → 預設 deductible（向後相容）", () => {
+      const invoices = [
+        createMockInputInvoice({
+          tax_code_id: null,
+          tax_amount: 500,
+        }),
+      ];
+
+      // 不傳 taxCodeMap（使用預設空 Map）
+      const result = classifyPurchaseInvoices(invoices);
+
+      expect(result.goodsAndExpenses.deductible.taxAmount).toBe(500);
+      expect(result.goodsAndExpenses.nonDeductible.taxAmount).toBe(0);
     });
   });
 });

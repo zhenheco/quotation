@@ -524,7 +524,11 @@ function TaxSummarySection({ data }: { data: Form401DataV2 }) {
   const taxChartData = [
     { name: "銷項稅額", value: taxCalculation.outputTax, fill: "#3b82f6" },
     { name: "進貨費用進項", value: taxCalculation.inputTax, fill: "#10b981" },
-    { name: "固資進項", value: taxCalculation.fixedAssetInputTax, fill: "#8b5cf6" },
+    {
+      name: "固資進項",
+      value: taxCalculation.fixedAssetInputTax,
+      fill: "#8b5cf6",
+    },
     {
       name: taxCalculation.isRefund ? "應退稅額" : "應納稅額",
       value: taxCalculation.netTax,
@@ -582,6 +586,19 @@ function TaxSummarySection({ data }: { data: Form401DataV2 }) {
               </div>
             )}
 
+            {/* 比例不得扣抵（兼營營業人） */}
+            {taxCalculation.ratioNonDeductibleTax > 0 && (
+              <div className="rounded-lg border bg-orange-50 p-4">
+                <div className="text-sm font-semibold text-orange-800 mb-2">
+                  比例不得扣抵稅額
+                </div>
+                <div className="text-2xl font-bold text-orange-700">
+                  {formatAmount(taxCalculation.ratioNonDeductibleTax)}
+                </div>
+                <div className="text-xs text-orange-600 mt-1">兼營比例扣減</div>
+              </div>
+            )}
+
             {/* 應納/應退稅額 */}
             <div
               className={`rounded-lg border p-4 ${
@@ -608,6 +625,9 @@ function TaxSummarySection({ data }: { data: Form401DataV2 }) {
                 }`}
               >
                 = 銷項 - 可扣抵進項
+                {taxCalculation.ratioNonDeductibleTax > 0
+                  ? " + 比例不扣抵"
+                  : ""}
                 {taxCalculation.openingOffset > 0 ? " - 上期留抵" : ""}
                 {taxCalculation.returnAllowanceTax !== 0 ? " + 退折讓" : ""}
               </div>
@@ -808,10 +828,14 @@ function TaxSummarySection({ data }: { data: Form401DataV2 }) {
                     {purchases.goodsAndExpenses.deductible.count}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatAmount(purchases.goodsAndExpenses.deductible.untaxedAmount)}
+                    {formatAmount(
+                      purchases.goodsAndExpenses.deductible.untaxedAmount,
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatAmount(purchases.goodsAndExpenses.deductible.taxAmount)}
+                    {formatAmount(
+                      purchases.goodsAndExpenses.deductible.taxAmount,
+                    )}
                   </TableCell>
                 </TableRow>
                 <TableRow>
@@ -822,7 +846,9 @@ function TaxSummarySection({ data }: { data: Form401DataV2 }) {
                     {purchases.fixedAssets.deductible.count}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatAmount(purchases.fixedAssets.deductible.untaxedAmount)}
+                    {formatAmount(
+                      purchases.fixedAssets.deductible.untaxedAmount,
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatAmount(purchases.fixedAssets.deductible.taxAmount)}
@@ -988,8 +1014,8 @@ function SalesDetailsSection({ data }: { data: Form401DataV2 }) {
 // ============================================
 
 function PurchasesDetailsSection({ data }: { data: Form401DataV2 }) {
-  const allPurchasesInvoices = [...data.purchaseInvoices].sort(
-    (a, b) => a.date.localeCompare(b.date),
+  const allPurchasesInvoices = [...data.purchaseInvoices].sort((a, b) =>
+    a.date.localeCompare(b.date),
   );
 
   return (

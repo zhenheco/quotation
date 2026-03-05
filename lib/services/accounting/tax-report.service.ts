@@ -8,6 +8,7 @@ import { AccInvoice, getInvoices } from "@/lib/dal/accounting";
 import { getOrCreateTaxDeclaration } from "@/lib/dal/accounting/tax-declarations.dal";
 import type { TaxCode } from "@/lib/dal/accounting/tax-codes.dal";
 import { getTaxCodes } from "@/lib/dal/accounting/tax-codes.dal";
+import { getCompanyById } from "@/lib/dal/companies";
 import {
   generateMediaFile,
   invoiceDetailToMediaData,
@@ -998,7 +999,10 @@ export function classifyPurchaseInvoices(
 // V2: Form401DataV2 + generateForm401V2
 // ============================================
 
-export interface Form401DataV2 extends Omit<Form401Data, "purchases" | "taxCalculation"> {
+export interface Form401DataV2 extends Omit<
+  Form401Data,
+  "purchases" | "taxCalculation"
+> {
   purchases: ClassifiedPurchases;
 
   purchaseInvoices: InvoiceDetail[];
@@ -1034,8 +1038,17 @@ export async function generateForm401V2(
 ): Promise<Form401DataV2> {
   const period = calculateTaxPeriod(year, biMonth);
 
+  // 取得公司設定（兼營比例）
+  const company = await getCompanyById(db, companyId);
+  const nonDeductibleRatio = company?.mixed_deduction_ratio ?? 0;
+
   // 取得或建立申報期別
-  const declaration = await getOrCreateTaxDeclaration(db, companyId, year, biMonth);
+  const declaration = await getOrCreateTaxDeclaration(
+    db,
+    companyId,
+    year,
+    biMonth,
+  );
 
   // 以 declared_period_id 篩選（若有分配），否則 fallback 到日期範圍
   const useDeclarationFilter = true;
@@ -1108,7 +1121,8 @@ export async function generateForm401V2(
   for (const inv of outputInvoices) {
     if (inv.status === "VOIDED") continue;
     const detail = invoiceToDetail(inv);
-    const returnType = (inv as AccInvoice & { return_type?: string }).return_type;
+    const returnType = (inv as AccInvoice & { return_type?: string })
+      .return_type;
 
     if (returnType === "RETURN" || returnType === "ALLOWANCE") {
       salesReturnCount += 1;
@@ -1131,11 +1145,13 @@ export async function generateForm401V2(
   }
 
   // 建立稅碼對照表（用於判斷進項扣抵性）
-  const taxCodeIds = [...new Set(
-    inputInvoices
-      .filter((inv) => inv.tax_code_id)
-      .map((inv) => inv.tax_code_id as string),
-  )];
+  const taxCodeIds = [
+    ...new Set(
+      inputInvoices
+        .filter((inv) => inv.tax_code_id)
+        .map((inv) => inv.tax_code_id as string),
+    ),
+  ];
   const taxCodeMap = new Map<string, TaxCode>();
   if (taxCodeIds.length > 0) {
     const allTaxCodes = await getTaxCodes(db, {});
@@ -1147,7 +1163,10 @@ export async function generateForm401V2(
   }
 
   // 分類進項（使用 V2 分類器 + 稅碼扣抵判斷）
-  const classifiedPurchases = classifyPurchaseInvoices(inputInvoices, taxCodeMap);
+  const classifiedPurchases = classifyPurchaseInvoices(
+    inputInvoices,
+    taxCodeMap,
+  );
 
   // 統計進項退出
   let purchaseReturnCount = 0;
@@ -1156,7 +1175,8 @@ export async function generateForm401V2(
 
   for (const inv of inputInvoices) {
     if (inv.status === "VOIDED") continue;
-    const returnType = (inv as AccInvoice & { return_type?: string }).return_type;
+    const returnType = (inv as AccInvoice & { return_type?: string })
+      .return_type;
     if (returnType === "RETURN" || returnType === "ALLOWANCE") {
       purchaseReturnCount += 1;
       purchaseReturnAmount += parseFloat(String(inv.untaxed_amount)) || 0;
@@ -1172,7 +1192,10 @@ export async function generateForm401V2(
   // 稅額計算
   const taxableUntaxed = salesTaxable.reduce((s, d) => s + d.untaxedAmount, 0);
   const taxableTax = salesTaxable.reduce((s, d) => s + d.taxAmount, 0);
-  const zeroRatedAmount = salesZeroRated.reduce((s, d) => s + d.untaxedAmount, 0);
+  const zeroRatedAmount = salesZeroRated.reduce(
+    (s, d) => s + d.untaxedAmount,
+    0,
+  );
   const exemptAmount = salesExempt.reduce((s, d) => s + d.untaxedAmount, 0);
 
   // 退出折讓淨調整：進項退出稅 - 銷項退回稅（進項退出減少可扣抵 → 增加應繳）
@@ -1187,7 +1210,7 @@ export async function generateForm401V2(
     itemNonDeductibleTax:
       classifiedPurchases.goodsAndExpenses.nonDeductible.taxAmount +
       classifiedPurchases.fixedAssets.nonDeductible.taxAmount,
-    nonDeductibleRatio: 0, // TODO: 從公司設定讀取兼營比例
+    nonDeductibleRatio,
   });
 
   return {
@@ -1224,7 +1247,9 @@ export async function generateForm401V2(
       .filter((inv) => inv.status !== "VOIDED")
       .map((inv) => {
         const detail = invoiceToDetail(inv);
-        const taxCode = inv.tax_code_id ? taxCodeMap.get(inv.tax_code_id) : null;
+        const taxCode = inv.tax_code_id
+          ? taxCodeMap.get(inv.tax_code_id)
+          : null;
         return { ...detail, isDeductible: isInputInvoiceDeductible(taxCode) };
       }),
     returnsAndAllowances: {
@@ -1246,9 +1271,11 @@ export async function generateForm401V2(
       status: declaration.status,
     },
     summary: {
-      totalSalesCount: outputInvoices.filter((i) => i.status !== "VOIDED").length,
+      totalSalesCount: outputInvoices.filter((i) => i.status !== "VOIDED")
+        .length,
       totalSalesAmount: taxableUntaxed + zeroRatedAmount + exemptAmount,
-      totalPurchasesCount: inputInvoices.filter((i) => i.status !== "VOIDED").length,
+      totalPurchasesCount: inputInvoices.filter((i) => i.status !== "VOIDED")
+        .length,
       totalPurchasesAmount:
         classifiedPurchases.goodsAndExpenses.deductible.untaxedAmount +
         classifiedPurchases.goodsAndExpenses.nonDeductible.untaxedAmount +
