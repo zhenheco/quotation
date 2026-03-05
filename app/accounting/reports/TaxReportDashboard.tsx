@@ -176,6 +176,38 @@ export default function TaxReportDashboard() {
   // 發票匯入
   const [importModalOpen, setImportModalOpen] = useState(false);
 
+  // 兼營比例更新（onBlur 觸發）
+  const [ratioInput, setRatioInput] = useState("");
+  useEffect(() => {
+    if (company?.mixed_deduction_ratio !== undefined) {
+      setRatioInput(String(Math.round(company.mixed_deduction_ratio * 100)));
+    }
+  }, [company?.mixed_deduction_ratio]);
+
+  const handleRatioBlur = async () => {
+    if (
+      !company ||
+      !currentDeclaration ||
+      currentDeclaration.status !== "draft"
+    )
+      return;
+    const pct = parseFloat(ratioInput) || 0;
+    const ratio = Math.max(0, Math.min(100, pct)) / 100;
+    if (ratio === (company.mixed_deduction_ratio ?? 0)) return;
+    try {
+      const response = await fetch(`/api/companies/${company.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mixed_deduction_ratio: ratio }),
+      });
+      if (!response.ok) throw new Error("更新失敗");
+      refetch(); // 重算稅額
+      toast.success("兼營比例已更新");
+    } catch (err) {
+      toast.error("更新兼營比例失敗: " + (err as Error).message);
+    }
+  };
+
   // 留抵稅額更新（onBlur 觸發，避免每次 keystroke 都打 API）
   const [openingOffsetInput, setOpeningOffsetInput] = useState("");
   useEffect(() => {
@@ -393,6 +425,25 @@ export default function TaxReportDashboard() {
                   onBlur={handleOpeningOffsetBlur}
                   disabled={currentDeclaration.status !== "draft"}
                   className="w-36 h-8 text-sm"
+                />
+              </div>
+
+              {/* 兼營比例輸入 */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground whitespace-nowrap">
+                  兼營比例 %：
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.01}
+                  value={ratioInput}
+                  onChange={(e) => setRatioInput(e.target.value)}
+                  onBlur={handleRatioBlur}
+                  disabled={currentDeclaration.status !== "draft"}
+                  className="w-24 h-8 text-sm"
+                  placeholder="0"
                 />
               </div>
 

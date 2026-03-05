@@ -1,10 +1,15 @@
-import { createApiClient } from '@/lib/supabase/api'
-import { NextRequest, NextResponse } from 'next/server'
-import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { getSupabaseClient } from '@/lib/db/supabase-client'
-import { getKVCache } from '@/lib/cache/kv-cache'
-import { getCompanyById, updateCompany, deleteCompany, isCompanyMember } from '@/lib/dal/companies'
-import { checkPermission } from '@/lib/cache/services'
+import { createApiClient } from "@/lib/supabase/api";
+import { NextRequest, NextResponse } from "next/server";
+import { getErrorMessage } from "@/app/api/utils/error-handler";
+import { getSupabaseClient } from "@/lib/db/supabase-client";
+import { getKVCache } from "@/lib/cache/kv-cache";
+import {
+  getCompanyById,
+  updateCompany,
+  deleteCompany,
+  isCompanyMember,
+} from "@/lib/dal/companies";
+import { checkPermission } from "@/lib/cache/services";
 
 interface UpdateCompanyRequestBody {
   name_zh?: string;
@@ -24,51 +29,63 @@ interface UpdateCompanyRequestBody {
   [key: string]: unknown;
 }
 
-
 /**
  * GET /api/companies/[id] - 取得單一公司資料
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await params
+    const { id } = await params;
 
     // 驗證使用者
-    const supabase = createApiClient(request)
-    const { data: { user } } = await supabase.auth.getUser()
+    const supabase = createApiClient(request);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // 檢查權限
-    const kv = getKVCache()
-    const db = getSupabaseClient()
+    const kv = getKVCache();
+    const db = getSupabaseClient();
 
-    const hasPermission = await checkPermission(kv, db, user.id, 'companies:read')
+    const hasPermission = await checkPermission(
+      kv,
+      db,
+      user.id,
+      "companies:read",
+    );
     if (!hasPermission) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // 檢查是否為公司成員
-    const isMember = await isCompanyMember(db, id, user.id)
+    const isMember = await isCompanyMember(db, id, user.id);
     if (!isMember) {
-      return NextResponse.json({ error: 'You do not have access to this company' }, { status: 403 })
+      return NextResponse.json(
+        { error: "You do not have access to this company" },
+        { status: 403 },
+      );
     }
 
     // 取得公司資料
-    const company = await getCompanyById(db, id)
+    const company = await getCompanyById(db, id);
 
     if (!company) {
-      return NextResponse.json({ error: 'Company not found' }, { status: 404 })
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
-    return NextResponse.json(company)
+    return NextResponse.json(company);
   } catch (error: unknown) {
-    console.error('Error fetching company:', error)
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+    console.error("Error fetching company:", error);
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 },
+    );
   }
 }
 
@@ -77,83 +94,123 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await params
+    const { id } = await params;
 
     // 驗證使用者
-    const supabase = createApiClient(request)
-    const { data: { user } } = await supabase.auth.getUser()
+    const supabase = createApiClient(request);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // 檢查權限
-    const kv = getKVCache()
-    const db = getSupabaseClient()
+    const kv = getKVCache();
+    const db = getSupabaseClient();
 
-    const hasPermission = await checkPermission(kv, db, user.id, 'companies:write')
+    const hasPermission = await checkPermission(
+      kv,
+      db,
+      user.id,
+      "companies:write",
+    );
     if (!hasPermission) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // 檢查是否為公司成員
-    const isMember = await isCompanyMember(db, id, user.id)
+    const isMember = await isCompanyMember(db, id, user.id);
     if (!isMember) {
-      return NextResponse.json({ error: 'You do not have access to this company' }, { status: 403 })
+      return NextResponse.json(
+        { error: "You do not have access to this company" },
+        { status: 403 },
+      );
     }
 
     // 取得請求資料
-    const body = await request.json() as Record<string, unknown> as UpdateCompanyRequestBody
+    const body = (await request.json()) as Record<
+      string,
+      unknown
+    > as UpdateCompanyRequestBody;
 
     // 構建更新資料
-    const updateData: Record<string, unknown> = {}
+    const updateData: Record<string, unknown> = {};
 
     // 處理名稱（合併中英文）
     if (body.name_zh || body.name_en) {
-      const currentCompany = await getCompanyById(db, id)
-      const currentName = currentCompany?.name || { zh: '', en: '' }
+      const currentCompany = await getCompanyById(db, id);
+      const currentName = currentCompany?.name || { zh: "", en: "" };
       updateData.name = {
         zh: body.name_zh || currentName.zh,
-        en: body.name_en || currentName.en
-      }
+        en: body.name_en || currentName.en,
+      };
     }
 
     // 處理地址（合併中英文）
     if (body.address_zh || body.address_en) {
-      const currentCompany = await getCompanyById(db, id)
-      const currentAddress = currentCompany?.address || { zh: '', en: '' }
+      const currentCompany = await getCompanyById(db, id);
+      const currentAddress = currentCompany?.address || { zh: "", en: "" };
       updateData.address = {
         zh: body.address_zh || currentAddress.zh,
-        en: body.address_en || currentAddress.en
-      }
+        en: body.address_en || currentAddress.en,
+      };
     }
 
     // 處理其他簡單欄位
     const simpleFields = [
-      'logo_url', 'signature_url', 'passbook_url', 'tax_id',
-      'bank_name', 'bank_account', 'bank_code', 'phone', 'email', 'website'
-    ]
+      "logo_url",
+      "signature_url",
+      "passbook_url",
+      "tax_id",
+      "bank_name",
+      "bank_account",
+      "bank_code",
+      "phone",
+      "email",
+      "website",
+      "mixed_deduction_ratio",
+    ];
 
     for (const field of simpleFields) {
       if (body[field] !== undefined) {
-        updateData[field] = body[field]
+        updateData[field] = body[field];
       }
     }
 
+    // 驗證兼營比例範圍
+    if (updateData.mixed_deduction_ratio !== undefined) {
+      const ratio = Number(updateData.mixed_deduction_ratio);
+      if (isNaN(ratio) || ratio < 0 || ratio > 1) {
+        return NextResponse.json(
+          { error: "mixed_deduction_ratio must be between 0 and 1" },
+          { status: 400 },
+        );
+      }
+      updateData.mixed_deduction_ratio = ratio;
+    }
+
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+      return NextResponse.json(
+        { error: "No fields to update" },
+        { status: 400 },
+      );
     }
 
     // 更新公司資料
-    const company = await updateCompany(db, id, updateData)
+    const company = await updateCompany(db, id, updateData);
 
-    return NextResponse.json(company)
+    return NextResponse.json(company);
   } catch (error: unknown) {
-    console.error('Error updating company:', error)
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+    console.error("Error updating company:", error);
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 },
+    );
   }
 }
 
@@ -162,40 +219,53 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await params
+    const { id } = await params;
 
     // 驗證使用者
-    const supabase = createApiClient(request)
-    const { data: { user } } = await supabase.auth.getUser()
+    const supabase = createApiClient(request);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // 檢查權限
-    const kv = getKVCache()
-    const db = getSupabaseClient()
+    const kv = getKVCache();
+    const db = getSupabaseClient();
 
-    const hasPermission = await checkPermission(kv, db, user.id, 'companies:delete')
+    const hasPermission = await checkPermission(
+      kv,
+      db,
+      user.id,
+      "companies:delete",
+    );
     if (!hasPermission) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // 檢查是否為公司成員
-    const isMember = await isCompanyMember(db, id, user.id)
+    const isMember = await isCompanyMember(db, id, user.id);
     if (!isMember) {
-      return NextResponse.json({ error: 'You do not have access to this company' }, { status: 403 })
+      return NextResponse.json(
+        { error: "You do not have access to this company" },
+        { status: 403 },
+      );
     }
 
     // 刪除公司
-    await deleteCompany(db, id)
+    await deleteCompany(db, id);
 
-    return NextResponse.json({ message: 'Company deleted successfully' })
+    return NextResponse.json({ message: "Company deleted successfully" });
   } catch (error: unknown) {
-    console.error('Error deleting company:', error)
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+    console.error("Error deleting company:", error);
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 },
+    );
   }
 }
