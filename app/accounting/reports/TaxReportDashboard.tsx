@@ -1025,7 +1025,7 @@ function PurchasesDetailsSection({ data }: { data: Form401DataV2 }) {
               </TableRow>
             ) : (
               allPurchasesInvoices.map((inv) => {
-                const isDeductible = inv.taxAmount > 0;
+                const isDeductible = inv.isDeductible !== false;
                 return (
                   <TableRow key={inv.invoiceId}>
                     <TableCell className="font-mono">

@@ -7,6 +7,7 @@ import { SupabaseClient } from "@/lib/db/supabase-client";
 import { AccInvoice, getInvoices } from "@/lib/dal/accounting";
 import { getOrCreateTaxDeclaration } from "@/lib/dal/accounting/tax-declarations.dal";
 import type { TaxCode } from "@/lib/dal/accounting/tax-codes.dal";
+import { getTaxCodes } from "@/lib/dal/accounting/tax-codes.dal";
 import {
   generateMediaFile,
   invoiceDetailToMediaData,
@@ -941,9 +942,13 @@ export function calculateTaxAmountsV2(
 /**
  * 進項發票分類（進貨費用 vs 固定資產 vs 免稅 vs 零稅率）
  * VOIDED 發票不計入金額
+ *
+ * @param invoices - 進項發票列表
+ * @param taxCodeMap - 稅碼 ID → TaxCode 對照表，用於判斷扣抵性
  */
 export function classifyPurchaseInvoices(
   invoices: AccInvoice[],
+  taxCodeMap: Map<string, TaxCode> = new Map(),
 ): ClassifiedPurchases {
   const result: ClassifiedPurchases = {
     goodsAndExpenses: {
@@ -964,20 +969,18 @@ export function classifyPurchaseInvoices(
 
     const untaxed = parseFloat(String(inv.untaxed_amount)) || 0;
     const tax = parseFloat(String(inv.tax_amount)) || 0;
-    const isFixedAsset =
-      (inv as AccInvoice & { is_fixed_asset?: boolean }).is_fixed_asset ===
-      true;
+    const isFixedAsset = inv.is_fixed_asset === true;
 
     // 免稅進項（稅額為 0 且有稅碼標記）
     if (tax === 0 && untaxed > 0) {
-      // TODO: 進一步區分免稅 vs 零稅率（需要 tax_code 判斷）
       result.exempt.count += 1;
       result.exempt.untaxedAmount += untaxed;
       continue;
     }
 
-    // 有稅額的進項：區分進貨費用 vs 固定資產，再區分可扣抵 vs 不可扣抵
-    const isDeductible = isInputInvoiceDeductible(undefined);
+    // 有稅額的進項：用稅碼判斷扣抵性
+    const taxCode = inv.tax_code_id ? taxCodeMap.get(inv.tax_code_id) : null;
+    const isDeductible = isInputInvoiceDeductible(taxCode);
     const category = isFixedAsset
       ? result.fixedAssets
       : result.goodsAndExpenses;
@@ -1127,8 +1130,24 @@ export async function generateForm401V2(
     }
   }
 
-  // 分類進項（使用 V2 分類器）
-  const classifiedPurchases = classifyPurchaseInvoices(inputInvoices);
+  // 建立稅碼對照表（用於判斷進項扣抵性）
+  const taxCodeIds = [...new Set(
+    inputInvoices
+      .filter((inv) => inv.tax_code_id)
+      .map((inv) => inv.tax_code_id as string),
+  )];
+  const taxCodeMap = new Map<string, TaxCode>();
+  if (taxCodeIds.length > 0) {
+    const allTaxCodes = await getTaxCodes(db, {});
+    for (const tc of allTaxCodes) {
+      if (taxCodeIds.includes(tc.id)) {
+        taxCodeMap.set(tc.id, tc);
+      }
+    }
+  }
+
+  // 分類進項（使用 V2 分類器 + 稅碼扣抵判斷）
+  const classifiedPurchases = classifyPurchaseInvoices(inputInvoices, taxCodeMap);
 
   // 統計進項退出
   let purchaseReturnCount = 0;
@@ -1203,7 +1222,11 @@ export async function generateForm401V2(
     purchases: classifiedPurchases,
     purchaseInvoices: inputInvoices
       .filter((inv) => inv.status !== "VOIDED")
-      .map(invoiceToDetail),
+      .map((inv) => {
+        const detail = invoiceToDetail(inv);
+        const taxCode = inv.tax_code_id ? taxCodeMap.get(inv.tax_code_id) : null;
+        return { ...detail, isDeductible: isInputInvoiceDeductible(taxCode) };
+      }),
     returnsAndAllowances: {
       salesReturns: {
         count: salesReturnCount,
