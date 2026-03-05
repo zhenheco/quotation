@@ -7,17 +7,17 @@
  * 擴展版：支援訂閱功能存取檢查
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { createApiClient } from '@/lib/supabase/api'
-import { getSupabaseClient, SupabaseClient } from '@/lib/db/supabase-client'
-import { getUserPermissions, ensureUserHasRole } from '@/lib/dal/rbac'
-import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { NextRequest, NextResponse } from "next/server";
+import { createApiClient } from "@/lib/supabase/api";
+import { getSupabaseClient, SupabaseClient } from "@/lib/db/supabase-client";
+import { getUserPermissions, ensureUserHasRole } from "@/lib/dal/rbac";
+import { getErrorMessage } from "@/app/api/utils/error-handler";
 import {
   hasFeatureAccess,
   FeatureNotAvailableError,
   UsageLimitExceededError,
-} from '@/lib/services/subscription'
-import { createErrorResponse, ErrorResponses } from '@/lib/api/response-utils'
+} from "@/lib/services/subscription";
+import { createErrorResponse, ErrorResponses } from "@/lib/api/response-utils";
 
 /**
  * API 請求上下文
@@ -25,11 +25,11 @@ import { createErrorResponse, ErrorResponses } from '@/lib/api/response-utils'
 export interface ApiContext {
   /** 已驗證的使用者 */
   user: {
-    id: string
-    email?: string
-  }
+    id: string;
+    email?: string;
+  };
   /** Supabase 資料庫客戶端 */
-  db: SupabaseClient
+  db: SupabaseClient;
 }
 
 /**
@@ -44,61 +44,65 @@ export interface ApiContext {
  */
 const permissionMapping: Record<string, string[]> = {
   // 公司相關
-  'companies:read': ['companies:read', 'company_settings:read'],
-  'companies:write': ['companies:write', 'company_settings:write'],
-  'exchange_rates:read': ['exchange_rates:read'],
+  "companies:read": ["companies:read", "company_settings:read"],
+  "companies:write": ["companies:write", "company_settings:write"],
+  "exchange_rates:read": ["exchange_rates:read"],
 
   // 會計發票（API: invoices → DB: acc_invoices）
-  'invoices:read': ['acc_invoices:read'],
-  'invoices:write': ['acc_invoices:write'],
-  'invoices:delete': ['acc_invoices:delete'],
-  'invoices:post': ['acc_invoices:post'],
-  'invoices:verify': ['acc_invoices:write'], // verify 使用 write 權限
-  'invoices:void': ['acc_invoices:write'], // void 使用 write 權限
+  "invoices:read": ["acc_invoices:read"],
+  "invoices:write": ["acc_invoices:write"],
+  "invoices:delete": ["acc_invoices:delete"],
+  "invoices:post": ["acc_invoices:post"],
+  "invoices:verify": ["acc_invoices:write"], // verify 使用 write 權限
+  "invoices:void": ["acc_invoices:write"], // void 使用 write 權限
 
   // 會計傳票（API: journals → DB: journal_entries）
-  'journals:read': ['journal_entries:read'],
-  'journals:write': ['journal_entries:write'],
-  'journals:delete': ['journal_entries:delete'],
-  'journals:post': ['journal_entries:post'],
-  'journals:void': ['journal_entries:write'], // void 使用 write 權限
+  "journals:read": ["journal_entries:read"],
+  "journals:write": ["journal_entries:write"],
+  "journals:delete": ["journal_entries:delete"],
+  "journals:post": ["journal_entries:post"],
+  "journals:void": ["journal_entries:write"], // void 使用 write 權限
 
   // 財務報表（需要讀取傳票和發票權限）
-  'reports:read': ['journal_entries:read', 'acc_invoices:read'],
+  "reports:read": ["journal_entries:read", "acc_invoices:read"],
 
   // 會計科目
-  'accounts:read': ['accounts:read'],
-  'accounts:write': ['accounts:write'],
-  'accounts:delete': ['accounts:delete'],
+  "accounts:read": ["accounts:read"],
+  "accounts:write": ["accounts:write"],
+  "accounts:delete": ["accounts:delete"],
 
   // 訂單（API: orders → DB: orders）
-  'orders:read': ['orders:read'],
-  'orders:write': ['orders:write'],
-  'orders:delete': ['orders:delete'],
+  "orders:read": ["orders:read"],
+  "orders:write": ["orders:write"],
+  "orders:delete": ["orders:delete"],
 
   // 出貨單（API: shipments → DB: shipments）
-  'shipments:read': ['shipments:read'],
-  'shipments:write': ['shipments:write'],
-  'shipments:delete': ['shipments:delete'],
-}
+  "shipments:read": ["shipments:read"],
+  "shipments:write": ["shipments:write"],
+  "shipments:delete": ["shipments:delete"],
+
+  // 營業稅申報（API: tax-declarations → DB: tax_declarations）
+  "tax-declarations:read": ["acc_invoices:read"],
+  "tax-declarations:write": ["acc_invoices:write"],
+};
 
 /**
  * 驗證使用者（直接使用 Supabase）
  */
 async function getAuthenticatedUser(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<{ id: string; email?: string } | null> {
-  const supabase = createApiClient(request)
+  const supabase = createApiClient(request);
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (error || !user) {
-    return null
+    return null;
   }
 
-  return { id: user.id, email: user.email }
+  return { id: user.id, email: user.email };
 }
 
 /**
@@ -107,25 +111,27 @@ async function getAuthenticatedUser(
 async function checkPermission(
   db: SupabaseClient,
   userId: string,
-  permissionName: string
+  permissionName: string,
 ): Promise<boolean> {
   // 確保使用者有角色（如果沒有會自動分配）
-  await ensureUserHasRole(db, userId)
+  await ensureUserHasRole(db, userId);
 
-  const permissions = await getUserPermissions(db, userId)
+  const permissions = await getUserPermissions(db, userId);
 
   // 先嘗試直接匹配
   if (permissions.some((p) => p.name === permissionName)) {
-    return true
+    return true;
   }
 
   // 使用映射表檢查
-  const mappedPermissions = permissionMapping[permissionName]
+  const mappedPermissions = permissionMapping[permissionName];
   if (mappedPermissions) {
-    return mappedPermissions.some((mp) => permissions.some((p) => p.name === mp))
+    return mappedPermissions.some((mp) =>
+      permissions.some((p) => p.name === mp),
+    );
   }
 
-  return false
+  return false;
 }
 
 /**
@@ -134,13 +140,13 @@ async function checkPermission(
 type ApiHandler<TParams = void> = (
   request: NextRequest,
   context: ApiContext,
-  params: TParams
-) => Promise<NextResponse>
+  params: TParams,
+) => Promise<NextResponse>;
 
 /**
  * Next.js 動態路由參數類型
  */
-type RouteParams<T> = { params: Promise<T> }
+type RouteParams<T> = { params: Promise<T> };
 
 /**
  * 建立需要認證和授權的 API Route 包裝器
@@ -167,23 +173,23 @@ export function withAuth(permission: string) {
   return function <TParams = void>(handler: ApiHandler<TParams>) {
     return async function (
       request: NextRequest,
-      routeContext?: RouteParams<TParams>
+      routeContext?: RouteParams<TParams>,
     ): Promise<NextResponse> {
       try {
         // 取得資料庫客戶端
-        const db = getSupabaseClient()
+        const db = getSupabaseClient();
 
         // 驗證使用者
-        const user = await getAuthenticatedUser(request)
+        const user = await getAuthenticatedUser(request);
 
         if (!user) {
-          return ErrorResponses.unauthorized()
+          return ErrorResponses.unauthorized();
         }
 
         // 檢查權限
-        const hasPermission = await checkPermission(db, user.id, permission)
+        const hasPermission = await checkPermission(db, user.id, permission);
         if (!hasPermission) {
-          return ErrorResponses.insufficientPermissions(permission)
+          return ErrorResponses.insufficientPermissions(permission);
         }
 
         // 建立上下文並呼叫實際的 handler
@@ -193,18 +199,20 @@ export function withAuth(permission: string) {
             email: user.email,
           },
           db,
-        }
+        };
 
         // 解析動態路由參數
-        const params = routeContext?.params ? await routeContext.params : (undefined as TParams)
+        const params = routeContext?.params
+          ? await routeContext.params
+          : (undefined as TParams);
 
-        return await handler(request, context, params)
+        return await handler(request, context, params);
       } catch (error: unknown) {
-        console.error(`API Error [${permission}]:`, error)
-        return createErrorResponse(getErrorMessage(error), 500)
+        console.error(`API Error [${permission}]:`, error);
+        return createErrorResponse(getErrorMessage(error), 500);
       }
-    }
-  }
+    };
+  };
 }
 
 /**
@@ -228,17 +236,17 @@ export function withAuth(permission: string) {
 export function withAuthOnly<TParams = void>(handler: ApiHandler<TParams>) {
   return async function (
     request: NextRequest,
-    routeContext?: RouteParams<TParams>
+    routeContext?: RouteParams<TParams>,
   ): Promise<NextResponse> {
     try {
       // 取得資料庫客戶端
-      const db = getSupabaseClient()
+      const db = getSupabaseClient();
 
       // 驗證使用者
-      const user = await getAuthenticatedUser(request)
+      const user = await getAuthenticatedUser(request);
 
       if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
       // 建立上下文並呼叫實際的 handler
@@ -248,17 +256,22 @@ export function withAuthOnly<TParams = void>(handler: ApiHandler<TParams>) {
           email: user.email,
         },
         db,
-      }
+      };
 
       // 解析動態路由參數
-      const params = routeContext?.params ? await routeContext.params : (undefined as TParams)
+      const params = routeContext?.params
+        ? await routeContext.params
+        : (undefined as TParams);
 
-      return await handler(request, context, params)
+      return await handler(request, context, params);
     } catch (error: unknown) {
-      console.error('API Error [auth-only]:', error)
-      return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
+      console.error("API Error [auth-only]:", error);
+      return NextResponse.json(
+        { error: getErrorMessage(error) },
+        { status: 500 },
+      );
     }
-  }
+  };
 }
 
 // ============================================================================
@@ -270,9 +283,12 @@ export function withAuthOnly<TParams = void>(handler: ApiHandler<TParams>) {
  */
 export interface SubscriptionOptions {
   /** 需要的訂閱功能代碼 (如 'media_401', 'ai_cash_flow') */
-  requiredFeature?: string
+  requiredFeature?: string;
   /** 從請求中取得 company_id 的方式 */
-  getCompanyId?: (request: NextRequest, params?: unknown) => string | Promise<string>
+  getCompanyId?: (
+    request: NextRequest,
+    params?: unknown,
+  ) => string | Promise<string>;
 }
 
 /**
@@ -280,7 +296,7 @@ export interface SubscriptionOptions {
  */
 export interface ApiContextWithCompany extends ApiContext {
   /** 公司 ID (如果有提供 getCompanyId) */
-  companyId?: string
+  companyId?: string;
 }
 
 /**
@@ -289,8 +305,8 @@ export interface ApiContextWithCompany extends ApiContext {
 type ApiHandlerWithCompany<TParams = void> = (
   request: NextRequest,
   context: ApiContextWithCompany,
-  params: TParams
-) => Promise<NextResponse>
+  params: TParams,
+) => Promise<NextResponse>;
 
 /**
  * 處理訂閱相關錯誤，回傳適當的 HTTP 回應
@@ -299,31 +315,31 @@ function handleSubscriptionError(error: unknown): NextResponse | null {
   if (error instanceof FeatureNotAvailableError) {
     return NextResponse.json(
       {
-        error: 'Feature not available',
+        error: "Feature not available",
         message: error.message,
         feature_code: error.featureCode,
         current_tier: error.currentTier,
         upgrade_required: true,
       },
-      { status: 402 }
-    )
+      { status: 402 },
+    );
   }
 
   if (error instanceof UsageLimitExceededError) {
     return NextResponse.json(
       {
-        error: 'Usage limit exceeded',
+        error: "Usage limit exceeded",
         message: error.message,
         feature_code: error.featureCode,
         current_usage: error.currentUsage,
         quota_limit: error.quotaLimit,
         upgrade_required: true,
       },
-      { status: 402 }
-    )
+      { status: 402 },
+    );
   }
 
-  return null
+  return null;
 }
 
 /**
@@ -358,61 +374,67 @@ function handleSubscriptionError(error: unknown): NextResponse | null {
  */
 export function withAuthAndSubscription(
   permission: string,
-  options?: SubscriptionOptions
+  options?: SubscriptionOptions,
 ) {
   return function <TParams = void>(handler: ApiHandlerWithCompany<TParams>) {
     return async function (
       request: NextRequest,
-      routeContext?: RouteParams<TParams>
+      routeContext?: RouteParams<TParams>,
     ): Promise<NextResponse> {
       try {
         // 取得資料庫客戶端
-        const db = getSupabaseClient()
+        const db = getSupabaseClient();
 
         // 驗證使用者
-        const user = await getAuthenticatedUser(request)
+        const user = await getAuthenticatedUser(request);
 
         if (!user) {
-          return ErrorResponses.unauthorized()
+          return ErrorResponses.unauthorized();
         }
 
         // 檢查權限
-        const hasPermission = await checkPermission(db, user.id, permission)
+        const hasPermission = await checkPermission(db, user.id, permission);
         if (!hasPermission) {
-          return ErrorResponses.insufficientPermissions(permission)
+          return ErrorResponses.insufficientPermissions(permission);
         }
 
         // 解析動態路由參數
-        const params = routeContext?.params ? await routeContext.params : (undefined as TParams)
+        const params = routeContext?.params
+          ? await routeContext.params
+          : (undefined as TParams);
 
         // 取得 company_id (如果有提供 getCompanyId)
-        let companyId: string | undefined
+        let companyId: string | undefined;
 
         if (options?.getCompanyId) {
-          companyId = await options.getCompanyId(request, params)
+          companyId = await options.getCompanyId(request, params);
 
           if (!companyId) {
             return NextResponse.json(
-              { error: 'company_id is required for this operation' },
-              { status: 400 }
-            )
+              { error: "company_id is required for this operation" },
+              { status: 400 },
+            );
           }
         }
 
         // 檢查訂閱功能 (如果有要求)
         if (options?.requiredFeature && companyId) {
-          const hasAccess = await hasFeatureAccess(companyId, options.requiredFeature, db)
+          const hasAccess = await hasFeatureAccess(
+            companyId,
+            options.requiredFeature,
+            db,
+          );
 
           if (!hasAccess) {
             return NextResponse.json(
               {
-                error: 'Feature not available',
+                error: "Feature not available",
                 message: `This feature requires an upgraded subscription plan`,
                 feature_code: options.requiredFeature,
                 upgrade_required: true,
               },
-              { status: 402 }
-            )
+              { status: 402 },
+            );
           }
         }
 
@@ -424,21 +446,21 @@ export function withAuthAndSubscription(
           },
           db,
           companyId,
-        }
+        };
 
-        return await handler(request, context, params)
+        return await handler(request, context, params);
       } catch (error: unknown) {
         // 優先處理訂閱相關錯誤
-        const subscriptionError = handleSubscriptionError(error)
+        const subscriptionError = handleSubscriptionError(error);
         if (subscriptionError) {
-          return subscriptionError
+          return subscriptionError;
         }
 
-        console.error(`API Error [${permission}]:`, error)
-        return createErrorResponse(getErrorMessage(error), 500)
+        console.error(`API Error [${permission}]:`, error);
+        return createErrorResponse(getErrorMessage(error), 500);
       }
-    }
-  }
+    };
+  };
 }
 
 /**
@@ -462,50 +484,56 @@ export function withAuthOnlyAndSubscription(options?: SubscriptionOptions) {
   return function <TParams = void>(handler: ApiHandlerWithCompany<TParams>) {
     return async function (
       request: NextRequest,
-      routeContext?: RouteParams<TParams>
+      routeContext?: RouteParams<TParams>,
     ): Promise<NextResponse> {
       try {
         // 取得資料庫客戶端
-        const db = getSupabaseClient()
+        const db = getSupabaseClient();
 
         // 驗證使用者
-        const user = await getAuthenticatedUser(request)
+        const user = await getAuthenticatedUser(request);
 
         if (!user) {
-          return ErrorResponses.unauthorized()
+          return ErrorResponses.unauthorized();
         }
 
         // 解析動態路由參數
-        const params = routeContext?.params ? await routeContext.params : (undefined as TParams)
+        const params = routeContext?.params
+          ? await routeContext.params
+          : (undefined as TParams);
 
         // 取得 company_id (如果有提供 getCompanyId)
-        let companyId: string | undefined
+        let companyId: string | undefined;
 
         if (options?.getCompanyId) {
-          companyId = await options.getCompanyId(request, params)
+          companyId = await options.getCompanyId(request, params);
 
           if (!companyId) {
             return NextResponse.json(
-              { error: 'company_id is required for this operation' },
-              { status: 400 }
-            )
+              { error: "company_id is required for this operation" },
+              { status: 400 },
+            );
           }
         }
 
         // 檢查訂閱功能 (如果有要求)
         if (options?.requiredFeature && companyId) {
-          const hasAccess = await hasFeatureAccess(companyId, options.requiredFeature, db)
+          const hasAccess = await hasFeatureAccess(
+            companyId,
+            options.requiredFeature,
+            db,
+          );
 
           if (!hasAccess) {
             return NextResponse.json(
               {
-                error: 'Feature not available',
+                error: "Feature not available",
                 message: `This feature requires an upgraded subscription plan`,
                 feature_code: options.requiredFeature,
                 upgrade_required: true,
               },
-              { status: 402 }
-            )
+              { status: 402 },
+            );
           }
         }
 
@@ -517,19 +545,19 @@ export function withAuthOnlyAndSubscription(options?: SubscriptionOptions) {
           },
           db,
           companyId,
-        }
+        };
 
-        return await handler(request, context, params)
+        return await handler(request, context, params);
       } catch (error: unknown) {
         // 優先處理訂閱相關錯誤
-        const subscriptionError = handleSubscriptionError(error)
+        const subscriptionError = handleSubscriptionError(error);
         if (subscriptionError) {
-          return subscriptionError
+          return subscriptionError;
         }
 
-        console.error('API Error [auth-only-subscription]:', error)
-        return createErrorResponse(getErrorMessage(error), 500)
+        console.error("API Error [auth-only-subscription]:", error);
+        return createErrorResponse(getErrorMessage(error), 500);
       }
-    }
-  }
+    };
+  };
 }

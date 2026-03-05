@@ -26,57 +26,57 @@
  * | 14 | 空白保留 | 76-81 | 6 | X(6) | 全部填空白 |
  */
 
-import type { InvoiceDetail, TaxCategory } from './tax-report.service'
+import type { InvoiceDetail, TaxCategory } from "./tax-report.service";
 
 // ============================================
 // 常數定義
 // ============================================
 
 /** 每筆資料固定長度 */
-export const RECORD_LENGTH = 81
+export const RECORD_LENGTH = 81;
 
 /** 格式代號對照表 */
 export const FORMAT_CODES = {
   // 進項（21~29）
   INPUT: {
-    THREE_COPY: '21', // 三聯式、電子計算機統一發票
-    TWO_COPY: '22', // 二聯式收銀機發票、載有稅額之其他憑證
-    THREE_COPY_RETURN: '23', // 三聯式發票之進貨退出或折讓
-    TWO_COPY_RETURN: '24', // 二聯式發票之進貨退出或折讓
-    E_INVOICE: '25', // 電子發票進項（最常用）
-    SUMMARY_THREE: '26', // 彙總三聯式
-    SUMMARY_TWO: '27', // 彙總二聯式
-    CUSTOMS: '28', // 海關代徵營業稅繳納證
-    CUSTOMS_REFUND: '29', // 海關退還溢繳營業稅
+    THREE_COPY: "21", // 三聯式、電子計算機統一發票
+    TWO_COPY: "22", // 二聯式收銀機發票、載有稅額之其他憑證
+    THREE_COPY_RETURN: "23", // 三聯式發票之進貨退出或折讓
+    TWO_COPY_RETURN: "24", // 二聯式發票之進貨退出或折讓
+    E_INVOICE: "25", // 電子發票進項（最常用）
+    SUMMARY_THREE: "26", // 彙總三聯式
+    SUMMARY_TWO: "27", // 彙總二聯式
+    CUSTOMS: "28", // 海關代徵營業稅繳納證
+    CUSTOMS_REFUND: "29", // 海關退還溢繳營業稅
   },
   // 銷項（31~38）
   OUTPUT: {
-    THREE_COPY: '31', // 三聯式、電子計算機統一發票
-    TWO_COPY: '32', // 二聯式、二聯式收銀機發票
-    THREE_COPY_RETURN: '33', // 三聯式發票之銷貨退回或折讓
-    TWO_COPY_RETURN: '34', // 二聯式發票之銷貨退回或折讓
-    E_INVOICE: '35', // 電子發票銷項（最常用）
-    NO_INVOICE: '36', // 免用統一發票
-    SPECIAL: '37', // 特種稅額銷項憑證
-    SPECIAL_RETURN: '38', // 特種稅額銷貨退回或折讓
+    THREE_COPY: "31", // 三聯式、電子計算機統一發票
+    TWO_COPY: "32", // 二聯式、二聯式收銀機發票
+    THREE_COPY_RETURN: "33", // 三聯式發票之銷貨退回或折讓
+    TWO_COPY_RETURN: "34", // 二聯式發票之銷貨退回或折讓
+    E_INVOICE: "35", // 電子發票銷項（最常用）
+    NO_INVOICE: "36", // 免用統一發票
+    SPECIAL: "37", // 特種稅額銷項憑證
+    SPECIAL_RETURN: "38", // 特種稅額銷貨退回或折讓
   },
-} as const
+} as const;
 
 /** 課稅別 */
 export const TAX_TYPES = {
-  TAXABLE: '1', // 應稅（5%）
-  ZERO_RATED: '2', // 零稅率
-  EXEMPT: '3', // 免稅
-  SPECIAL: '9', // 特種稅額
-} as const
+  TAXABLE: "1", // 應稅（5%）
+  ZERO_RATED: "2", // 零稅率
+  EXEMPT: "3", // 免稅
+  SPECIAL: "9", // 特種稅額
+} as const;
 
 /** 扣抵代號（僅進項使用） */
 export const DEDUCTION_CODES = {
-  DEDUCTIBLE: '1', // 得扣抵進項稅額
-  NON_DEDUCTIBLE: '2', // 不得扣抵進項稅額
-  DEDUCTIBLE_ASSET: '3', // 得扣抵之固定資產
-  NON_DEDUCTIBLE_ASSET: '4', // 不得扣抵之固定資產
-} as const
+  DEDUCTIBLE: "1", // 得扣抵進項稅額
+  NON_DEDUCTIBLE: "2", // 不得扣抵進項稅額
+  DEDUCTIBLE_ASSET: "3", // 得扣抵之固定資產
+  NON_DEDUCTIBLE_ASSET: "4", // 不得扣抵之固定資產
+} as const;
 
 // ============================================
 // 類型定義
@@ -87,29 +87,29 @@ export const DEDUCTION_CODES = {
  */
 export interface MediaInvoiceData {
   /** 進項或銷項 */
-  type: 'INPUT' | 'OUTPUT'
+  type: "INPUT" | "OUTPUT";
   /** 發票號碼（如 AB-12345678 或 AB12345678） */
-  invoiceNumber: string
+  invoiceNumber: string;
   /** 發票日期（YYYY-MM-DD 格式） */
-  date: string
+  date: string;
   /** 交易對象統編 */
-  counterpartyTaxId: string
+  counterpartyTaxId: string;
   /** 銷售額（未稅） */
-  untaxedAmount: number
+  untaxedAmount: number;
   /** 稅額 */
-  taxAmount: number
+  taxAmount: number;
   /** 稅類別 */
-  taxCategory: TaxCategory
+  taxCategory: TaxCategory;
   /** 是否可扣抵（僅進項使用） */
-  isDeductible?: boolean
+  isDeductible?: boolean;
   /** 是否為固定資產（僅進項使用） */
-  isFixedAsset?: boolean
+  isFixedAsset?: boolean;
   /** 是否為彙總 */
-  isSummary?: boolean
+  isSummary?: boolean;
   /** 彙總張數（彙總時使用） */
-  summaryCount?: number
+  summaryCount?: number;
   /** 發票訖號（彙總時使用） */
-  invoiceEndNumber?: string
+  invoiceEndNumber?: string;
 }
 
 /**
@@ -117,11 +117,11 @@ export interface MediaInvoiceData {
  */
 export interface MediaFileOptions {
   /** 公司稅籍編號（統編8碼+分支碼1碼，總公司分支碼為0） */
-  taxRegistrationNumber: string
+  taxRegistrationNumber: string;
   /** 申報年度（西元年） */
-  year: number
+  year: number;
   /** 雙月期（1-6） */
-  biMonth: number
+  biMonth: number;
 }
 
 /**
@@ -129,21 +129,21 @@ export interface MediaFileOptions {
  */
 export interface MediaFileResult {
   /** 媒體檔內容 */
-  content: string
+  content: string;
   /** 總筆數 */
-  recordCount: number
+  recordCount: number;
   /** 進項筆數 */
-  inputCount: number
+  inputCount: number;
   /** 銷項筆數 */
-  outputCount: number
+  outputCount: number;
   /** 進項銷售額合計 */
-  inputAmount: number
+  inputAmount: number;
   /** 銷項銷售額合計 */
-  outputAmount: number
+  outputAmount: number;
   /** 進項稅額合計 */
-  inputTax: number
+  inputTax: number;
   /** 銷項稅額合計 */
-  outputTax: number
+  outputTax: number;
 }
 
 // ============================================
@@ -154,7 +154,7 @@ export interface MediaFileResult {
  * 將西元年轉換為民國年
  */
 export function toRocYear(westernYear: number): number {
-  return westernYear - 1911
+  return westernYear - 1911;
 }
 
 /**
@@ -162,35 +162,38 @@ export function toRocYear(westernYear: number): number {
  * 例如：2024年12月 → "11312"
  */
 export function formatYearMonth(year: number, month: number): string {
-  const rocYear = toRocYear(year)
-  return `${String(rocYear).padStart(3, '0')}${String(month).padStart(2, '0')}`
+  const rocYear = toRocYear(year);
+  return `${String(rocYear).padStart(3, "0")}${String(month).padStart(2, "0")}`;
 }
 
 /**
  * 從日期字串取得年月
  */
-export function extractYearMonth(dateStr: string): { year: number; month: number } {
-  const date = new Date(dateStr)
+export function extractYearMonth(dateStr: string): {
+  year: number;
+  month: number;
+} {
+  const date = new Date(dateStr);
   return {
     year: date.getFullYear(),
     month: date.getMonth() + 1,
-  }
+  };
 }
 
 /**
  * 數字靠右補零
  */
 export function padNumber(num: number, length: number): string {
-  const absNum = Math.abs(Math.round(num))
-  return String(absNum).padStart(length, '0')
+  const absNum = Math.abs(Math.round(num));
+  return String(absNum).padStart(length, "0");
 }
 
 /**
  * 文字靠左補空白
  */
 export function padText(text: string, length: number): string {
-  const trimmed = (text || '').substring(0, length)
-  return trimmed.padEnd(length, ' ')
+  const trimmed = (text || "").substring(0, length);
+  return trimmed.padEnd(length, " ");
 }
 
 /**
@@ -198,7 +201,7 @@ export function padText(text: string, length: number): string {
  * AB-12345678 → AB12345678
  */
 export function cleanInvoiceNumber(invoiceNumber: string): string {
-  return invoiceNumber.replace(/[-\s]/g, '')
+  return invoiceNumber.replace(/[-\s]/g, "");
 }
 
 /**
@@ -206,14 +209,14 @@ export function cleanInvoiceNumber(invoiceNumber: string): string {
  */
 export function getTaxTypeCode(taxCategory: TaxCategory): string {
   switch (taxCategory) {
-    case 'TAXABLE_5':
-      return TAX_TYPES.TAXABLE
-    case 'ZERO_RATED':
-      return TAX_TYPES.ZERO_RATED
-    case 'EXEMPT':
-      return TAX_TYPES.EXEMPT
+    case "TAXABLE_5":
+      return TAX_TYPES.TAXABLE;
+    case "ZERO_RATED":
+      return TAX_TYPES.ZERO_RATED;
+    case "EXEMPT":
+      return TAX_TYPES.EXEMPT;
     default:
-      return TAX_TYPES.TAXABLE
+      return TAX_TYPES.TAXABLE;
   }
 }
 
@@ -222,12 +225,12 @@ export function getTaxTypeCode(taxCategory: TaxCategory): string {
  */
 export function getDeductionCode(
   isDeductible: boolean,
-  isFixedAsset: boolean
+  isFixedAsset: boolean,
 ): string {
-  if (isDeductible && isFixedAsset) return DEDUCTION_CODES.DEDUCTIBLE_ASSET
-  if (isDeductible) return DEDUCTION_CODES.DEDUCTIBLE
-  if (isFixedAsset) return DEDUCTION_CODES.NON_DEDUCTIBLE_ASSET
-  return DEDUCTION_CODES.NON_DEDUCTIBLE
+  if (isDeductible && isFixedAsset) return DEDUCTION_CODES.DEDUCTIBLE_ASSET;
+  if (isDeductible) return DEDUCTION_CODES.DEDUCTIBLE;
+  if (isFixedAsset) return DEDUCTION_CODES.NON_DEDUCTIBLE_ASSET;
+  return DEDUCTION_CODES.NON_DEDUCTIBLE;
 }
 
 // ============================================
@@ -240,73 +243,83 @@ export function getDeductionCode(
 export function generateMediaLine(
   invoice: MediaInvoiceData,
   options: MediaFileOptions,
-  sequenceNumber: number
+  sequenceNumber: number,
 ): string {
-  const { taxRegistrationNumber, year, biMonth } = options
-  const { type, invoiceNumber, counterpartyTaxId, untaxedAmount, taxAmount, taxCategory } = invoice
+  const { taxRegistrationNumber, year, biMonth } = options;
+  const {
+    type,
+    invoiceNumber,
+    counterpartyTaxId,
+    untaxedAmount,
+    taxAmount,
+    taxCategory,
+  } = invoice;
 
   // 確保稅籍編號為 9 碼（統編8碼+分支碼1碼）
-  const taxRegNum = padText(taxRegistrationNumber, 9)
+  const taxRegNum = padText(taxRegistrationNumber, 9);
 
   // 格式代號（預設使用電子發票格式）
-  const formatCode = type === 'INPUT' ? FORMAT_CODES.INPUT.E_INVOICE : FORMAT_CODES.OUTPUT.E_INVOICE
+  const formatCode =
+    type === "INPUT"
+      ? FORMAT_CODES.INPUT.E_INVOICE
+      : FORMAT_CODES.OUTPUT.E_INVOICE;
 
   // 流水號（7碼）
-  const seqNum = padNumber(sequenceNumber, 7)
+  const seqNum = padNumber(sequenceNumber, 7);
 
   // 計算申報年月（取雙月期的結束月份）
-  const endMonth = biMonth * 2
-  const yearMonth = formatYearMonth(year, endMonth)
+  const endMonth = biMonth * 2;
+  const yearMonth = formatYearMonth(year, endMonth);
 
   // 清理發票號碼
-  const cleanedInvoiceNum = cleanInvoiceNumber(invoiceNumber)
-  const invoiceTrack = padText(cleanedInvoiceNum, 10)
+  const cleanedInvoiceNum = cleanInvoiceNumber(invoiceNumber);
+  const invoiceTrack = padText(cleanedInvoiceNum, 10);
 
   // 買受人統編/發票訖號（8碼）
   // 進項：填自己公司統編（取前8碼）
   // 銷項：填買方統編
-  let buyerTaxId: string
-  if (type === 'INPUT') {
-    buyerTaxId = padText(taxRegistrationNumber.substring(0, 8), 8)
+  let buyerTaxId: string;
+  if (type === "INPUT") {
+    buyerTaxId = padText(taxRegistrationNumber.substring(0, 8), 8);
   } else {
-    buyerTaxId = padText(counterpartyTaxId || '', 8)
+    buyerTaxId = padText(counterpartyTaxId || "", 8);
   }
 
   // 銷售人統編/彙總張數（8碼）
   // 進項：填賣方統編
   // 銷項：填自己公司統編（取前8碼）
-  let sellerTaxId: string
-  if (type === 'INPUT') {
-    sellerTaxId = padText(counterpartyTaxId || '', 8)
+  let sellerTaxId: string;
+  if (type === "INPUT") {
+    sellerTaxId = padText(counterpartyTaxId || "", 8);
   } else {
-    sellerTaxId = padText(taxRegistrationNumber.substring(0, 8), 8)
+    sellerTaxId = padText(taxRegistrationNumber.substring(0, 8), 8);
   }
 
   // 銷售額（12碼，靠右補零）
-  const salesAmount = padNumber(untaxedAmount, 12)
+  const salesAmount = padNumber(untaxedAmount, 12);
 
   // 課稅別（1碼）
-  const taxType = getTaxTypeCode(taxCategory)
+  const taxType = getTaxTypeCode(taxCategory);
 
   // 稅額（10碼，靠右補零）
-  const tax = padNumber(taxAmount, 10)
+  const tax = padNumber(taxAmount, 10);
 
   // 扣抵代號（1碼）- 銷項不填（空白）
-  let deductionCode = ' '
-  if (type === 'INPUT') {
-    const isDeductible = invoice.isDeductible !== false // 預設可扣抵
-    const isFixedAsset = invoice.isFixedAsset === true
-    deductionCode = getDeductionCode(isDeductible, isFixedAsset)
+  let deductionCode = " ";
+  if (type === "INPUT") {
+    const isDeductible = invoice.isDeductible !== false; // 預設可扣抵
+    const isFixedAsset = invoice.isFixedAsset === true;
+    deductionCode = getDeductionCode(isDeductible, isFixedAsset);
   }
 
   // 彙加註記（1碼）- 空白=逐筆, A=彙總
-  const summaryMark = invoice.isSummary ? 'A' : ' '
+  const summaryMark = invoice.isSummary ? "A" : " ";
 
   // 通關方式（1碼）- 非零稅率留空白
-  const customsType = taxCategory === 'ZERO_RATED' ? '1' : ' '
+  const customsType = taxCategory === "ZERO_RATED" ? "1" : " ";
 
   // 空白保留（6碼）
-  const reserved = '      '
+  const reserved = "      ";
 
   // 組合 81 bytes 記錄
   const line =
@@ -323,16 +336,16 @@ export function generateMediaLine(
     deductionCode + // 73 (1)
     summaryMark + // 74 (1)
     customsType + // 75 (1)
-    reserved // 76-81 (6)
+    reserved; // 76-81 (6)
 
   // 驗證長度
   if (line.length !== RECORD_LENGTH) {
     throw new Error(
-      `媒體檔記錄長度錯誤：預期 ${RECORD_LENGTH}，實際 ${line.length}。發票號碼：${invoiceNumber}`
-    )
+      `媒體檔記錄長度錯誤：預期 ${RECORD_LENGTH}，實際 ${line.length}。發票號碼：${invoiceNumber}`,
+    );
   }
 
-  return line
+  return line;
 }
 
 /**
@@ -340,7 +353,7 @@ export function generateMediaLine(
  */
 export function invoiceDetailToMediaData(
   detail: InvoiceDetail,
-  type: 'INPUT' | 'OUTPUT'
+  type: "INPUT" | "OUTPUT",
 ): MediaInvoiceData {
   return {
     type,
@@ -350,10 +363,10 @@ export function invoiceDetailToMediaData(
     untaxedAmount: detail.untaxedAmount,
     taxAmount: detail.taxAmount,
     taxCategory: detail.taxCategory,
-    isDeductible: type === 'INPUT' ? detail.taxAmount > 0 : undefined,
+    isDeductible: type === "INPUT" ? detail.taxAmount > 0 : undefined,
     isFixedAsset: false,
     isSummary: false,
-  }
+  };
 }
 
 /**
@@ -361,31 +374,31 @@ export function invoiceDetailToMediaData(
  */
 export function generateMediaFile(
   invoices: MediaInvoiceData[],
-  options: MediaFileOptions
+  options: MediaFileOptions,
 ): MediaFileResult {
-  let content = ''
-  let sequenceNumber = 0
-  let inputCount = 0
-  let outputCount = 0
-  let inputAmount = 0
-  let outputAmount = 0
-  let inputTax = 0
-  let outputTax = 0
+  let content = "";
+  let sequenceNumber = 0;
+  let inputCount = 0;
+  let outputCount = 0;
+  let inputAmount = 0;
+  let outputAmount = 0;
+  let inputTax = 0;
+  let outputTax = 0;
 
   for (const invoice of invoices) {
-    sequenceNumber++
-    const line = generateMediaLine(invoice, options, sequenceNumber)
-    content += line
+    sequenceNumber++;
+    const line = generateMediaLine(invoice, options, sequenceNumber);
+    content += line;
 
     // 統計
-    if (invoice.type === 'INPUT') {
-      inputCount++
-      inputAmount += invoice.untaxedAmount
-      inputTax += invoice.taxAmount
+    if (invoice.type === "INPUT") {
+      inputCount++;
+      inputAmount += invoice.untaxedAmount;
+      inputTax += invoice.taxAmount;
     } else {
-      outputCount++
-      outputAmount += invoice.untaxedAmount
-      outputTax += invoice.taxAmount
+      outputCount++;
+      outputAmount += invoice.untaxedAmount;
+      outputTax += invoice.taxAmount;
     }
   }
 
@@ -398,54 +411,139 @@ export function generateMediaFile(
     outputAmount,
     inputTax,
     outputTax,
+  };
+}
+
+// ============================================
+// V2: 退出折讓 + 作廢發票格式代號
+// ============================================
+
+export type ReturnTypeMedia = "NONE" | "RETURN" | "ALLOWANCE";
+export type InvoiceFormatMedia = "THREE_COPY" | "TWO_COPY" | "E_INVOICE";
+
+/**
+ * V2 媒體檔發票資料（擴充退折讓和作廢）
+ */
+export interface MediaInvoiceDataV2 extends MediaInvoiceData {
+  returnType?: ReturnTypeMedia;
+  isVoided?: boolean;
+  originalInvoiceNumber?: string;
+  originalInvoiceDate?: string;
+}
+
+/**
+ * 決定媒體檔格式代號
+ * 根據進銷項類型、退出折讓、發票格式決定
+ */
+export function determineFormatCode(
+  type: "INPUT" | "OUTPUT",
+  returnType: ReturnTypeMedia = "NONE",
+  invoiceFormat: InvoiceFormatMedia = "E_INVOICE",
+): string {
+  if (type === "OUTPUT") {
+    if (returnType === "RETURN" || returnType === "ALLOWANCE") {
+      return invoiceFormat === "TWO_COPY"
+        ? FORMAT_CODES.OUTPUT.TWO_COPY_RETURN // 34
+        : FORMAT_CODES.OUTPUT.THREE_COPY_RETURN; // 33
+    }
+    return invoiceFormat === "TWO_COPY"
+      ? FORMAT_CODES.OUTPUT.TWO_COPY
+      : invoiceFormat === "THREE_COPY"
+        ? FORMAT_CODES.OUTPUT.THREE_COPY
+        : FORMAT_CODES.OUTPUT.E_INVOICE;
+  } else {
+    if (returnType === "RETURN" || returnType === "ALLOWANCE") {
+      return invoiceFormat === "TWO_COPY"
+        ? FORMAT_CODES.INPUT.TWO_COPY_RETURN // 24
+        : FORMAT_CODES.INPUT.THREE_COPY_RETURN; // 23
+    }
+    return invoiceFormat === "TWO_COPY"
+      ? FORMAT_CODES.INPUT.TWO_COPY
+      : invoiceFormat === "THREE_COPY"
+        ? FORMAT_CODES.INPUT.THREE_COPY
+        : FORMAT_CODES.INPUT.E_INVOICE;
   }
+}
+
+/**
+ * V2: 產生單筆媒體檔記錄（支援退折讓和作廢）
+ */
+export function generateMediaLineV2(
+  invoice: MediaInvoiceDataV2,
+  options: MediaFileOptions,
+  sequenceNumber: number,
+): string {
+  // 作廢發票：金額 = 0, 稅額 = 0, 保留字軌
+  const effectiveUntaxed = invoice.isVoided ? 0 : invoice.untaxedAmount;
+  const effectiveTax = invoice.isVoided ? 0 : invoice.taxAmount;
+
+  // 使用 V2 格式代號判斷
+  const formatCode = determineFormatCode(
+    invoice.type,
+    invoice.returnType,
+    "E_INVOICE", // 預設電子發票
+  );
+
+  const modifiedInvoice: MediaInvoiceData = {
+    ...invoice,
+    untaxedAmount: effectiveUntaxed,
+    taxAmount: effectiveTax,
+  };
+
+  // 重用現有的 generateMediaLine，但替換格式代號
+  const line = generateMediaLine(modifiedInvoice, options, sequenceNumber);
+
+  // 替換前 2 碼的格式代號
+  return formatCode + line.substring(2);
 }
 
 /**
  * 驗證媒體檔格式
  */
 export function validateMediaFile(content: string): {
-  valid: boolean
-  recordCount: number
-  errors: string[]
+  valid: boolean;
+  recordCount: number;
+  errors: string[];
 } {
-  const errors: string[] = []
+  const errors: string[] = [];
 
   if (content.length === 0) {
-    return { valid: true, recordCount: 0, errors: [] }
+    return { valid: true, recordCount: 0, errors: [] };
   }
 
   if (content.length % RECORD_LENGTH !== 0) {
-    errors.push(
-      `檔案長度 ${content.length} 不是 ${RECORD_LENGTH} 的倍數`
-    )
+    errors.push(`檔案長度 ${content.length} 不是 ${RECORD_LENGTH} 的倍數`);
   }
 
-  const recordCount = Math.floor(content.length / RECORD_LENGTH)
+  const recordCount = Math.floor(content.length / RECORD_LENGTH);
 
   // 驗證每筆記錄
   for (let i = 0; i < recordCount; i++) {
-    const start = i * RECORD_LENGTH
-    const record = content.substring(start, start + RECORD_LENGTH)
+    const start = i * RECORD_LENGTH;
+    const record = content.substring(start, start + RECORD_LENGTH);
 
     // 驗證格式代號
-    const formatCode = record.substring(0, 2)
-    const validInputCodes = Object.values(FORMAT_CODES.INPUT)
-    const validOutputCodes = Object.values(FORMAT_CODES.OUTPUT)
+    const formatCode = record.substring(0, 2);
+    const validInputCodes = Object.values(FORMAT_CODES.INPUT);
+    const validOutputCodes = Object.values(FORMAT_CODES.OUTPUT);
     if (
-      !validInputCodes.includes(formatCode as typeof validInputCodes[number]) &&
-      !validOutputCodes.includes(formatCode as typeof validOutputCodes[number])
+      !validInputCodes.includes(
+        formatCode as (typeof validInputCodes)[number],
+      ) &&
+      !validOutputCodes.includes(
+        formatCode as (typeof validOutputCodes)[number],
+      )
     ) {
-      errors.push(`第 ${i + 1} 筆記錄格式代號錯誤：${formatCode}`)
+      errors.push(`第 ${i + 1} 筆記錄格式代號錯誤：${formatCode}`);
     }
 
     // 驗證流水號
-    const seqNum = record.substring(11, 18)
-    const expectedSeq = String(i + 1).padStart(7, '0')
+    const seqNum = record.substring(11, 18);
+    const expectedSeq = String(i + 1).padStart(7, "0");
     if (seqNum !== expectedSeq) {
       errors.push(
-        `第 ${i + 1} 筆記錄流水號錯誤：預期 ${expectedSeq}，實際 ${seqNum}`
-      )
+        `第 ${i + 1} 筆記錄流水號錯誤：預期 ${expectedSeq}，實際 ${seqNum}`,
+      );
     }
   }
 
@@ -453,5 +551,5 @@ export function validateMediaFile(content: string): {
     valid: errors.length === 0,
     recordCount,
     errors,
-  }
+  };
 }
