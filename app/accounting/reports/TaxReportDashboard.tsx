@@ -171,14 +171,25 @@ export default function TaxReportDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company?.id, year, biMonth]);
 
-  // 留抵稅額更新
-  const handleOpeningOffsetChange = (value: string) => {
+  // 留抵稅額更新（onBlur 觸發，避免每次 keystroke 都打 API）
+  const [openingOffsetInput, setOpeningOffsetInput] = useState("");
+  useEffect(() => {
+    if (currentDeclaration) {
+      setOpeningOffsetInput(String(currentDeclaration.opening_offset_amount));
+    }
+  }, [currentDeclaration]);
+
+  const handleOpeningOffsetBlur = () => {
     if (!currentDeclaration || currentDeclaration.status !== "draft") return;
-    const amount = parseFloat(value) || 0;
+    const amount = parseFloat(openingOffsetInput) || 0;
+    if (amount === currentDeclaration.opening_offset_amount) return;
     updateDecl.mutate(
       { id: currentDeclaration.id, opening_offset_amount: amount },
       {
-        onSuccess: (updated) => setCurrentDeclaration(updated),
+        onSuccess: (updated) => {
+          setCurrentDeclaration(updated);
+          refetch(); // 重算稅額
+        },
         onError: (err) =>
           toast.error("更新留抵稅額失敗: " + (err as Error).message),
       },
@@ -360,8 +371,9 @@ export default function TaxReportDashboard() {
                 <Input
                   type="number"
                   min={0}
-                  value={currentDeclaration.opening_offset_amount}
-                  onChange={(e) => handleOpeningOffsetChange(e.target.value)}
+                  value={openingOffsetInput}
+                  onChange={(e) => setOpeningOffsetInput(e.target.value)}
+                  onBlur={handleOpeningOffsetBlur}
                   disabled={currentDeclaration.status !== "draft"}
                   className="w-36 h-8 text-sm"
                 />
