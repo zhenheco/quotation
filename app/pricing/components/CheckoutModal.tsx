@@ -1,21 +1,28 @@
-'use client'
+"use client";
 
-import { useEffect, useState, useSyncExternalStore } from 'react'
-import { createPortal } from 'react-dom'
-import { CreditCard, Shield, X, Zap, Calendar, Clock } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
-import type { SubscriptionPlan, BillingCycle, SubscriptionTier } from '@/hooks/use-subscription'
-import { PLAN_DESCRIPTIONS } from '../constants/pricing-features'
-import { cn } from '@/lib/utils'
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
+import { CreditCard, Shield, X, Zap, Calendar, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import type {
+  SubscriptionPlan,
+  BillingCycle,
+  SubscriptionTier,
+} from "@/hooks/use-subscription";
+import { PLAN_DESCRIPTIONS } from "../constants/pricing-features";
+import { cn } from "@/lib/utils";
+import { InvoiceForm, type InvoiceFormData } from "./InvoiceForm";
 
 interface CheckoutModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onConfirm: () => Promise<void>
-  plan: SubscriptionPlan | null
-  billingCycle: BillingCycle
-  currentTier?: SubscriptionTier | null
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+  plan: SubscriptionPlan | null;
+  billingCycle: BillingCycle;
+  currentTier?: SubscriptionTier | null;
+  invoiceData?: InvoiceFormData;
+  onInvoiceChange?: (data: InvoiceFormData) => void;
 }
 
 /**
@@ -29,66 +36,78 @@ export function CheckoutModal({
   plan,
   billingCycle,
   currentTier,
+  invoiceData,
+  onInvoiceChange,
 }: CheckoutModalProps) {
   // 偵測客戶端掛載，避免在 useEffect 中 setState
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
-    () => false
-  )
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+    () => false,
+  );
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // 用 render 階段同步模式重置狀態
-  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   if (isOpen !== prevIsOpen) {
-    setPrevIsOpen(isOpen)
+    setPrevIsOpen(isOpen);
     if (isOpen) {
-      setError(null)
-      setIsProcessing(false)
+      setError(null);
+      setIsProcessing(false);
     }
   }
 
   // ESC 關閉
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !isProcessing) {
-        onClose()
+      if (e.key === "Escape" && isOpen && !isProcessing) {
+        onClose();
       }
-    }
+    };
     if (isOpen) {
-      document.addEventListener('keydown', handleEsc)
-      document.body.style.overflow = 'hidden'
+      document.addEventListener("keydown", handleEsc);
+      document.body.style.overflow = "hidden";
     }
     return () => {
-      document.removeEventListener('keydown', handleEsc)
-      document.body.style.overflow = ''
-    }
-  }, [isOpen, isProcessing, onClose])
+      document.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, isProcessing, onClose]);
 
-  if (!mounted || !isOpen || !plan) return null
+  if (!mounted || !isOpen || !plan) return null;
 
-  const price = billingCycle === 'MONTHLY' ? plan.monthly_price : plan.yearly_price
+  const price =
+    billingCycle === "MONTHLY" ? plan.monthly_price : plan.yearly_price;
   const pricePerMonth =
-    billingCycle === 'YEARLY' ? Math.round(plan.yearly_price / 12) : plan.monthly_price
-  const description = PLAN_DESCRIPTIONS[plan.tier]
+    billingCycle === "YEARLY"
+      ? Math.round(plan.yearly_price / 12)
+      : plan.monthly_price;
+  const description = PLAN_DESCRIPTIONS[plan.tier];
 
-  const TIER_ORDER: SubscriptionTier[] = ['FREE', 'STARTER', 'STANDARD', 'PROFESSIONAL']
+  const TIER_ORDER: SubscriptionTier[] = [
+    "FREE",
+    "STARTER",
+    "STANDARD",
+    "PROFESSIONAL",
+  ];
   const isUpgrade = currentTier
     ? TIER_ORDER.indexOf(plan.tier) > TIER_ORDER.indexOf(currentTier)
-    : true
+    : true;
 
   const handleConfirm = async () => {
-    setIsProcessing(true)
-    setError(null)
+    setIsProcessing(true);
+    setError(null);
 
     try {
-      await onConfirm()
+      await onConfirm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '付款過程發生錯誤，請稍後再試')
-      setIsProcessing(false)
+      setError(
+        err instanceof Error ? err.message : "付款過程發生錯誤，請稍後再試",
+      );
+      setIsProcessing(false);
     }
-  }
+  };
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -101,8 +120,8 @@ export function CheckoutModal({
       {/* Modal 內容 */}
       <div
         className={cn(
-          'relative z-10 w-full max-w-md bg-white rounded-3xl shadow-2xl animate-scale-in',
-          'overflow-hidden'
+          "relative z-10 w-full max-w-md max-h-[90vh] bg-white rounded-3xl shadow-2xl animate-scale-in",
+          "overflow-y-auto",
         )}
       >
         {/* 關閉按鈕 */}
@@ -121,15 +140,19 @@ export function CheckoutModal({
             <Zap className="h-7 w-7 text-primary" />
           </div>
           <h2 className="text-xl font-bold text-foreground">
-            {isUpgrade ? '升級至' : '變更為'} {description.title}
+            {isUpgrade ? "升級至" : "變更為"} {description.title}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">{description.subtitle}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {description.subtitle}
+          </p>
         </div>
 
         {/* 訂單摘要 */}
         <div className="px-6 py-6">
           <div className="rounded-2xl border border-border bg-slate-50/50 p-4">
-            <h3 className="mb-4 text-sm font-semibold text-slate-500">訂單摘要</h3>
+            <h3 className="mb-4 text-sm font-semibold text-slate-500">
+              訂單摘要
+            </h3>
 
             <div className="space-y-3">
               {/* 方案 */}
@@ -138,7 +161,9 @@ export function CheckoutModal({
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-slate-600">方案</span>
                 </div>
-                <span className="text-sm font-medium text-foreground">{description.title}</span>
+                <span className="text-sm font-medium text-foreground">
+                  {description.title}
+                </span>
               </div>
 
               {/* 計費週期 */}
@@ -148,19 +173,19 @@ export function CheckoutModal({
                   <span className="text-sm text-slate-600">計費週期</span>
                 </div>
                 <span className="text-sm font-medium text-foreground">
-                  {billingCycle === 'MONTHLY' ? '月繳' : '年繳'}
+                  {billingCycle === "MONTHLY" ? "月繳" : "年繳"}
                 </span>
               </div>
 
               {/* 單價 */}
-              {billingCycle === 'YEARLY' && (
+              {billingCycle === "YEARLY" && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-slate-600">月均價格</span>
                   </div>
                   <span className="text-sm font-medium text-foreground">
-                    NT${pricePerMonth.toLocaleString('zh-TW')}/月
+                    NT${pricePerMonth.toLocaleString("zh-TW")}/月
                   </span>
                 </div>
               )}
@@ -171,14 +196,28 @@ export function CheckoutModal({
               {/* 總計 */}
               <div className="flex items-center justify-between">
                 <span className="text-base font-semibold text-foreground">
-                  {billingCycle === 'MONTHLY' ? '本月應付' : '年度總計'}
+                  {billingCycle === "MONTHLY" ? "本月應付" : "年度總計"}
                 </span>
                 <span className="text-xl font-bold text-primary">
-                  NT${price.toLocaleString('zh-TW')}
+                  NT${price.toLocaleString("zh-TW")}
                 </span>
               </div>
             </div>
           </div>
+
+          {/* 發票資訊 */}
+          {onInvoiceChange && invoiceData && (
+            <div className="mt-4 rounded-2xl border border-border bg-slate-50/50 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-slate-500">
+                發票資訊
+              </h3>
+              <InvoiceForm
+                value={invoiceData}
+                onChange={onInvoiceChange}
+                disabled={isProcessing}
+              />
+            </div>
+          )}
 
           {/* 安全提示 */}
           <div className="mt-4 flex items-start gap-2 rounded-xl bg-emerald-50 px-4 py-3">
@@ -186,7 +225,8 @@ export function CheckoutModal({
             <div className="text-xs text-emerald-700">
               <span className="font-medium">安全付款</span>
               <br />
-              您的付款資訊由 PAYUNi 統一金流安全處理，我們不會儲存任何信用卡資訊。
+              您的付款資訊由 PAYUNi
+              統一金流安全處理，我們不會儲存任何信用卡資訊。
             </div>
           </div>
 
@@ -243,9 +283,9 @@ export function CheckoutModal({
         </div>
       </div>
     </div>
-  )
+  );
 
-  return typeof window !== 'undefined' && mounted
+  return typeof window !== "undefined" && mounted
     ? createPortal(modalContent, document.body)
-    : null
+    : null;
 }

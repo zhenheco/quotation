@@ -6,20 +6,6 @@
  * 支援單次付款和定期定額付款。
  * 使用 PAYUNi（統一金流）作為金流服務商。
  *
- * ## ⚠️ 重要：API 回應欄位名稱
- *
- * 微服務 API 回傳的表單欄位名稱是 `payuniForm`，不是 `paymentForm`！
- * 使用時請注意：
- *
- * ```typescript
- * const result = await client.createPayment({...});
- * // ❌ 錯誤：paymentForm 會是 undefined
- * // const form = result.paymentForm;
- *
- * // ✅ 正確：使用 payuniForm 或同時檢查兩者
- * const form = result.payuniForm || result.paymentForm;
- * ```
- *
  * ## 安裝
  *
  * ```bash
@@ -51,9 +37,8 @@
  *   email: 'user@example.com',
  * });
  *
- * // 提交表單到 PAYUNi（注意使用 payuniForm）
- * const paymentForm = result.payuniForm || result.paymentForm;
- * submitPaymentForm(paymentForm);
+ * // 提交表單到 PAYUNi
+ * submitPaymentForm(result.paymentForm);
  * ```
  *
  * ## 定期定額付款
@@ -66,15 +51,14 @@
  *   email: 'user@example.com',
  *   periodParams: {
  *     periodType: 'M',      // 每月
+ *     periodPoint: '01',    // 每月 1 號
  *     periodAmt: 299,       // 每期金額
  *     periodTimes: 12,      // 共 12 期
- *     periodFirstdate: '2025-02-01', // 首次扣款日
  *   },
  * });
  *
- * // 提交表單到 PAYUNi（注意使用 payuniForm）
- * const paymentForm = result.payuniForm || result.paymentForm;
- * submitPaymentForm(paymentForm);
+ * // 提交表單到 PAYUNi
+ * submitPaymentForm(result.paymentForm);
  * ```
  *
  * ## 驗證 Webhook
@@ -129,33 +113,56 @@ export type PeriodType = 'D' | 'W' | 'M' | 'Y';
 export interface PeriodPaymentParams {
   /**
    * 週期類型
-   * - D: 每日
+   * - D: 每日（注意：目前微服務會映射至每週）
    * - W: 每週
    * - M: 每月
    * - Y: 每年
    */
   periodType: PeriodType;
-  /** 每期金額 */
-  periodAmt: number;
-  /** 授權期數（共幾期） */
-  periodTimes: number;
-  /** 首次扣款日（YYYY-MM-DD） */
-  periodFirstdate: string;
   /**
-   * 週期點（根據週期類型有不同意義）
-   * - D: 間隔天數 (2~999)
-   * - W: 週幾 (1~7，1=週一)
-   * - M: 幾號 (01~31)
-   * - Y: MMDD 格式 (如 0115 = 1月15日)
+   * 扣款日期點（選填，若未提供則依首次扣款日自動計算）
+   * - D/W: 1~7（星期一~日）
+   * - M: 01~31（每月幾號）
+   * - Y: MMDD（每年幾月幾號，如 0115）
    */
   periodPoint?: string;
+  /** 授權期數（共幾期） */
+  periodTimes: number;
+  /** 首次扣款日（YYYY-MM-DD，選填，向下相容） */
+  periodFirstdate?: string;
   /**
-   * 週期開始類型
-   * - 1: 立即開始
-   * - 2: 首期日開始
-   * - 3: 指定日開始
+   * 交易模式（選填）
+   * - 1: 十元授權（立即扣 10 元驗證，首期依排程）
+   * - 2: 委託金額授權（立即扣首期金額）
+   * - 3: 不授權
+   * 預設為 2
    */
   periodStartType?: 1 | 2 | 3;
+}
+
+/**
+ * 發票載具類型
+ */
+export type InvoiceCarrierType = 'MOBILE' | 'CERTIFICATE' | 'DONATE';
+
+/**
+ * 發票輸入資訊
+ */
+export interface InvoiceInput {
+  /** 買方名稱（預設用付款人姓名） */
+  buyerName?: string;
+  /** 買方統編（有填 = B2B 發票） */
+  buyerTaxId?: string;
+  /** 發票 Email（預設用付款人 email） */
+  buyerEmail?: string;
+  /** 買方地址 */
+  buyerAddress?: string;
+  /** 買方電話 */
+  buyerPhone?: string;
+  /** 載具類型：MOBILE=手機條碼, CERTIFICATE=自然人憑證, DONATE=捐贈 */
+  carrierType?: InvoiceCarrierType;
+  /** 載具號碼（手機條碼/自然人憑證）或捐贈碼 */
+  carrierId?: string;
 }
 
 /**
@@ -179,54 +186,40 @@ export interface CreatePaymentParams {
   /** 付款期限（分鐘，預設 30，僅單次付款有效） */
   expireMinutes?: number;
   /** 額外資料（會在 Webhook 中返回） */
-  metadata?: Record<string, string>;
+  metadata?: Record<string, unknown>;
   /** 定期定額參數（提供此參數則為定期定額付款） */
   periodParams?: PeriodPaymentParams;
-}
-
-/**
- * PAYUNi 表單資料格式
- */
-interface PayuniFormData {
-  /** 表單提交網址 */
-  action: string;
-  /** HTTP 方法 */
-  method: 'POST';
-  /**
-   * 表單欄位
-   * - MerID: 商店編號
-   * - Version: API 版本（1.0）
-   * - EncryptInfo: 加密資料
-   * - HashInfo: 簽名
-   */
-  fields: Record<string, string>;
+  /** 發票資訊（付款成功後自動開立） */
+  invoice?: InvoiceInput;
 }
 
 /**
  * 付款結果
- *
- * ⚠️ 重要：微服務 API 回傳的是 `payuniForm`，不是 `paymentForm`！
- * 使用時請優先檢查 `payuniForm`，或使用以下方式取得表單資料：
- *
- * ```typescript
- * const paymentForm = result.paymentForm || result.payuniForm;
- * ```
  */
 export interface PaymentResult {
   /** 是否成功 */
   success: boolean;
   /** 付款 ID */
   paymentId: string;
+  /** PAYUNi 表單資料（用於前端提交） */
+  paymentForm?: {
+    /** 表單提交網址 */
+    action: string;
+    /** HTTP 方法 */
+    method: 'POST';
+    /**
+     * 表單欄位
+     * - MerID: 商店編號
+     * - Version: API 版本（1.0）
+     * - EncryptInfo: 加密資料
+     * - HashInfo: 簽名
+     */
+    fields: Record<string, string>;
+  };
   /**
-   * PAYUNi 表單資料（SDK 定義的欄位名稱）
-   * @deprecated 微服務實際回傳 payuniForm，請優先使用 payuniForm
+   * PAYUNi 表單資料（別名，與後端欄位名稱一致）
    */
-  paymentForm?: PayuniFormData;
-  /**
-   * PAYUNi 表單資料（微服務實際回傳的欄位名稱）
-   * 這是微服務 API 實際回傳的欄位，請優先使用此欄位
-   */
-  payuniForm?: PayuniFormData;
+  payuniForm?: PaymentResult['paymentForm'];
   /** 是否為定期定額付款 */
   isPeriodPayment?: boolean;
   /** 錯誤訊息 */
@@ -255,12 +248,22 @@ export interface PaymentStatusResult {
   status: PaymentStatus;
   /** 金額 */
   amount: number;
+  /** 幣別（預設 TWD） */
+  currency?: string;
   /** 付款時間（ISO 8601） */
   paidAt?: string;
   /** 金流服務商交易序號 */
   tradeNo?: string;
+  /** 金流服務商名稱 */
+  provider?: string;
+  /** 錯誤代碼 */
+  errorCode?: string;
   /** 錯誤訊息 */
   errorMessage?: string;
+  /** 額外資料 */
+  metadata?: Record<string, unknown>;
+  /** 建立時間 */
+  createdAt?: string;
 }
 
 /**
@@ -279,12 +282,31 @@ export interface WebhookEvent {
   paidAt?: string;
   /** 金流服務商交易序號 */
   tradeNo?: string;
+  /** 付款方式 */
+  paymentType?: string;
   /** 額外資料 */
-  metadata?: Record<string, string>;
+  metadata?: Record<string, unknown>;
   /** 錯誤訊息（當 status 為 FAILED 時） */
   errorMessage?: string;
   /** 金流服務商 */
   provider?: string;
+  /** 信用卡指紋（SHA-256，同一張卡 = 同一個值） */
+  cardFingerprint?: string;
+  /** 信用卡後 4 碼（供 UI 顯示） */
+  cardLast4?: string;
+  /** 發票資訊（若有開立） */
+  invoice?: {
+    /** 發票號碼 */
+    invoiceNumber?: string;
+    /** 發票隨機碼 */
+    randomNumber?: string;
+    /** 發票日期 */
+    invoiceDate?: string;
+    /** 發票狀態 */
+    status?: string;
+    /** 錯誤訊息 */
+    errorMessage?: string;
+  };
 }
 
 // ========================================
@@ -449,7 +471,14 @@ export class PaymentGatewayClient {
         );
       }
 
-      return await response.json();
+      const result = await response.json();
+
+      // 向下相容處理：將後端的 payuniForm 映射至 SDK 的 paymentForm
+      if (result.payuniForm && !result.paymentForm) {
+        result.paymentForm = result.payuniForm;
+      }
+
+      return result;
     } catch (error) {
       if (error instanceof PaymentGatewayError) {
         throw error;
@@ -729,62 +758,50 @@ export class PaymentGatewayClient {
       );
     }
 
-    if (!params.periodPoint?.trim()) {
-      throw new PaymentGatewayError(
-        'periodPoint 是必填參數',
-        'VALIDATION_ERROR'
-      );
-    }
-
-    // 根據週期類型驗證週期點
-    switch (params.periodType) {
-      case 'D': {
-        const days = parseInt(params.periodPoint, 10);
-        if (isNaN(days) || days < 2 || days > 999) {
-          throw new PaymentGatewayError(
-            'D（天）週期的 periodPoint 必須是 2~999',
-            'VALIDATION_ERROR'
-          );
+    // 驗證週期點（若有提供）
+    if (params.periodPoint?.trim()) {
+      switch (params.periodType) {
+        case 'D':
+        case 'W': {
+          const weekday = parseInt(params.periodPoint, 10);
+          if (isNaN(weekday) || weekday < 1 || weekday > 7) {
+            throw new PaymentGatewayError(
+              'W（週）或 D（天）週期的 periodPoint 必須是 1~7（1=週一）',
+              'VALIDATION_ERROR'
+            );
+          }
+          break;
         }
-        break;
+        case 'M': {
+          const day = parseInt(params.periodPoint, 10);
+          if (isNaN(day) || day < 1 || day > 31) {
+            throw new PaymentGatewayError(
+              'M（月）週期的 periodPoint 必須是 01~31',
+              'VALIDATION_ERROR'
+            );
+          }
+          break;
+        }
+        case 'Y': {
+          if (!/^\d{4}$/.test(params.periodPoint)) {
+            throw new PaymentGatewayError(
+              'Y（年）週期的 periodPoint 必須是 MMDD 格式（如 0115 表示 1 月 15 日）',
+              'VALIDATION_ERROR'
+            );
+          }
+          const month = parseInt(params.periodPoint.substring(0, 2), 10);
+          const day = parseInt(params.periodPoint.substring(2, 4), 10);
+          if (month < 1 || month > 12 || day < 1 || day > 31) {
+            throw new PaymentGatewayError(
+              'Y（年）週期的 periodPoint MMDD 格式無效',
+              'VALIDATION_ERROR'
+            );
+          }
+          break;
+        }
       }
-      case 'W': {
-        const weekday = parseInt(params.periodPoint, 10);
-        if (isNaN(weekday) || weekday < 1 || weekday > 7) {
-          throw new PaymentGatewayError(
-            'W（週）週期的 periodPoint 必須是 1~7（1=週一）',
-            'VALIDATION_ERROR'
-          );
-        }
-        break;
-      }
-      case 'M': {
-        const day = parseInt(params.periodPoint, 10);
-        if (isNaN(day) || day < 1 || day > 31) {
-          throw new PaymentGatewayError(
-            'M（月）週期的 periodPoint 必須是 01~31',
-            'VALIDATION_ERROR'
-          );
-        }
-        break;
-      }
-      case 'Y': {
-        if (!/^\d{4}$/.test(params.periodPoint)) {
-          throw new PaymentGatewayError(
-            'Y（年）週期的 periodPoint 必須是 MMDD 格式（如 0115 表示 1 月 15 日）',
-            'VALIDATION_ERROR'
-          );
-        }
-        const month = parseInt(params.periodPoint.substring(0, 2), 10);
-        const day = parseInt(params.periodPoint.substring(2, 4), 10);
-        if (month < 1 || month > 12 || day < 1 || day > 31) {
-          throw new PaymentGatewayError(
-            'Y（年）週期的 periodPoint MMDD 格式無效',
-            'VALIDATION_ERROR'
-          );
-        }
-        break;
-      }
+    } else if (!params.periodFirstdate?.trim()) {
+      // 若無 periodPoint 也無 periodFirstdate，交由後端處理
     }
 
     if (!Number.isInteger(params.periodTimes) || params.periodTimes < 1) {

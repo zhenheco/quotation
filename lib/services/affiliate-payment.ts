@@ -12,37 +12,49 @@ import {
   type WebhookEvent,
   PaymentGatewayError,
   type Environment,
-} from '@/lib/sdk/payment-gateway-client'
-import { getSupabaseClient } from '@/lib/db/supabase-client'
-import { getSubscriptionPlanByTier, type SubscriptionTier } from '@/lib/dal/subscriptions'
+} from "@/lib/sdk/payment-gateway-client";
+import { getSupabaseClient } from "@/lib/db/supabase-client";
+import {
+  getSubscriptionPlanByTier,
+  type SubscriptionTier,
+} from "@/lib/dal/subscriptions";
 
 // ============================================================================
 // 配置
 // ============================================================================
 
 function getPaymentConfig(): PaymentGatewayConfig {
-  const apiKey = process.env.AFFILIATE_PAYMENT_API_KEY?.trim()
-  const siteCode = process.env.AFFILIATE_PAYMENT_SITE_CODE?.trim()
-  const webhookSecret = process.env.AFFILIATE_PAYMENT_WEBHOOK_SECRET?.trim()
-  const environment = (process.env.AFFILIATE_PAYMENT_ENV?.trim() || 'production') as Environment
+  const apiKey = process.env.AFFILIATE_PAYMENT_API_KEY?.trim();
+  const siteCode = process.env.AFFILIATE_PAYMENT_SITE_CODE?.trim();
+  const webhookSecret = process.env.AFFILIATE_PAYMENT_WEBHOOK_SECRET?.trim();
+  const environment = (process.env.AFFILIATE_PAYMENT_ENV?.trim() ||
+    "production") as Environment;
 
-  if (!apiKey) throw new PaymentGatewayError('AFFILIATE_PAYMENT_API_KEY 環境變數未設定', 'CONFIG_ERROR')
-  if (!siteCode) throw new PaymentGatewayError('AFFILIATE_PAYMENT_SITE_CODE 環境變數未設定', 'CONFIG_ERROR')
+  if (!apiKey)
+    throw new PaymentGatewayError(
+      "AFFILIATE_PAYMENT_API_KEY 環境變數未設定",
+      "CONFIG_ERROR",
+    );
+  if (!siteCode)
+    throw new PaymentGatewayError(
+      "AFFILIATE_PAYMENT_SITE_CODE 環境變數未設定",
+      "CONFIG_ERROR",
+    );
 
-  return { apiKey, siteCode, webhookSecret, environment }
+  return { apiKey, siteCode, webhookSecret, environment };
 }
 
 // ============================================================================
 // 客戶端管理
 // ============================================================================
 
-let _client: PaymentGatewayClient | null = null
+let _client: PaymentGatewayClient | null = null;
 
 export function getPaymentClient(): PaymentGatewayClient {
   if (!_client) {
-    _client = new PaymentGatewayClient(getPaymentConfig())
+    _client = new PaymentGatewayClient(getPaymentConfig());
   }
-  return _client
+  return _client;
 }
 
 // ============================================================================
@@ -53,13 +65,13 @@ export function getPaymentClient(): PaymentGatewayClient {
  * 訂閱方案付款參數
  */
 export interface SubscriptionPaymentParams {
-  companyId: string
-  tier: 'STARTER' | 'STANDARD' | 'PROFESSIONAL'
-  billingCycle: 'MONTHLY' | 'YEARLY'
-  email: string
-  payerName?: string
-  payerPhone?: string
-  callbackUrl?: string
+  companyId: string;
+  tier: "STARTER" | "STANDARD" | "PROFESSIONAL";
+  billingCycle: "MONTHLY" | "YEARLY";
+  email: string;
+  payerName?: string;
+  payerPhone?: string;
+  callbackUrl?: string;
 }
 
 /**
@@ -67,15 +79,16 @@ export interface SubscriptionPaymentParams {
  */
 async function getPlanPriceFromDB(
   tier: SubscriptionTier,
-  billingCycle: 'MONTHLY' | 'YEARLY'
+  billingCycle: "MONTHLY" | "YEARLY",
 ): Promise<{ price: number; name: string } | null> {
-  const db = getSupabaseClient()
-  const plan = await getSubscriptionPlanByTier(db, tier)
+  const db = getSupabaseClient();
+  const plan = await getSubscriptionPlanByTier(db, tier);
 
-  if (!plan) return null
+  if (!plan) return null;
 
-  const price = billingCycle === 'MONTHLY' ? plan.monthly_price : plan.yearly_price
-  return { price, name: plan.name }
+  const price =
+    billingCycle === "MONTHLY" ? plan.monthly_price : plan.yearly_price;
+  return { price, name: plan.name };
 }
 
 // ============================================================================
@@ -86,22 +99,30 @@ async function getPlanPriceFromDB(
  * 建立訂閱付款
  */
 export async function createSubscriptionPayment(
-  params: SubscriptionPaymentParams
+  params: SubscriptionPaymentParams,
 ): Promise<PaymentResult> {
-  const { companyId, tier, billingCycle, email, payerName, payerPhone, callbackUrl } = params
+  const {
+    companyId,
+    tier,
+    billingCycle,
+    email,
+    payerName,
+    payerPhone,
+    callbackUrl,
+  } = params;
 
   // 從資料庫取得價格
-  const planData = await getPlanPriceFromDB(tier, billingCycle)
+  const planData = await getPlanPriceFromDB(tier, billingCycle);
   if (!planData) {
-    throw new PaymentGatewayError(`無效的方案: ${tier}`, 'VALIDATION_ERROR')
+    throw new PaymentGatewayError(`無效的方案: ${tier}`, "VALIDATION_ERROR");
   }
 
-  const { price, name: planName } = planData
-  const cycleLabel = billingCycle === 'MONTHLY' ? '月繳' : '年繳'
-  const timestamp = Date.now()
+  const { price, name: planName } = planData;
+  const cycleLabel = billingCycle === "MONTHLY" ? "月繳" : "年繳";
+  const timestamp = Date.now();
   // 移除底線，確保符合 PAYUNi 規範
-  const sanitizedCompanyId = companyId.replace(/_/g, '-')
-  const orderId = `SUB-${sanitizedCompanyId.substring(0, 8)}-${timestamp}`
+  const sanitizedCompanyId = companyId.replace(/_/g, "-");
+  const orderId = `SUB-${sanitizedCompanyId.substring(0, 8)}-${timestamp}`;
 
   return getPaymentClient().createPayment({
     orderId,
@@ -115,39 +136,50 @@ export async function createSubscriptionPayment(
       company_id: companyId,
       tier,
       billing_cycle: billingCycle,
-      type: 'subscription',
+      type: "subscription",
     },
-  })
+  });
 }
 
 /**
  * 建立定期定額訂閱付款
  */
 export async function createRecurringSubscriptionPayment(
-  params: SubscriptionPaymentParams
+  params: SubscriptionPaymentParams,
 ): Promise<PaymentResult> {
-  const { companyId, tier, billingCycle, email, payerName, payerPhone, callbackUrl } = params
+  const {
+    companyId,
+    tier,
+    billingCycle,
+    email,
+    payerName,
+    payerPhone,
+    callbackUrl,
+  } = params;
 
-  if (billingCycle !== 'MONTHLY') {
-    throw new PaymentGatewayError('定期定額目前只支援月繳方案', 'VALIDATION_ERROR')
+  if (billingCycle !== "MONTHLY") {
+    throw new PaymentGatewayError(
+      "定期定額目前只支援月繳方案",
+      "VALIDATION_ERROR",
+    );
   }
 
   // 從資料庫取得價格
-  const planData = await getPlanPriceFromDB(tier, 'MONTHLY')
+  const planData = await getPlanPriceFromDB(tier, "MONTHLY");
   if (!planData) {
-    throw new PaymentGatewayError(`無效的方案: ${tier}`, 'VALIDATION_ERROR')
+    throw new PaymentGatewayError(`無效的方案: ${tier}`, "VALIDATION_ERROR");
   }
 
-  const { price, name: planName } = planData
-  const timestamp = Date.now()
+  const { price, name: planName } = planData;
+  const timestamp = Date.now();
   // 移除底線，確保符合 PAYUNi 規範
-  const sanitizedCompanyId = companyId.replace(/_/g, '-')
-  const orderId = `RSUB-${sanitizedCompanyId.substring(0, 8)}-${timestamp}`
+  const sanitizedCompanyId = companyId.replace(/_/g, "-");
+  const orderId = `RSUB-${sanitizedCompanyId.substring(0, 8)}-${timestamp}`;
 
   // 計算首次扣款日（下個月 1 號）
-  const now = new Date()
-  const firstDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-  const periodFirstdate = firstDate.toISOString().split('T')[0]
+  const now = new Date();
+  const firstDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const periodFirstdate = firstDate.toISOString().split("T")[0];
 
   return getPaymentClient().createPayment({
     orderId,
@@ -161,15 +193,14 @@ export async function createRecurringSubscriptionPayment(
       company_id: companyId,
       tier,
       billing_cycle: billingCycle,
-      type: 'recurring_subscription',
+      type: "recurring_subscription",
     },
     periodParams: {
-      periodType: 'M',
-      periodAmt: price,
+      periodType: "M",
       periodTimes: 12,
       periodFirstdate,
     },
-  })
+  });
 }
 
 // ============================================================================
@@ -179,8 +210,10 @@ export async function createRecurringSubscriptionPayment(
 /**
  * 查詢付款狀態
  */
-export async function getPaymentStatus(paymentId: string): Promise<PaymentStatusResult> {
-  return getPaymentClient().getPaymentStatus(paymentId)
+export async function getPaymentStatus(
+  paymentId: string,
+): Promise<PaymentStatusResult> {
+  return getPaymentClient().getPaymentStatus(paymentId);
 }
 
 /**
@@ -188,30 +221,42 @@ export async function getPaymentStatus(paymentId: string): Promise<PaymentStatus
  */
 export async function parsePaymentWebhook(
   rawBody: string,
-  signature: string | null
+  signature: string | null,
 ): Promise<WebhookEvent> {
-  return getPaymentClient().parseWebhookEvent(rawBody, signature)
+  return getPaymentClient().parseWebhookEvent(rawBody, signature);
 }
 
 /**
  * 處理付款成功事件
  */
 export async function handlePaymentSuccess(event: WebhookEvent): Promise<{
-  success: boolean
-  message: string
+  success: boolean;
+  message: string;
 }> {
-  const { orderId, paymentId, metadata, amount, paidAt } = event
+  const { orderId, paymentId, metadata, amount, paidAt } = event;
 
   if (!metadata?.company_id || !metadata?.tier) {
-    console.error('[AffiliatePayment] Missing metadata in webhook:', event)
-    return { success: false, message: 'Missing required metadata' }
+    console.error("[AffiliatePayment] Missing metadata in webhook:", event);
+    return { success: false, message: "Missing required metadata" };
   }
 
-  const { company_id: companyId, tier, billing_cycle: billingCycle, type } = metadata
+  const {
+    company_id: companyId,
+    tier,
+    billing_cycle: billingCycle,
+    type,
+  } = metadata;
 
-  console.log('[AffiliatePayment] Payment success:', {
-    orderId, paymentId, companyId, tier, billingCycle, type, amount, paidAt,
-  })
+  console.log("[AffiliatePayment] Payment success:", {
+    orderId,
+    paymentId,
+    companyId,
+    tier,
+    billingCycle,
+    type,
+    amount,
+    paidAt,
+  });
 
   // TODO: 呼叫 subscription service 來升級訂閱
   // await upgradePlan(companyId, tier, { ... })
@@ -219,21 +264,24 @@ export async function handlePaymentSuccess(event: WebhookEvent): Promise<{
   return {
     success: true,
     message: `Payment processed for company ${companyId}, tier ${tier}`,
-  }
+  };
 }
 
 /**
  * 處理付款失敗事件
  */
 export async function handlePaymentFailed(event: WebhookEvent): Promise<{
-  success: boolean
-  message: string
+  success: boolean;
+  message: string;
 }> {
-  const { orderId, paymentId, errorMessage, metadata } = event
+  const { orderId, paymentId, errorMessage, metadata } = event;
 
-  console.error('[AffiliatePayment] Payment failed:', {
-    orderId, paymentId, errorMessage, metadata,
-  })
+  console.error("[AffiliatePayment] Payment failed:", {
+    orderId,
+    paymentId,
+    errorMessage,
+    metadata,
+  });
 
   // TODO: 發送通知給用戶
   // await sendPaymentFailedNotification(metadata?.company_id, errorMessage)
@@ -241,7 +289,7 @@ export async function handlePaymentFailed(event: WebhookEvent): Promise<{
   return {
     success: true,
     message: `Payment failure logged for order ${orderId}`,
-  }
+  };
 }
 
 // ============================================================================
@@ -253,32 +301,35 @@ export async function handlePaymentFailed(event: WebhookEvent): Promise<{
  */
 export async function getPlanPrice(
   tier: string,
-  billingCycle: string
+  billingCycle: string,
 ): Promise<number | null> {
   const planData = await getPlanPriceFromDB(
     tier as SubscriptionTier,
-    billingCycle as 'MONTHLY' | 'YEARLY'
-  )
-  return planData?.price ?? null
+    billingCycle as "MONTHLY" | "YEARLY",
+  );
+  return planData?.price ?? null;
 }
 
 /**
  * 取得方案名稱（從資料庫）
  */
 export async function getPlanName(tier: string): Promise<string> {
-  const planData = await getPlanPriceFromDB(tier as SubscriptionTier, 'MONTHLY')
-  return planData?.name ?? tier
+  const planData = await getPlanPriceFromDB(
+    tier as SubscriptionTier,
+    "MONTHLY",
+  );
+  return planData?.name ?? tier;
 }
 
 /**
  * 檢查付款配置是否已設定
  */
 export function isPaymentConfigured(): boolean {
-  const apiKey = process.env.AFFILIATE_PAYMENT_API_KEY?.trim()
-  const siteCode = process.env.AFFILIATE_PAYMENT_SITE_CODE?.trim()
-  return Boolean(apiKey && siteCode)
+  const apiKey = process.env.AFFILIATE_PAYMENT_API_KEY?.trim();
+  const siteCode = process.env.AFFILIATE_PAYMENT_SITE_CODE?.trim();
+  return Boolean(apiKey && siteCode);
 }
 
 // Re-export
-export { PaymentGatewayError }
-export type { PaymentResult, PaymentStatusResult, WebhookEvent }
+export { PaymentGatewayError };
+export type { PaymentResult, PaymentStatusResult, WebhookEvent };

@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { useState, useMemo, useCallback } from 'react'
-import { useCompany } from '@/hooks/useCompany'
+import { useState, useMemo, useCallback, Suspense } from "react";
+import { useCompany } from "@/hooks/useCompany";
 import {
   useSubscriptionPlans,
   useCompanySubscription,
@@ -9,18 +9,20 @@ import {
   type BillingCycle,
   type SubscriptionPlan,
   TIER_ORDER,
-} from '@/hooks/use-subscription'
-import { submitPaymentForm } from '@/lib/sdk/payment-gateway-client'
-import { getCsrfTokenFromCookie, CSRF_HEADER_NAME } from '@/lib/security/csrf'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
+} from "@/hooks/use-subscription";
+import { submitPaymentForm } from "@/lib/sdk/payment-gateway-client";
+import { getCsrfTokenFromCookie, CSRF_HEADER_NAME } from "@/lib/security/csrf";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 // 新元件
-import { PricingHero } from './components/PricingHero'
-import { PricingCardsGrid } from './components/PricingCard'
-import { FeatureComparisonTable } from './components/FeatureComparisonTable'
-import { CheckoutModal } from './components/CheckoutModal'
-import { PricingFAQ } from './components/PricingFAQ'
-import { FinalCTA } from './components/FinalCTA'
+import { PricingHero } from "./components/PricingHero";
+import { PricingCardsGrid } from "./components/PricingCard";
+import { FeatureComparisonTable } from "./components/FeatureComparisonTable";
+import { CheckoutModal } from "./components/CheckoutModal";
+import { PricingFAQ } from "./components/PricingFAQ";
+import { FinalCTA } from "./components/FinalCTA";
+import { ReferralTracker } from "./components/ReferralTracker";
+import type { InvoiceFormData } from "./components/InvoiceForm";
 
 /**
  * 定價頁面儀表板
@@ -34,104 +36,114 @@ import { FinalCTA } from './components/FinalCTA'
  * - CheckoutModal: 付款確認 Modal
  */
 export default function PricingDashboard() {
-  const { company } = useCompany()
+  const { company } = useCompany();
 
   // 計費週期切換
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('YEARLY')
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("YEARLY");
 
   // Checkout Modal 狀態
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null)
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(
+    null,
+  );
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  // 發票表單狀態
+  const [invoiceData, setInvoiceData] = useState<InvoiceFormData>({});
 
   // 取得方案列表
-  const { data: plans, isLoading: plansLoading } = useSubscriptionPlans()
+  const { data: plans, isLoading: plansLoading } = useSubscriptionPlans();
 
   // 取得公司訂閱（如果已登入）
-  const { data: subscription, isLoading: subscriptionLoading } = useCompanySubscription(company?.id)
+  const { data: subscription, isLoading: subscriptionLoading } =
+    useCompanySubscription(company?.id);
 
   // 當前方案層級
-  const currentTier = subscription?.plan?.tier || null
+  const currentTier = subscription?.plan?.tier || null;
 
   // 排序後的方案列表
   const sortedPlans = useMemo(() => {
-    if (!plans) return []
-    return [...plans].sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier])
-  }, [plans])
+    if (!plans) return [];
+    return [...plans].sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier]);
+  }, [plans]);
 
   // 處理方案選擇
   const handleSelectPlan = useCallback(
     (tier: SubscriptionTier) => {
       // 免費版：導向登入/註冊頁面
-      if (tier === 'FREE') {
+      if (tier === "FREE") {
         if (!company?.id) {
-          window.location.href = '/login?redirect=/dashboard'
+          window.location.href = "/login?redirect=/dashboard";
         }
         // 已登入的用戶不需要做任何事，免費版是預設方案
-        return
+        return;
       }
 
       if (!company?.id) {
         // 未登入，導向登入頁面
-        window.location.href = '/login?redirect=/pricing'
-        return
+        window.location.href = "/login?redirect=/pricing";
+        return;
       }
 
       if (tier === currentTier) {
-        return // 已是當前方案
+        return; // 已是當前方案
       }
 
       // 找到選中的方案
-      const plan = sortedPlans.find((p) => p.tier === tier)
+      const plan = sortedPlans.find((p) => p.tier === tier);
       if (plan) {
-        setSelectedPlan(plan)
-        setIsCheckoutOpen(true)
+        setSelectedPlan(plan);
+        setIsCheckoutOpen(true);
       }
     },
-    [company?.id, currentTier, sortedPlans]
-  )
+    [company?.id, currentTier, sortedPlans],
+  );
 
   // 關閉 Checkout Modal
   const handleCloseCheckout = useCallback(() => {
-    setIsCheckoutOpen(false)
-    setSelectedPlan(null)
-  }, [])
+    setIsCheckoutOpen(false);
+    setSelectedPlan(null);
+  }, []);
 
   // 確認付款
   const handleConfirmCheckout = async () => {
     if (!selectedPlan || !company?.id) {
-      throw new Error('缺少必要資訊')
+      throw new Error("缺少必要資訊");
     }
 
     // 取得 CSRF token
-    const csrfToken = getCsrfTokenFromCookie()
+    const csrfToken = getCsrfTokenFromCookie();
 
     // 呼叫 checkout API
-    const response = await fetch('/api/subscriptions/checkout', {
-      method: 'POST',
+    const response = await fetch("/api/subscriptions/checkout", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...(csrfToken && { [CSRF_HEADER_NAME]: csrfToken }),
       },
       body: JSON.stringify({
         tier: selectedPlan.tier,
         billing_cycle: billingCycle,
         company_id: company.id,
+        invoice:
+          invoiceData.carrierType || invoiceData.buyerTaxId
+            ? invoiceData
+            : undefined,
       }),
-    })
+    });
 
-    const result = await response.json()
+    const result = await response.json();
 
     if (!result.success) {
-      throw new Error(result.error || '付款建立失敗')
+      throw new Error(result.error || "付款建立失敗");
     }
 
     // 提交表單到 PAYUNi
     if (result.data?.paymentForm) {
-      submitPaymentForm(result.data.paymentForm)
+      submitPaymentForm(result.data.paymentForm);
     } else {
-      throw new Error('無法取得付款表單')
+      throw new Error("無法取得付款表單");
     }
-  }
+  };
 
   // 載入中狀態
   if (plansLoading) {
@@ -139,13 +151,21 @@ export default function PricingDashboard() {
       <div className="flex min-h-screen items-center justify-center">
         <LoadingSpinner />
       </div>
-    )
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-accent/20">
+      {/* 推薦追蹤（讀取 ?ref= 參數存入 cookie） */}
+      <Suspense fallback={null}>
+        <ReferralTracker />
+      </Suspense>
+
       {/* Hero Section + 計費切換 */}
-      <PricingHero billingCycle={billingCycle} onBillingCycleChange={setBillingCycle} />
+      <PricingHero
+        billingCycle={billingCycle}
+        onBillingCycleChange={setBillingCycle}
+      />
 
       {/* 方案卡片 */}
       <PricingCardsGrid
@@ -173,7 +193,9 @@ export default function PricingDashboard() {
         plan={selectedPlan}
         billingCycle={billingCycle}
         currentTier={currentTier}
+        invoiceData={invoiceData}
+        onInvoiceChange={setInvoiceData}
       />
     </div>
-  )
+  );
 }
