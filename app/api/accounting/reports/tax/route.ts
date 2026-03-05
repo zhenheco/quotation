@@ -73,45 +73,10 @@ export const GET = withAuth("reports:read")(async (request, { db }) => {
   }
 
   if (form === "401") {
-    // V2 使用 declared_period_id 篩選 + 完整稅額計算
-    if (version === "v2") {
-      const data = await generateForm401V2(
-        db,
-        companyId,
-        taxId,
-        companyName,
-        year,
-        biMonth,
-      );
-
-      if (format === "xml") {
-        // XML 仍用 V1 格式（向後相容）
-        const v1Data = await generateForm401(db, companyId, taxId, companyName, year, biMonth);
-        const xml = generateForm401Xml(v1Data);
-        return new NextResponse(xml, {
-          status: 200,
-          headers: {
-            "Content-Type": "application/xml; charset=utf-8",
-            "Content-Disposition": `attachment; filename="VAT401_${year}_${biMonth}.xml"`,
-          },
-        });
-      }
-
-      return NextResponse.json({ success: true, data });
-    }
-
-    // V1 fallback
-    const data = await generateForm401(
-      db,
-      companyId,
-      taxId,
-      companyName,
-      year,
-      biMonth,
-    );
-
+    // XML 下載統一使用 V1 格式（財政部官方格式）
     if (format === "xml") {
-      const xml = generateForm401Xml(data);
+      const v1Data = await generateForm401(db, companyId, taxId, companyName, year, biMonth);
+      const xml = generateForm401Xml(v1Data);
       return new NextResponse(xml, {
         status: 200,
         headers: {
@@ -121,6 +86,14 @@ export const GET = withAuth("reports:read")(async (request, { db }) => {
       });
     }
 
+    // JSON: V2 使用 declared_period_id 篩選 + 完整稅額計算
+    if (version === "v2") {
+      const data = await generateForm401V2(db, companyId, taxId, companyName, year, biMonth);
+      return NextResponse.json({ success: true, data });
+    }
+
+    // V1 JSON fallback
+    const data = await generateForm401(db, companyId, taxId, companyName, year, biMonth);
     return NextResponse.json({ success: true, data });
   } else if (form === "403") {
     const data = await generateForm403(
