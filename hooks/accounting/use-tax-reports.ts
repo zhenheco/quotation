@@ -4,7 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { buildCsrfHeaders } from '@/lib/security/csrf'
-import type { Form401Data, Form403Data, InvoiceDetail } from '@/lib/services/accounting/tax-report.service'
+import type { Form401DataV2, Form403Data, InvoiceDetail } from '@/lib/services/accounting/tax-report.service'
 
 // ============================================
 // Query Keys
@@ -46,7 +46,7 @@ export interface InvoiceDetailListResult {
 // API 呼叫函數
 // ============================================
 
-async function fetchForm401(params: TaxReportParams): Promise<Form401Data> {
+async function fetchForm401(params: TaxReportParams): Promise<Form401DataV2> {
   const searchParams = new URLSearchParams({
     company_id: params.companyId,
     tax_id: params.taxId,
@@ -54,6 +54,7 @@ async function fetchForm401(params: TaxReportParams): Promise<Form401Data> {
     year: params.year.toString(),
     bi_month: params.biMonth.toString(),
     form: '401',
+    version: 'v2',
   })
 
   const response = await fetch(`/api/accounting/reports/tax?${searchParams}`)
@@ -61,7 +62,7 @@ async function fetchForm401(params: TaxReportParams): Promise<Form401Data> {
     const data = (await response.json()) as { error?: string }
     throw new Error(data.error || '取得 401 申報書失敗')
   }
-  const result = (await response.json()) as { success: boolean; data: Form401Data }
+  const result = (await response.json()) as { success: boolean; data: Form401DataV2 }
   return result.data
 }
 

@@ -124,6 +124,7 @@ export interface InvoiceQueryOptions {
   startDate?: string;
   endDate?: string;
   counterpartyId?: string;
+  declaredPeriodId?: string;
   limit?: number;
   offset?: number;
 }
@@ -180,6 +181,7 @@ export async function getInvoices(
     startDate,
     endDate,
     counterpartyId,
+    declaredPeriodId,
     limit = 50,
     offset = 0,
   } = options;
@@ -214,6 +216,10 @@ export async function getInvoices(
 
   if (counterpartyId) {
     query = query.eq("counterparty_id", counterpartyId);
+  }
+
+  if (declaredPeriodId) {
+    query = query.eq("declared_period_id", declaredPeriodId);
   }
 
   const { data, error } = await query;

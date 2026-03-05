@@ -5,6 +5,7 @@
 
 import { SupabaseClient } from "@/lib/db/supabase-client";
 import { AccInvoice, getInvoices } from "@/lib/dal/accounting";
+import { getOrCreateTaxDeclaration } from "@/lib/dal/accounting/tax-declarations.dal";
 import type { TaxCode } from "@/lib/dal/accounting/tax-codes.dal";
 import {
   generateMediaFile,
@@ -988,4 +989,251 @@ export function classifyPurchaseInvoices(
   }
 
   return result;
+}
+
+// ============================================
+// V2: Form401DataV2 + generateForm401V2
+// ============================================
+
+export interface Form401DataV2 extends Omit<Form401Data, "purchases" | "taxCalculation"> {
+  purchases: ClassifiedPurchases;
+
+  purchaseInvoices: InvoiceDetail[];
+
+  returnsAndAllowances: {
+    salesReturns: { count: number; amount: number; tax: number };
+    purchaseReturns: { count: number; amount: number; tax: number };
+  };
+
+  voidedInvoices: { count: number };
+
+  taxCalculation: TaxCalculationResultV2;
+
+  declaration: {
+    id: string;
+    status: string;
+  } | null;
+}
+
+/**
+ * V2 產生 401 申報書資料
+ * - 使用 declared_period_id 篩選（有時 fallback 到 date range）
+ * - 使用 classifyPurchaseInvoices 分類進項
+ * - 使用 calculateTaxAmountsV2 計算稅額
+ */
+export async function generateForm401V2(
+  db: SupabaseClient,
+  companyId: string,
+  companyTaxId: string,
+  companyName: string,
+  year: number,
+  biMonth: number,
+): Promise<Form401DataV2> {
+  const period = calculateTaxPeriod(year, biMonth);
+
+  // 取得或建立申報期別
+  const declaration = await getOrCreateTaxDeclaration(db, companyId, year, biMonth);
+
+  // 以 declared_period_id 篩選（若有分配），否則 fallback 到日期範圍
+  const useDeclarationFilter = true;
+
+  const queryBase = {
+    companyId,
+    status: "POSTED" as const,
+    limit: 10000,
+    offset: 0,
+  };
+
+  const [outputInvoices, inputInvoices] = await Promise.all([
+    getInvoices(db, {
+      ...queryBase,
+      type: "OUTPUT" as const,
+      ...(useDeclarationFilter
+        ? { declaredPeriodId: declaration.id }
+        : { startDate: period.startDate, endDate: period.endDate }),
+    }),
+    getInvoices(db, {
+      ...queryBase,
+      type: "INPUT" as const,
+      ...(useDeclarationFilter
+        ? { declaredPeriodId: declaration.id }
+        : { startDate: period.startDate, endDate: period.endDate }),
+    }),
+  ]);
+
+  // 也取得未分配期別但日期在範圍內的發票（draft 模式自動關聯）
+  if (declaration.status === "draft") {
+    const [unassignedOutput, unassignedInput] = await Promise.all([
+      getInvoices(db, {
+        ...queryBase,
+        type: "OUTPUT" as const,
+        startDate: period.startDate,
+        endDate: period.endDate,
+      }),
+      getInvoices(db, {
+        ...queryBase,
+        type: "INPUT" as const,
+        startDate: period.startDate,
+        endDate: period.endDate,
+      }),
+    ]);
+
+    // 合併未分配的發票（避免重複）
+    const existingOutputIds = new Set(outputInvoices.map((i) => i.id));
+    const existingInputIds = new Set(inputInvoices.map((i) => i.id));
+
+    for (const inv of unassignedOutput) {
+      if (!existingOutputIds.has(inv.id) && !inv.declared_period_id) {
+        outputInvoices.push(inv);
+      }
+    }
+    for (const inv of unassignedInput) {
+      if (!existingInputIds.has(inv.id) && !inv.declared_period_id) {
+        inputInvoices.push(inv);
+      }
+    }
+  }
+
+  // 分類銷項
+  const salesTaxable: InvoiceDetail[] = [];
+  const salesZeroRated: InvoiceDetail[] = [];
+  const salesExempt: InvoiceDetail[] = [];
+  let salesReturnCount = 0;
+  let salesReturnAmount = 0;
+  let salesReturnTax = 0;
+
+  for (const inv of outputInvoices) {
+    if (inv.status === "VOIDED") continue;
+    const detail = invoiceToDetail(inv);
+    const returnType = (inv as AccInvoice & { return_type?: string }).return_type;
+
+    if (returnType === "RETURN" || returnType === "ALLOWANCE") {
+      salesReturnCount += 1;
+      salesReturnAmount += detail.untaxedAmount;
+      salesReturnTax += detail.taxAmount;
+      continue;
+    }
+
+    switch (detail.taxCategory) {
+      case "TAXABLE_5":
+        salesTaxable.push(detail);
+        break;
+      case "ZERO_RATED":
+        salesZeroRated.push(detail);
+        break;
+      case "EXEMPT":
+        salesExempt.push(detail);
+        break;
+    }
+  }
+
+  // 分類進項（使用 V2 分類器）
+  const classifiedPurchases = classifyPurchaseInvoices(inputInvoices);
+
+  // 統計進項退出
+  let purchaseReturnCount = 0;
+  let purchaseReturnAmount = 0;
+  let purchaseReturnTax = 0;
+
+  for (const inv of inputInvoices) {
+    if (inv.status === "VOIDED") continue;
+    const returnType = (inv as AccInvoice & { return_type?: string }).return_type;
+    if (returnType === "RETURN" || returnType === "ALLOWANCE") {
+      purchaseReturnCount += 1;
+      purchaseReturnAmount += parseFloat(String(inv.untaxed_amount)) || 0;
+      purchaseReturnTax += parseFloat(String(inv.tax_amount)) || 0;
+    }
+  }
+
+  // 統計作廢發票
+  const voidedCount =
+    outputInvoices.filter((i) => i.status === "VOIDED").length +
+    inputInvoices.filter((i) => i.status === "VOIDED").length;
+
+  // 稅額計算
+  const taxableUntaxed = salesTaxable.reduce((s, d) => s + d.untaxedAmount, 0);
+  const taxableTax = salesTaxable.reduce((s, d) => s + d.taxAmount, 0);
+  const zeroRatedAmount = salesZeroRated.reduce((s, d) => s + d.untaxedAmount, 0);
+  const exemptAmount = salesExempt.reduce((s, d) => s + d.untaxedAmount, 0);
+
+  // 退出折讓淨調整：進項退出稅 - 銷項退回稅（進項退出減少可扣抵 → 增加應繳）
+  const returnAllowanceTax = purchaseReturnTax - salesReturnTax;
+
+  const taxResult = calculateTaxAmountsV2({
+    outputTax: taxableTax,
+    inputTax: classifiedPurchases.goodsAndExpenses.deductible.taxAmount,
+    fixedAssetInputTax: classifiedPurchases.fixedAssets.deductible.taxAmount,
+    returnAllowanceTax,
+    openingOffset: declaration.opening_offset_amount,
+    itemNonDeductibleTax:
+      classifiedPurchases.goodsAndExpenses.nonDeductible.taxAmount +
+      classifiedPurchases.fixedAssets.nonDeductible.taxAmount,
+    nonDeductibleRatio: 0, // TODO: 從公司設定讀取兼營比例
+  });
+
+  return {
+    period: {
+      year,
+      month: period.month,
+      biMonth,
+    },
+    companyInfo: {
+      companyId,
+      taxId: companyTaxId,
+      companyName,
+    },
+    sales: {
+      taxable: {
+        count: salesTaxable.length,
+        untaxedAmount: taxableUntaxed,
+        taxAmount: taxableTax,
+        invoices: salesTaxable,
+      },
+      zeroRated: {
+        count: salesZeroRated.length,
+        untaxedAmount: zeroRatedAmount,
+        invoices: salesZeroRated,
+      },
+      exempt: {
+        count: salesExempt.length,
+        untaxedAmount: exemptAmount,
+        invoices: salesExempt,
+      },
+    },
+    purchases: classifiedPurchases,
+    purchaseInvoices: inputInvoices
+      .filter((inv) => inv.status !== "VOIDED")
+      .map(invoiceToDetail),
+    returnsAndAllowances: {
+      salesReturns: {
+        count: salesReturnCount,
+        amount: salesReturnAmount,
+        tax: salesReturnTax,
+      },
+      purchaseReturns: {
+        count: purchaseReturnCount,
+        amount: purchaseReturnAmount,
+        tax: purchaseReturnTax,
+      },
+    },
+    voidedInvoices: { count: voidedCount },
+    taxCalculation: taxResult,
+    declaration: {
+      id: declaration.id,
+      status: declaration.status,
+    },
+    summary: {
+      totalSalesCount: outputInvoices.filter((i) => i.status !== "VOIDED").length,
+      totalSalesAmount: taxableUntaxed + zeroRatedAmount + exemptAmount,
+      totalPurchasesCount: inputInvoices.filter((i) => i.status !== "VOIDED").length,
+      totalPurchasesAmount:
+        classifiedPurchases.goodsAndExpenses.deductible.untaxedAmount +
+        classifiedPurchases.goodsAndExpenses.nonDeductible.untaxedAmount +
+        classifiedPurchases.fixedAssets.deductible.untaxedAmount +
+        classifiedPurchases.fixedAssets.nonDeductible.untaxedAmount +
+        classifiedPurchases.exempt.untaxedAmount +
+        classifiedPurchases.zeroRate.untaxedAmount,
+      generatedAt: new Date().toISOString(),
+    },
+  };
 }

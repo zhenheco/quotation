@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api/middleware";
 import {
   generateForm401,
+  generateForm401V2,
   generateForm403,
   generateForm401Xml,
   generateForm403Xml,
@@ -34,6 +35,7 @@ export const GET = withAuth("reports:read")(async (request, { db }) => {
   const biMonthStr = searchParams.get("bi_month");
   const form = searchParams.get("form") || "401";
   const format = searchParams.get("format") || "json";
+  const version = searchParams.get("version") || "v2";
   // 驗證必填參數
   if (!companyId) {
     return NextResponse.json(
@@ -71,6 +73,34 @@ export const GET = withAuth("reports:read")(async (request, { db }) => {
   }
 
   if (form === "401") {
+    // V2 使用 declared_period_id 篩選 + 完整稅額計算
+    if (version === "v2") {
+      const data = await generateForm401V2(
+        db,
+        companyId,
+        taxId,
+        companyName,
+        year,
+        biMonth,
+      );
+
+      if (format === "xml") {
+        // XML 仍用 V1 格式（向後相容）
+        const v1Data = await generateForm401(db, companyId, taxId, companyName, year, biMonth);
+        const xml = generateForm401Xml(v1Data);
+        return new NextResponse(xml, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/xml; charset=utf-8",
+            "Content-Disposition": `attachment; filename="VAT401_${year}_${biMonth}.xml"`,
+          },
+        });
+      }
+
+      return NextResponse.json({ success: true, data });
+    }
+
+    // V1 fallback
     const data = await generateForm401(
       db,
       companyId,

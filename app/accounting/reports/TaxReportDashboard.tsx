@@ -51,7 +51,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import type { Form401Data } from "@/lib/services/accounting/tax-report.service";
+import type { Form401DataV2 } from "@/lib/services/accounting/tax-report.service";
 
 // 顏色設定
 const COLORS = {
@@ -448,10 +448,7 @@ export default function TaxReportDashboard() {
 
           {/* 摘要 */}
           <TabsContent value="summary">
-            <TaxSummarySection
-              data={form401}
-              declaration={currentDeclaration}
-            />
+            <TaxSummarySection data={form401} />
           </TabsContent>
 
           {/* 銷項明細 */}
@@ -492,13 +489,7 @@ export default function TaxReportDashboard() {
 // 摘要區塊
 // ============================================
 
-function TaxSummarySection({
-  data,
-  declaration,
-}: {
-  data: Form401Data;
-  declaration: TaxDeclaration | null;
-}) {
+function TaxSummarySection({ data }: { data: Form401DataV2 }) {
   const { sales, purchases, taxCalculation } = data;
 
   // 銷項圓餅圖資料
@@ -516,30 +507,30 @@ function TaxSummarySection({
     { name: "免稅", value: sales.exempt.untaxedAmount, fill: COLORS.exempt },
   ].filter((d) => d.value > 0);
 
-  // 進項圓餅圖資料
+  // 進項圓餅圖資料（V2: 進貨費用 + 固定資產）
+  const totalDeductible =
+    purchases.goodsAndExpenses.deductible.untaxedAmount +
+    purchases.fixedAssets.deductible.untaxedAmount;
+  const totalNonDeductible =
+    purchases.goodsAndExpenses.nonDeductible.untaxedAmount +
+    purchases.fixedAssets.nonDeductible.untaxedAmount;
+
   const purchasesChartData = [
-    {
-      name: "可扣抵",
-      value: purchases.deductible.untaxedAmount,
-      fill: COLORS.deductible,
-    },
-    {
-      name: "不可扣抵",
-      value: purchases.nonDeductible.untaxedAmount,
-      fill: COLORS.nonDeductible,
-    },
+    { name: "可扣抵", value: totalDeductible, fill: COLORS.deductible },
+    { name: "不可扣抵", value: totalNonDeductible, fill: COLORS.nonDeductible },
   ].filter((d) => d.value > 0);
 
-  // 稅額計算柱狀圖
+  // 稅額計算柱狀圖（V2: 含固定資產和留抵）
   const taxChartData = [
     { name: "銷項稅額", value: taxCalculation.outputTax, fill: "#3b82f6" },
-    { name: "進項稅額", value: taxCalculation.inputTax, fill: "#10b981" },
+    { name: "進貨費用進項", value: taxCalculation.inputTax, fill: "#10b981" },
+    { name: "固資進項", value: taxCalculation.fixedAssetInputTax, fill: "#8b5cf6" },
     {
       name: taxCalculation.isRefund ? "應退稅額" : "應納稅額",
       value: taxCalculation.netTax,
       fill: taxCalculation.isRefund ? "#f59e0b" : "#ef4444",
     },
-  ];
+  ].filter((d) => d.value > 0);
 
   return (
     <div className="space-y-6 mt-4">
@@ -566,10 +557,10 @@ function TaxSummarySection({
               </div>
             </div>
 
-            {/* 進項稅額 */}
+            {/* 進項稅額（進貨費用） */}
             <div className="rounded-lg border bg-green-50 p-4">
               <div className="text-sm font-semibold text-green-800 mb-2">
-                進項稅額
+                進貨及費用進項稅額
               </div>
               <div className="text-2xl font-bold text-green-700">
                 {formatAmount(taxCalculation.inputTax)}
@@ -578,6 +569,18 @@ function TaxSummarySection({
                 {`共 ${data.summary.totalPurchasesCount} 張發票`}
               </div>
             </div>
+
+            {/* 固定資產進項稅額 */}
+            {taxCalculation.fixedAssetInputTax > 0 && (
+              <div className="rounded-lg border bg-violet-50 p-4">
+                <div className="text-sm font-semibold text-violet-800 mb-2">
+                  固定資產進項稅額
+                </div>
+                <div className="text-2xl font-bold text-violet-700">
+                  {formatAmount(taxCalculation.fixedAssetInputTax)}
+                </div>
+              </div>
+            )}
 
             {/* 應納/應退稅額 */}
             <div
@@ -604,22 +607,35 @@ function TaxSummarySection({
                   taxCalculation.isRefund ? "text-amber-600" : "text-red-600"
                 }`}
               >
-                {declaration && declaration.opening_offset_amount > 0
-                  ? "= 銷項稅額 - 進項稅額 - 上期留抵"
-                  : "= 銷項稅額 - 進項稅額"}
+                = 銷項 - 可扣抵進項
+                {taxCalculation.openingOffset > 0 ? " - 上期留抵" : ""}
+                {taxCalculation.returnAllowanceTax !== 0 ? " + 退折讓" : ""}
               </div>
             </div>
 
             {/* 上期留抵稅額 */}
-            {declaration && declaration.opening_offset_amount > 0 && (
+            {taxCalculation.openingOffset > 0 && (
               <div className="rounded-lg border bg-purple-50 p-4">
                 <div className="text-sm font-semibold text-purple-800 mb-2">
                   上期留抵稅額
                 </div>
                 <div className="text-2xl font-bold text-purple-700">
-                  {formatAmount(declaration.opening_offset_amount)}
+                  {formatAmount(taxCalculation.openingOffset)}
                 </div>
                 <div className="text-xs text-purple-600 mt-1">自前期結轉</div>
+              </div>
+            )}
+
+            {/* 本期結存留抵 */}
+            {taxCalculation.closingOffset > 0 && (
+              <div className="rounded-lg border bg-indigo-50 p-4">
+                <div className="text-sm font-semibold text-indigo-800 mb-2">
+                  本期結存留抵
+                </div>
+                <div className="text-2xl font-bold text-indigo-700">
+                  {formatAmount(taxCalculation.closingOffset)}
+                </div>
+                <div className="text-xs text-indigo-600 mt-1">結轉至下期</div>
               </div>
             )}
           </div>
@@ -786,16 +802,30 @@ function TaxSummarySection({
                       className="inline-block w-3 h-3 rounded-full mr-2"
                       style={{ backgroundColor: COLORS.deductible }}
                     />
-                    可扣抵
+                    進貨及費用（可扣抵）
                   </TableCell>
                   <TableCell className="text-right">
-                    {purchases.deductible.count}
+                    {purchases.goodsAndExpenses.deductible.count}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatAmount(purchases.deductible.untaxedAmount)}
+                    {formatAmount(purchases.goodsAndExpenses.deductible.untaxedAmount)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatAmount(purchases.deductible.taxAmount)}
+                    {formatAmount(purchases.goodsAndExpenses.deductible.taxAmount)}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium pl-8 text-muted-foreground">
+                    固定資產（可扣抵）
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {purchases.fixedAssets.deductible.count}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatAmount(purchases.fixedAssets.deductible.untaxedAmount)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatAmount(purchases.fixedAssets.deductible.taxAmount)}
                   </TableCell>
                 </TableRow>
                 <TableRow>
@@ -807,13 +837,20 @@ function TaxSummarySection({
                     不可扣抵
                   </TableCell>
                   <TableCell className="text-right">
-                    {purchases.nonDeductible.count}
+                    {purchases.goodsAndExpenses.nonDeductible.count +
+                      purchases.fixedAssets.nonDeductible.count}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatAmount(purchases.nonDeductible.untaxedAmount)}
+                    {formatAmount(
+                      purchases.goodsAndExpenses.nonDeductible.untaxedAmount +
+                        purchases.fixedAssets.nonDeductible.untaxedAmount,
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatAmount(purchases.nonDeductible.taxAmount)}
+                    {formatAmount(
+                      purchases.goodsAndExpenses.nonDeductible.taxAmount +
+                        purchases.fixedAssets.nonDeductible.taxAmount,
+                    )}
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -821,18 +858,20 @@ function TaxSummarySection({
                 <TableRow>
                   <TableCell className="font-semibold">合計</TableCell>
                   <TableCell className="text-right font-semibold">
-                    {purchases.deductible.count + purchases.nonDeductible.count}
+                    {purchases.goodsAndExpenses.deductible.count +
+                      purchases.goodsAndExpenses.nonDeductible.count +
+                      purchases.fixedAssets.deductible.count +
+                      purchases.fixedAssets.nonDeductible.count}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">
+                    {formatAmount(totalDeductible + totalNonDeductible)}
                   </TableCell>
                   <TableCell className="text-right font-semibold">
                     {formatAmount(
-                      purchases.deductible.untaxedAmount +
-                        purchases.nonDeductible.untaxedAmount,
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {formatAmount(
-                      purchases.deductible.taxAmount +
-                        purchases.nonDeductible.taxAmount,
+                      purchases.goodsAndExpenses.deductible.taxAmount +
+                        purchases.goodsAndExpenses.nonDeductible.taxAmount +
+                        purchases.fixedAssets.deductible.taxAmount +
+                        purchases.fixedAssets.nonDeductible.taxAmount,
                     )}
                   </TableCell>
                 </TableRow>
@@ -877,7 +916,7 @@ function TaxSummarySection({
 // 銷項明細區塊
 // ============================================
 
-function SalesDetailsSection({ data }: { data: Form401Data }) {
+function SalesDetailsSection({ data }: { data: Form401DataV2 }) {
   const { sales } = data;
   const allSalesInvoices = [
     ...sales.taxable.invoices,
@@ -948,12 +987,10 @@ function SalesDetailsSection({ data }: { data: Form401Data }) {
 // 進項明細區塊
 // ============================================
 
-function PurchasesDetailsSection({ data }: { data: Form401Data }) {
-  const { purchases } = data;
-  const allPurchasesInvoices = [
-    ...purchases.deductible.invoices,
-    ...purchases.nonDeductible.invoices,
-  ].sort((a, b) => a.date.localeCompare(b.date));
+function PurchasesDetailsSection({ data }: { data: Form401DataV2 }) {
+  const allPurchasesInvoices = [...data.purchaseInvoices].sort(
+    (a, b) => a.date.localeCompare(b.date),
+  );
 
   return (
     <Card className="mt-4">
@@ -988,9 +1025,7 @@ function PurchasesDetailsSection({ data }: { data: Form401Data }) {
               </TableRow>
             ) : (
               allPurchasesInvoices.map((inv) => {
-                const isDeductible = purchases.deductible.invoices.some(
-                  (d) => d.invoiceId === inv.invoiceId,
-                );
+                const isDeductible = inv.taxAmount > 0;
                 return (
                   <TableRow key={inv.invoiceId}>
                     <TableCell className="font-mono">
@@ -1033,7 +1068,7 @@ function PurchasesDetailsSection({ data }: { data: Form401Data }) {
 // XML 預覽區塊
 // ============================================
 
-function XmlPreviewSection({ data }: { data: Form401Data }) {
+function XmlPreviewSection({ data }: { data: Form401DataV2 }) {
   const formatAmount = (n: number): string => Math.round(n).toString();
 
   // 產生簡化的 XML 預覽
@@ -1066,16 +1101,28 @@ function XmlPreviewSection({ data }: { data: Form401Data }) {
     </Exempt>
   </Sales>
   <Purchases>
-    <Deductible>
-      <Count>${data.purchases.deductible.count}</Count>
-      <UntaxedAmount>${formatAmount(data.purchases.deductible.untaxedAmount)}</UntaxedAmount>
-      <TaxAmount>${formatAmount(data.purchases.deductible.taxAmount)}</TaxAmount>
-    </Deductible>
+    <GoodsAndExpenses>
+      <Deductible>
+        <Count>${data.purchases.goodsAndExpenses.deductible.count}</Count>
+        <UntaxedAmount>${formatAmount(data.purchases.goodsAndExpenses.deductible.untaxedAmount)}</UntaxedAmount>
+        <TaxAmount>${formatAmount(data.purchases.goodsAndExpenses.deductible.taxAmount)}</TaxAmount>
+      </Deductible>
+    </GoodsAndExpenses>
+    <FixedAssets>
+      <Deductible>
+        <Count>${data.purchases.fixedAssets.deductible.count}</Count>
+        <UntaxedAmount>${formatAmount(data.purchases.fixedAssets.deductible.untaxedAmount)}</UntaxedAmount>
+        <TaxAmount>${formatAmount(data.purchases.fixedAssets.deductible.taxAmount)}</TaxAmount>
+      </Deductible>
+    </FixedAssets>
   </Purchases>
   <TaxCalculation>
     <OutputTax>${formatAmount(data.taxCalculation.outputTax)}</OutputTax>
     <InputTax>${formatAmount(data.taxCalculation.inputTax)}</InputTax>
+    <FixedAssetInputTax>${formatAmount(data.taxCalculation.fixedAssetInputTax)}</FixedAssetInputTax>
+    <OpeningOffset>${formatAmount(data.taxCalculation.openingOffset)}</OpeningOffset>
     <NetTax>${formatAmount(data.taxCalculation.netTax)}</NetTax>
+    <ClosingOffset>${formatAmount(data.taxCalculation.closingOffset)}</ClosingOffset>
     <IsRefund>${data.taxCalculation.isRefund ? "Y" : "N"}</IsRefund>
   </TaxCalculation>
 </VAT401>`;
