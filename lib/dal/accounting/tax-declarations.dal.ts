@@ -151,10 +151,11 @@ export async function getLatestClosedDeclaration(
     .select('*')
     .eq('company_id', companyId)
     .in('status', ['closed', 'submitted'])
+    .or(`period_year.lt.${beforeYear},and(period_year.eq.${beforeYear},period_bi_month.lt.${beforeBiMonth})`)
     .order('period_year', { ascending: false })
     .order('period_bi_month', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (error && error.code !== 'PGRST116') {
     throw new Error(`取得上期申報失敗: ${error.message}`)

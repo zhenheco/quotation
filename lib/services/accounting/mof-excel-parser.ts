@@ -667,7 +667,8 @@ export function parseMofExcel(
   }
 
   // ALL 模式需要公司統編
-  if (detectedMode === 'mof_all' && !companyTaxId) {
+  const cleanCompanyTaxId = companyTaxId?.replace(/\s/g, '')
+  if (detectedMode === 'mof_all' && !cleanCompanyTaxId) {
     return {
       data: [],
       errors: [{ row: 0, column: '', message: '全部發票格式需要公司統編來判斷進/銷項' }],
@@ -680,7 +681,7 @@ export function parseMofExcel(
 
   const parseRow = detectedMode === 'mof_all'
     ? (row: Record<string, unknown>, rowNumber: number) =>
-        parseMofAllInvoiceRow(row, rowNumber, companyTaxId!)
+        parseMofAllInvoiceRow(row, rowNumber, cleanCompanyTaxId!)
     : detectedMode === 'mof_purchase'
       ? parsePurchaseInvoiceRow
       : parseSalesInvoiceRow
