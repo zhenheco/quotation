@@ -123,11 +123,20 @@ export async function getOrCreateTaxDeclaration(
   const existing = await getTaxDeclarationByPeriod(db, companyId, year, biMonth)
   if (existing) return existing
 
+  // 自動帶入上期留抵：查找前一期的 closing_offset_amount
+  let autoOffset = openingOffset
+  if (autoOffset === undefined) {
+    const prev = await getLatestClosedDeclaration(db, companyId, year, biMonth)
+    if (prev && prev.closing_offset_amount > 0) {
+      autoOffset = prev.closing_offset_amount
+    }
+  }
+
   return createTaxDeclaration(db, {
     company_id: companyId,
     period_year: year,
     period_bi_month: biMonth,
-    opening_offset_amount: openingOffset ?? 0,
+    opening_offset_amount: autoOffset ?? 0,
   })
 }
 

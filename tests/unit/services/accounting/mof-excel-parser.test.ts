@@ -17,6 +17,7 @@ import {
   parseAmount,
   rocToWesternYear,
   parseMofExcel,
+  parseMofAllInvoiceRow,
   detectImportMode,
   findColumnValue,
   validateMofParseResult,
@@ -285,6 +286,204 @@ describe('mof-excel-parser - 財政部電子發票 Excel 解析器', () => {
       const validation = validateMofParseResult(result)
       expect(validation.valid).toBe(true)
       expect(validation.message).toContain('1 筆資料可匯入')
+    })
+  })
+
+  // ============================================
+  // ALL 格式（財政部全部發票）
+  // ============================================
+  describe('detectImportMode - ALL 格式偵測', () => {
+    it('同時有買方+賣方欄位 → mof_all', () => {
+      const headers = ['發票號碼', '發票日期', '買方統一編號', '買方名稱', '賣方統一編號', '賣方名稱', '營業稅', '總計']
+      expect(detectImportMode(headers)).toBe('mof_all')
+    })
+
+    it('header 有換行符也能正確偵測', () => {
+      const headers = ['發票號碼', '發票日期', '買方統一編號', '買方名稱', '賣方統一編號', '賣方名稱', '匯率\n']
+      expect(detectImportMode(headers)).toBe('mof_all')
+    })
+  })
+
+  describe('parseMofAllInvoiceRow - ALL 格式單行解析', () => {
+    const COMPANY_TAX_ID = '83446730'
+
+    it('買方統編 = 公司統編 → INPUT（進項）', () => {
+      const row = {
+        '發票號碼': 'VZ11904803',
+        '發票日期': '2026-01-07 12:24:47',
+        '買方統一編號': '83446730',
+        '買方名稱': '83446730',
+        '賣方統一編號': '38909312',
+        '賣方名稱': '台亞石油股份有限公司',
+        '銷售額合計': 464,
+        '營業稅': 23,
+        '總計': 487,
+        '課稅別': '應稅',
+        '發票狀態': '開立已確認',
+      }
+
+      const { data, errors } = parseMofAllInvoiceRow(row, 2, COMPANY_TAX_ID)
+
+      expect(errors).toHaveLength(0)
+      expect(data).not.toBeNull()
+      expect(data!.type).toBe('INPUT')
+      expect(data!.number).toBe('VZ11904803')
+      expect(data!.date).toBe('2026-01-07')
+      expect(data!.untaxed_amount).toBe(464)
+      expect(data!.tax_amount).toBe(23)
+      expect(data!.total_amount).toBe(487)
+      expect(data!.counterparty_name).toBe('台亞石油股份有限公司')
+      expect(data!.counterparty_tax_id).toBe('38909312')
+      expect(data!.tax_type).toBe('1')
+    })
+
+    it('賣方統編 = 公司統編 → OUTPUT（銷項）', () => {
+      const row = {
+        '發票號碼': 'XX12345678',
+        '發票日期': '2026-02-01',
+        '買方統一編號': '12345678',
+        '買方名稱': '某客戶公司',
+        '賣方統一編號': '83446730',
+        '賣方名稱': '我方公司',
+        '銷售額合計': 10000,
+        '營業稅': 500,
+        '總計': 10500,
+        '課稅別': '應稅',
+        '發票狀態': '開立已確認',
+      }
+
+      const { data, errors } = parseMofAllInvoiceRow(row, 2, COMPANY_TAX_ID)
+
+      expect(errors).toHaveLength(0)
+      expect(data!.type).toBe('OUTPUT')
+      expect(data!.counterparty_name).toBe('某客戶公司')
+      expect(data!.counterparty_tax_id).toBe('12345678')
+    })
+
+    it('作廢發票 → 靜默跳過', () => {
+      const row = {
+        '發票號碼': 'AB99999999',
+        '發票日期': '2026-01-01',
+        '買方統一編號': '83446730',
+        '賣方統一編號': '11111111',
+        '發票狀態': '作廢',
+      }
+
+      const { data, errors } = parseMofAllInvoiceRow(row, 2, COMPANY_TAX_ID)
+
+      expect(errors).toHaveLength(0)
+      expect(data).toBeNull()
+    })
+
+    it('課稅別「零稅率」→ tax_type = 2', () => {
+      const row = {
+        '發票號碼': 'ZZ11111111',
+        '發票日期': '2026-01-15',
+        '買方統一編號': '83446730',
+        '賣方統一編號': '22222222',
+        '賣方名稱': '外銷公司',
+        '銷售額合計': 5000,
+        '營業稅': 0,
+        '總計': 5000,
+        '課稅別': '零稅率',
+        '發票狀態': '開立已確認',
+      }
+
+      const { data } = parseMofAllInvoiceRow(row, 2, COMPANY_TAX_ID)
+      expect(data!.tax_type).toBe('2')
+    })
+
+    it('買賣方統編都不符合 → 報錯', () => {
+      const row = {
+        '發票號碼': 'XX00000000',
+        '發票日期': '2026-01-01',
+        '買方統一編號': '99999999',
+        '賣方統一編號': '88888888',
+        '發票狀態': '開立已確認',
+      }
+
+      const { data, errors } = parseMofAllInvoiceRow(row, 2, COMPANY_TAX_ID)
+
+      expect(data).toBeNull()
+      expect(errors.length).toBeGreaterThan(0)
+      expect(errors[0].message).toContain('無法判斷進/銷項')
+    })
+  })
+
+  describe('parseMofExcel - ALL 格式整合測試', () => {
+    const COMPANY_TAX_ID = '83446730'
+
+    it('完整解析包含進銷項混合的 ALL 格式', () => {
+      const headers = [
+        '發票號碼', '發票狀態', '發票日期',
+        '買方統一編號', '買方名稱',
+        '賣方統一編號', '賣方名稱',
+        '銷售額合計', '營業稅', '總計', '課稅別',
+      ]
+      const rows = [
+        {
+          '發票號碼': 'AA11111111',
+          '發票狀態': '開立已確認',
+          '發票日期': '2026-01-05 10:00:00',
+          '買方統一編號': '83446730',
+          '買方名稱': '我方',
+          '賣方統一編號': '11111111',
+          '賣方名稱': '賣方A',
+          '銷售額合計': 1000,
+          '營業稅': 50,
+          '總計': 1050,
+          '課稅別': '應稅',
+        },
+        {
+          '發票號碼': 'BB22222222',
+          '發票狀態': '開立已確認',
+          '發票日期': '2026-01-10',
+          '買方統一編號': '22222222',
+          '買方名稱': '客戶B',
+          '賣方統一編號': '83446730',
+          '賣方名稱': '我方',
+          '銷售額合計': 5000,
+          '營業稅': 250,
+          '總計': 5250,
+          '課稅別': '應稅',
+        },
+        {
+          '發票號碼': 'CC33333333',
+          '發票狀態': '作廢',
+          '發票日期': '2026-01-15',
+          '買方統一編號': '83446730',
+          '賣方統一編號': '33333333',
+          '銷售額合計': 999,
+          '營業稅': 50,
+          '總計': 1049,
+          '課稅別': '應稅',
+        },
+      ]
+
+      const result = parseMofExcel(rows, headers, undefined, COMPANY_TAX_ID)
+
+      expect(result.mode).toBe('mof_all')
+      expect(result.errors).toHaveLength(0)
+      // 作廢的 CC33333333 被跳過
+      expect(result.data).toHaveLength(2)
+
+      // 第一筆：進項
+      expect(result.data[0].type).toBe('INPUT')
+      expect(result.data[0].number).toBe('AA11111111')
+      expect(result.data[0].counterparty_name).toBe('賣方A')
+
+      // 第二筆：銷項
+      expect(result.data[1].type).toBe('OUTPUT')
+      expect(result.data[1].number).toBe('BB22222222')
+      expect(result.data[1].counterparty_name).toBe('客戶B')
+    })
+
+    it('ALL 模式缺少 companyTaxId → 報錯', () => {
+      const headers = ['發票號碼', '買方統一編號', '賣方統一編號']
+      const result = parseMofExcel([], headers, 'mof_all')
+
+      expect(result.errors).toHaveLength(1)
+      expect(result.errors[0].message).toContain('公司統編')
     })
   })
 })

@@ -42,7 +42,7 @@ interface PreviewData extends ParsedInvoiceRow {
 type UploadStep = 'select' | 'preview' | 'importing' | 'complete'
 
 /** 使用者選擇的匯入模式 */
-type UserImportMode = 'auto' | 'standard' | 'mof_purchase' | 'mof_sales'
+type UserImportMode = 'auto' | 'standard' | 'mof_purchase' | 'mof_sales' | 'mof_all'
 
 /**
  * 驗證發票資料行（客戶端驗證）
@@ -278,7 +278,7 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
           const detected = detectImportMode(parseResult.headers)
           setDetectedMode(detected)
           effectiveMode = detected
-        } else if (importMode === 'mof_purchase' || importMode === 'mof_sales') {
+        } else if (importMode === 'mof_purchase' || importMode === 'mof_sales' || importMode === 'mof_all') {
           effectiveMode = importMode
           setDetectedMode(importMode)
         }
@@ -286,12 +286,13 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
         let validData: ParsedInvoiceRow[] = []
         let allErrors: ValidationError[] = []
 
-        if (effectiveMode === 'mof_purchase' || effectiveMode === 'mof_sales') {
-          // 使用 MOF 解析器
+        if (effectiveMode === 'mof_purchase' || effectiveMode === 'mof_sales' || effectiveMode === 'mof_all') {
+          // 使用 MOF 解析器（ALL 模式需要公司統編）
           const mofResult = parseMofExcel(
             parseResult.data as Record<string, unknown>[],
             parseResult.headers,
-            effectiveMode
+            effectiveMode,
+            company?.tax_id || undefined
           )
 
           if (mofResult.mode === 'standard') {
@@ -309,7 +310,9 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
             const modeLabel =
               mofResult.mode === 'mof_purchase'
                 ? '財政部進項發票'
-                : '財政部銷項發票'
+                : mofResult.mode === 'mof_all'
+                  ? '財政部全部發票'
+                  : '財政部銷項發票'
             toast.success(`已偵測為：${modeLabel}`)
           }
         } else {
@@ -345,7 +348,7 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
         setIsUploading(false)
       }
     },
-    [company?.id, importMode]
+    [company?.id, company?.tax_id, importMode]
   )
 
   // 拖曳事件處理
@@ -492,6 +495,17 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
             </Label>
           </div>
           <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-slate-50 cursor-pointer">
+            <RadioGroupItem value="mof_all" id="mode-mof-all" className="mt-0.5" />
+            <Label htmlFor="mode-mof-all" className="flex-1 cursor-pointer">
+              <span className="font-medium text-slate-700">
+                財政部全部
+              </span>
+              <p className="text-xs text-slate-500 mt-0.5">
+                含進項+銷項，自動判斷方向
+              </p>
+            </Label>
+          </div>
+          <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-slate-50 cursor-pointer">
             <RadioGroupItem value="mof_purchase" id="mode-mof-purchase" className="mt-0.5" />
             <Label htmlFor="mode-mof-purchase" className="flex-1 cursor-pointer">
               <span className="font-medium text-slate-700">
@@ -627,6 +641,8 @@ export default function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
         return '財政部進項'
       case 'mof_sales':
         return '財政部銷項'
+      case 'mof_all':
+        return '財政部全部發票'
       default:
         return '標準格式'
     }

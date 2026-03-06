@@ -51,6 +51,27 @@ export const MOF_SALES_COLUMNS = {
   taxType: ['課稅別', '稅別', 'Tax Type'],
 } as const
 
+/**
+ * 財政部「全部發票」(ALL) 格式欄位對應
+ * 同時包含買方和賣方欄位，需用公司統編判斷進/銷項
+ */
+export const MOF_ALL_COLUMNS = {
+  invoiceNumber: ['發票號碼', '發票字軌號碼', '統一發票號碼'],
+  date: ['發票日期', '開票日期'],
+  buyerTaxId: ['買方統一編號', '買受人統一編號', '買方統編'],
+  buyerName: ['買方名稱', '買受人名稱'],
+  sellerTaxId: ['賣方統一編號', '銷售人統一編號', '賣方統編'],
+  sellerName: ['賣方名稱', '銷售人名稱'],
+  untaxedAmount: ['銷售額合計', '銷售額', '未稅金額'],
+  taxableAmount: ['應稅銷售額'],
+  zeroRatedAmount: ['零稅銷售額'],
+  exemptAmount: ['免稅銷售額'],
+  taxAmount: ['營業稅', '稅額', '營業稅額'],
+  totalAmount: ['總計', '含稅金額', '發票金額'],
+  taxType: ['課稅別', '稅別'],
+  invoiceStatus: ['發票狀態'],
+} as const
+
 // ============================================
 // 類型定義
 // ============================================
@@ -58,7 +79,7 @@ export const MOF_SALES_COLUMNS = {
 /**
  * 匯入模式
  */
-export type ImportMode = 'standard' | 'mof_purchase' | 'mof_sales'
+export type ImportMode = 'standard' | 'mof_purchase' | 'mof_sales' | 'mof_all'
 
 /**
  * 解析後的發票資料
@@ -312,7 +333,7 @@ export function findColumnValue(
  * 根據欄位名稱自動判斷是進項還是銷項
  */
 export function detectImportMode(headers: string[]): ImportMode {
-  const headerSet = new Set(headers.map((h) => h.replace(' *', '').trim()))
+  const headerSet = new Set(headers.map((h) => h.replace(' *', '').replace(/\n/g, '').trim()))
 
   // 檢查是否有進項特徵欄位（賣方）
   const hasPurchaseFields = MOF_PURCHASE_COLUMNS.sellerTaxId.some((col) => headerSet.has(col))
@@ -321,6 +342,11 @@ export function detectImportMode(headers: string[]): ImportMode {
   // 檢查是否有銷項特徵欄位（買方）
   const hasSalesFields = MOF_SALES_COLUMNS.buyerTaxId.some((col) => headerSet.has(col))
   || MOF_SALES_COLUMNS.buyerName.some((col) => headerSet.has(col))
+
+  // ALL 格式：同時有買方和賣方欄位
+  if (hasPurchaseFields && hasSalesFields) {
+    return 'mof_all'
+  }
 
   if (hasPurchaseFields && !hasSalesFields) {
     return 'mof_purchase'
@@ -492,6 +518,126 @@ export function parseSalesInvoiceRow(
 }
 
 // ============================================
+// ALL 格式解析（同時含進/銷項）
+// ============================================
+
+/**
+ * 課稅別文字轉代號
+ * 財政部 ALL 格式使用中文（「應稅」「零稅率」「免稅」）
+ */
+function normalizeTaxType(value: unknown): string {
+  const str = String(value || '').trim()
+  if (str === '應稅' || str === '1') return '1'
+  if (str === '零稅率' || str === '零稅' || str === '2') return '2'
+  if (str === '免稅' || str === '3') return '3'
+  return '1' // 預設應稅
+}
+
+/**
+ * 解析單筆 ALL 格式發票資料
+ * 根據公司統編判斷是進項或銷項
+ */
+export function parseMofAllInvoiceRow(
+  row: Record<string, unknown>,
+  rowNumber: number,
+  companyTaxId: string
+): { data: ParsedMofInvoice | null; errors: ParseError[] } {
+  const errors: ParseError[] = []
+
+  // 發票狀態（跳過作廢）
+  const invoiceStatus = String(findColumnValue(row, MOF_ALL_COLUMNS.invoiceStatus) || '').trim()
+  if (invoiceStatus.includes('作廢') || invoiceStatus.includes('註銷')) {
+    return { data: null, errors: [] } // 靜默跳過
+  }
+
+  // 發票號碼（必填）
+  const rawNumber = findColumnValue(row, MOF_ALL_COLUMNS.invoiceNumber)
+  const number = String(rawNumber || '').trim().replace(/\s/g, '')
+  if (!number) {
+    errors.push({ row: rowNumber, column: '發票號碼', message: '發票號碼為必填欄位' })
+  }
+
+  // 發票日期（必填，可能帶時間如 "2026-01-07 12:24:47"）
+  const rawDate = findColumnValue(row, MOF_ALL_COLUMNS.date)
+  // 先截取日期部分（去掉時間）
+  const dateOnly = typeof rawDate === 'string' ? rawDate.split(' ')[0] : rawDate
+  const date = parseDate(dateOnly)
+  if (!date) {
+    errors.push({
+      row: rowNumber,
+      column: '發票日期',
+      message: `無法解析日期格式: ${String(rawDate)}`,
+    })
+  }
+
+  // 買賣方資訊
+  const buyerTaxId = String(findColumnValue(row, MOF_ALL_COLUMNS.buyerTaxId) || '').trim().replace(/\s/g, '')
+  const buyerName = String(findColumnValue(row, MOF_ALL_COLUMNS.buyerName) || '').trim()
+  const sellerTaxId = String(findColumnValue(row, MOF_ALL_COLUMNS.sellerTaxId) || '').trim().replace(/\s/g, '')
+  const sellerName = String(findColumnValue(row, MOF_ALL_COLUMNS.sellerName) || '').trim()
+
+  // 判斷進/銷項：買方統編 = 自己 → 進項；賣方統編 = 自己 → 銷項
+  let invoiceType: 'INPUT' | 'OUTPUT'
+  let counterpartyName: string
+  let counterpartyTaxId: string
+
+  if (buyerTaxId === companyTaxId) {
+    invoiceType = 'INPUT'
+    counterpartyName = sellerName
+    counterpartyTaxId = sellerTaxId
+  } else if (sellerTaxId === companyTaxId) {
+    invoiceType = 'OUTPUT'
+    counterpartyName = buyerName
+    counterpartyTaxId = buyerTaxId
+  } else {
+    // 無法判斷方向 — 嘗試用買方名稱是否與統編相同（有時買方名稱就是統編）
+    if (buyerName === companyTaxId || buyerTaxId === companyTaxId.replace(/\s/g, '')) {
+      invoiceType = 'INPUT'
+      counterpartyName = sellerName
+      counterpartyTaxId = sellerTaxId
+    } else {
+      errors.push({
+        row: rowNumber,
+        column: '統一編號',
+        message: `無法判斷進/銷項：買方=${buyerTaxId}，賣方=${sellerTaxId}，公司=${companyTaxId}`,
+      })
+      return { data: null, errors }
+    }
+  }
+
+  // 金額：優先使用銷售額合計，否則用應稅銷售額
+  const untaxedAmount = parseAmount(findColumnValue(row, MOF_ALL_COLUMNS.untaxedAmount))
+    || parseAmount(findColumnValue(row, MOF_ALL_COLUMNS.taxableAmount))
+  const taxAmount = parseAmount(findColumnValue(row, MOF_ALL_COLUMNS.taxAmount))
+
+  // 含稅金額
+  const rawTotal = findColumnValue(row, MOF_ALL_COLUMNS.totalAmount)
+  const totalAmount = rawTotal !== undefined ? parseAmount(rawTotal) : untaxedAmount + taxAmount
+
+  // 課稅別
+  const taxType = normalizeTaxType(findColumnValue(row, MOF_ALL_COLUMNS.taxType))
+
+  if (errors.length > 0) {
+    return { data: null, errors }
+  }
+
+  return {
+    data: {
+      number,
+      type: invoiceType,
+      date: date!,
+      untaxed_amount: untaxedAmount,
+      tax_amount: taxAmount,
+      total_amount: totalAmount,
+      counterparty_name: counterpartyName || undefined,
+      counterparty_tax_id: counterpartyTaxId || undefined,
+      tax_type: taxType,
+    },
+    errors: [],
+  }
+}
+
+// ============================================
 // 主要解析函數
 // ============================================
 
@@ -505,7 +651,8 @@ export function parseSalesInvoiceRow(
 export function parseMofExcel(
   rows: Record<string, unknown>[],
   headers: string[],
-  mode?: ImportMode
+  mode?: ImportMode,
+  companyTaxId?: string
 ): MofParseResult {
   // 自動偵測模式
   const detectedMode = mode || detectImportMode(headers)
@@ -519,11 +666,24 @@ export function parseMofExcel(
     }
   }
 
+  // ALL 模式需要公司統編
+  if (detectedMode === 'mof_all' && !companyTaxId) {
+    return {
+      data: [],
+      errors: [{ row: 0, column: '', message: '全部發票格式需要公司統編來判斷進/銷項' }],
+      mode: 'mof_all',
+    }
+  }
+
   const allData: ParsedMofInvoice[] = []
   const allErrors: ParseError[] = []
 
-  const parseRow =
-    detectedMode === 'mof_purchase' ? parsePurchaseInvoiceRow : parseSalesInvoiceRow
+  const parseRow = detectedMode === 'mof_all'
+    ? (row: Record<string, unknown>, rowNumber: number) =>
+        parseMofAllInvoiceRow(row, rowNumber, companyTaxId!)
+    : detectedMode === 'mof_purchase'
+      ? parsePurchaseInvoiceRow
+      : parseSalesInvoiceRow
 
   rows.forEach((row, index) => {
     const rowNumber = index + 2 // Excel 第一行是標題，資料從第二行開始
