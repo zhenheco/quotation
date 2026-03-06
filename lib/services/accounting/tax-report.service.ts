@@ -16,6 +16,7 @@ import {
   type MediaInvoiceData,
   type MediaFileOptions,
 } from "./media-file-generator";
+import { classifyDeductibility as classifyDeductibilityFn } from "./deductibility-classifier";
 
 // ============================================
 // 類型定義
@@ -41,6 +42,10 @@ export interface InvoiceDetail {
   taxCategory: TaxCategory;
   /** 是否可扣抵（僅進項使用） */
   isDeductible?: boolean;
+  /** 扣抵建議（規則式分類器） */
+  deductibilitySuggestion?: 'deductible' | 'non_deductible' | 'review';
+  /** 扣抵建議原因 */
+  deductibilityReason?: string;
 }
 
 /**
@@ -1250,7 +1255,16 @@ export async function generateForm401V2(
         const taxCode = inv.tax_code_id
           ? taxCodeMap.get(inv.tax_code_id)
           : null;
-        return { ...detail, isDeductible: isInputInvoiceDeductible(taxCode) };
+        const deductResult = classifyDeductibilityFn(
+          inv.counterparty_name || "",
+          inv.description || undefined,
+        );
+        return {
+          ...detail,
+          isDeductible: isInputInvoiceDeductible(taxCode),
+          deductibilitySuggestion: deductResult.suggestion,
+          deductibilityReason: deductResult.reason,
+        };
       }),
     returnsAndAllowances: {
       salesReturns: {

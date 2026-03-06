@@ -1122,15 +1122,33 @@ function PurchasesDetailsSection({ data }: { data: Form401DataV2 }) {
                       {formatAmount(inv.taxAmount)}
                     </TableCell>
                     <TableCell>
-                      {isDeductible ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          可扣抵
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          不可扣抵
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {isDeductible ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            可扣抵
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            不可扣抵
+                          </span>
+                        )}
+                        {inv.deductibilitySuggestion === 'non_deductible' && (
+                          <span
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-red-50 text-red-600 border border-red-200 cursor-help"
+                            title={inv.deductibilityReason || '建議不可扣抵'}
+                          >
+                            ⚠ 建議不扣
+                          </span>
+                        )}
+                        {inv.deductibilitySuggestion === 'review' && (
+                          <span
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-yellow-50 text-yellow-700 border border-yellow-200 cursor-help"
+                            title={inv.deductibilityReason || '需人工確認'}
+                          >
+                            ? 待確認
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
