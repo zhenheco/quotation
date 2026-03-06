@@ -272,17 +272,10 @@ interface BatchPostResult {
 }
 
 async function batchPostInvoices(companyId: string): Promise<BatchPostResult> {
-  const response = await fetch('/api/accounting/invoices/batch-post', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ company_id: companyId }),
-  })
-  if (!response.ok) {
-    const data = (await response.json()) as { error?: string }
-    throw new Error(data.error || '批次處理失敗')
-  }
-  const result = (await response.json()) as { success: boolean; data: BatchPostResult }
-  return result.data
+  return apiClient.post<BatchPostResult>(
+    '/api/accounting/invoices/batch-post',
+    { company_id: companyId }
+  )
 }
 
 export function useBatchPost() {
