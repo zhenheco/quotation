@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { useInvoices, useVerifyInvoice, usePostInvoice } from '@/hooks/accounting'
+import { useInvoices, useVerifyInvoice, usePostInvoice, useBatchPost } from '@/hooks/accounting'
 import { useCompany } from '@/hooks/useCompany'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -43,6 +43,7 @@ export default function InvoiceList() {
   const [page, setPage] = useState(1)
   const verifyInvoice = useVerifyInvoice()
   const postInvoice = usePostInvoice()
+  const batchPost = useBatchPost()
 
   // 審核發票
   const handleVerify = async (id: string) => {
@@ -68,6 +69,30 @@ export default function InvoiceList() {
       const message = err instanceof Error ? err.message : '發票過帳失敗'
       toast.error(message)
     }
+  }
+
+  // 批次審核+過帳
+  const handleBatchPost = async () => {
+    if (!company?.id) return
+    const draftCount = invoices.filter((i) => i.status === 'DRAFT').length
+    const verifiedCount = invoices.filter((i) => i.status === 'VERIFIED').length
+    const totalCount = draftCount + verifiedCount
+    if (totalCount === 0) {
+      toast.info('沒有需要處理的發票')
+      return
+    }
+
+    batchPost.mutate(
+      { companyId: company.id },
+      {
+        onSuccess: (result) => {
+          toast.success(result.message)
+        },
+        onError: (err) => {
+          toast.error('批次處理失敗: ' + (err as Error).message)
+        },
+      }
+    )
   }
 
   const { data, isLoading, error } = useInvoices(
@@ -146,9 +171,20 @@ export default function InvoiceList() {
     <div className="space-y-6">
       {/* 發票列表 */}
       <Card>
-        <CardHeader>
-          <CardTitle>發票管理</CardTitle>
-          <CardDescription>共 {total} 筆記錄</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>發票管理</CardTitle>
+            <CardDescription>共 {total} 筆記錄</CardDescription>
+          </div>
+          {invoices.some((i) => i.status === 'DRAFT' || i.status === 'VERIFIED') && (
+            <Button
+              onClick={handleBatchPost}
+              disabled={batchPost.isPending}
+              size="sm"
+            >
+              {batchPost.isPending ? '處理中...' : '全部審核+過帳'}
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {invoices.length === 0 ? (

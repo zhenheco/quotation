@@ -263,6 +263,41 @@ export function useVoidInvoice() {
 }
 
 /**
+ * 批次審核+過帳
+ */
+interface BatchPostResult {
+  verified: { success: number; failed: number }
+  posted: { success: number; failed: number }
+  message: string
+}
+
+async function batchPostInvoices(companyId: string): Promise<BatchPostResult> {
+  const response = await fetch('/api/accounting/invoices/batch-post', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ company_id: companyId }),
+  })
+  if (!response.ok) {
+    const data = (await response.json()) as { error?: string }
+    throw new Error(data.error || '批次處理失敗')
+  }
+  const result = (await response.json()) as { success: boolean; data: BatchPostResult }
+  return result.data
+}
+
+export function useBatchPost() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ companyId }: { companyId: string }) =>
+      batchPostInvoices(companyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() })
+    },
+  })
+}
+
+/**
  * 記錄付款
  */
 export function useRecordPayment() {

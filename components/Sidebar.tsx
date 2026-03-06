@@ -20,6 +20,7 @@ import {
   UserCheck,
   Wallet,
   Landmark,
+  ClipboardCheck,
   BookOpen,
   ShoppingCart,
   Sparkles,
@@ -97,6 +98,11 @@ const navigation: NavigationItem[] = [
         name: "會計傳票",
         href: "/accounting/journals",
         icon: FileText,
+      },
+      {
+        name: "營業稅申報",
+        href: "/accounting/tax-filing",
+        icon: ClipboardCheck,
       },
       {
         name: "財務報表",
