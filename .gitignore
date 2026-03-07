@@ -35,6 +35,8 @@ package-lock.json
 yarn.lock
 
 # env files (can opt-in for committing if needed)
+.env
+.env.*
 .env.local
 *.env.local.bak
 *.env*.bak
@@ -46,6 +48,7 @@ yarn.lock
 
 # vercel
 .vercel
+.env.vercel
 
 # typescript
 *.tsbuildinfo
