@@ -423,14 +423,56 @@ export default function TaxReportDashboard() {
 
           {/* 申報說明 */}
           {form401 && (
-            <details className="mt-3 text-xs text-muted-foreground">
-              <summary className="cursor-pointer hover:text-foreground">
-                檔案下載說明（點擊展開）
+            <details className="mt-3 text-sm text-muted-foreground border rounded-lg p-3 bg-muted/30">
+              <summary className="cursor-pointer hover:text-foreground font-medium">
+                📋 營業稅申報教學（點擊展開）
               </summary>
-              <div className="mt-2 space-y-1 pl-4">
-                <p><strong>媒體檔 (.TXT)</strong>：進銷項發票明細檔，匯入 BLR 營業稅電子申報系統（「資料」→「外部媒體匯入」）。檔名為「統編.TXT」。</p>
-                <p><strong>XML 檔</strong>：申報書資料備份，供留存查核使用。</p>
-                <p className="text-amber-600">※ 申報流程：BLR 匯入媒體檔 → 資料審核 → 申報書審核 → 勾稽審核 → 上傳申報</p>
+              <div className="mt-3 space-y-4 pl-2">
+                {/* Step 1 */}
+                <div>
+                  <p className="font-semibold text-foreground">Step 1：在本系統準備資料</p>
+                  <ol className="list-decimal list-inside mt-1 space-y-0.5 text-xs">
+                    <li>確認該期別的進項、銷項發票都已建檔完成</li>
+                    <li>選擇正確的「年度」和「期別」，點擊「產生報表」確認金額正確</li>
+                    <li>確認<a href="/settings" className="underline text-blue-600 hover:text-blue-500">公司設定</a>中已填寫 9 碼稅籍編號（非統一編號，由國稅局配發）</li>
+                  </ol>
+                </div>
+
+                {/* Step 2 */}
+                <div>
+                  <p className="font-semibold text-foreground">Step 2：下載媒體檔</p>
+                  <ol className="list-decimal list-inside mt-1 space-y-0.5 text-xs">
+                    <li>點擊上方「下載媒體檔 (.TXT)」按鈕</li>
+                    <li>系統會產生一個以統一編號命名的 .TXT 檔（例如：12345678.TXT）</li>
+                    <li>此檔案包含該期所有進銷項發票明細，格式符合 BLR 114 年版規範。<strong>請勿修改檔名</strong></li>
+                  </ol>
+                </div>
+
+                {/* Step 3 */}
+                <div>
+                  <p className="font-semibold text-foreground">Step 3：匯入 BLR 系統</p>
+                  <ol className="list-decimal list-inside mt-1 space-y-0.5 text-xs">
+                    <li>開啟財政部「營業稅電子申報繳稅系統」（BLR）</li>
+                    <li>選擇「資料」→「外部媒體匯入」</li>
+                    <li>選取剛才下載的 .TXT 檔案，點「匯入」</li>
+                    <li>匯入成功後會顯示進項/銷項筆數，請確認與本系統報表一致</li>
+                  </ol>
+                </div>
+
+                {/* Step 4 */}
+                <div>
+                  <p className="font-semibold text-foreground">Step 4：審核與申報</p>
+                  <ol className="list-decimal list-inside mt-1 space-y-0.5 text-xs">
+                    <li>「進銷項資料審核」→ 確認無錯誤</li>
+                    <li>「申報書審核」→ 確認 401 表金額正確</li>
+                    <li>「勾稽審核」→ 系統自動比對，全部通過後</li>
+                    <li>「申報」→「上傳申報」完成營業稅申報</li>
+                  </ol>
+                </div>
+
+                <p className="text-xs text-amber-600 border-t pt-2">
+                  ⚠️ 提醒：申報期限為單月 15 日前（如 1-2 月期別，需於 3/15 前完成申報）。逾期將加計滯報金。
+                </p>
               </div>
             </details>
           )}
