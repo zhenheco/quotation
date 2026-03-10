@@ -84,6 +84,11 @@ const permissionMapping: Record<string, string[]> = {
   // 營業稅申報（API: tax-declarations → DB: tax_declarations）
   "tax-declarations:read": ["acc_invoices:read"],
   "tax-declarations:write": ["acc_invoices:write"],
+
+  // 光貿整合（使用發票權限）
+  "guangmao:read": ["acc_invoices:read"],
+  "guangmao:write": ["acc_invoices:write"],
+  "guangmao:setup": ["company_settings:write"],
 };
 
 /**

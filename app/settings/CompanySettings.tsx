@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { apiGet, apiPost, apiPut, apiPostFormData } from '@/lib/api-client';
 import TeamMemberList from '@/components/team/TeamMemberList';
 import InviteLinkSection from '@/components/team/InviteLinkSection';
+import GuangmaoSettings from './GuangmaoSettings';
 
 function getImageUrl(url: string | undefined): string | null {
   if (!url) return null;
@@ -376,6 +377,7 @@ export default function CompanySettings({ triggerCreate }: CompanySettingsProps)
 
       {/* Company Form */}
       {selectedCompany && (
+        <>
         <form onSubmit={handleSaveCompany} className="bg-white rounded-lg shadow p-6 space-y-6">
           <h2 className="text-xl font-semibold">
             {isCreating ? '新增公司' : '編輯公司'}
@@ -723,6 +725,14 @@ export default function CompanySettings({ triggerCreate }: CompanySettingsProps)
             </button>
           </div>
         </form>
+
+        {/* 光貿電子發票整合 */}
+        {!isCreating && selectedCompany.id && (
+          <div className="mt-8">
+            <GuangmaoSettings companyId={selectedCompany.id} />
+          </div>
+        )}
+        </>
       )}
     </div>
   );

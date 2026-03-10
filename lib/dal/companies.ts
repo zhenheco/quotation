@@ -467,3 +467,29 @@ export async function getManageableCompanies(
     company_members: undefined,
   }));
 }
+
+/**
+ * 驗證使用者是否為指定公司的成員
+ * 用於 API 層級的多租戶隔離檢查
+ */
+export async function verifyCompanyMembership(
+  db: SupabaseClient,
+  userId: string,
+  companyId: string,
+): Promise<boolean> {
+  const { data, error } = await db
+    .from("company_members")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("company_id", companyId)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to verify company membership:", error.message);
+    return false;
+  }
+
+  return data !== null;
+}

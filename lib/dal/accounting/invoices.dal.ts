@@ -64,6 +64,16 @@ export interface AccInvoice {
   paid_amount: number;
   paid_date: string | null;
   due_date: string | null;
+  // 光貿與訂單整合欄位
+  order_id?: string | null;
+  shipment_id?: string | null;
+  source?: "MANUAL" | "IMPORT" | "GUANGMAO";
+  guangmao_status?: string | null;
+  guangmao_track_id?: string | null;
+  carrier_type?: string | null;
+  carrier_id?: string | null;
+  love_code?: string | null;
+  npo_ban?: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -93,6 +103,16 @@ export interface CreateInvoiceInput {
   return_type?: "NONE" | "RETURN" | "ALLOWANCE";
   original_invoice_date?: string;
   original_invoice_number?: string;
+  // 光貿與訂單整合欄位
+  order_id?: string;
+  shipment_id?: string;
+  source?: "MANUAL" | "IMPORT" | "GUANGMAO";
+  guangmao_status?: string;
+  guangmao_track_id?: string;
+  carrier_type?: string;
+  carrier_id?: string;
+  love_code?: string;
+  npo_ban?: string;
 }
 
 export interface UpdateInvoiceInput {
@@ -398,6 +418,16 @@ export async function createInvoice(
       return_type: input.return_type || "NONE",
       original_invoice_date: input.original_invoice_date || null,
       original_invoice_number: input.original_invoice_number || null,
+      // 光貿與訂單整合欄位
+      order_id: input.order_id || null,
+      shipment_id: input.shipment_id || null,
+      source: input.source || "MANUAL",
+      guangmao_status: input.guangmao_status || null,
+      guangmao_track_id: input.guangmao_track_id || null,
+      carrier_type: input.carrier_type || null,
+      carrier_id: input.carrier_id || null,
+      love_code: input.love_code || null,
+      npo_ban: input.npo_ban || null,
       status: "DRAFT",
       payment_status: "UNPAID",
       payment_method: "UNCLASSIFIED",

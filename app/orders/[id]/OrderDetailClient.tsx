@@ -1,8 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Package, Truck, CheckCircle, XCircle, Edit } from 'lucide-react'
+import { ArrowLeft, Package, Truck, CheckCircle, XCircle, Edit, FileText } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { getSelectedCompanyId } from '@/lib/utils/company-context'
@@ -18,6 +19,7 @@ import { useCreateShipmentFromOrder } from '@/hooks/useShipments'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils/format'
 import type { Currency } from '@/lib/services/exchange-rate'
+import { apiPost } from '@/lib/api-client'
 
 // 狀態標籤樣式
 const statusStyles: Record<OrderStatus, { bg: string; text: string; label: string; icon: React.ReactNode }> = {
@@ -73,6 +75,28 @@ export default function OrderDetailClient({ orderId }: OrderDetailClientProps) {
       router.push('/orders')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '刪除訂單失敗')
+    }
+  }
+
+  // 開立發票
+  const [issuingInvoice, setIssuingInvoice] = useState(false)
+
+  const handleIssueInvoice = async () => {
+    try {
+      setIssuingInvoice(true)
+      const result = await apiPost<{ success: boolean; invoice_number?: string; error?: string }>(
+        '/api/accounting/guangmao/issue',
+        { company_id: companyId, order_id: orderId },
+      )
+      if (result.success) {
+        toast.success(`發票已開立: ${result.invoice_number}`)
+      } else {
+        toast.error(result.error || '開立發票失敗')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '開立發票失敗')
+    } finally {
+      setIssuingInvoice(false)
     }
   }
 
@@ -182,16 +206,37 @@ export default function OrderDetailClient({ orderId }: OrderDetailClientProps) {
                 <button
                   onClick={handleCreateShipment}
                   disabled={createShipment.isPending}
-                  className="px-4 py-2 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {createShipment.isPending ? '建立中...' : '建立出貨單'}
                 </button>
                 <button
+                  onClick={handleIssueInvoice}
+                  disabled={issuingInvoice}
+                  className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 inline mr-1" />
+                  {issuingInvoice ? '開立中...' : '開立發票'}
+                </button>
+                <button
                   onClick={handleCancel}
                   disabled={cancelOrder.isPending}
-                  className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {cancelOrder.isPending ? '取消中...' : '取消訂單'}
+                </button>
+              </>
+            )}
+
+            {order.status === 'shipped' && (
+              <>
+                <button
+                  onClick={handleIssueInvoice}
+                  disabled={issuingInvoice}
+                  className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 inline mr-1" />
+                  {issuingInvoice ? '開立中...' : '開立發票'}
                 </button>
               </>
             )}
@@ -200,7 +245,7 @@ export default function OrderDetailClient({ orderId }: OrderDetailClientProps) {
               <button
                 onClick={handleCancel}
                 disabled={cancelOrder.isPending}
-                className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {cancelOrder.isPending ? '取消中...' : '取消訂單'}
               </button>
