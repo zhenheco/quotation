@@ -16,8 +16,11 @@ import {
   type MediaFileOptions,
 } from "@/lib/services/accounting/media-file-generator";
 
+const CRLF = "\r\n";
+
 const defaultOptions: MediaFileOptions = {
   taxRegistrationNumber: "123456780",
+  taxId: "12345678",
   year: 2026,
   biMonth: 1,
 };
@@ -189,7 +192,7 @@ describe("media-file-generator V2 - 退出折讓 + 作廢", () => {
 
       let content = "";
       invoices.forEach((inv, i) => {
-        content += generateMediaLineV2(inv, defaultOptions, i + 1);
+        content += generateMediaLineV2(inv, defaultOptions, i + 1) + CRLF;
       });
 
       const result = validateMediaFile(content);

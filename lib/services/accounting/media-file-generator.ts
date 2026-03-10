@@ -1,28 +1,34 @@
 /**
  * 401 媒體申報檔產生器
- * 產生符合財政部「營業稅離線建檔系統」規範的 TXT 檔案
+ * 產生符合財政部「營業稅離線建檔系統」(BLR 114年版) 規範的 TXT 檔案
  *
- * 規格：
- * - 每筆資料固定 81 Bytes
- * - 編碼格式：UTF-8
- * - 無換行符號，每 81 字元為一筆資料連續排列
+ * 規格來源：
+ * - 營業稅電子資料申報繳稅作業要點 第18條
+ * - BLR-SUM-001 操作手冊 V1.0
+ * - 行政院公報 第024卷第231期 附件六
+ *
+ * 進銷項資料檔 (統編.TXT) 規格：
+ * - 每筆資料固定 81 字元 (Bytes)
+ * - 每筆記錄後須加 CRLF 換行 (0x0D 0x0A)
+ * - 編碼格式：ASCII (BLR 不支援 UTF-8)
+ * - 進項與銷項各自獨立編流水號，從 0000001 開始
  *
  * 欄位定義（81 Bytes）：
  * | 序號 | 欄位名稱 | 位置 | 長度 | 型態 | 說明 |
  * |-----|---------|------|------|------|------|
  * | 1 | 格式代號 | 1-2 | 2 | 9(2) | 進銷項類型 |
- * | 2 | 稅籍編號 | 3-11 | 9 | 9(9) | 統編8碼+分支碼1碼 |
- * | 3 | 流水號 | 12-18 | 7 | X(7) | 從 0000001 開始 |
- * | 4 | 資料所屬年月 | 19-23 | 5 | 9(5) | 民國年3碼+月2碼 |
- * | 5 | 買受人統編/發票訖號 | 24-31 | 8 | X(8) | 依情境不同 |
- * | 6 | 銷售人統編/彙總張數 | 32-39 | 8 | X(8) | 依情境不同 |
+ * | 2 | 稅籍編號 | 3-11 | 9 | 9(9) | 國稅局配發的9碼編號 |
+ * | 3 | 流水號 | 12-18 | 7 | X(7) | 進/銷各自從 0000001 開始 |
+ * | 4 | 資料所屬年月 | 19-23 | 5 | 9(5) | 民國年3碼+月2碼(期別末月) |
+ * | 5 | 買受人統編/發票訖號 | 24-31 | 8 | X(8) | 進項=自己統編, 銷項=對方統編 |
+ * | 6 | 銷售人統編/彙總張數 | 32-39 | 8 | X(8) | 進項=對方統編, 銷項=自己統編 |
  * | 7 | 發票字軌號碼 | 40-49 | 10 | X(10) | 2碼英文+8碼數字 |
  * | 8 | 銷售額 | 50-61 | 12 | 9(12) | 不含稅金額，靠右補零 |
  * | 9 | 課稅別 | 62 | 1 | 9(1) | 1=應稅, 2=零稅率, 3=免稅 |
  * | 10 | 稅額 | 63-72 | 10 | 9(10) | 營業稅額，靠右補零 |
- * | 11 | 扣抵代號 | 73 | 1 | 9(1) | 進項專用 |
+ * | 11 | 扣抵代號 | 73 | 1 | 9(1) | 進項專用(1-4), 銷項空白 |
  * | 12 | 彙加註記 | 74 | 1 | X(1) | 空白=逐筆, A=彙總 |
- * | 13 | 通關方式 | 75 | 1 | 9(1) | 零稅率專用 |
+ * | 13 | 通關方式 | 75 | 1 | 9(1) | 零稅率專用(1=非經海關, 2=經海關) |
  * | 14 | 空白保留 | 76-81 | 6 | X(6) | 全部填空白 |
  */
 
@@ -32,8 +38,11 @@ import type { InvoiceDetail, TaxCategory } from "./tax-report.service";
 // 常數定義
 // ============================================
 
-/** 每筆資料固定長度 */
+/** 每筆資料固定長度（不含 CRLF） */
 export const RECORD_LENGTH = 81;
+
+/** CRLF 換行符號 */
+export const CRLF = "\r\n";
 
 /** 格式代號對照表 */
 export const FORMAT_CODES = {
@@ -116,8 +125,10 @@ export interface MediaInvoiceData {
  * 媒體檔產生選項
  */
 export interface MediaFileOptions {
-  /** 公司稅籍編號（統編8碼+分支碼1碼，總公司分支碼為0） */
+  /** 稅籍編號（國稅局配發的9碼，非統一編號） */
   taxRegistrationNumber: string;
+  /** 統一編號（8碼，用於填入買受人/銷售人欄位） */
+  taxId: string;
   /** 申報年度（西元年） */
   year: number;
   /** 雙月期（1-6） */
@@ -128,7 +139,7 @@ export interface MediaFileOptions {
  * 媒體檔產生結果
  */
 export interface MediaFileResult {
-  /** 媒體檔內容 */
+  /** 媒體檔內容（含 CRLF 換行） */
   content: string;
   /** 總筆數 */
   recordCount: number;
@@ -185,7 +196,9 @@ export function extractYearMonth(dateStr: string): {
  */
 export function padNumber(num: number, length: number): string {
   const absNum = Math.abs(Math.round(num));
-  return String(absNum).padStart(length, "0");
+  const str = String(absNum).padStart(length, "0");
+  // 若數字超過欄位寬度，截取右側（保留最後 N 位）
+  return str.length > length ? str.slice(-length) : str;
 }
 
 /**
@@ -238,14 +251,14 @@ export function getDeductionCode(
 // ============================================
 
 /**
- * 產生單筆媒體檔記錄（81 bytes）
+ * 產生單筆媒體檔記錄（81 bytes，不含 CRLF）
  */
 export function generateMediaLine(
   invoice: MediaInvoiceData,
   options: MediaFileOptions,
   sequenceNumber: number,
 ): string {
-  const { taxRegistrationNumber, year, biMonth } = options;
+  const { taxRegistrationNumber, taxId, year, biMonth } = options;
   const {
     type,
     invoiceNumber,
@@ -255,8 +268,8 @@ export function generateMediaLine(
     taxCategory,
   } = invoice;
 
-  // 確保稅籍編號為 9 碼（統編8碼+分支碼1碼）
-  const taxRegNum = padText(taxRegistrationNumber, 9);
+  // 稅籍編號 9 碼（國稅局配發，非統編+分支碼）
+  const taxRegNum = padNumber(parseInt(taxRegistrationNumber, 10) || 0, 9);
 
   // 格式代號（預設使用電子發票格式）
   const formatCode =
@@ -267,32 +280,36 @@ export function generateMediaLine(
   // 流水號（7碼）
   const seqNum = padNumber(sequenceNumber, 7);
 
-  // 計算申報年月（取雙月期的結束月份）
-  const endMonth = biMonth * 2;
-  const yearMonth = formatYearMonth(year, endMonth);
+  // 資料所屬年月（填發票實際開立月份，非期別末月）
+  // 從發票日期取得年月，若無日期或日期無效則回退到期別末月
+  const invoiceDate = invoice.date ? new Date(invoice.date) : null;
+  const hasValidDate = invoiceDate !== null && !isNaN(invoiceDate.getTime());
+  const yearMonth = hasValidDate
+    ? formatYearMonth(invoiceDate.getFullYear(), invoiceDate.getMonth() + 1)
+    : formatYearMonth(year, biMonth * 2);
 
   // 清理發票號碼
   const cleanedInvoiceNum = cleanInvoiceNumber(invoiceNumber);
   const invoiceTrack = padText(cleanedInvoiceNum, 10);
 
   // 買受人統編/發票訖號（8碼）
-  // 進項：填自己公司統編（取前8碼）
-  // 銷項：填買方統編
+  // 進項：填自己公司統編（我們是買受人）
+  // 銷項：填對方統編（對方是買受人）
   let buyerTaxId: string;
   if (type === "INPUT") {
-    buyerTaxId = padText(taxRegistrationNumber.substring(0, 8), 8);
+    buyerTaxId = padText(taxId, 8);
   } else {
     buyerTaxId = padText(counterpartyTaxId || "", 8);
   }
 
   // 銷售人統編/彙總張數（8碼）
-  // 進項：填賣方統編
-  // 銷項：填自己公司統編（取前8碼）
+  // 進項：填對方統編（對方是銷售人）
+  // 銷項：填自己統編（我們是銷售人）
   let sellerTaxId: string;
   if (type === "INPUT") {
     sellerTaxId = padText(counterpartyTaxId || "", 8);
   } else {
-    sellerTaxId = padText(taxRegistrationNumber.substring(0, 8), 8);
+    sellerTaxId = padText(taxId, 8);
   }
 
   // 銷售額（12碼，靠右補零）
@@ -312,31 +329,36 @@ export function generateMediaLine(
     deductionCode = getDeductionCode(isDeductible, isFixedAsset);
   }
 
-  // 彙加註記（1碼）- 空白=逐筆, A=彙總
+  // 特種稅額稅率（1碼）- 一般稅額營業人填空白
+  const specialTaxRate = " ";
+
+  // 彙加註記（1碼）- 空白=逐筆, A=彙總, B=進項分攤
   const summaryMark = invoice.isSummary ? "A" : " ";
 
-  // 通關方式（1碼）- 非零稅率留空白
+  // 通關方式（1碼）- 零稅率專用：1=非經海關, 2=經海關
   const customsType = taxCategory === "ZERO_RATED" ? "1" : " ";
 
-  // 空白保留（6碼）
-  const reserved = "      ";
+  // 空白保留（5碼）
+  const reserved = "     ";
 
   // 組合 81 bytes 記錄
+  // 依財政部「營業稅電子資料申報繳稅作業要點」第20點欄位順序
   const line =
-    formatCode + // 1-2 (2)
-    taxRegNum + // 3-11 (9)
-    seqNum + // 12-18 (7)
-    yearMonth + // 19-23 (5)
-    buyerTaxId + // 24-31 (8)
-    sellerTaxId + // 32-39 (8)
-    invoiceTrack + // 40-49 (10)
-    salesAmount + // 50-61 (12)
-    taxType + // 62 (1)
-    tax + // 63-72 (10)
-    deductionCode + // 73 (1)
-    summaryMark + // 74 (1)
-    customsType + // 75 (1)
-    reserved; // 76-81 (6)
+    formatCode + // 1-2 (2) 格式代號
+    taxRegNum + // 3-11 (9) 稅籍編號
+    seqNum + // 12-18 (7) 流水號
+    yearMonth + // 19-23 (5) 資料所屬年月
+    buyerTaxId + // 24-31 (8) 買受人統編
+    sellerTaxId + // 32-39 (8) 銷售人統編
+    invoiceTrack + // 40-49 (10) 發票字軌+號碼
+    salesAmount + // 50-61 (12) 銷售額
+    taxType + // 62 (1) 課稅別
+    tax + // 63-72 (10) 稅額
+    deductionCode + // 73 (1) 扣抵代號
+    specialTaxRate + // 74 (1) 特種稅額稅率
+    summaryMark + // 75 (1) 彙加註記
+    customsType + // 76 (1) 通關方式
+    reserved; // 77-81 (5) 保留
 
   // 驗證長度
   if (line.length !== RECORD_LENGTH) {
@@ -371,13 +393,15 @@ export function invoiceDetailToMediaData(
 
 /**
  * 產生完整媒體檔
+ * 進項與銷項各自獨立編流水號，先銷項後進項排列
  */
 export function generateMediaFile(
   invoices: MediaInvoiceData[],
   options: MediaFileOptions,
 ): MediaFileResult {
-  let content = "";
-  let sequenceNumber = 0;
+  const lines: string[] = [];
+  let inputSeqNum = 0;
+  let outputSeqNum = 0;
   let inputCount = 0;
   let outputCount = 0;
   let inputAmount = 0;
@@ -385,26 +409,36 @@ export function generateMediaFile(
   let inputTax = 0;
   let outputTax = 0;
 
-  for (const invoice of invoices) {
-    sequenceNumber++;
-    const line = generateMediaLine(invoice, options, sequenceNumber);
-    content += line;
+  // 分離進項與銷項
+  const outputInvoices = invoices.filter((inv) => inv.type === "OUTPUT");
+  const inputInvoices = invoices.filter((inv) => inv.type === "INPUT");
 
-    // 統計
-    if (invoice.type === "INPUT") {
-      inputCount++;
-      inputAmount += invoice.untaxedAmount;
-      inputTax += invoice.taxAmount;
-    } else {
-      outputCount++;
-      outputAmount += invoice.untaxedAmount;
-      outputTax += invoice.taxAmount;
-    }
+  // 先處理銷項
+  for (const invoice of outputInvoices) {
+    outputSeqNum++;
+    const line = generateMediaLine(invoice, options, outputSeqNum);
+    lines.push(line);
+    outputCount++;
+    outputAmount += invoice.untaxedAmount;
+    outputTax += invoice.taxAmount;
   }
+
+  // 再處理進項
+  for (const invoice of inputInvoices) {
+    inputSeqNum++;
+    const line = generateMediaLine(invoice, options, inputSeqNum);
+    lines.push(line);
+    inputCount++;
+    inputAmount += invoice.untaxedAmount;
+    inputTax += invoice.taxAmount;
+  }
+
+  // 每筆記錄後加 CRLF
+  const content = lines.map((line) => line + CRLF).join("");
 
   return {
     content,
-    recordCount: sequenceNumber,
+    recordCount: inputCount + outputCount,
     inputCount,
     outputCount,
     inputAmount,
@@ -498,7 +532,7 @@ export function generateMediaLineV2(
 }
 
 /**
- * 驗證媒體檔格式
+ * 驗證媒體檔格式（支援含 CRLF 的格式）
  */
 export function validateMediaFile(content: string): {
   valid: boolean;
@@ -511,16 +545,25 @@ export function validateMediaFile(content: string): {
     return { valid: true, recordCount: 0, errors: [] };
   }
 
-  if (content.length % RECORD_LENGTH !== 0) {
-    errors.push(`檔案長度 ${content.length} 不是 ${RECORD_LENGTH} 的倍數`);
-  }
+  // 按 CRLF 分割記錄
+  const lines = content.split(CRLF).filter((line) => line.length > 0);
+  const recordCount = lines.length;
 
-  const recordCount = Math.floor(content.length / RECORD_LENGTH);
+  if (recordCount === 0) {
+    return { valid: true, recordCount: 0, errors: [] };
+  }
 
   // 驗證每筆記錄
   for (let i = 0; i < recordCount; i++) {
-    const start = i * RECORD_LENGTH;
-    const record = content.substring(start, start + RECORD_LENGTH);
+    const record = lines[i];
+
+    // 驗證記錄長度
+    if (record.length !== RECORD_LENGTH) {
+      errors.push(
+        `第 ${i + 1} 筆記錄長度錯誤：預期 ${RECORD_LENGTH}，實際 ${record.length}`,
+      );
+      continue;
+    }
 
     // 驗證格式代號
     const formatCode = record.substring(0, 2);
@@ -537,12 +580,11 @@ export function validateMediaFile(content: string): {
       errors.push(`第 ${i + 1} 筆記錄格式代號錯誤：${formatCode}`);
     }
 
-    // 驗證流水號
-    const seqNum = record.substring(11, 18);
-    const expectedSeq = String(i + 1).padStart(7, "0");
-    if (seqNum !== expectedSeq) {
+    // 驗證稅籍編號為 9 碼數字
+    const taxRegNum = record.substring(2, 11);
+    if (!/^\d{9}$/.test(taxRegNum)) {
       errors.push(
-        `第 ${i + 1} 筆記錄流水號錯誤：預期 ${expectedSeq}，實際 ${seqNum}`,
+        `第 ${i + 1} 筆記錄稅籍編號格式錯誤：${taxRegNum}（應為9碼數字）`,
       );
     }
   }

@@ -11,6 +11,8 @@ export interface Company {
   signature_url: string | null;
   passbook_url: string | null;
   tax_id: string | null;
+  /** 稅籍編號（國稅局9碼），用於營業稅媒體申報 */
+  tax_registration_number: string | null;
   bank_name: string | null;
   bank_account: string | null;
   bank_code: string | null;

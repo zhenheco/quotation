@@ -160,6 +160,7 @@ describe('media-file-generator - 401 媒體申報檔產生器', () => {
   describe('generateMediaLine - 產生單筆媒體檔記錄', () => {
     const baseOptions: MediaFileOptions = {
       taxRegistrationNumber: '123456780',
+      taxId: '12345678',
       year: 2024,
       biMonth: 1,
     }
@@ -254,6 +255,7 @@ describe('media-file-generator - 401 媒體申報檔產生器', () => {
 
       const options: MediaFileOptions = {
         taxRegistrationNumber: '123456780',
+        taxId: '12345678',
         year: 2024,
         biMonth: 1,
       }
@@ -267,7 +269,8 @@ describe('media-file-generator - 401 媒體申報檔產生器', () => {
       expect(result.inputAmount).toBe(5000)
       expect(result.outputTax).toBe(500)
       expect(result.inputTax).toBe(250)
-      expect(result.content.length).toBe(RECORD_LENGTH * 2)
+      // 每筆記錄 81 bytes + CRLF (2 bytes) = 83 bytes per record
+      expect(result.content.length).toBe((RECORD_LENGTH + 2) * 2)
     })
   })
 

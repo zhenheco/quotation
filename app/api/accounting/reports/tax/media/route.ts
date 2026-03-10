@@ -1,6 +1,9 @@
 /**
  * 401 媒體申報檔下載 API Route
- * 產生符合財政部「營業稅離線建檔系統」規範的 TXT 檔案
+ * 產生符合財政部「營業稅離線建檔系統」(BLR 114年版) 規範的 TXT 檔案
+ *
+ * 變更紀錄：
+ * - 2026-03-10: 修正稅籍編號、加入 CRLF、流水號分開編號
  */
 
 import { NextResponse } from 'next/server'
@@ -20,19 +23,21 @@ import {
  *
  * Query params:
  * - company_id: 公司 ID (必填)
- * - tax_id: 公司統編 (必填)
+ * - tax_id: 公司統編 8 碼 (必填)
+ * - tax_registration_number: 稅籍編號 9 碼 (必填，國稅局配發)
  * - company_name: 公司名稱 (必填)
- * - year: 年度 (必填)
+ * - year: 年度 (必填，西元年)
  * - bi_month: 雙月期 1-6 (必填)
  *
  * Response:
- * - Content-Type: text/plain; charset=utf-8
+ * - Content-Type: text/plain; charset=ascii
  * - Content-Disposition: attachment; filename="{統編}.TXT"
  */
 export const GET = withAuth('reports:read')(async (request, { db }) => {
   const searchParams = request.nextUrl.searchParams
   const companyId = searchParams.get('company_id')
   const taxId = searchParams.get('tax_id')
+  const taxRegistrationNumber = searchParams.get('tax_registration_number')
   const companyName = searchParams.get('company_name')
   const yearStr = searchParams.get('year')
   const biMonthStr = searchParams.get('bi_month')
@@ -43,6 +48,12 @@ export const GET = withAuth('reports:read')(async (request, { db }) => {
   }
   if (!taxId) {
     return NextResponse.json({ error: 'tax_id is required' }, { status: 400 })
+  }
+  if (!taxRegistrationNumber) {
+    return NextResponse.json(
+      { error: 'tax_registration_number is required (稅籍編號9碼，可在國稅局稅籍證明上找到)' },
+      { status: 400 }
+    )
   }
   if (!companyName) {
     return NextResponse.json({ error: 'company_name is required' }, { status: 400 })
@@ -64,6 +75,14 @@ export const GET = withAuth('reports:read')(async (request, { db }) => {
   // 驗證統編格式（8 碼數字）
   if (!/^\d{8}$/.test(taxId)) {
     return NextResponse.json({ error: 'tax_id must be 8 digits' }, { status: 400 })
+  }
+
+  // 驗證稅籍編號格式（9 碼數字）
+  if (!/^\d{9}$/.test(taxRegistrationNumber)) {
+    return NextResponse.json(
+      { error: 'tax_registration_number must be 9 digits (稅籍編號9碼)' },
+      { status: 400 }
+    )
   }
 
   // 產生 Form401 資料
@@ -103,7 +122,8 @@ export const GET = withAuth('reports:read')(async (request, { db }) => {
 
   // 媒體檔產生選項
   const options: MediaFileOptions = {
-    taxRegistrationNumber: taxId + '0', // 統編 + 分支機構碼（總公司為 0）
+    taxRegistrationNumber, // 國稅局配發的 9 碼稅籍編號
+    taxId,                 // 8 碼統一編號（填入買受人/銷售人欄位用）
     year,
     biMonth,
   }
@@ -111,14 +131,14 @@ export const GET = withAuth('reports:read')(async (request, { db }) => {
   // 產生媒體檔
   const mediaFile = generateMediaFile(mediaInvoices, options)
 
-  // 檔案名稱：統編.TXT
+  // 檔案名稱：統編.TXT（BLR 要求檔名為 8 碼統編）
   const filename = `${taxId}.TXT`
 
-  // 回傳 TXT 檔案
+  // 回傳 TXT 檔案（ASCII 編碼）
   return new NextResponse(mediaFile.content, {
     status: 200,
     headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
+      'Content-Type': 'text/plain; charset=ascii',
       'Content-Disposition': `attachment; filename="${filename}"`,
       'X-Record-Count': String(mediaFile.recordCount),
       'X-Output-Count': String(mediaFile.outputCount),

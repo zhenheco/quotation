@@ -7,6 +7,7 @@ interface Company {
   id: string
   name: string
   tax_id?: string
+  tax_registration_number?: string
   address?: string
   phone?: string
   email?: string

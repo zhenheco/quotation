@@ -133,6 +133,7 @@ export default function TaxReportDashboard() {
     return {
       companyId: company.id,
       taxId: company.tax_id || "",
+      taxRegistrationNumber: company.tax_registration_number || "",
       companyName,
       year,
       biMonth,
@@ -302,11 +303,15 @@ export default function TaxReportDashboard() {
       toast.error("無資料可下載");
       return;
     }
+    if (!taxReportParams.taxRegistrationNumber || !/^\d{9}$/.test(taxReportParams.taxRegistrationNumber)) {
+      toast.error("請先至公司設定填寫稅籍編號（9碼數字，由國稅局配發）");
+      return;
+    }
     downloadMedia.mutate(
       { params: taxReportParams },
       {
         onSuccess: () => {
-          toast.success("下載成功");
+          toast.success("媒體申報檔下載成功（統編.TXT）— 請於 BLR 系統匯入此檔案");
         },
         onError: (error) => {
           console.error("媒體檔下載失敗:", error);
@@ -389,8 +394,9 @@ export default function TaxReportDashboard() {
               variant="outline"
               size="sm"
               disabled={!form401 || downloadMedia.isPending}
+              title="下載進銷項媒體申報檔（統編.TXT），用於 BLR 營業稅電子申報系統匯入"
             >
-              {downloadMedia.isPending ? "下載中..." : "下載媒體檔"}
+              {downloadMedia.isPending ? "下載中..." : "下載媒體檔 (.TXT)"}
             </Button>
             <Button
               onClick={() => setImportModalOpen(true)}
@@ -405,6 +411,29 @@ export default function TaxReportDashboard() {
               匯入發票
             </Button>
           </div>
+
+          {/* 稅籍編號提示 */}
+          {taxReportParams && !taxReportParams.taxRegistrationNumber && (
+            <div className="mt-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+              <strong>提醒：</strong>下載媒體申報檔需要填寫
+              <strong>稅籍編號（9碼）</strong>。稅籍編號由國稅局配發，與統一編號（8碼）不同。
+              請至<a href="/settings" className="underline font-medium text-amber-900 hover:text-amber-700">公司設定</a>頁面填寫稅籍編號後再下載。
+            </div>
+          )}
+
+          {/* 申報說明 */}
+          {form401 && (
+            <details className="mt-3 text-xs text-muted-foreground">
+              <summary className="cursor-pointer hover:text-foreground">
+                檔案下載說明（點擊展開）
+              </summary>
+              <div className="mt-2 space-y-1 pl-4">
+                <p><strong>媒體檔 (.TXT)</strong>：進銷項發票明細檔，匯入 BLR 營業稅電子申報系統（「資料」→「外部媒體匯入」）。檔名為「統編.TXT」。</p>
+                <p><strong>XML 檔</strong>：申報書資料備份，供留存查核使用。</p>
+                <p className="text-amber-600">※ 申報流程：BLR 匯入媒體檔 → 資料審核 → 申報書審核 → 勾稽審核 → 上傳申報</p>
+              </div>
+            </details>
+          )}
 
           {/* 申報期別狀態 */}
           {currentDeclaration && (

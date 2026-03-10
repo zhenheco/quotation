@@ -27,6 +27,7 @@ export const taxReportKeys = {
 export interface TaxReportParams {
   companyId: string
   taxId: string
+  taxRegistrationNumber: string
   companyName: string
   year: number
   biMonth: number
@@ -110,6 +111,7 @@ async function downloadMediaFile(params: TaxReportParams): Promise<Blob> {
   const searchParams = new URLSearchParams({
     company_id: params.companyId,
     tax_id: params.taxId,
+    tax_registration_number: params.taxRegistrationNumber,
     company_name: params.companyName,
     year: params.year.toString(),
     bi_month: params.biMonth.toString(),

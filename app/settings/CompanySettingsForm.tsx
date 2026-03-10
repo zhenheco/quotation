@@ -11,6 +11,7 @@ export default function CompanySettingsForm() {
   const [settings, setSettings] = useState<{
     company_name?: { zh: string; en: string };
     tax_id?: string;
+    tax_registration_number?: string;
     phone?: string;
     email?: string;
     bank_name?: string;
@@ -98,6 +99,7 @@ export default function CompanySettingsForm() {
           en: formDataObj.get('company_name_en'),
         },
         tax_id: formDataObj.get('tax_id'),
+        tax_registration_number: formDataObj.get('tax_registration_number'),
         phone: formDataObj.get('phone'),
         email: formDataObj.get('email'),
         bank_name: formDataObj.get('bank_name'),
@@ -166,7 +168,7 @@ export default function CompanySettingsForm() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                統一編號
+                統一編號（8碼）
               </label>
               <input
                 type="text"
@@ -174,7 +176,26 @@ export default function CompanySettingsForm() {
                 defaultValue={settings?.tax_id || ''}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 placeholder="12345678"
+                maxLength={8}
+                pattern="[0-9]{8}"
               />
+              <p className="mt-1 text-xs text-gray-500">經濟部核發的營業登記號碼</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                稅籍編號（9碼）
+              </label>
+              <input
+                type="text"
+                name="tax_registration_number"
+                defaultValue={settings?.tax_registration_number || ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="123456789"
+                maxLength={9}
+                pattern="[0-9]{9}"
+              />
+              <p className="mt-1 text-xs text-gray-500">國稅局配發，用於營業稅媒體申報。可在稅籍證明上找到，與統一編號不同。</p>
             </div>
 
             <div>

@@ -852,6 +852,7 @@ export function generateMediaFile401(
   // 媒體檔產生選項
   const options: MediaFileOptions = {
     taxRegistrationNumber: taxRegNum,
+    taxId: form401Data.companyInfo.taxId,
     year: form401Data.period.year,
     biMonth: form401Data.period.biMonth,
   };
