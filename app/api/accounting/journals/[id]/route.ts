@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { verifyCompanyMembership } from '@/lib/dal/companies'
 import { getJournalDetail, deleteJournalById } from '@/lib/services/accounting'
 import { updateJournalEntry, type UpdateJournalInput } from '@/lib/dal/accounting'
 
@@ -13,11 +14,17 @@ import { updateJournalEntry, type UpdateJournalInput } from '@/lib/dal/accountin
  * GET /api/accounting/journals/[id] - 取得傳票詳情
  */
 export const GET = withAuth('journals:read')<{ id: string }>(
-  async (request, { db }, { id }) => {
+  async (request, { user, db }, { id }) => {
     const journal = await getJournalDetail(db, id)
 
     if (!journal) {
       return NextResponse.json({ error: 'Journal not found' }, { status: 404 })
+    }
+
+    // 多租戶隔離：驗證使用者屬於該公司
+    const isMember = await verifyCompanyMembership(db, user.id, journal.company_id)
+    if (!isMember) {
+      return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
     }
 
     return NextResponse.json(journal)
@@ -28,9 +35,37 @@ export const GET = withAuth('journals:read')<{ id: string }>(
  * PUT /api/accounting/journals/[id] - 更新傳票（僅限草稿）
  */
 export const PUT = withAuth('journals:write')<{ id: string }>(
-  async (request, { db }, { id }) => {
+  async (request, { user, db }, { id }) => {
     try {
+      const journal = await getJournalDetail(db, id)
+      if (!journal) {
+        return NextResponse.json({ error: 'Journal not found' }, { status: 404 })
+      }
+
+      // 多租戶隔離：驗證使用者屬於該公司
+      const isMember = await verifyCompanyMembership(db, user.id, journal.company_id)
+      if (!isMember) {
+        return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
+      }
+
       const body = await request.json() as UpdateJournalInput
+
+      // 資源一致性檢查：驗證更新的會計科目屬於該公司
+      if (body.transactions) {
+        const accountIds = [...new Set(body.transactions.map(t => t.account_id))]
+        const { data: accounts } = await db
+          .from('accounts')
+          .select('id, company_id')
+          .in('id', accountIds)
+
+        if (accounts) {
+          const invalidAccount = accounts.find(a => a.company_id !== null && a.company_id !== journal.company_id)
+          if (invalidAccount) {
+            return NextResponse.json({ error: '部分會計科目不屬於此公司' }, { status: 403 })
+          }
+        }
+      }
+
       const updated = await updateJournalEntry(db, id, body)
       return NextResponse.json(updated)
     } catch (error) {
@@ -53,8 +88,19 @@ export const PUT = withAuth('journals:write')<{ id: string }>(
  * DELETE /api/accounting/journals/[id] - 刪除傳票
  */
 export const DELETE = withAuth('journals:delete')<{ id: string }>(
-  async (request, { db }, { id }) => {
+  async (request, { user, db }, { id }) => {
     try {
+      const journal = await getJournalDetail(db, id)
+      if (!journal) {
+        return NextResponse.json({ error: 'Journal not found' }, { status: 404 })
+      }
+
+      // 多租戶隔離：驗證使用者屬於該公司
+      const isMember = await verifyCompanyMembership(db, user.id, journal.company_id)
+      if (!isMember) {
+        return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
+      }
+
       await deleteJournalById(db, id)
       return NextResponse.json({ success: true })
     } catch (error) {

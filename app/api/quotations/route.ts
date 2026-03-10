@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api/middleware";
+import { verifyCompanyMembership } from "@/lib/dal/companies";
 import {
   getQuotations,
   getQuotationsPaginated,
   createQuotationItemsBatch,
   createQuotationWithRetry,
-  validateCustomerOwnership,
 } from "@/lib/dal/quotations";
 import { getCustomersByIds } from "@/lib/dal/customers";
 import { handleApiError, BadRequestError } from "@/lib/errors/api-error";
@@ -18,6 +18,7 @@ import { handleApiError, BadRequestError } from "@/lib/errors/api-error";
  * - limit: 每頁筆數（預設 20，最大 100）
  * - status: 篩選狀態
  * - paginated: 是否使用分頁（預設 false，向後相容）
+ * - company_id: 公司 ID
  */
 export const GET = withAuth("quotations:read")(async (
   request,
@@ -37,6 +38,15 @@ export const GET = withAuth("quotations:read")(async (
     | "expired"
     | null;
   const usePagination = searchParams.get("paginated") === "true";
+  const companyId = searchParams.get("company_id");
+
+  // 如果提供了 company_id，驗證成員身分
+  if (companyId) {
+    const isMember = await verifyCompanyMembership(db, user.id, companyId);
+    if (!isMember) {
+      return NextResponse.json({ error: "無權存取此公司資料" }, { status: 403 });
+    }
+  }
 
   // 根據是否啟用分頁選擇不同的查詢方式
   if (usePagination) {
@@ -45,6 +55,7 @@ export const GET = withAuth("quotations:read")(async (
       page,
       limit,
       status: status || undefined,
+      companyId: companyId || undefined,
     });
 
     // 批量載入客戶資料
@@ -79,6 +90,7 @@ export const GET = withAuth("quotations:read")(async (
   // 非分頁模式（向後相容）
   const quotations = await getQuotations(db, user.id, {
     status: status || undefined,
+    companyId: companyId || undefined,
   });
 
   // 批量載入客戶名稱和 Email（解決 N+1 查詢問題）
@@ -171,14 +183,26 @@ export const POST = withAuth("quotations:write")(async (
     return handleApiError(new BadRequestError("Missing required fields"));
   }
 
-  // 驗證客戶所有權
-  const isValidCustomer = await validateCustomerOwnership(
-    db,
-    customer_id,
-    user.id,
-  );
-  if (!isValidCustomer) {
-    return handleApiError(new BadRequestError("Invalid customer"));
+  // 多租戶隔離：驗證使用者屬於該公司
+  const isMember = await verifyCompanyMembership(db, user.id, company_id);
+  if (!isMember) {
+    return NextResponse.json({ error: "無權存取此公司資料" }, { status: 403 });
+  }
+
+  // 驗證客戶所有權與公司歸屬
+  const { data: customer } = await db
+    .from("customers")
+    .select("company_id, user_id")
+    .eq("id", customer_id)
+    .single();
+
+  if (!customer || (customer.company_id && customer.company_id !== company_id)) {
+    return handleApiError(new BadRequestError("Invalid customer for this company"));
+  }
+
+  // 如果是個人資料，也驗證 user_id
+  if (!customer.company_id && customer.user_id !== user.id) {
+    return handleApiError(new BadRequestError("Invalid customer ownership"));
   }
 
   // 建立報價單（使用帶重試機制的函數防止編號重複）

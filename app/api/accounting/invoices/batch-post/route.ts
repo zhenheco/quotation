@@ -6,15 +6,12 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { verifyCompanyMembership } from '@/lib/dal/companies'
 import { batchVerifyInvoices, batchPostInvoices } from '@/lib/services/accounting'
 import { getInvoices } from '@/lib/dal/accounting'
 
 /**
  * POST /api/accounting/invoices/batch-post
- *
- * Body:
- * - company_id: string (必填)
- * - invoice_ids?: string[] (選填，不指定則處理全部 DRAFT/VERIFIED)
  */
 export const POST = withAuth('invoices:post')(async (request, { user, db }) => {
   try {
@@ -29,6 +26,12 @@ export const POST = withAuth('invoices:post')(async (request, { user, db }) => {
         { error: 'company_id is required' },
         { status: 400 }
       )
+    }
+
+    // 多租戶隔離：驗證使用者屬於該公司
+    const isMember = await verifyCompanyMembership(db, user.id, companyId)
+    if (!isMember) {
+      return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
     }
 
     let targetIds = body.invoice_ids

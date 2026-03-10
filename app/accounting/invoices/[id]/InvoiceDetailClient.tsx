@@ -1,9 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useInvoice, useVerifyInvoice, usePostInvoice } from '@/hooks/accounting'
+import { apiPost } from '@/lib/api-client'
+import { useCompany } from '@/hooks/useCompany'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +31,34 @@ export default function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientPr
   const { data: invoice, isLoading, error } = useInvoice(invoiceId)
   const verifyInvoice = useVerifyInvoice()
   const postInvoice = usePostInvoice()
+  const { company } = useCompany()
+  const [voiding, setVoiding] = useState(false)
+
+  // 作廢發票（光貿）
+  const handleVoidInvoice = async () => {
+    if (!company?.id || !invoice) return
+    const reason = prompt('請輸入作廢原因：')
+    if (!reason) return
+
+    setVoiding(true)
+    try {
+      const result = await apiPost<{ success?: boolean; error?: string; suggest_allowance?: boolean }>(
+        '/api/accounting/guangmao/void',
+        { company_id: company.id, invoice_id: invoiceId, reason },
+      )
+      if (result.suggest_allowance) {
+        toast.error(result.error || '已跨期，請改用折讓')
+      } else if (result.success) {
+        toast.success('作廢請求已提交')
+      } else {
+        toast.error(result.error || '作廢失敗')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '作廢失敗')
+    } finally {
+      setVoiding(false)
+    }
+  }
 
   // 審核發票
   const handleVerify = async () => {
@@ -160,6 +191,16 @@ export default function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientPr
               disabled={postInvoice.isPending}
             >
               {postInvoice.isPending ? '處理中...' : '過帳'}
+            </Button>
+          )}
+          {/* 光貿發票：作廢按鈕 */}
+          {invoice.source === 'GUANGMAO' && invoice.status !== 'VOIDED' && (
+            <Button
+              variant="destructive"
+              onClick={handleVoidInvoice}
+              disabled={voiding}
+            >
+              {voiding ? '處理中...' : '作廢發票'}
             </Button>
           )}
         </div>

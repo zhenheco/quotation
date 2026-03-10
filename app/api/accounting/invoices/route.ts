@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
+import { verifyCompanyMembership } from '@/lib/dal/companies'
 import {
   listInvoices,
   createNewInvoice,
@@ -15,7 +16,7 @@ import type { CreateInvoiceInput, InvoiceType } from '@/lib/dal/accounting'
 /**
  * GET /api/accounting/invoices - 取得發票列表
  */
-export const GET = withAuth('invoices:read')(async (request, { db }) => {
+export const GET = withAuth('invoices:read')(async (request, { user, db }) => {
   // 解析查詢參數
   const searchParams = request.nextUrl.searchParams
   const companyId = searchParams.get('company_id')
@@ -30,6 +31,12 @@ export const GET = withAuth('invoices:read')(async (request, { db }) => {
 
   if (!companyId) {
     return NextResponse.json({ error: 'company_id is required' }, { status: 400 })
+  }
+
+  // 多租戶隔離：驗證使用者屬於該公司
+  const isMember = await verifyCompanyMembership(db, user.id, companyId)
+  if (!isMember) {
+    return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
   }
 
   // 判斷是否要取得統計摘要
@@ -58,7 +65,7 @@ export const GET = withAuth('invoices:read')(async (request, { db }) => {
 /**
  * POST /api/accounting/invoices - 建立新發票
  */
-export const POST = withAuth('invoices:write')(async (request, { db }) => {
+export const POST = withAuth('invoices:write')(async (request, { user, db }) => {
   // 取得請求資料
   const body = await request.json() as CreateInvoiceInput
 
@@ -66,6 +73,13 @@ export const POST = withAuth('invoices:write')(async (request, { db }) => {
   if (!body.company_id) {
     return NextResponse.json({ error: 'company_id is required' }, { status: 400 })
   }
+
+  // 多租戶隔離：驗證使用者屬於該公司
+  const isMember = await verifyCompanyMembership(db, user.id, body.company_id)
+  if (!isMember) {
+    return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
+  }
+
   if (!body.number) {
     return NextResponse.json({ error: 'number is required' }, { status: 400 })
   }
@@ -74,6 +88,19 @@ export const POST = withAuth('invoices:write')(async (request, { db }) => {
   }
   if (!body.date) {
     return NextResponse.json({ error: 'date is required' }, { status: 400 })
+  }
+
+  // 資源一致性檢查：若有關聯訂單，驗證訂單屬於該公司
+  if (body.order_id) {
+    const { data: order } = await db
+      .from('orders')
+      .select('company_id')
+      .eq('id', body.order_id)
+      .single()
+
+    if (order && order.company_id !== body.company_id) {
+      return NextResponse.json({ error: '關聯訂單不屬於此公司' }, { status: 403 })
+    }
   }
 
   const invoice = await createNewInvoice(db, body)

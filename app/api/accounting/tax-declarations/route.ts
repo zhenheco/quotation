@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
+import { verifyCompanyMembership } from '@/lib/dal/companies'
 import {
   listTaxDeclarations,
   getOrCreateTaxDeclaration,
@@ -15,20 +16,19 @@ import type { TaxDeclarationStatus } from '@/types/models'
 
 /**
  * GET /api/accounting/tax-declarations
- *
- * Query params:
- * - company_id (required)
- * - year (optional)
- * - status (optional): draft | submitted | closed
- * - limit (optional, default 20)
- * - offset (optional, default 0)
  */
-export const GET = withAuth('tax-declarations:read')(async (request, { db }) => {
+export const GET = withAuth('tax-declarations:read')(async (request, { user, db }) => {
   const searchParams = request.nextUrl.searchParams
   const companyId = searchParams.get('company_id')
 
   if (!companyId) {
     return NextResponse.json({ error: 'company_id is required' }, { status: 400 })
+  }
+
+  // 多租戶隔離：驗證使用者屬於該公司
+  const isMember = await verifyCompanyMembership(db, user.id, companyId)
+  if (!isMember) {
+    return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
   }
 
   const year = searchParams.get('year') ? parseInt(searchParams.get('year')!, 10) : undefined
@@ -50,14 +50,8 @@ export const GET = withAuth('tax-declarations:read')(async (request, { db }) => 
 
 /**
  * POST /api/accounting/tax-declarations
- *
- * Body:
- * - company_id (required)
- * - year (required)
- * - bi_month (required): 1-6
- * - opening_offset (optional, default 0)
  */
-export const POST = withAuth('tax-declarations:write')(async (request, { db }) => {
+export const POST = withAuth('tax-declarations:write')(async (request, { user, db }) => {
   const body = (await request.json()) as {
     company_id?: string
     year?: number
@@ -70,6 +64,13 @@ export const POST = withAuth('tax-declarations:write')(async (request, { db }) =
   if (!companyId) {
     return NextResponse.json({ error: 'company_id is required' }, { status: 400 })
   }
+
+  // 多租戶隔離：驗證使用者屬於該公司
+  const isMember = await verifyCompanyMembership(db, user.id, companyId)
+  if (!isMember) {
+    return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
+  }
+
   if (!year || !biMonth) {
     return NextResponse.json({ error: 'year and bi_month are required' }, { status: 400 })
   }

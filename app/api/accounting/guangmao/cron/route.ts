@@ -97,11 +97,33 @@ export async function GET(req: NextRequest) {
           }
           break
         }
+        case 'ALLOWANCE': {
+          const response = await client.issueAllowance(request.request_data)
+          if (response.code === 0) {
+            await db
+              .from('acc_invoice_requests')
+              .update({ status: 'SUCCESS', response_data: response, updated_at: new Date().toISOString() })
+              .eq('id', request.id)
+            results.push({ id: request.id, status: 'SUCCESS' })
+          } else {
+            throw new Error(response.msg)
+          }
+          break
+        }
         default:
           results.push({ id: request.id, status: 'SKIPPED', error: `Unknown type: ${request.request_type}` })
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error'
+      console.error(`Guangmao cron [${request.request_type}] request ${request.id} failed:`, msg)
+      await db
+        .from('acc_invoice_requests')
+        .update({
+          status: 'FAILED',
+          error_message: msg,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', request.id)
       results.push({ id: request.id, status: 'FAILED', error: msg })
     }
   }

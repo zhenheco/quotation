@@ -6,7 +6,8 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { voidInvoiceById } from '@/lib/services/accounting'
+import { verifyCompanyMembership } from '@/lib/dal/companies'
+import { getInvoiceDetail, voidInvoiceById } from '@/lib/services/accounting'
 
 interface VoidRequestBody {
   reason: string
@@ -18,6 +19,17 @@ interface VoidRequestBody {
 export const POST = withAuth('invoices:void')<{ id: string }>(
   async (request, { user, db }, { id }) => {
     try {
+      const invoice = await getInvoiceDetail(db, id)
+      if (!invoice) {
+        return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+      }
+
+      // 多租戶隔離：驗證使用者屬於該公司
+      const isMember = await verifyCompanyMembership(db, user.id, invoice.company_id)
+      if (!isMember) {
+        return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
+      }
+
       const body = await request.json() as VoidRequestBody
 
       if (!body.reason || body.reason.trim().length === 0) {

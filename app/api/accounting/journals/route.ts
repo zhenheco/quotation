@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
+import { verifyCompanyMembership } from '@/lib/dal/companies'
 import {
   listJournalEntries,
   createNewJournal,
@@ -31,7 +32,7 @@ interface CreateJournalRequest {
 /**
  * GET /api/accounting/journals - 取得傳票列表
  */
-export const GET = withAuth('journals:read')(async (request, { db }) => {
+export const GET = withAuth('journals:read')(async (request, { user, db }) => {
   // 解析查詢參數
   const searchParams = request.nextUrl.searchParams
   const companyId = searchParams.get('company_id')
@@ -46,6 +47,12 @@ export const GET = withAuth('journals:read')(async (request, { db }) => {
 
   if (!companyId) {
     return NextResponse.json({ error: 'company_id is required' }, { status: 400 })
+  }
+
+  // 多租戶隔離：驗證使用者屬於該公司
+  const isMember = await verifyCompanyMembership(db, user.id, companyId)
+  if (!isMember) {
+    return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
   }
 
   const result = await listJournalEntries(db, {
@@ -66,7 +73,7 @@ export const GET = withAuth('journals:read')(async (request, { db }) => {
 /**
  * POST /api/accounting/journals - 建立新傳票
  */
-export const POST = withAuth('journals:write')(async (request, { db }) => {
+export const POST = withAuth('journals:write')(async (request, { user, db }) => {
   try {
     const body = await request.json() as CreateJournalRequest
 
@@ -74,11 +81,45 @@ export const POST = withAuth('journals:write')(async (request, { db }) => {
     if (!body.company_id) {
       return NextResponse.json({ error: 'company_id is required' }, { status: 400 })
     }
+
+    // 多租戶隔離：驗證使用者屬於該公司
+    const isMember = await verifyCompanyMembership(db, user.id, body.company_id)
+    if (!isMember) {
+      return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
+    }
+
     if (!body.date) {
       return NextResponse.json({ error: 'date is required' }, { status: 400 })
     }
     if (!body.transactions || body.transactions.length === 0) {
       return NextResponse.json({ error: 'transactions are required' }, { status: 400 })
+    }
+
+    // 資源一致性檢查：若有關聯發票，驗證發票屬於該公司
+    if (body.source_id && body.source_type === 'INVOICE') {
+      const { data: invoice } = await db
+        .from('acc_invoices')
+        .select('company_id')
+        .eq('id', body.source_id)
+        .single()
+
+      if (invoice && invoice.company_id !== body.company_id) {
+        return NextResponse.json({ error: '關聯發票不屬於此公司' }, { status: 403 })
+      }
+    }
+
+    // 驗證所有分錄的會計科目是否屬於該公司或系統預設
+    const accountIds = [...new Set(body.transactions.map(t => t.account_id))]
+    const { data: accounts } = await db
+      .from('accounts')
+      .select('id, company_id')
+      .in('id', accountIds)
+
+    if (accounts) {
+      const invalidAccount = accounts.find(a => a.company_id !== null && a.company_id !== body.company_id)
+      if (invalidAccount) {
+        return NextResponse.json({ error: '部分會計科目不屬於此公司' }, { status: 403 })
+      }
     }
 
     const journal = await createNewJournal(db, {

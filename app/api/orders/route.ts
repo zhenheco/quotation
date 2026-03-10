@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import { getCompanyIdFromRequest } from '@/lib/utils/company-context'
 import { getSupabaseClient } from '@/lib/db/supabase-client'
+import { verifyCompanyMembership } from '@/lib/dal/companies'
 import {
   getOrders,
   createOrder,
@@ -56,11 +57,17 @@ interface CreateOrderBody {
 /**
  * GET /api/orders - 取得訂單列表
  */
-export const GET = withAuth('orders:read')(async (request, { db }) => {
+export const GET = withAuth('orders:read')(async (request, { user, db }) => {
   // 取得公司 ID
   const companyId = getCompanyIdFromRequest(request)
   if (!companyId) {
     return NextResponse.json({ error: 'Company ID required' }, { status: 400 })
+  }
+
+  // 多租戶隔離：驗證使用者屬於該公司
+  const isMember = await verifyCompanyMembership(db, user.id, companyId)
+  if (!isMember) {
+    return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
   }
 
   // 取得查詢參數
@@ -124,6 +131,36 @@ export const POST = withAuth('orders:write')(async (request, { user, db }) => {
   // 驗證必填欄位
   if (!company_id || !customer_id) {
     return NextResponse.json({ error: 'Missing required fields: company_id and customer_id' }, { status: 400 })
+  }
+
+  // 多租戶隔離：驗證使用者屬於該公司
+  const isMember = await verifyCompanyMembership(db, user.id, company_id)
+  if (!isMember) {
+    return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
+  }
+
+  // 資源一致性檢查：驗證客戶屬於該公司
+  const { data: customer } = await db
+    .from('customers')
+    .select('company_id')
+    .eq('id', customer_id)
+    .single()
+
+  if (customer && customer.company_id !== company_id) {
+    return NextResponse.json({ error: '客戶不屬於此公司' }, { status: 403 })
+  }
+
+  // 資源一致性檢查：若有關聯報價單，驗證報價單屬於該公司
+  if (quotation_id) {
+    const { data: quotation } = await db
+      .from('quotations')
+      .select('company_id')
+      .eq('id', quotation_id)
+      .single()
+
+    if (quotation && quotation.company_id !== company_id) {
+      return NextResponse.json({ error: '報價單不屬於此公司' }, { status: 403 })
+    }
   }
 
   // 查詢 user_profiles.id（orders.created_by 外鍵參考 user_profiles.id）

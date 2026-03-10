@@ -6,7 +6,8 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/middleware'
 import { getErrorMessage } from '@/app/api/utils/error-handler'
-import { verifyInvoiceById } from '@/lib/services/accounting'
+import { verifyCompanyMembership } from '@/lib/dal/companies'
+import { getInvoiceDetail, verifyInvoiceById } from '@/lib/services/accounting'
 
 /**
  * POST /api/accounting/invoices/[id]/verify - 審核發票
@@ -14,8 +15,19 @@ import { verifyInvoiceById } from '@/lib/services/accounting'
 export const POST = withAuth('invoices:verify')<{ id: string }>(
   async (request, { user, db }, { id }) => {
     try {
-      const invoice = await verifyInvoiceById(db, id, user.id)
-      return NextResponse.json(invoice)
+      const invoice = await getInvoiceDetail(db, id)
+      if (!invoice) {
+        return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+      }
+
+      // 多租戶隔離：驗證使用者屬於該公司
+      const isMember = await verifyCompanyMembership(db, user.id, invoice.company_id)
+      if (!isMember) {
+        return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
+      }
+
+      const verified = await verifyInvoiceById(db, id, user.id)
+      return NextResponse.json(verified)
     } catch (error) {
       const message = getErrorMessage(error)
       if (message.includes('不存在')) {
