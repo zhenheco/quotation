@@ -30,7 +30,7 @@ export const MOF_PURCHASE_COLUMNS = {
   date: ['發票日期', '開票日期', '日期', 'Invoice Date'],
   sellerTaxId: ['賣方統一編號', '銷售人統一編號', '銷售人統編', '賣方統編', 'Seller Tax ID'],
   sellerName: ['賣方名稱', '銷售人名稱', 'Seller Name'],
-  untaxedAmount: ['銷售額', '未稅金額', '淨額', 'Sales Amount'],
+  untaxedAmount: ['銷售額', '未稅金額', '淨額', '應稅銷售額', 'Sales Amount'],
   taxAmount: ['稅額', '營業稅額', 'Tax Amount'],
   totalAmount: ['總計', '含稅金額', '發票金額', 'Total Amount'],
   taxType: ['課稅別', '稅別', 'Tax Type'],
@@ -45,7 +45,7 @@ export const MOF_SALES_COLUMNS = {
   date: ['發票日期', '開票日期', '日期', 'Invoice Date'],
   buyerTaxId: ['買方統一編號', '買受人統一編號', '買受人統編', '買方統編', 'Buyer Tax ID'],
   buyerName: ['買方名稱', '買受人名稱', 'Buyer Name'],
-  untaxedAmount: ['銷售額', '未稅金額', '淨額', 'Sales Amount'],
+  untaxedAmount: ['銷售額', '未稅金額', '淨額', '應稅銷售額', 'Sales Amount'],
   taxAmount: ['稅額', '營業稅額', 'Tax Amount'],
   totalAmount: ['總計', '含稅金額', '發票金額', 'Total Amount'],
   taxType: ['課稅別', '稅別', 'Tax Type'],
@@ -62,7 +62,7 @@ export const MOF_ALL_COLUMNS = {
   buyerName: ['買方名稱', '買受人名稱'],
   sellerTaxId: ['賣方統一編號', '銷售人統一編號', '賣方統編'],
   sellerName: ['賣方名稱', '銷售人名稱'],
-  untaxedAmount: ['銷售額合計', '銷售額', '未稅金額'],
+  untaxedAmount: ['銷售額合計', '銷售額', '未稅金額', '應稅銷售額'],
   taxableAmount: ['應稅銷售額'],
   zeroRatedAmount: ['零稅銷售額'],
   exemptAmount: ['免稅銷售額'],
@@ -399,12 +399,17 @@ export function parsePurchaseInvoiceRow(
   const sellerName = String(findColumnValue(row, MOF_PURCHASE_COLUMNS.sellerName) || '').trim()
 
   // 金額
-  const untaxedAmount = parseAmount(findColumnValue(row, MOF_PURCHASE_COLUMNS.untaxedAmount))
+  let untaxedAmount = parseAmount(findColumnValue(row, MOF_PURCHASE_COLUMNS.untaxedAmount))
   const taxAmount = parseAmount(findColumnValue(row, MOF_PURCHASE_COLUMNS.taxAmount))
 
   // 含稅金額：優先使用 Excel 的值，否則計算
   const rawTotal = findColumnValue(row, MOF_PURCHASE_COLUMNS.totalAmount)
   const totalAmount = rawTotal !== undefined ? parseAmount(rawTotal) : untaxedAmount + taxAmount
+
+  // 防護：若未稅金額為 0 但含稅金額 > 稅額，則反推未稅金額
+  if (untaxedAmount === 0 && totalAmount > 0 && totalAmount > taxAmount) {
+    untaxedAmount = totalAmount - taxAmount
+  }
 
   // 驗證金額
   if (untaxedAmount < 0) {
@@ -479,12 +484,17 @@ export function parseSalesInvoiceRow(
   const buyerName = String(findColumnValue(row, MOF_SALES_COLUMNS.buyerName) || '').trim()
 
   // 金額
-  const untaxedAmount = parseAmount(findColumnValue(row, MOF_SALES_COLUMNS.untaxedAmount))
+  let untaxedAmount = parseAmount(findColumnValue(row, MOF_SALES_COLUMNS.untaxedAmount))
   const taxAmount = parseAmount(findColumnValue(row, MOF_SALES_COLUMNS.taxAmount))
 
   // 含稅金額：優先使用 Excel 的值，否則計算
   const rawTotal = findColumnValue(row, MOF_SALES_COLUMNS.totalAmount)
   const totalAmount = rawTotal !== undefined ? parseAmount(rawTotal) : untaxedAmount + taxAmount
+
+  // 防護：若未稅金額為 0 但含稅金額 > 稅額，則反推未稅金額
+  if (untaxedAmount === 0 && totalAmount > 0 && totalAmount > taxAmount) {
+    untaxedAmount = totalAmount - taxAmount
+  }
 
   // 驗證金額
   if (untaxedAmount < 0) {
@@ -606,13 +616,18 @@ export function parseMofAllInvoiceRow(
   }
 
   // 金額：優先使用銷售額合計，否則用應稅銷售額
-  const untaxedAmount = parseAmount(findColumnValue(row, MOF_ALL_COLUMNS.untaxedAmount))
+  let untaxedAmount = parseAmount(findColumnValue(row, MOF_ALL_COLUMNS.untaxedAmount))
     || parseAmount(findColumnValue(row, MOF_ALL_COLUMNS.taxableAmount))
   const taxAmount = parseAmount(findColumnValue(row, MOF_ALL_COLUMNS.taxAmount))
 
   // 含稅金額
   const rawTotal = findColumnValue(row, MOF_ALL_COLUMNS.totalAmount)
   const totalAmount = rawTotal !== undefined ? parseAmount(rawTotal) : untaxedAmount + taxAmount
+
+  // 防護：若未稅金額為 0 但含稅金額 > 稅額，則反推未稅金額
+  if (untaxedAmount === 0 && totalAmount > 0 && totalAmount > taxAmount) {
+    untaxedAmount = totalAmount - taxAmount
+  }
 
   // 課稅別
   const taxType = normalizeTaxType(findColumnValue(row, MOF_ALL_COLUMNS.taxType))
