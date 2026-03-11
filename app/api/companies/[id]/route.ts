@@ -20,6 +20,7 @@ interface UpdateCompanyRequestBody {
   signature_url?: string;
   passbook_url?: string;
   tax_id?: string;
+  tax_registration_number?: string;
   bank_name?: string;
   bank_account?: string;
   bank_code?: string;
@@ -141,8 +142,16 @@ export async function PUT(
     // 構建更新資料
     const updateData: Record<string, unknown> = {};
 
-    // 處理名稱（合併中英文）
-    if (body.name_zh || body.name_en) {
+    // 處理名稱（支援 { zh, en } 物件或 name_zh/name_en 平面格式）
+    const bodyName = body.name as { zh?: string; en?: string } | undefined;
+    if (bodyName && typeof bodyName === "object") {
+      const currentCompany = await getCompanyById(db, id);
+      const currentName = currentCompany?.name || { zh: "", en: "" };
+      updateData.name = {
+        zh: bodyName.zh ?? currentName.zh,
+        en: bodyName.en ?? currentName.en,
+      };
+    } else if (body.name_zh || body.name_en) {
       const currentCompany = await getCompanyById(db, id);
       const currentName = currentCompany?.name || { zh: "", en: "" };
       updateData.name = {
@@ -151,8 +160,18 @@ export async function PUT(
       };
     }
 
-    // 處理地址（合併中英文）
-    if (body.address_zh || body.address_en) {
+    // 處理地址（支援 { zh, en } 物件或 address_zh/address_en 平面格式）
+    const bodyAddress = body.address as { zh?: string; en?: string } | undefined;
+    if (bodyAddress && typeof bodyAddress === "object") {
+      const currentCompany = updateData.name
+        ? null
+        : await getCompanyById(db, id);
+      const currentAddress = currentCompany?.address || { zh: "", en: "" };
+      updateData.address = {
+        zh: bodyAddress.zh ?? currentAddress.zh,
+        en: bodyAddress.en ?? currentAddress.en,
+      };
+    } else if (body.address_zh || body.address_en) {
       const currentCompany = await getCompanyById(db, id);
       const currentAddress = currentCompany?.address || { zh: "", en: "" };
       updateData.address = {
@@ -167,6 +186,7 @@ export async function PUT(
       "signature_url",
       "passbook_url",
       "tax_id",
+      "tax_registration_number",
       "bank_name",
       "bank_account",
       "bank_code",

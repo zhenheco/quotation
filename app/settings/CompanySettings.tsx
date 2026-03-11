@@ -29,6 +29,7 @@ interface Company {
   signature_url?: string;
   passbook_url?: string;
   tax_id?: string;
+  tax_registration_number?: string;
   bank_name?: string;
   bank_account?: string;
   bank_code?: string;
@@ -188,6 +189,7 @@ export default function CompanySettings({ triggerCreate }: CompanySettingsProps)
       const payload = {
         name: selectedCompany.name,
         tax_id: selectedCompany.tax_id,
+        tax_registration_number: selectedCompany.tax_registration_number,
         bank_name: selectedCompany.bank_name,
         bank_account: selectedCompany.bank_account,
         bank_code: selectedCompany.bank_code,
@@ -425,6 +427,22 @@ export default function CompanySettings({ triggerCreate }: CompanySettingsProps)
                 onChange={(e) => setSelectedCompany({ ...selectedCompany, tax_id: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                稅籍編號（9碼）
+              </label>
+              <input
+                type="text"
+                value={selectedCompany.tax_registration_number || ''}
+                onChange={(e) => setSelectedCompany({ ...selectedCompany, tax_registration_number: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="123456789"
+                maxLength={9}
+                pattern="[0-9]{9}"
+              />
+              <p className="mt-1 text-xs text-gray-500">國稅局配發，用於營業稅媒體申報。與統一編號（8碼）不同。</p>
             </div>
 
             <div>

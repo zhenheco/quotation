@@ -89,7 +89,7 @@ export function HeroSection() {
   const [showTransition, setShowTransition] = useState(false)
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowTransition(true), 5000)
+    const timer = setTimeout(() => setShowTransition(true), 2000)
     return () => clearTimeout(timer)
   }, [])
 
