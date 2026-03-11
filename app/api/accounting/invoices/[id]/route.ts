@@ -99,7 +99,10 @@ export const DELETE = withAuth('invoices:delete')<{ id: string }>(
         return NextResponse.json({ error: '無權存取此公司資料' }, { status: 403 })
       }
 
-      await deleteInvoiceById(db, id)
+      const { searchParams } = new URL(request.url)
+      const force = searchParams.get('force') === 'true'
+
+      await deleteInvoiceById(db, id, force)
       return NextResponse.json({ success: true })
     } catch (error) {
       const message = getErrorMessage(error)

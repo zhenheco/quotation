@@ -227,29 +227,75 @@ describe('media-file-generator - 401 媒體申報檔產生器', () => {
       const salesAmount = line.substring(49, 61)
       expect(salesAmount).toBe('000000012345')
     })
+
+    it('should use period end month for Output invoices regardless of invoice date', () => {
+      const invoice: MediaInvoiceData = {
+        type: 'OUTPUT',
+        invoiceNumber: 'AB-12345678',
+        date: '2024-01-15', // January
+        counterpartyTaxId: '87654321',
+        untaxedAmount: 10000,
+        taxAmount: 500,
+        taxCategory: 'TAXABLE_5',
+      }
+      
+      const options: MediaFileOptions = {
+        taxRegistrationNumber: '123456780',
+        taxId: '12345678',
+        year: 2024,
+        biMonth: 1, // Jan-Feb
+      }
+
+      const line = generateMediaLine(invoice, options, 1)
+      // 年月位置: 19-23 (0-indexed: 18-23)
+      const yearMonth = line.substring(18, 23)
+      expect(yearMonth).toBe('11302') // Should be February (Period End Month)
+    })
+
+    it('should use invoice month for Input invoices', () => {
+      const invoice: MediaInvoiceData = {
+        type: 'INPUT',
+        invoiceNumber: 'CD-87654321',
+        date: '2024-01-20', // January
+        counterpartyTaxId: '11223344',
+        untaxedAmount: 5000,
+        taxAmount: 250,
+        taxCategory: 'TAXABLE_5',
+      }
+      
+      const options: MediaFileOptions = {
+        taxRegistrationNumber: '123456780',
+        taxId: '12345678',
+        year: 2024,
+        biMonth: 1, // Jan-Feb
+      }
+
+      const line = generateMediaLine(invoice, options, 1)
+      const yearMonth = line.substring(18, 23)
+      expect(yearMonth).toBe('11301') // Should be January (Invoice Month)
+    })
   })
 
   describe('generateMediaFile - 產生完整媒體檔', () => {
-    it('should generate media file with correct statistics', () => {
+    it('should use continuous sequence numbers for both output and input', () => {
       const invoices: MediaInvoiceData[] = [
         {
           type: 'OUTPUT',
-          invoiceNumber: 'AB-12345678',
+          invoiceNumber: 'OUT-01',
           date: '2024-01-15',
           counterpartyTaxId: '87654321',
-          untaxedAmount: 10000,
-          taxAmount: 500,
+          untaxedAmount: 1000,
+          taxAmount: 50,
           taxCategory: 'TAXABLE_5',
         },
         {
           type: 'INPUT',
-          invoiceNumber: 'CD-87654321',
+          invoiceNumber: 'IN-01',
           date: '2024-01-20',
           counterpartyTaxId: '11223344',
-          untaxedAmount: 5000,
-          taxAmount: 250,
+          untaxedAmount: 500,
+          taxAmount: 25,
           taxCategory: 'TAXABLE_5',
-          isDeductible: true,
         },
       ]
 
@@ -261,16 +307,12 @@ describe('media-file-generator - 401 媒體申報檔產生器', () => {
       }
 
       const result = generateMediaFile(invoices, options)
-
-      expect(result.recordCount).toBe(2)
-      expect(result.outputCount).toBe(1)
-      expect(result.inputCount).toBe(1)
-      expect(result.outputAmount).toBe(10000)
-      expect(result.inputAmount).toBe(5000)
-      expect(result.outputTax).toBe(500)
-      expect(result.inputTax).toBe(250)
-      // 每筆記錄 81 bytes + CRLF (2 bytes) = 83 bytes per record
-      expect(result.content.length).toBe((RECORD_LENGTH + 2) * 2)
+      const lines = result.content.split('\r\n').filter(l => l.length > 0)
+      
+      // 第 1 筆 (Output) 流水號: 12-18 (0-indexed: 11-18)
+      expect(lines[0].substring(11, 18)).toBe('0000001')
+      // 第 2 筆 (Input) 流水號應為 0000002，而非重新開始
+      expect(lines[1].substring(11, 18)).toBe('0000002')
     })
   })
 

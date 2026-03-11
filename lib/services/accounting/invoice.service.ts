@@ -269,22 +269,24 @@ export async function voidInvoiceById(
 }
 
 /**
- * 刪除發票（僅限草稿）
+ * 刪除發票
+ * @param force - 強制刪除（允許刪除非草稿狀態的發票，如已過帳）
  */
 export async function deleteInvoiceById(
   db: SupabaseClient,
-  invoiceId: string
+  invoiceId: string,
+  force = false
 ): Promise<void> {
   const existing = await getInvoiceById(db, invoiceId)
   if (!existing) {
     throw new Error('發票不存在')
   }
 
-  if (existing.status !== 'DRAFT') {
+  if (!force && existing.status !== 'DRAFT') {
     throw new Error('只能刪除草稿狀態的發票')
   }
 
-  return deleteInvoice(db, invoiceId)
+  return deleteInvoice(db, invoiceId, force)
 }
 
 /**

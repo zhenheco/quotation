@@ -280,13 +280,22 @@ export function generateMediaLine(
   // 流水號（7碼）
   const seqNum = padNumber(sequenceNumber, 7);
 
-  // 資料所屬年月（填發票實際開立月份，非期別末月）
-  // 從發票日期取得年月，若無日期或日期無效則回退到期別末月
+  // 資料所屬年月
+  // 銷項、退出折讓：必須填報申報期別之末月 (例如 1-2月期填 11502)
+  // 進項：填報進項憑證上之年月 (跨期申報時填原年月，當期申報則通常填末月)
   const invoiceDate = invoice.date ? new Date(invoice.date) : null;
   const hasValidDate = invoiceDate !== null && !isNaN(invoiceDate.getTime());
-  const yearMonth = hasValidDate
-    ? formatYearMonth(invoiceDate.getFullYear(), invoiceDate.getMonth() + 1)
-    : formatYearMonth(year, biMonth * 2);
+  
+  let yearMonth: string;
+  if (type === "OUTPUT") {
+    // 銷項一律填期別末月
+    yearMonth = formatYearMonth(year, biMonth * 2);
+  } else {
+    // 進項填發票年月
+    yearMonth = hasValidDate
+      ? formatYearMonth(invoiceDate.getFullYear(), invoiceDate.getMonth() + 1)
+      : formatYearMonth(year, biMonth * 2);
+  }
 
   // 清理發票號碼
   const cleanedInvoiceNum = cleanInvoiceNumber(invoiceNumber);
@@ -329,20 +338,17 @@ export function generateMediaLine(
     deductionCode = getDeductionCode(isDeductible, isFixedAsset);
   }
 
-  // 特種稅額稅率（1碼）- 一般稅額營業人填空白
-  const specialTaxRate = " ";
-
-  // 彙加註記（1碼）- 空白=逐筆, A=彙總, B=進項分攤
+  // 彙加註記（1碼）- 空白=逐筆, A=彙總, B=進項分攤 (Pos 74)
   const summaryMark = invoice.isSummary ? "A" : " ";
 
-  // 通關方式（1碼）- 零稅率專用：1=非經海關, 2=經海關
+  // 通關方式（1碼）- 零稅率專用：1=非經海關, 2=經海關 (Pos 75)
   const customsType = taxCategory === "ZERO_RATED" ? "1" : " ";
 
-  // 空白保留（5碼）
-  const reserved = "     ";
+  // 空白保留 (Pos 76-81, 6 bytes)
+  const reserved = "      ";
 
   // 組合 81 bytes 記錄
-  // 依財政部「營業稅電子資料申報繳稅作業要點」第20點欄位順序
+  // 依財政部「營業稅電子資料申報繳稅作業要點」附件六欄位順序
   const line =
     formatCode + // 1-2 (2) 格式代號
     taxRegNum + // 3-11 (9) 稅籍編號
@@ -355,10 +361,9 @@ export function generateMediaLine(
     taxType + // 62 (1) 課稅別
     tax + // 63-72 (10) 稅額
     deductionCode + // 73 (1) 扣抵代號
-    specialTaxRate + // 74 (1) 特種稅額稅率
-    summaryMark + // 75 (1) 彙加註記
-    customsType + // 76 (1) 通關方式
-    reserved; // 77-81 (5) 保留
+    summaryMark + // 74 (1) 彙加註記
+    customsType + // 75 (1) 通關方式
+    reserved; // 76-81 (6) 保留
 
   // 驗證長度
   if (line.length !== RECORD_LENGTH) {
@@ -393,15 +398,14 @@ export function invoiceDetailToMediaData(
 
 /**
  * 產生完整媒體檔
- * 進項與銷項各自獨立編流水號，先銷項後進項排列
+ * 流水號必須在同一個檔案內唯一且連續 (1~N)，先銷項後進項排列
  */
 export function generateMediaFile(
   invoices: MediaInvoiceData[],
   options: MediaFileOptions,
 ): MediaFileResult {
   const lines: string[] = [];
-  let inputSeqNum = 0;
-  let outputSeqNum = 0;
+  let globalSeqNum = 0;
   let inputCount = 0;
   let outputCount = 0;
   let inputAmount = 0;
@@ -415,8 +419,8 @@ export function generateMediaFile(
 
   // 先處理銷項
   for (const invoice of outputInvoices) {
-    outputSeqNum++;
-    const line = generateMediaLine(invoice, options, outputSeqNum);
+    globalSeqNum++;
+    const line = generateMediaLine(invoice, options, globalSeqNum);
     lines.push(line);
     outputCount++;
     outputAmount += invoice.untaxedAmount;
@@ -425,8 +429,8 @@ export function generateMediaFile(
 
   // 再處理進項
   for (const invoice of inputInvoices) {
-    inputSeqNum++;
-    const line = generateMediaLine(invoice, options, inputSeqNum);
+    globalSeqNum++;
+    const line = generateMediaLine(invoice, options, globalSeqNum);
     lines.push(line);
     inputCount++;
     inputAmount += invoice.untaxedAmount;
@@ -438,7 +442,7 @@ export function generateMediaFile(
 
   return {
     content,
-    recordCount: inputCount + outputCount,
+    recordCount: globalSeqNum,
     inputCount,
     outputCount,
     inputAmount,

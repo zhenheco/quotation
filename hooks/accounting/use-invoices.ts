@@ -84,8 +84,9 @@ async function updateInvoice(id: string, input: UpdateInvoiceInput): Promise<Acc
   return apiClient.put<AccInvoice>(`/api/accounting/invoices/${id}`, input)
 }
 
-async function deleteInvoice(id: string): Promise<void> {
-  return apiClient.delete<void>(`/api/accounting/invoices/${id}`)
+async function deleteInvoice(id: string, force = false): Promise<void> {
+  const params = force ? '?force=true' : ''
+  return apiClient.delete<void>(`/api/accounting/invoices/${id}${params}`)
 }
 
 async function verifyInvoice(id: string): Promise<AccInvoice> {
@@ -209,8 +210,9 @@ export function useDeleteInvoice() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: deleteInvoice,
-    onSuccess: (_, id) => {
+    mutationFn: ({ id, force = false }: { id: string; force?: boolean }) =>
+      deleteInvoice(id, force),
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() })
       queryClient.removeQueries({ queryKey: invoiceKeys.detail(id) })
     },

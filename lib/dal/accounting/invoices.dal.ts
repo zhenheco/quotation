@@ -727,17 +727,18 @@ export async function voidInvoice(
 export async function deleteInvoice(
   db: SupabaseClient,
   invoiceId: string,
+  force = false,
 ): Promise<void> {
   const existing = await getInvoiceById(db, invoiceId);
   if (!existing) {
     throw new Error("發票不存在");
   }
 
-  if (existing.status === "POSTED") {
+  if (!force && existing.status === "POSTED") {
     throw new Error("已過帳的發票不能刪除");
   }
 
-  // 鎖定檢查：已送出/結案期別的發票不能刪除
+  // 鎖定檢查：已送出/結案期別的發票不能刪除（force 模式下仍然阻止）
   if (existing.declared_period_id) {
     const declaration = await getDeclarationStatus(
       db,
@@ -751,9 +752,35 @@ export async function deleteInvoice(
     }
   }
 
+  const now = new Date().toISOString();
+
+  // 強制刪除已過帳發票時，同步軟刪除關聯的傳票和交易明細
+  if (force && existing.journal_entry_id) {
+    // 先軟刪除交易明細（acc_transactions）
+    const { error: txError } = await db
+      .from("acc_transactions")
+      .update({ deleted_at: now })
+      .eq("journal_entry_id", existing.journal_entry_id)
+      .is("deleted_at", null);
+
+    if (txError) {
+      throw new Error(`刪除關聯交易明細失敗: ${txError.message}`);
+    }
+
+    // 再軟刪除傳票（journal_entries）
+    const { error: journalError } = await db
+      .from("journal_entries")
+      .update({ deleted_at: now })
+      .eq("id", existing.journal_entry_id);
+
+    if (journalError) {
+      throw new Error(`刪除關聯傳票失敗: ${journalError.message}`);
+    }
+  }
+
   const { error } = await db
     .from("acc_invoices")
-    .update({ deleted_at: new Date().toISOString() })
+    .update({ deleted_at: now })
     .eq("id", invoiceId);
 
   if (error) {
